@@ -890,6 +890,40 @@
         "mission"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.notebook",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/notebook-v1.0.0/fenix.notebook-1.0.0.fenixext",
+          "sha256": "ee290175e0f93bfd7ab7d1d93ee389d1ba762ca09258bf2ec690ab67a6748c5f",
+          "size": 490272,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "folders": {
+              "notebook": "${setting:notebook.folder}|data:notebook"
+            },
+            "process": [
+              "git"
+            ]
+          }
+        }
+      ],
+      "name": "Notebook",
+      "description": "Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
