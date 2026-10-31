@@ -947,6 +947,36 @@
         "themes"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.pdf",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/pdf-v1.0.0/fenix.pdf-1.0.0.fenixext",
+          "sha256": "ed52b41eaf22dbc6aa11685075c40beb7cb2dfbd5861b881e4233481df82c01a",
+          "size": 184213,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "process": [
+              "fenix-pdfium"
+            ]
+          }
+        }
+      ],
+      "name": "PDF reader",
+      "description": "PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
