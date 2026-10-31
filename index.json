@@ -1434,6 +1434,66 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.web",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/web-v1.0.0/fenix.web-1.0.0.fenixext",
+          "sha256": "5c45613ac6d74fb370d331ead3be13e1bfed8c6a491cf8f2640c8dbfa2e9d56e",
+          "size": 398131,
+          "dependencies": {
+            "fenix.config": "^1"
+          },
+          "categories": [
+            "languages",
+            "snippets",
+            "templates",
+            "web"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "node",
+              "${setting:web.node}",
+              "npm",
+              "pnpm",
+              "yarn",
+              "bun",
+              "corepack",
+              "fnm",
+              "volta",
+              "typescript-language-server",
+              "vscode-eslint-language-server",
+              "tailwindcss-language-server",
+              "vscode-css-language-server",
+              "vscode-html-language-server",
+              "prettier",
+              "biome",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Web: JavaScript and TypeScript",
+      "description": "JavaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config & Shell, debugging with js-debug (Node, each of package.json's scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json's scripts as tasks, the project's checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates",
+        "web"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
