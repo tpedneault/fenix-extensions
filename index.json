@@ -1691,6 +1691,34 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.reading-bundle",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/reading-bundle-v1.0.0/fenix.reading-bundle-1.0.0.fenixext",
+          "sha256": "ae4250441a7ecacbad2eee2311495edcdaeafaf226c44238ad4c02d95503daba",
+          "size": 923,
+          "dependencies": {
+            "fenix.pdf": "^1"
+          },
+          "categories": [
+            "tools"
+          ],
+          "bundle": [
+            "fenix.pdf"
+          ]
+        }
+      ],
+      "name": "Reading",
+      "description": "The PDF reader",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
