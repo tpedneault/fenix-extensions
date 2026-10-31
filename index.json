@@ -175,6 +175,57 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.config",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/config-v1.0.0/fenix.config-1.0.0.fenixext",
+          "sha256": "c925ea17dda6cce4cbe3008a697f518496cc43cf598c1e7d8c2db1cc6fa528a7",
+          "size": 327653,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "www.schemastore.org",
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "node",
+              "npm",
+              "yaml-language-server",
+              "vscode-json-language-server",
+              "docker-langserver",
+              "bash-language-server",
+              "taplo",
+              "marksman",
+              "shfmt",
+              "shellcheck",
+              "hadolint",
+              "prettier",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Config & Shell",
+      "description": "YAML, JSON, TOML, Dockerfiles, shell scripts and Markdown: their language servers, SchemaStore's schemas for GitHub Actions, Compose, package.json, tsconfig and the rest, Taplo, shfmt and Prettier formatting, ShellCheck and hadolint, the project's checks with their fixes, and snippets",
+      "categories": [
+        "languages",
+        "snippets"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
