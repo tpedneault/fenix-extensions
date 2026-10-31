@@ -774,6 +774,39 @@
         "templates"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.jira",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/jira-v1.0.0/fenix.jira-1.0.0.fenixext",
+          "sha256": "f5f0ec589d746d94c268a97ca525a8be6f47b64b68e7200a98b290f018dc3537",
+          "size": 199255,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "network": [
+              "${setting:jira.base_url}"
+            ],
+            "secrets": [
+              "jira.token"
+            ]
+          }
+        }
+      ],
+      "name": "Jira",
+      "description": "Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
