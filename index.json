@@ -1627,6 +1627,38 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.mission-bundle",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/mission-bundle-v1.0.0/fenix.mission-bundle-1.0.0.fenixext",
+          "sha256": "5559c8537897d3dd280f8804cab518b07ee11cca5a9cee77133fcf358021e07b",
+          "size": 1083,
+          "dependencies": {
+            "fenix.ccsds": "^1",
+            "fenix.mib": "^1",
+            "fenix.tcl": "^1"
+          },
+          "categories": [
+            "mission"
+          ],
+          "bundle": [
+            "fenix.ccsds",
+            "fenix.mib",
+            "fenix.tcl"
+          ]
+        }
+      ],
+      "name": "Mission",
+      "description": "SCOS-2000 MIB, CCSDS & PUS, Tcl",
+      "categories": [
+        "mission"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
