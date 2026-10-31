@@ -456,6 +456,40 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.discord",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/discord-v1.0.0/fenix.discord-1.0.0.fenixext",
+          "sha256": "bed812fc3dd4638ac75b3091085b1244144d1bf6088f66b6a6bf508543d82c75",
+          "size": 84271,
+          "dependencies": {},
+          "categories": [
+            "tools",
+            "fun"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "ipc": [
+              "discord-ipc-*",
+              "app/com.discordapp.Discord/discord-ipc-*",
+              "snap.discord/discord-ipc-*"
+            ]
+          }
+        }
+      ],
+      "name": "Discord",
+      "description": "Discord Rich Presence: the project, the file and its language, what you're debugging or running, and how long you've been at it, on your Discord profile",
+      "categories": [
+        "tools",
+        "fun"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
