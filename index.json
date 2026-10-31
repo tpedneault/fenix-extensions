@@ -924,6 +924,29 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.original-light-themes",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "none",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/original-light-themes-v1.0.0/fenix.original-light-themes-1.0.0.fenixext",
+          "sha256": "f993b6ee7e66eb90648a97e6b9c8bf72b337ae51221d2bed28fc101fd2fa4567",
+          "size": 6768,
+          "dependencies": {},
+          "categories": [
+            "themes"
+          ]
+        }
+      ],
+      "name": "Original light themes",
+      "description": "The light themes Fenix ships, in their published colours, untouched",
+      "categories": [
+        "themes"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
