@@ -490,6 +490,61 @@
         "fun"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.dotenv",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/dotenv-v1.0.0/fenix.dotenv-1.0.0.fenixext",
+          "sha256": "ffe9fe5c461e496f389cc63f7307db1f97694bbcb1ec0500a47971f2ebb5528e",
+          "size": 212970,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "process": [
+              "git",
+              "npm",
+              "npx",
+              "pnpm",
+              "yarn",
+              "bun",
+              "node",
+              "deno",
+              "python",
+              "python3",
+              "uv",
+              "poetry",
+              "pipenv",
+              "cargo",
+              "go",
+              "make",
+              "just",
+              "docker",
+              "dotnet",
+              "php",
+              "ruby",
+              "bundle",
+              "rails"
+            ]
+          }
+        }
+      ],
+      "name": "Env files",
+      "description": "Env files (.env): values hidden but on the cursor's line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like",
+      "categories": [
+        "languages",
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
