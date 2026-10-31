@@ -1152,6 +1152,52 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.review",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/review-v1.0.0/fenix.review-1.0.0.fenixext",
+          "sha256": "750a36a835e938e6435d323cfd5c2f664f682dde7214b40d26b1405bea788ebf",
+          "size": 247867,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "network": [
+              "api.github.com",
+              "*.actions.githubusercontent.com",
+              "*.blob.core.windows.net",
+              "${setting:gitlab.base_url}"
+            ],
+            "process": [
+              "git",
+              "gh"
+            ],
+            "secrets": [
+              "github.token",
+              "gitlab.token"
+            ],
+            "settings": [
+              "git",
+              "gitlab"
+            ]
+          }
+        }
+      ],
+      "name": "Review",
+      "description": "Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
