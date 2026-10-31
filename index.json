@@ -1198,6 +1198,47 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.ruby",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ruby-v1.0.0/fenix.ruby-1.0.0.fenixext",
+          "sha256": "a6a5c1e7753b1b2d03d60a8656bb3b3acf97d11bd0530d6bea6a79f9aa3df6b6",
+          "size": 495633,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "ruby",
+              "gem",
+              "bundle",
+              "rake",
+              "rspec",
+              "ruby-lsp",
+              "solargraph",
+              "rubocop",
+              "standardrb"
+            ]
+          }
+        }
+      ],
+      "name": "Ruby",
+      "description": "Ruby: tree-sitter-ruby's highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler's, Rake's, RSpec's and Rails' tasks, the project's checks with their fixes, and snippets",
+      "categories": [
+        "languages",
+        "snippets"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
