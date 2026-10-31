@@ -1719,6 +1719,34 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.review-bundle",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/review-bundle-v1.0.0/fenix.review-bundle-1.0.0.fenixext",
+          "sha256": "40e3cee637a885bb7b6af253c44b913c3949fb6cfde978586e23b76a3e040892",
+          "size": 978,
+          "dependencies": {
+            "fenix.review": "^1"
+          },
+          "categories": [
+            "tools"
+          ],
+          "bundle": [
+            "fenix.review"
+          ]
+        }
+      ],
+      "name": "Review",
+      "description": "GitHub pull requests, GitLab merge requests",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
