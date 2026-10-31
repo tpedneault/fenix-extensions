@@ -1321,6 +1321,53 @@
         "snippets"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.swift",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/swift-v1.0.0/fenix.swift-1.0.0.fenixext",
+          "sha256": "c3a5afb6039b3310b5dfb93c6c4775bac36f9cda047d4bc4e3b22cfaf08c1b4a",
+          "size": 636205,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "swift",
+              "sourcekit-lsp",
+              "swift-format",
+              "swiftformat",
+              "swiftlint",
+              "xcrun",
+              "brew",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Swift",
+      "description": "Swift on Linux and macOS: sourcekit-lsp, Swift's highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM's tasks, the project's checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
