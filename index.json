@@ -1567,6 +1567,34 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.kotlin-bundle",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/kotlin-bundle-v1.0.0/fenix.kotlin-bundle-1.0.0.fenixext",
+          "sha256": "d3da3c1363baaf2ae73fe2fb6bf9874591b655317e819728a78081d040520693",
+          "size": 1313,
+          "dependencies": {
+            "fenix.java": "^1"
+          },
+          "categories": [
+            "languages"
+          ],
+          "bundle": [
+            "fenix.java"
+          ]
+        }
+      ],
+      "name": "Kotlin",
+      "description": "Kotlin: its highlighting, kotlin-lsp or kotlin-language-server, ktlint, Gradle's tasks, snippets and Kotlin DSL projects -- the Java and Kotlin pack",
+      "categories": [
+        "languages"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
