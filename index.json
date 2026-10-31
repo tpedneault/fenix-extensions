@@ -856,6 +856,40 @@
         "templates"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.mib",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.0.0/fenix.mib-1.0.0.fenixext",
+          "sha256": "2e78ab4868c8d0ae8cf4c947f7e40bf0612eb7f519011cc445353f97ac3a9471",
+          "size": 507449,
+          "dependencies": {},
+          "categories": [
+            "mission"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "folders": {
+              "mib": "${setting:mib.roots}"
+            },
+            "settings": [
+              "ccsds"
+            ]
+          }
+        }
+      ],
+      "name": "SCOS-2000 MIB",
+      "description": "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form, and XTCE, C, Python or a Wireshark dissector generated from them",
+      "categories": [
+        "mission"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
