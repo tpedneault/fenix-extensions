@@ -226,6 +226,38 @@
         "snippets"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.containers",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/containers-v1.0.0/fenix.containers-1.0.0.fenixext",
+          "sha256": "c3b5f3456759391968721f855f8c6ea93072570d72d3b1c1e072f6747d1e11cf",
+          "size": 188147,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "filesystem": "project-read",
+            "process": [
+              "docker",
+              "podman",
+              "wslc"
+            ]
+          }
+        }
+      ],
+      "name": "Containers",
+      "description": "Docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
