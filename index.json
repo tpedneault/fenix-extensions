@@ -545,6 +545,50 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.dotnet",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/dotnet-v1.0.0/fenix.dotnet-1.0.0.fenixext",
+          "sha256": "f471ee72c3a70e754f17e28f5ec6eb5129b55b33ae83c39460f9268ab0f3d868",
+          "size": 393068,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "dotnet",
+              "csharp-ls",
+              "netcoredbg",
+              "csharpier",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "C# and .NET",
+      "description": "C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution's tasks, the project's checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new's projects",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
