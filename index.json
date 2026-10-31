@@ -345,6 +345,48 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.data-tools",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/data-tools-v1.0.0/fenix.data-tools-1.0.0.fenixext",
+          "sha256": "41516a7588ab5423f36084a58a90bfe627c6619a50a400b3b58f171e0d052b3f",
+          "size": 1131631,
+          "dependencies": {},
+          "categories": [
+            "data",
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-read",
+            "network": [
+              "www.schemastore.org",
+              "json.schemastore.org",
+              "raw.githubusercontent.com",
+              "${setting:data-tools.schema_host}"
+            ],
+            "process": [
+              "jq"
+            ],
+            "settings": [
+              "editor"
+            ]
+          }
+        }
+      ],
+      "name": "Data tools",
+      "description": "JSON, YAML and TOML: format with the project's indent, minify, sort keys, convert between them, query with JSONPath or jq, check against a JSON Schema (SchemaStore's by the file's name), escape strings, copy a key's path, and types from a sample",
+      "categories": [
+        "data",
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
