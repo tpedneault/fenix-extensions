@@ -387,6 +387,46 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.database",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/database-v1.0.0/fenix.database-1.0.0.fenixext",
+          "sha256": "792b2234f9f2426cae8925dd2d2b9127d244b69790e4d490604f7c1b4776b7a8",
+          "size": 3513318,
+          "dependencies": {},
+          "categories": [
+            "tools",
+            "data"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "secrets": [
+              "database.password.*",
+              "database.passwords"
+            ],
+            "sockets": [
+              "${setting:database.connections}",
+              "*:5432",
+              "*:3306",
+              "*:1433"
+            ]
+          }
+        }
+      ],
+      "name": "Database browser",
+      "description": "SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table's rows paged and changed, history, completion of the schema's names",
+      "categories": [
+        "tools",
+        "data"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
