@@ -1400,6 +1400,40 @@
         "languages"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.vnc",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/vnc-v1.0.0/fenix.vnc-1.0.0.fenixext",
+          "sha256": "7aeb0fddb136dab5b03a5eb1e81a1dc30c4711ad68de74d73ab32aef5e78d639",
+          "size": 171954,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "clipboard": true,
+            "folders": {
+              "screenshots": "${setting:vnc.screenshots}|data:vnc-screenshots"
+            },
+            "sockets": [
+              "${setting:vnc.hosts}",
+              "*:5900"
+            ]
+          }
+        }
+      ],
+      "name": "VNC",
+      "description": "Remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
