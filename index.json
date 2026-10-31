@@ -807,6 +807,55 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.lua",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/lua-v1.0.0/fenix.lua-1.0.0.fenixext",
+          "sha256": "5e1e9291618d5571f2a05b3dc691c29d6856e2dc33423a9f66a46fef7925d807",
+          "size": 324552,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "lua",
+              "luajit",
+              "luarocks",
+              "busted",
+              "love",
+              "lua-language-server",
+              "stylua",
+              "selene",
+              "luacheck",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Lua",
+      "description": "Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project's checks with their fixes, snippets, and LÖVE game and LuaRocks module projects",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
