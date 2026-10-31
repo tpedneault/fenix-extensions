@@ -1004,6 +1004,56 @@
         "fun"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.php",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/php-v1.0.0/fenix.php-1.0.0.fenixext",
+          "sha256": "2601be99a8691e9a4540ff1a2a34f864bf5ae1f2609e7af1f8a90717415af3b3",
+          "size": 440952,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "php",
+              "composer",
+              "npm",
+              "intelephense",
+              "phpactor",
+              "phpunit",
+              "pest",
+              "phpstan",
+              "pint",
+              "php-cs-fixer",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "PHP",
+      "description": "PHP: tree-sitter-php's highlighting, Intelephense or Phpactor, the project's Pint or PHP CS Fixer as the formatter, PHPStan on save, Composer's scripts and the project's tools as tasks, the project's checks with their fixes, snippets, and a Composer package project",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
