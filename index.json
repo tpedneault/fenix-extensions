@@ -71,6 +71,43 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.arduino",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/arduino-v1.0.0/fenix.arduino-1.0.0.fenixext",
+          "sha256": "909f828eecf8340ecbad1d8d82b333c871940360f517e1337c8c60a56352880b",
+          "size": 189716,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "filesystem": "project-write",
+            "process": [
+              "arduino-cli",
+              "clangd",
+              "arduino-language-server",
+              "${setting:arduino.cli}",
+              "${setting:arduino.clangd}",
+              "${setting:arduino.language_server}"
+            ]
+          }
+        }
+      ],
+      "name": "Arduino",
+      "description": "Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server",
+      "categories": [
+        "languages",
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
