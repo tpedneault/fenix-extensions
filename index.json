@@ -637,6 +637,56 @@
         "templates"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.http",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/http-v1.0.0/fenix.http-1.0.0.fenixext",
+          "sha256": "2eae4923893258406345d39eb9c10353d4eb3e8e2f317b6cc741e12df842432a",
+          "size": 875509,
+          "dependencies": {},
+          "categories": [
+            "web",
+            "tools",
+            "languages"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "clipboard": true,
+            "editor": "write",
+            "env": [
+              "${setting:http.env}"
+            ],
+            "filesystem": "project-write",
+            "listen": [
+              "127.0.0.1:*"
+            ],
+            "network": [
+              "*"
+            ],
+            "secrets": [
+              "http.secret.*",
+              "http.token.*",
+              "http.secrets"
+            ],
+            "sockets": [
+              "tcp://*:*"
+            ]
+          }
+        }
+      ],
+      "name": "HTTP client",
+      "description": "An HTTP client on .http files (REST Client's and JetBrains'): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response's body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server's schema, and imports from Postman, Insomnia, OpenAPI and curl",
+      "categories": [
+        "web",
+        "tools",
+        "languages"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
