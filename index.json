@@ -977,6 +977,33 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.pets",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/pets-v1.0.0/fenix.pets-1.0.0.fenixext",
+          "sha256": "e0a4604f21f98ed4f12df16b79db70b6bf30887d151192d1f085681721ee8c28",
+          "size": 432181,
+          "dependencies": {},
+          "categories": [
+            "fun"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "draw": "over"
+          }
+        }
+      ],
+      "name": "Pets",
+      "description": "Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails",
+      "categories": [
+        "fun"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
