@@ -1239,6 +1239,65 @@
         "snippets"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.rust",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/rust-v1.0.0/fenix.rust-1.0.0.fenixext",
+          "sha256": "b54c12f15af6418820c7c1cd829e8664050d61e5c96f1bfc8d4abd9ed64988aa",
+          "size": 441052,
+          "dependencies": {
+            "fenix.rust-snippets": "^1"
+          },
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "index.crates.io"
+            ],
+            "process": [
+              "cargo",
+              "rustup",
+              "rustc",
+              "rustfmt",
+              "rust-analyzer",
+              "cargo-audit",
+              "cargo-outdated",
+              "cargo-binstall",
+              "lldb-dap",
+              "lldb-dap-22",
+              "lldb-dap-21",
+              "lldb-dap-20",
+              "lldb-dap-19",
+              "lldb-dap-18",
+              "lldb-vscode",
+              "lldb-vscode-17",
+              "lldb-vscode-16",
+              "lldb-vscode-15",
+              "codelldb",
+              "${setting:rust.codelldb}"
+            ]
+          }
+        }
+      ],
+      "name": "Rust",
+      "description": "Rust: rust-analyzer, debugging with lldb-dap or CodeLLDB (each binary and example, the tests in your file, built by cargo first), clippy on save with its suggestions as fixes, rustfmt, tasks from Cargo.toml's targets, the toolchain checked with its fixes, outdated and vulnerable crates, snippets, and an Axum service",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
