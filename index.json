@@ -44,6 +44,33 @@
         "snippets"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.agenda",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/agenda-v1.0.0/fenix.agenda-1.0.0.fenixext",
+          "sha256": "09344d4e5b6639f823b2e400cc681eea39014ebd0818721d818944a1ebb300a1",
+          "size": 309492,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read"
+          }
+        }
+      ],
+      "name": "Agenda",
+      "description": "Tasks on a board, a clock for your time, and a week's timesheet -- linked to Jira issues when Jira is there",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
