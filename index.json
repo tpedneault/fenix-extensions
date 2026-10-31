@@ -1659,6 +1659,38 @@
         "mission"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.personal-bundle",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/personal-bundle-v1.0.0/fenix.personal-bundle-1.0.0.fenixext",
+          "sha256": "0f3a610e1e3aa56d210bcf1dcf121d9d37657a17cc4e9373a85deac144bb5055",
+          "size": 1036,
+          "dependencies": {
+            "fenix.agenda": "^1",
+            "fenix.diagrams": "^1",
+            "fenix.notebook": "^1"
+          },
+          "categories": [
+            "tools"
+          ],
+          "bundle": [
+            "fenix.agenda",
+            "fenix.diagrams",
+            "fenix.notebook"
+          ]
+        }
+      ],
+      "name": "Personal",
+      "description": "Notebook, Diagrams, Agenda",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
