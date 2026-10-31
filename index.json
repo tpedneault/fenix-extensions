@@ -1298,6 +1298,29 @@
         "templates"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.rust-snippets",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "none",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/rust-snippets-v1.0.0/fenix.rust-snippets-1.0.0.fenixext",
+          "sha256": "6d0b4467d6d991d3a820af4ef45b7ccdd654c1d497952f461567478c0a060e73",
+          "size": 3782,
+          "dependencies": {},
+          "categories": [
+            "snippets"
+          ]
+        }
+      ],
+      "name": "Rust snippets",
+      "description": "Snippets for everyday Rust: functions, tests, impls, matches and more",
+      "categories": [
+        "snippets"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
