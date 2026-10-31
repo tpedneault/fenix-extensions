@@ -687,6 +687,35 @@
         "languages"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.images",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/images-v1.0.0/fenix.images-1.0.0.fenixext",
+          "sha256": "e5e391e94f5abea0d96b6fadd64dcc15d4d435c2037ac2d059c4347d34c73512",
+          "size": 1061296,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "fonts": true
+          }
+        }
+      ],
+      "name": "Image viewer",
+      "description": "Pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
