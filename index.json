@@ -1,0 +1,49 @@
+{
+  "format": 1,
+  "extensions": [
+    {
+      "id": "fenix.ada",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.0.0/fenix.ada-1.0.0.fenixext",
+          "sha256": "e03b21c24a26d406c188f0d4d487a390fbb58c97ad6acbb043143b3261d8aabe",
+          "size": 381654,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "alr",
+              "gnat",
+              "gprbuild",
+              "gprclean",
+              "gnatprove",
+              "ada_language_server",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Ada and SPARK",
+      "description": "Ada and SPARK: their grammar, the Ada Language Server for Ada and GNAT project files, Alire's or gprbuild's tasks, GNATprove's findings as problems, the project's checks with fixes that install Alire, GNAT and the server, and snippets",
+      "categories": [
+        "languages",
+        "snippets"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    }
+  ]
+}
