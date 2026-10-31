@@ -1536,5 +1536,37 @@
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
     }
+  ],
+  "bundles": [
+    {
+      "id": "fenix.jira-bundle",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/jira-bundle-v1.0.0/fenix.jira-bundle-1.0.0.fenixext",
+          "sha256": "de5aa67e35a255f4fa0b2adeb4002cf8c803785cce04f9073c30e01388478d52",
+          "size": 994,
+          "dependencies": {
+            "fenix.agenda": "^1",
+            "fenix.jira": "^1"
+          },
+          "categories": [
+            "tools"
+          ],
+          "bundle": [
+            "fenix.agenda",
+            "fenix.jira"
+          ]
+        }
+      ],
+      "name": "Jira",
+      "description": "Jira, with the agenda kept in step",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    }
   ]
 }
