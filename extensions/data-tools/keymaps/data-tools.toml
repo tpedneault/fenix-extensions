@@ -1,0 +1,178 @@
+# The data tools' keys, under SPC x, and SPC m in a JSON, YAML or TOML
+# file. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC x"
+group = "data"
+
+[[leader]]
+keys = "SPC x f"
+label = "format"
+command = "data-tools.format"
+
+[[leader]]
+keys = "SPC x m"
+label = "minify"
+command = "data-tools.minify"
+
+[[leader]]
+keys = "SPC x s"
+label = "sort keys"
+command = "data-tools.sort"
+
+[[leader]]
+keys = "SPC x S"
+label = "sort the top level"
+command = "data-tools.sort_top"
+
+[[leader]]
+keys = "SPC x j"
+label = "as JSON, beside"
+command = "data-tools.to_json"
+
+[[leader]]
+keys = "SPC x y"
+label = "as YAML, beside"
+command = "data-tools.to_yaml"
+
+[[leader]]
+keys = "SPC x t"
+label = "as TOML, beside"
+command = "data-tools.to_toml"
+
+[[leader]]
+keys = "SPC x c"
+label = "convert in place"
+command = "data-tools.convert"
+
+[[leader]]
+keys = "SPC x q"
+label = "query (JSONPath, jq)"
+command = "data-tools.query"
+
+[[leader]]
+keys = "SPC x v"
+label = "check against the schema"
+command = "data-tools.validate"
+
+[[leader]]
+keys = "SPC x V"
+label = "pick the schema"
+command = "data-tools.schema"
+
+[[leader]]
+keys = "SPC x p"
+label = "copy the key's path"
+command = "data-tools.copy_path"
+
+[[leader]]
+keys = "SPC x e"
+label = "escape as a JSON string"
+command = "data-tools.escape"
+
+[[leader]]
+keys = "SPC x u"
+label = "unescape a JSON string"
+command = "data-tools.unescape"
+
+[[leader]]
+keys = "SPC x l"
+label = "as a string of JSON"
+command = "data-tools.stringify"
+
+[[leader]]
+keys = "SPC x L"
+label = "a string of JSON, parsed"
+command = "data-tools.parse_string"
+
+[[leader]]
+keys = "SPC x g"
+label = "types from the sample"
+command = "data-tools.types"
+
+# `SPC m` in a JSON, YAML or TOML file.
+
+[[local.data]]
+keys = "f"
+label = "format"
+command = "data-tools.format"
+
+[[local.data]]
+keys = "m"
+label = "minify"
+command = "data-tools.minify"
+
+[[local.data]]
+keys = "s"
+label = "sort keys"
+command = "data-tools.sort"
+
+[[local.data]]
+keys = "S"
+label = "sort the top level"
+command = "data-tools.sort_top"
+
+[[local.data]]
+keys = "j"
+label = "as JSON, beside"
+command = "data-tools.to_json"
+
+[[local.data]]
+keys = "y"
+label = "as YAML, beside"
+command = "data-tools.to_yaml"
+
+[[local.data]]
+keys = "t"
+label = "as TOML, beside"
+command = "data-tools.to_toml"
+
+[[local.data]]
+keys = "c"
+label = "convert in place"
+command = "data-tools.convert"
+
+[[local.data]]
+keys = "q"
+label = "query (JSONPath, jq)"
+command = "data-tools.query"
+
+[[local.data]]
+keys = "v"
+label = "check against the schema"
+command = "data-tools.validate"
+
+[[local.data]]
+keys = "V"
+label = "pick the schema"
+command = "data-tools.schema"
+
+[[local.data]]
+keys = "p"
+label = "copy the key's path"
+command = "data-tools.copy_path"
+
+[[local.data]]
+keys = "e"
+label = "escape as a JSON string"
+command = "data-tools.escape"
+
+[[local.data]]
+keys = "u"
+label = "unescape a JSON string"
+command = "data-tools.unescape"
+
+[[local.data]]
+keys = "l"
+label = "as a string of JSON"
+command = "data-tools.stringify"
+
+[[local.data]]
+keys = "L"
+label = "a string of JSON, parsed"
+command = "data-tools.parse_string"
+
+[[local.data]]
+keys = "g"
+label = "types from the sample"
+command = "data-tools.types"

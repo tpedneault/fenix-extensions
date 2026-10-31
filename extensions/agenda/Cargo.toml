@@ -1,0 +1,25 @@
+[package]
+name = "fenix-agenda"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Tasks on a board, a clock for your time, and their link to Jira."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+fenix-jira-client = { path = "../../crates/jira" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

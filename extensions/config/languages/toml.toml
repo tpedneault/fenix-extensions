@@ -1,0 +1,4 @@
+# More files Fenix reads as TOML: the lockfiles Cargo, uv, Poetry and PDM
+# write, and Pipfile.
+language = "toml"
+filenames = ["Cargo.lock", "uv.lock", "poetry.lock", "pdm.lock", "Pipfile"]

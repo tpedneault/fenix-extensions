@@ -1,0 +1,23 @@
+[package]
+name = "fenix-containers"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Containers in Fenix: Docker, Podman and wslc; Compose, logs, performance, images, volumes and networks."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

@@ -1,0 +1,10 @@
+# Built programs
+/{{name_kebab}}
+*.exe
+*.test
+*.out
+__debug_bin*
+/dist/
+
+# Your own
+.env

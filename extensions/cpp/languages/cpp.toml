@@ -1,0 +1,7 @@
+# More files Fenix reads as C++: modules' interfaces (`.cppm`, `.ixx`,
+# `.mpp`), and templates' and inline definitions kept out of a header
+# (`.ipp`, `.tpp`, `.txx`, `.tcc`). The server is the extension's to set,
+# once it has found clangd.
+language = "cpp"
+extensions = ["cppm", "ccm", "cxxm", "c++m", "ixx", "mpp", "ipp", "tpp", "txx", "tcc"]
+comment = "//"

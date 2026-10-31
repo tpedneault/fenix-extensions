@@ -1,0 +1,6 @@
+# More files Fenix reads as JSON: JSON with comments (tsconfig's and VS
+# Code's kind), a web app's manifest, and the tools' rc files that are
+# JSON. The servers are the extension's to set, once it has found them.
+language = "json"
+extensions = ["jsonc", "webmanifest", "code-workspace"]
+filenames = [".babelrc", ".eslintrc", ".prettierrc", ".swcrc", ".jshintrc", ".stylelintrc", ".lintstagedrc"]

@@ -1,0 +1,30 @@
+[package]
+name = "fenix-images"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "The image viewer for Fenix: PNG, JPEG, GIF, WebP, BMP and SVG in a pane, zoomed, panned and played."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The pictures, decoded in the sandbox: pure Rust, no threads.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
+# A JPEG too big to decode whole, decoded at a half, a quarter or an
+# eighth of its size instead.
+jpeg-decoder = { version = "0.3", default-features = false }
+# SVG, drawn at the zoom it's shown at; its text in the system's fonts.
+resvg = { version = "0.47", default-features = false, features = ["text"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

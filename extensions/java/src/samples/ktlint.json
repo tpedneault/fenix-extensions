@@ -1,0 +1,49 @@
+[
+    {
+        "file": "A.kt",
+        "errors": [
+            {
+                "line": 1,
+                "column": 1,
+                "message": "File 'A.kt' contains a single class, and possibly related top level declarations for that class. The file should be named after the class, 'a_b.kt'",
+                "rule": "standard:filename"
+            },
+            {
+                "line": 1,
+                "column": 7,
+                "message": "Class or object name should start with an uppercase letter and use camel case",
+                "rule": "standard:class-naming"
+            },
+            {
+                "line": 1,
+                "column": 13,
+                "message": "Missing newline after '{'",
+                "rule": "standard:statement-wrapping"
+            },
+            {
+                "line": 1,
+                "column": 19,
+                "message": "Unexpected whitespace",
+                "rule": "standard:parameter-list-spacing"
+            },
+            {
+                "line": 1,
+                "column": 19,
+                "message": "Unexpected spacing after \"(\"",
+                "rule": "standard:paren-spacing"
+            },
+            {
+                "line": 1,
+                "column": 19,
+                "message": "No whitespace expected in empty parameter list",
+                "rule": "standard:function-signature"
+            },
+            {
+                "line": 1,
+                "column": 26,
+                "message": "Missing newline before '}'",
+                "rule": "standard:statement-wrapping"
+            }
+        ]
+    }
+]

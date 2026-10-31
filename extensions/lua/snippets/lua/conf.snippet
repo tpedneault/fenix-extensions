@@ -1,0 +1,11 @@
+# name: LÖVE conf.lua
+# key: conf
+# scope: lua
+# --
+function love.conf(t)
+	t.identity = "${1:game}"
+	t.version = "${2:11.5}"
+	t.window.title = "${3:Game}"
+	t.window.width = ${4:800}
+	t.window.height = ${5:600}
+end

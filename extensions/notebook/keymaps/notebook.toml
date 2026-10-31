@@ -1,0 +1,117 @@
+# The notebook's keys, under SPC n, and SPC i D. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC n"
+group = "notebook"
+
+[[leader]]
+keys = "SPC i D"
+label = "a notebook diagram"
+command = "insert.diagram"
+
+[[leader]]
+keys = "SPC n n"
+label = "notebook page"
+command = "notebook.open"
+
+[[leader]]
+keys = "SPC n N"
+label = "new note"
+command = "notebook.new_note"
+
+[[leader]]
+keys = "SPC n d"
+label = "new diagram"
+command = "notebook.new_diagram"
+
+[[leader]]
+keys = "SPC n f"
+label = "find by name"
+command = "notebook.find"
+
+[[leader]]
+keys = "SPC n r"
+label = "reopen the last one"
+command = "notebook.recent"
+
+[[leader]]
+keys = "SPC n j"
+label = "today's journal"
+command = "notebook.journal"
+
+[[leader]]
+keys = "SPC n b"
+label = "links here (sidebar)"
+command = "notebook.backlinks"
+
+[[leader]]
+keys = "SPC n c"
+label = "capture a line"
+command = "notebook.capture"
+
+[[leader]]
+keys = "SPC n /"
+label = "search the notebook"
+command = "notebook.search"
+
+[[leader]]
+keys = "SPC n #"
+label = "tags"
+command = "notebook.tags"
+
+[[leader]]
+keys = "SPC n p"
+label = "this project's notes"
+command = "notebook.project"
+
+[[leader]]
+keys = "SPC n t"
+label = "checkbox to the agenda"
+command = "notebook.to_agenda"
+
+[[leader]]
+keys = "SPC n e"
+label = "export"
+command = "notebook.export"
+
+[[leader]]
+keys = "SPC n s"
+label = "save the ```mermaid block"
+command = "notebook.save_block"
+
+[[leader]]
+keys = "SPC n i"
+label = "import a file"
+command = "notebook.import"
+
+[[leader]]
+keys = "SPC n l"
+label = "insert a link"
+command = "notebook.insert_link"
+
+[[leader]]
+keys = "SPC n y"
+label = "copy a link to this line"
+command = "notebook.copy_link"
+
+[[leader]]
+keys = "SPC n v"
+label = "paste a picture"
+command = "notebook.paste_image"
+
+# SPC m in Markdown, after Fenix's own reading view (p, r).
+
+[[local.markdown]]
+keys = "b"
+label = "links here"
+command = "notebook.backlinks"
+
+[[local.markdown]]
+keys = "a"
+label = "journal: refresh the agenda list"
+command = "notebook.journal_agenda"
+
+[[local.markdown]]
+keys = "g"
+label = "journal: add today's commits"
+command = "notebook.journal_commits"

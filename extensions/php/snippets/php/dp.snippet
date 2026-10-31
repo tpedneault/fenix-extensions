@@ -1,0 +1,17 @@
+# name: PHPUnit test with a data provider
+# key: dp
+# scope: php
+# --
+/** @return iterable<string, array{${2:string}, ${3:string}}> */
+public static function ${1:cases}(): iterable
+{
+    yield '${4:empty}' => [${5:''}, ${6:''}];
+}
+
+#[Test]
+#[DataProvider('$1')]
+public function ${7:it_works}($2 \$input, $3 \$expected): void
+{
+    $0
+    self::assertSame(\$expected, \$input);
+}

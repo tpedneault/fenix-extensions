@@ -1,0 +1,10 @@
+# The tests of the file you're in's package, as go test runs them: in
+# its folder. Add `args = ["-test.run", "TestName"]` for one.
+name = "Go: test this package"
+languages = ["go"]
+program = "${fileDir}"
+cwd = "${fileDir}"
+args = ["-test.v"]
+
+[attributes]
+mode = "test"

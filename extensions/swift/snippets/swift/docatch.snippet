@@ -1,0 +1,10 @@
+# name: do/catch
+# key: docatch
+# scope: swift
+# --
+do {
+    try ${1:work()}
+} catch {
+    ${2:print(error)}
+}
+$0

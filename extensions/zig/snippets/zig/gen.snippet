@@ -1,0 +1,12 @@
+# name: Generic type, a comptime function
+# key: gen
+# scope: zig
+# --
+fn ${1:Stack}(comptime T: type) type {
+	return struct {
+		items: []T,
+
+		const Self = @This();
+		$0
+	};
+}

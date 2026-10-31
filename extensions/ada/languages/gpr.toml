@@ -1,0 +1,12 @@
+# GNAT's project files (.gpr), a language of their own that reads like
+# Ada: Ada's grammar and queries, under a name of their own, so the Ada
+# Language Server is started for them in its GPR mode (--language-gpr).
+# The grammar doesn't know `project ... is` or `for X use ...`, so a
+# project file parses with errors: its keywords, strings and comments
+# are coloured, and it doesn't fold.
+language = "gpr"
+grammar = "grammars/tree-sitter-ada.wasm"
+symbol = "ada"
+queries = "queries/ada"
+extensions = ["gpr"]
+comment = "--"

@@ -1,0 +1,12 @@
+# name: case ... in (pattern matching)
+# key: casein
+# scope: ruby
+# --
+case ${1:value}
+in {${2:name}:}
+  $0
+in [first, *rest]
+  ${3:first}
+else
+  ${4:nil}
+end

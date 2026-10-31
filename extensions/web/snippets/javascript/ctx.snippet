@@ -1,0 +1,14 @@
+# name: A context, its provider and its hook
+# key: ctx
+# scope: javascript, tsx
+# --
+const ${1:Thing}Context = createContext(${2:null});
+
+export function $1Provider({ children }) {
+  const value = ${3:useMemo(() => ({\}), [])};
+  return <$1Context.Provider value={value}>{children}</$1Context.Provider>;
+}
+
+export function use$1() {
+  return useContext($1Context);
+}$0

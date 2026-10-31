@@ -1,0 +1,107 @@
+[extension]
+id = "fenix.pomodoro"
+name = "Pomodoro"
+version = "1.0.0"
+description = "A focus timer: work rounds and breaks counted down on the modeline, today's rounds and the week's -- clocked into the agenda when it's there"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# A round carries on across a restart: the modeline shows it again, and
+# one that ran out while Fenix was closed is counted.
+[activation]
+on_startup = true
+
+[permissions]
+# A chime as a round ends (sounds/chime.wav).
+sound = true
+
+[contributes]
+# Where you are, for the "unfocused" warning (pomodoro.unfocused).
+events = ["focus"]
+
+[[contributes.commands]]
+id = "pomodoro.open"
+title = "Pomodoro: the round, today's and the week's"
+
+[[contributes.commands]]
+id = "pomodoro.start"
+title = "Pomodoro: start the round, or go on with a paused one"
+
+[[contributes.commands]]
+id = "pomodoro.pause"
+title = "Pomodoro: pause the round"
+
+[[contributes.commands]]
+id = "pomodoro.skip"
+title = "Pomodoro: skip to the next round"
+
+[[contributes.commands]]
+id = "pomodoro.reset"
+title = "Pomodoro: back to the first round"
+
+[[contributes.commands]]
+id = "pomodoro.task"
+title = "Pomodoro: pick the agenda task work rounds clock into"
+
+[[contributes.settings]]
+key = "pomodoro.work"
+kind = "minutes"
+label = "Work round"
+description = "How long a work round is."
+default = "25"
+
+[[contributes.settings]]
+key = "pomodoro.short_break"
+kind = "minutes"
+label = "Short break"
+description = "How long the break after a work round is."
+default = "5"
+
+[[contributes.settings]]
+key = "pomodoro.long_break"
+kind = "minutes"
+label = "Long break"
+description = "How long the break after every few work rounds is."
+default = "15"
+
+[[contributes.settings]]
+key = "pomodoro.long_every"
+kind = "int"
+label = "Long break every"
+description = "How many work rounds come before a long break."
+default = "4"
+
+[[contributes.settings]]
+key = "pomodoro.auto_breaks"
+kind = "bool"
+label = "Start breaks by themselves"
+description = "A break starts as soon as a work round ends; off, it waits for SPC o p s. Work rounds always wait for you."
+default = "true"
+
+[[contributes.settings]]
+key = "pomodoro.agenda"
+kind = "bool"
+label = "Clock into the agenda"
+description = "With the Agenda extension: a work round runs the agenda's clock on the task picked with SPC o p t, and stops it when the round ends. A clock already running is left as it is."
+default = "true"
+
+[[contributes.settings]]
+key = "pomodoro.sound"
+kind = "bool"
+label = "Chime"
+description = "A chime when a round runs out."
+default = "true"
+
+[[contributes.settings]]
+key = "pomodoro.unfocused"
+kind = "bool"
+label = "Warn when you wander"
+description = "During a work round, going to a page that isn't your work -- another extension's, Fenix's settings -- says so, once a round. Files and terminals are your work."
+default = "false"

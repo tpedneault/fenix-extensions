@@ -1,0 +1,5 @@
+# name: LINQ: GroupBy, counted
+# key: gb
+# scope: csharp
+# --
+${1:items}.GroupBy(${2:x} => $2.${3:Key}).Select(g => (g.Key, Count: g.Count()))$0

@@ -1,0 +1,68 @@
+{
+  "version": "0.1.0",
+  "name": "orbit-web",
+  "dependencies": {
+    "chalk": {
+      "version": "4.1.2",
+      "resolved": "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz",
+      "overridden": false,
+      "dependencies": {
+        "ansi-styles": {
+          "version": "4.3.0",
+          "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz",
+          "overridden": false,
+          "dependencies": {
+            "color-convert": {
+              "version": "2.0.1",
+              "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
+              "overridden": false,
+              "dependencies": {
+                "color-name": {
+                  "version": "1.1.4",
+                  "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
+                  "overridden": false
+                }
+              }
+            }
+          }
+        },
+        "supports-color": {
+          "version": "7.2.0",
+          "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz",
+          "overridden": false,
+          "dependencies": {
+            "has-flag": {
+              "version": "4.0.0",
+              "resolved": "https://registry.npmjs.org/has-flag/-/has-flag-4.0.0.tgz",
+              "overridden": false
+            }
+          }
+        }
+      }
+    },
+    "lodash": {
+      "version": "4.17.20",
+      "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz",
+      "overridden": false
+    },
+    "semver": {
+      "version": "7.5.4",
+      "resolved": "https://registry.npmjs.org/semver/-/semver-7.5.4.tgz",
+      "overridden": false,
+      "dependencies": {
+        "lru-cache": {
+          "version": "6.0.0",
+          "resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-6.0.0.tgz",
+          "overridden": false,
+          "dependencies": {
+            "yallist": {
+              "version": "4.0.0",
+              "resolved": "https://registry.npmjs.org/yallist/-/yallist-4.0.0.tgz",
+              "overridden": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

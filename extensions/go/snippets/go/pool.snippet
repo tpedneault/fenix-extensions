@@ -1,0 +1,21 @@
+# name: Worker pool
+# key: pool
+# scope: go
+# --
+jobs := make(chan ${1:int})
+results := make(chan ${2:int})
+var wg sync.WaitGroup
+for range ${3:4} {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for j := range jobs {
+			results <- ${4:j}
+		}
+	}()
+}
+go func() {
+	wg.Wait()
+	close(results)
+}()
+$0

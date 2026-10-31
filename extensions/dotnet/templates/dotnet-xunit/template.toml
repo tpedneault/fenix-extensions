@@ -1,0 +1,28 @@
+[template]
+name = ".NET · xUnit tests"
+kind = "other"
+group = ".NET"
+description = "An xUnit test project on its own, made by dotnet new: for trying something out, or tests beside code elsewhere."
+needs = ["dotnet"]
+open = ["UnitTest1.cs"]
+
+[[ask]]
+key = "framework"
+label = "Framework"
+choices = ["sdk", "net10.0", "net9.0", "net8.0"]
+default = "sdk"
+hint = "sdk: the newest your SDK makes"
+
+[[run]]
+exec = "dotnet"
+args = ["new", "xunit", "-n", "{{name_pascal}}", "-o", "."]
+when = "framework == sdk"
+
+[[run]]
+exec = "dotnet"
+args = ["new", "xunit", "-n", "{{name_pascal}}", "-o", ".", "-f", "{{framework}}"]
+when = "framework != sdk"
+
+[[run]]
+exec = "dotnet"
+args = ["new", "gitignore"]

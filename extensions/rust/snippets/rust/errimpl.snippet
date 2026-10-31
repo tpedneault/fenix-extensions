@@ -1,0 +1,12 @@
+# name: Error impl, by hand
+# key: errimpl
+# scope: rust
+# --
+impl std::fmt::Display for ${1:Error} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "${2:what went wrong}")
+    }
+}
+
+impl std::error::Error for $1 {}
+$0

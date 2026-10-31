@@ -1,0 +1,14 @@
+# Review's keys, under SPC g. Your own keybindings.toml wins.
+#
+# `M`, not `m` -- `SPC g m` is the merge *operation*, and the two are asked
+# for in completely different moods.
+
+[[leader]]
+keys = "SPC g P"
+label = "open a pull request"
+command = "git.pull_request"
+
+[[leader]]
+keys = "SPC g M"
+label = "reviews"
+command = "git.merge_requests"

@@ -1,0 +1,10 @@
+# name: select with the context
+# key: sel
+# scope: go
+# --
+select {
+case <-ctx.Done():
+	return ctx.Err()
+case ${1:v} := <-${2:ch}:
+	$0
+}

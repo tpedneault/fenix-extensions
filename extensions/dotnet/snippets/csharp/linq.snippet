@@ -1,0 +1,9 @@
+# name: LINQ query
+# key: linq
+# scope: csharp
+# --
+var ${1:result} =
+    from ${2:item} in ${3:items}
+    where ${4:true}
+    orderby $2.${5:Name}
+    select $2;$0

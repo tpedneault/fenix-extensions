@@ -1,0 +1,90 @@
+# A tag `<name>-v<version>` (`original-light-themes-v1.0.0`) releases the
+# extension in `extensions/<name>`: packed, attached to a GitHub release
+# with its SHA-256, then added to `index.json` on the `registry` branch,
+# which is signed with the registry key (MINISIGN_SECRET_KEY) whose public
+# half is built into Fenix.
+#
+# Run by hand (Actions, Release, Run workflow) with a tag, it releases
+# main's head the same way, and the release makes the tag.
+name: Release
+
+on:
+  push:
+    tags: ['*-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The release tag, `<name>-v<version>`'
+        required: true
+
+permissions:
+  contents: write
+
+# One at a time: each pushes the registry branch.
+concurrency:
+  group: registry
+
+env:
+  TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: A new tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if ! [[ "$TAG" =~ ^[a-z0-9-]+-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "not a release tag: $TAG"; exit 1; fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then echo "$TAG is already released"; exit 1; fi
+      - name: Install Rust stable and minisign
+        run: |
+          rustup toolchain install stable --profile minimal --target wasm32-wasip2 --no-self-update
+          rustup override set stable
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq minisign
+      - name: Pack
+        id: pack
+        run: |
+          dir=$(cargo xtask for-tag "$TAG")
+          info=$(cargo xtask pack "$dir" dist)
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "file=$(echo "$info" | jq -r .file)" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(echo "$info" | jq -r .sha256)" >> "$GITHUB_OUTPUT"
+          echo "size=$(echo "$info" | jq -r .size)" >> "$GITHUB_OUTPUT"
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          file='${{ steps.pack.outputs.file }}'
+          sha256sum "$file" > "$file.sha256"
+          gh release create "$TAG" "$file" "$file.sha256" --title "$TAG" --target "$GITHUB_SHA" --notes-file "${{ steps.pack.outputs.dir }}/CHANGELOG.md"
+      - name: Add it to the index, signed
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          file='${{ steps.pack.outputs.file }}'
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/$(basename "$file")"
+          # The registry branch, or a new one with nothing in it.
+          if git ls-remote --exit-code --heads origin registry > /dev/null; then
+            git fetch origin registry
+            git worktree add -B registry ../registry origin/registry
+          else
+            git worktree add --orphan -b registry ../registry
+          fi
+          cargo xtask index-add ../registry/index.json '${{ steps.pack.outputs.dir }}' "$url" '${{ steps.pack.outputs.sha256 }}' '${{ steps.pack.outputs.size }}'
+          printf '%s' "$MINISIGN_SECRET_KEY" > "$RUNNER_TEMP/registry.key"
+          if [ -n "$MINISIGN_PASSWORD" ]; then
+            printf '%s\n' "$MINISIGN_PASSWORD" | minisign -S -s "$RUNNER_TEMP/registry.key" -m ../registry/index.json -x ../registry/index.json.minisig -t "fenix-extensions index"
+          else
+            minisign -S -s "$RUNNER_TEMP/registry.key" -m ../registry/index.json -x ../registry/index.json.minisig -t "fenix-extensions index"
+          fi
+          rm -f "$RUNNER_TEMP/registry.key"
+          cd ../registry
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.json index.json.minisig
+          git commit -m "Index: $TAG"
+          git push origin HEAD:registry

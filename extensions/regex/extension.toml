@@ -1,0 +1,37 @@
+[extension]
+id = "fenix.regex"
+name = "Regex"
+version = "1.0.0"
+description = "A regex playground: matches and their groups coloured as you type, the replacement's result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Its commands load it.
+[activation]
+commands = ["regex.*"]
+
+[permissions]
+# Where you are: the regex under the cursor, or the selection, to open
+# on; the project, for its saved patterns; and the file you're in, read
+# and its matches marked in it.
+editor = "read"
+
+[contributes]
+# The file you're in (focus), and its text as you type (changed): its
+# matches marked while the playground's open.
+events = ["changed", "focus"]
+
+[[contributes.commands]]
+id = "regex.open"
+title = "Regex: playground -- on the regex under the cursor, or the selection as its text"
+
+[[contributes.commands]]
+id = "regex.cheatsheet"
+title = "Regex: cheatsheet -- the syntax and recipes, to try"

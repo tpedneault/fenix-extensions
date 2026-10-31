@@ -1,0 +1,55 @@
+[template]
+name = "Java · Gradle library"
+kind = "other"
+group = "Java and Kotlin"
+description = "A Java or Kotlin library built by Gradle (Kotlin DSL): `java-library`, its toolchain, sources and javadoc jars, JUnit 5 tests, and the wrapper."
+needs = ["gradle"]
+open = ["lib/src/main/java/{{name_snake}}/Library.java", "lib/src/main/kotlin/{{name_snake}}/Library.kt"]
+
+[[ask]]
+key = "language"
+label = "Language"
+choices = ["java", "kotlin"]
+default = "java"
+
+[[ask]]
+key = "java"
+label = "Java"
+choices = ["21", "25", "17"]
+default = "21"
+hint = "the toolchain's: Gradle downloads it if it isn't installed"
+
+[[file]]
+path = "settings.gradle.kts"
+from = "settings.gradle.kts"
+
+[[file]]
+path = "lib/build.gradle.kts"
+from = "lib.gradle.kts"
+after = true
+
+[[file]]
+path = "lib/src/main/java/{{name_snake}}/Library.java"
+from = "Library.java"
+when = "language == java"
+
+[[file]]
+path = "lib/src/test/java/{{name_snake}}/LibraryTest.java"
+from = "LibraryTest.java"
+when = "language == java"
+
+[[file]]
+path = "lib/src/main/kotlin/{{name_snake}}/Library.kt"
+from = "Library.kt"
+when = "language == kotlin"
+
+[[file]]
+path = "lib/src/test/kotlin/{{name_snake}}/LibraryTest.kt"
+from = "LibraryTest.kt"
+when = "language == kotlin"
+
+# The wrapper, made by the Gradle installed: the build's own files come
+# after, so making it doesn't read them.
+[[run]]
+exec = "gradle"
+args = ["wrapper", "--gradle-version", "9.8.2", "--distribution-type", "bin"]

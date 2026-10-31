@@ -1,0 +1,61 @@
+[extension]
+id = "fenix.vnc"
+name = "VNC"
+version = "1.0.0"
+description = "Remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Nothing loads until one of its commands runs, or a [workspaces] entry
+# opens a host (the vnc.connect service).
+[activation]
+commands = ["vnc.*"]
+
+[permissions]
+# The hosts in vnc.hosts; and any on VNC's own port, for a host whose port
+# is left at its default (5900).
+sockets = ["${setting:vnc.hosts}", "*:5900"]
+# Your clipboard goes to the guest when its pane takes the keyboard.
+clipboard = true
+# Where screenshots are saved.
+folders = { screenshots = "${setting:vnc.screenshots}|data:vnc-screenshots" }
+
+[contributes]
+# A [workspaces] entry's `vnc:NAME` opens that host through it.
+services = ["vnc.connect"]
+
+[[contributes.commands]]
+id = "vnc.open"
+title = "Open or switch to a configured VNC session"
+external = true
+
+[[contributes.commands]]
+id = "vnc.close"
+title = "Close the focused VNC session"
+
+[[contributes.commands]]
+id = "vnc.screenshot"
+title = "Save the focused VNC session's current frame as a PNG"
+
+[[contributes.settings]]
+key = "vnc.hosts"
+kind = "records"
+columns = ["name", "host", "port"]
+label = "Hosts"
+description = "Machines SPC v connects to: a name, a host, and a port (5900 when it's left empty). No passwords: every host is taken to be on a trusted network."
+section = "VNC"
+
+[[contributes.settings]]
+key = "vnc.screenshots"
+kind = "path"
+label = "Screenshots folder"
+description = "Where SPC v s saves a session's picture. Empty keeps them in Fenix's data folder."
+default = ""
+section = "VNC"

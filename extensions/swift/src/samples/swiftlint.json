@@ -1,0 +1,29 @@
+[
+  {
+    "character" : null,
+    "file" : "/home/ada/orbit/Sources/Orbit/Orbit.swift",
+    "line" : 12,
+    "reason" : "Lines should not have trailing whitespace",
+    "rule_id" : "trailing_whitespace",
+    "severity" : "Warning",
+    "type" : "Trailing Whitespace"
+  },
+  {
+    "character" : 13,
+    "file" : "/home/ada/orbit/Sources/Orbit/Orbit.swift",
+    "line" : 22,
+    "reason" : "Force casts should be avoided",
+    "rule_id" : "force_cast",
+    "severity" : "Error",
+    "type" : "Force Cast"
+  },
+  {
+    "character" : null,
+    "file" : "/home/ada/orbit/Sources/Orbit/Orbit.swift",
+    "line" : 4,
+    "reason" : "Line should be 120 characters or less; currently it has 134 characters",
+    "rule_id" : "line_length",
+    "severity" : "Warning",
+    "type" : "Line Length"
+  }
+]

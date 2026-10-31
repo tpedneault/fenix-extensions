@@ -1,0 +1,7 @@
+[template]
+name = "Lua · LuaRocks module"
+kind = "other"
+group = "Lua"
+description = "A Lua module to publish on LuaRocks: its rockspec, the module in src/, busted specs, and StyLua's and the server's configs."
+needs = ["luarocks"]
+open = ["src/{{name_snake}}.lua"]

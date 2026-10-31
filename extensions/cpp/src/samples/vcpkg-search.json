@@ -1,0 +1,26 @@
+{
+  "fmt": {
+    "package_name": "fmt",
+    "version": "11.1.4",
+    "port_version": 0,
+    "description": ["{fmt} is an open-source formatting library providing a fast and safe alternative to C stdio and C++ iostreams."]
+  },
+  "fmtlog": {
+    "package_name": "fmtlog",
+    "version": "2.2.1",
+    "port_version": 0,
+    "description": ["fmtlog is a performant fmtlib-style logging library with latency in nanoseconds."]
+  },
+  "spdlog": {
+    "package_name": "spdlog",
+    "version": "1.15.1",
+    "port_version": 0,
+    "description": ["Very fast, header-only/compiled, C++ logging library."]
+  },
+  "zlib": {
+    "package_name": "zlib",
+    "version": "1.3.1",
+    "port_version": 0,
+    "description": ["A compression library"]
+  }
+}

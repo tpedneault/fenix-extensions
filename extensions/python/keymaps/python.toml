@@ -1,0 +1,17 @@
+# Python's keys, after SPC m in a Python project or file. Your own
+# keybindings.toml wins.
+
+[[local.python]]
+keys = "p"
+label = "packages"
+command = "python.packages"
+
+[[local.python]]
+keys = "d"
+label = "check the project again"
+command = "python.doctor"
+
+[[local.python]]
+keys = "s"
+label = "sync .venv with uv.lock"
+command = "python.sync"

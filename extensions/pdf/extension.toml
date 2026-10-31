@@ -1,0 +1,153 @@
+[extension]
+id = "fenix.pdf"
+name = "PDF reader"
+version = "1.0.0"
+description = "PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Home lists what you read lately, and a .pdf opens in it: it runs while
+# Fenix does.
+[activation]
+on_startup = true
+
+[permissions]
+# fenix-pdfium, which comes with Fenix, beside fenix.exe: it renders the
+# pages with PDFium.
+process = ["fenix-pdfium"]
+# Where you are: a project's own shelf, and links to a page from it (yp).
+editor = "read"
+
+[contributes]
+# 1.x's settings keep their names.
+namespaces = ["reader"]
+opens = ["*.pdf"]
+# What Fenix asks of it: gf on x.pdf#page=38, a standard's clause (CCSDS),
+# and the standards library's search.
+services = ["pdf.open", "pdf.search"]
+
+# SPC m on a PDF.
+[[contributes.contexts]]
+name = "reader"
+pages = ["pdf"]
+
+[[contributes.commands]]
+id = "pdf.next_page"
+title = "Turn the PDF read last to the next page"
+
+[[contributes.commands]]
+id = "pdf.prev_page"
+title = "Turn the PDF read last to the previous page"
+
+[[contributes.commands]]
+id = "pdf.documents"
+title = "Open a document from the shelf: yours, a project's, the PDFs read lately"
+external = true
+
+[[contributes.commands]]
+id = "pdf.first_page"
+title = "Jump the PDF read last to its first page"
+
+[[contributes.commands]]
+id = "pdf.last_page"
+title = "Jump the PDF read last to its last page"
+
+[[contributes.commands]]
+id = "pdf.goto_page"
+title = "Prompt for a page number and jump to it"
+
+[[contributes.commands]]
+id = "pdf.zoom_in"
+title = "Zoom the PDF read last in"
+
+[[contributes.commands]]
+id = "pdf.zoom_out"
+title = "Zoom the PDF read last out"
+
+[[contributes.commands]]
+id = "pdf.fit_page"
+title = "Fit the PDF's page to the pane"
+
+[[contributes.commands]]
+id = "pdf.fit_width"
+title = "Fit the PDF's page to the pane's width"
+
+[[contributes.commands]]
+id = "pdf.toggle_outline"
+title = "Open or close the PDF's outline, matches and marks"
+
+[[contributes.commands]]
+id = "pdf.search"
+title = "Search the PDF's text for a word or phrase"
+
+[[contributes.commands]]
+id = "pdf.headings"
+title = "Go to one of the PDF's headings, picked by name"
+
+[[contributes.commands]]
+id = "pdf.colors"
+title = "Draw PDF pages as printed or in the theme's colours"
+
+[[contributes.commands]]
+id = "pdf.copy_link"
+title = "Copy a link to the PDF page being read"
+
+[[contributes.settings]]
+key = "reader.colors"
+kind = "choice"
+choices = ["paper", "theme"]
+label = "Page colours"
+description = "Paper shows pages as printed. Theme draws them in the current theme's colours. SPC r c switches; open PDFs change at once."
+default = "paper"
+section = "PDF reader"
+
+[[contributes.settings]]
+key = "reader.zoom"
+kind = "choice"
+choices = ["width", "page"]
+label = "Default zoom"
+description = "How a PDF opens the first time: its pages' width fills the pane, or a whole page fits. After that it opens as you left it."
+default = "width"
+section = "PDF reader"
+
+[[contributes.settings]]
+key = "reader.page_gap"
+kind = "int"
+label = "Page gap"
+description = "Pixels between pages, 0 to 40."
+default = "12"
+section = "PDF reader"
+
+[[contributes.settings]]
+key = "reader.remember"
+kind = "bool"
+label = "Remember position"
+description = "Reopen each PDF where you left it, with its zoom and marks."
+default = "true"
+section = "PDF reader"
+
+[[contributes.settings]]
+key = "reader.sidebar"
+kind = "choice"
+choices = ["auto", "beside", "over"]
+label = "Outline"
+description = "Where o opens the outline: in a pane beside the pages, over them (in their pane, closing when it takes you somewhere), or beside them when the pane is wide enough."
+default = "auto"
+section = "PDF reader"
+
+[[contributes.settings]]
+key = "reader.documents"
+kind = "map"
+columns = ["Name", "File"]
+label = "Documents"
+description = "The SPC r f shelf: a name and the file it opens. A project's own shelf (its .fenix/settings.toml) is listed in its place; its paths may be relative to it."
+default = ""
+project = true
+section = "PDF reader"

@@ -1,0 +1,7 @@
+# More files Fenix reads as Python: Windows' scripts, GYP's build files,
+# WSGI entry points, SCons' and waf's build scripts. The server is the
+# extension's to set, once it has found one.
+language = "python"
+extensions = ["pyw", "py3", "wsgi", "gyp", "gypi"]
+filenames = ["SConstruct", "SConscript", "wscript", ".pythonrc"]
+comment = "#"

@@ -1,0 +1,13 @@
+# name: Class
+# key: class
+# scope: php
+# --
+final class ${1:Name}
+{
+    public function __construct(
+        private ${2:string} \$${3:value},
+    ) {
+    }
+
+    $0
+}

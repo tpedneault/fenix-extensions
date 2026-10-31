@@ -1,0 +1,12 @@
+# The file you're in run as a module (python -m pkg.mod), so its relative
+# imports work: its module is its path below the project, src/ left off.
+# Fenix's ${module} keeps src/ in it, so a little code given to debugpy
+# (-c) works it out from the file Fenix sends as `program`, and runs it.
+name = "Python: current file as a module"
+languages = ["python"]
+cwd = "${project}"
+env = { PYTHONUNBUFFERED = "1", PYTHONPATH = "${project}/src" }
+
+[attributes]
+justMyCode = true
+debugpyArgs = ["-c", "import os, runpy, sys; f = os.path.relpath(sys.argv.pop(1)).replace(os.sep, '/'); m = f.removeprefix('src/').removesuffix('.py').replace('/', '.').removesuffix('.__main__').removesuffix('.__init__'); runpy.run_module(m, run_name='__main__', alter_sys=True)"]

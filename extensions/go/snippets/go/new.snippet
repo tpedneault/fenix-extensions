@@ -1,0 +1,8 @@
+# name: Constructor
+# key: new
+# scope: go
+# --
+func New${1:Type}(${2}) *$1 {
+	return &$1{${3}}
+}
+$0

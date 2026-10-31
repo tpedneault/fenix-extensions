@@ -1,0 +1,15 @@
+[package]
+name = "fenix-mib"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "SCOS-2000 MIBs (and XTCE) read, checked, queried and generated from: shared by the MIB and CCSDS extensions."
+
+[dependencies]
+fenix-ccsds = { path = "../ccsds" }
+roxmltree = "0.20"
+serde_json = "1"
+
+# Built with whichever extension uses it.
+[workspace]

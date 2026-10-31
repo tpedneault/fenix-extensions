@@ -1,0 +1,28 @@
+[package]
+name = "fenix-data-tools"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "JSON, YAML and TOML in Fenix: formatted, minified, keys sorted, converted, queried, checked against a schema, and types made from them."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+jsonschema = { version = "0.60.2", default-features = false }
+regex = "1.13.1"
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+serde_json_path = "0.7.2"
+toml = { version = "1.1.8", features = ["preserve_order"] }
+toml_edit = "0.25.17"
+yaml-rust2 = "0.13.0"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

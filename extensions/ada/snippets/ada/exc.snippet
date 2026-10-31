@@ -1,0 +1,10 @@
+# name: Block with an exception handler
+# key: exc
+# scope: ada
+# --
+begin
+   ${1:null;}
+exception
+   when ${2:E} : ${3:Constraint_Error} =>
+      ${4:raise;}
+end;

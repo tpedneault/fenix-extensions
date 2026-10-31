@@ -1,0 +1,32 @@
+# name: RAII handle: owns one, moves, doesn't copy
+# key: raii
+# scope: cpp
+# --
+class ${1:Handle} {
+public:
+    explicit $1(${2:int} resource) noexcept : resource_(resource) {}
+    $1(const $1&) = delete;
+    $1& operator=(const $1&) = delete;
+    $1($1&& other) noexcept : resource_(std::exchange(other.resource_, ${3:-1})) {}
+    $1& operator=($1&& other) noexcept {
+        if (this != &other) {
+            reset();
+            resource_ = std::exchange(other.resource_, $3);
+        }
+        return *this;
+    }
+    ~$1() { reset(); }
+
+    $2 get() const noexcept { return resource_; }
+
+private:
+    void reset() noexcept {
+        if (resource_ != $3) {
+            ${4:close(resource_);}
+            resource_ = $3;
+        }
+    }
+
+    $2 resource_;
+};
+$0

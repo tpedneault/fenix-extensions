@@ -1,0 +1,90 @@
+[extension]
+id = "fenix.ada"
+name = "Ada and SPARK"
+version = "1.0.0"
+description = "Ada and SPARK: their grammar, the Ada Language Server for Ada and GNAT project files, Alire's or gprbuild's tasks, GNATprove's findings as problems, the project's checks with fixes that install Alire, GNAT and the server, and snippets"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The grammar and its queries (0.8.5), the server given its settings
+# (0.8.6), the language files' `comment` and a setting of the project's
+# (0.8.7); the machine, for the releases (0.8.4).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Alire builds, runs, tests and proves a crate, and installs GNAT,
+# gprbuild and GNATprove; gprbuild and gprclean build a GNAT project;
+# GNATprove proves; the server serves. Where the pack installs them (the
+# tools folder), where Alire does, or where they're found.
+process = ["alr", "gnat", "gprbuild", "gprclean", "gnatprove", "ada_language_server", "/tools/*"]
+# Alire's and the server's releases, and where GitHub sends their
+# downloads.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# alire.toml, the project files, the sources (for SPARK_Mode) and .env,
+# read.
+filesystem = "project-read"
+# The file saved, to see whether it's new or says SPARK_Mode.
+editor = "read"
+
+[contributes]
+# alire.toml, a project file or a source saved: read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "ada"
+markers = ["alire.toml", "{folder}.gpr"]
+languages = ["ada", "gpr"]
+
+[[contributes.commands]]
+id = "ada.doctor"
+title = "Ada: check the project again (Alire, GNAT, gprbuild, the server, GNATprove)"
+
+[[contributes.commands]]
+id = "ada.prove"
+title = "Ada: prove with GNATprove, its findings as problems"
+
+[[contributes.commands]]
+id = "ada.install.alr"
+title = "Ada: install Alire 2.1.1"
+
+[[contributes.commands]]
+id = "ada.install.als"
+title = "Ada: install the Ada Language Server 2027.0.202610121"
+
+[[contributes.commands]]
+id = "ada.select-toolchain"
+title = "Ada: select Alire's GNAT and gprbuild (alr toolchain --select)"
+
+[[contributes.commands]]
+id = "ada.install-gnat"
+title = "Ada: install GNAT and gprbuild with Alire (alr install)"
+
+[[contributes.commands]]
+id = "ada.install-gnatprove"
+title = "Ada: install GNATprove with Alire (alr install)"
+
+[[contributes.settings]]
+key = "ada.projectFile"
+kind = "text"
+label = "Project file"
+description = "The GNAT project file (.gpr) the server, the tasks and GNATprove use, under the project; empty for an Alire crate's, or the only one at the top."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "ada.proveLevel"
+kind = "choice"
+choices = ["0", "1", "2", "3", "4"]
+label = "GNATprove's level"
+description = "gnatprove --level, for the prove task and SPC m p: 0 is the quickest, 4 tries hardest."
+default = "2"

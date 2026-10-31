@@ -1,0 +1,102 @@
+#[cfg(test)]
+use std::path::PathBuf;
+
+use super::store::AgendaStore;
+
+/// Loads the store from `path`. A missing or corrupt file loads as an
+/// empty store rather than failing -- the agenda is a convenience, not
+/// critical data that should refuse to open Fenix over, same posture
+/// `fenix-config`'s `load_or_default` already has for `config.ini`.
+pub fn load(path: &std::path::Path) -> AgendaStore {
+    std::fs::read_to_string(path).ok().and_then(|contents| serde_json::from_str(&contents).ok()).unwrap_or_default()
+}
+
+/// Reads the store from `path` for a reload: `None` when the file isn't
+/// there, an error when it can't be read or isn't an agenda (a sync
+/// tool's half-written copy, a hand edit gone wrong). Unlike `load`, a
+/// bad file isn't taken for an empty agenda, so the caller can keep the
+/// one it has rather than lose it at the next save.
+pub fn reload(path: &std::path::Path) -> std::io::Result<Option<AgendaStore>> {
+    let contents = match std::fs::read_to_string(path) {
+        Ok(contents) => contents,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e),
+    };
+    serde_json::from_str(&contents).map(Some).map_err(std::io::Error::other)
+}
+
+pub fn save(path: &std::path::Path, store: &AgendaStore) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let json = serde_json::to_vec_pretty(store).map_err(std::io::Error::other)?;
+    // Written beside it, then put in its place: a crash mid-write leaves
+    // the last good one.
+    let partial = path.with_extension("json.partial");
+    std::fs::write(&partial, &json)?;
+    std::fs::rename(&partial, path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::Priority;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    fn temp_path(name: &str) -> PathBuf {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!("fenix-agenda-test-{name}-{}-{n}.json", std::process::id()))
+    }
+
+    #[test]
+    fn loading_a_missing_file_yields_an_empty_store_not_an_error() {
+        let store = load(&temp_path("missing"));
+        assert!(store.tasks.is_empty());
+        assert!(store.active_timer.is_none());
+    }
+
+    #[test]
+    fn loading_a_corrupt_file_yields_an_empty_store_not_a_panic() {
+        let path = temp_path("corrupt");
+        std::fs::write(&path, b"not json").unwrap();
+        let store = load(&path);
+        assert!(store.tasks.is_empty());
+    }
+
+    #[test]
+    fn reload_tells_a_missing_file_from_a_bad_one() {
+        assert!(reload(&temp_path("reload-missing")).unwrap().is_none());
+        let path = temp_path("reload-bad");
+        std::fs::write(&path, b"{\"tasks\": [").unwrap();
+        assert!(reload(&path).is_err());
+        let mut store = AgendaStore::default();
+        store.create_task("Ship it".to_string(), String::new(), Priority::Medium, None);
+        save(&path, &store).unwrap();
+        assert_eq!(reload(&path).unwrap().unwrap().tasks[0].title, "Ship it");
+    }
+
+    #[test]
+    fn a_store_round_trips_through_save_and_load() {
+        let path = temp_path("round_trip");
+        let mut store = AgendaStore::default();
+        let a = store.create_task("Write the plan".to_string(), "details".to_string(), Priority::High, Some("Fenix".to_string()));
+        let b = store.create_task("Review it".to_string(), "".to_string(), Priority::Low, None);
+        store.add_dependency(b, a);
+        store.add_subtask(a, "Draft outline".to_string());
+        store.add_note(a, "started".to_string());
+        store.log_manual_time(a, chrono::Duration::minutes(30));
+        store.clock_in(b);
+
+        save(&path, &store).unwrap();
+        let reloaded = load(&path);
+
+        assert_eq!(reloaded.tasks.len(), 2);
+        assert_eq!(reloaded.task(a).unwrap().title, "Write the plan");
+        assert_eq!(reloaded.task(b).unwrap().depends_on, vec![a]);
+        assert_eq!(reloaded.task(a).unwrap().subtasks.len(), 1);
+        assert_eq!(reloaded.task(a).unwrap().notes.len(), 1);
+        assert_eq!(reloaded.task(a).unwrap().time_entries.len(), 1);
+        assert_eq!(reloaded.active_timer.as_ref().map(|t| t.task_id), Some(b));
+    }
+}

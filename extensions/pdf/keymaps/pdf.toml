@@ -1,0 +1,161 @@
+# The PDF reader's keys, under SPC r, and SPC m on a PDF, as 1.x had
+# them. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC r"
+group = "reader (pdf)"
+
+[[leader]]
+keys = "SPC r n"
+label = "next page"
+command = "pdf.next_page"
+
+[[leader]]
+keys = "SPC r p"
+label = "previous page"
+command = "pdf.prev_page"
+
+[[leader]]
+keys = "SPC r ["
+label = "first page"
+command = "pdf.first_page"
+
+[[leader]]
+keys = "SPC r ]"
+label = "last page"
+command = "pdf.last_page"
+
+[[leader]]
+keys = "SPC r g"
+label = "go to page"
+command = "pdf.goto_page"
+
+[[leader]]
+keys = "SPC r ="
+label = "zoom in"
+command = "pdf.zoom_in"
+
+[[leader]]
+keys = "SPC r -"
+label = "zoom out"
+command = "pdf.zoom_out"
+
+# `f` is the shelf, not fit page: picking a reference off it is how you
+# start reading, from any buffer; fit page is `SPC r 0`, as the bare key
+# in a PDF is `zp`.
+[[leader]]
+keys = "SPC r f"
+label = "find document"
+command = "pdf.documents"
+
+[[leader]]
+keys = "SPC r 0"
+label = "fit page"
+command = "pdf.fit_page"
+
+[[leader]]
+keys = "SPC r w"
+label = "fit width"
+command = "pdf.fit_width"
+
+[[leader]]
+keys = "SPC r o"
+label = "outline sidebar"
+command = "pdf.toggle_outline"
+
+[[leader]]
+keys = "SPC r t"
+label = "go to a heading"
+command = "pdf.headings"
+
+[[leader]]
+keys = "SPC r c"
+label = "paper / theme colours"
+command = "pdf.colors"
+
+[[leader]]
+keys = "SPC r y"
+label = "copy a link to this page"
+command = "pdf.copy_link"
+
+[[leader]]
+keys = "SPC r /"
+label = "search"
+command = "pdf.search"
+
+# `SPC m` in a PDF.
+
+[[local.reader]]
+keys = "n"
+label = "next page (J)"
+command = "pdf.next_page"
+
+[[local.reader]]
+keys = "p"
+label = "previous page (K)"
+command = "pdf.prev_page"
+
+[[local.reader]]
+keys = "g"
+label = "go to page ({n}G)"
+command = "pdf.goto_page"
+
+[[local.reader]]
+keys = "["
+label = "first page (gg)"
+command = "pdf.first_page"
+
+[[local.reader]]
+keys = "]"
+label = "last page (G)"
+command = "pdf.last_page"
+
+[[local.reader]]
+keys = "="
+label = "zoom in (+)"
+command = "pdf.zoom_in"
+
+[[local.reader]]
+keys = "-"
+label = "zoom out (-)"
+command = "pdf.zoom_out"
+
+[[local.reader]]
+keys = "w"
+label = "fit width (zw)"
+command = "pdf.fit_width"
+
+[[local.reader]]
+keys = "f"
+label = "fit page (zp)"
+command = "pdf.fit_page"
+
+[[local.reader]]
+keys = "o"
+label = "outline sidebar (o)"
+command = "pdf.toggle_outline"
+
+[[local.reader]]
+keys = "t"
+label = "go to a heading"
+command = "pdf.headings"
+
+[[local.reader]]
+keys = "c"
+label = "paper / theme colours"
+command = "pdf.colors"
+
+[[local.reader]]
+keys = "y"
+label = "copy a link to this page (yp)"
+command = "pdf.copy_link"
+
+[[local.reader]]
+keys = "/"
+label = "search (/)"
+command = "pdf.search"
+
+[[local.reader]]
+keys = "d"
+label = "documents"
+command = "pdf.documents"

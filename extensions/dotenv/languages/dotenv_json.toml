@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.json`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "json"
+filenames = [".env*.json"]

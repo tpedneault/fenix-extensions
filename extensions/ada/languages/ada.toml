@@ -1,0 +1,8 @@
+# Ada and SPARK, which Fenix doesn't highlight itself: tree-sitter-ada's
+# grammar, compiled to WebAssembly (0.8.5), and its queries from
+# queries/ada. GNAT's .ads (specs) and .adb (bodies), and .ada. The server
+# is the extension's to set, once it has found the Ada Language Server.
+language = "ada"
+grammar = "grammars/tree-sitter-ada.wasm"
+extensions = ["ads", "adb", "ada"]
+comment = "--"

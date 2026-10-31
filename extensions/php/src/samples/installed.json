@@ -1,0 +1,39 @@
+{
+    "packages": [
+        {
+            "name": "brick/math",
+            "version": "0.12.3",
+            "version_normalized": "0.12.3.0",
+            "install-path": "../brick/math"
+        },
+        {
+            "name": "laravel/framework",
+            "version": "v11.6.1",
+            "version_normalized": "11.6.1.0",
+            "install-path": "../laravel/framework"
+        },
+        {
+            "name": "laravel/pint",
+            "version": "v1.18.3",
+            "version_normalized": "1.18.3.0",
+            "install-path": "../laravel/pint"
+        },
+        {
+            "name": "nesbot/carbon",
+            "version": "3.8.4",
+            "version_normalized": "3.8.4.0",
+            "install-path": "../nesbot/carbon"
+        },
+        {
+            "name": "phpunit/phpunit",
+            "version": "11.4.4",
+            "version_normalized": "11.4.4.0",
+            "install-path": "../phpunit/phpunit"
+        }
+    ],
+    "dev": true,
+    "dev-package-names": [
+        "laravel/pint",
+        "phpunit/phpunit"
+    ]
+}

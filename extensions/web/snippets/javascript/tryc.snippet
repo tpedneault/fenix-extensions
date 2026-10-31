@@ -1,0 +1,10 @@
+# name: Await, in try and catch
+# key: tryc
+# scope: javascript, typescript, tsx
+# --
+try {
+  const ${1:result} = await ${2:work()};
+  $0
+} catch (error) {
+  ${3:console.error(error);}
+}

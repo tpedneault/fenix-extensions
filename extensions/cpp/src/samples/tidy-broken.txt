@@ -1,0 +1,7 @@
+/home/user/work/cpp-pack/sample/src/broken.cpp:1:10: error: 'missing.hpp' file not found [clang-diagnostic-error]
+    1 | #include "missing.hpp"
+      |          ^~~~~~~~~~~~~
+/home/user/work/cpp-pack/sample/src/broken.cpp:4:5: error: the result from calling 'memcpy' is not null-terminated [bugprone-not-null-terminated-result,-warnings-as-errors]
+    4 |     std::memcpy(dst, src, std::strlen(src));
+      |     ^~~~~~~~~~~         ~~~~~~~~~~~~~~~~~~
+      |     strcpy

@@ -1,0 +1,29 @@
+{
+    "name": "orbit/desk",
+    "type": "project",
+    "description": "Ground station desk",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "ext-mbstring": "*",
+        "laravel/framework": "^11.6",
+        "nesbot/carbon": "^3.8"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Orbit\\Desk\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse",
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump"
+        ]
+    }
+}

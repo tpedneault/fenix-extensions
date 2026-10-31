@@ -1,0 +1,194 @@
+{
+    "reportSchema": "1.1",
+    "scanInfo": {
+        "engineVersion": "12.2.2",
+        "dataSource": [
+            {
+                "name": "NVD API Last Checked",
+                "timestamp": "2026-10-29T07:40:12Z"
+            }
+        ]
+    },
+    "projectInfo": {
+        "name": "orbit",
+        "groupID": "orbit",
+        "artifactID": "orbit",
+        "version": "0.1.0-SNAPSHOT",
+        "reportDate": "2026-10-29T07:41:03.511Z",
+        "credits": {
+            "NVD": "This product uses the NVD API but is not endorsed or certified by the NVD. This report contains data retrieved from the National Vulnerability Database: https://nvd.nist.gov"
+        }
+    },
+    "dependencies": [
+        {
+            "isVirtual": false,
+            "fileName": "guava-33.0.0-jre.jar",
+            "filePath": "/home/u/.m2/repository/com/google/guava/guava/33.0.0-jre/guava-33.0.0-jre.jar",
+            "md5": "8a1b1d1b2e6f6c33f2e1b4b8a0a1f1d2",
+            "sha1": "161ba27964a62f241533807a46b8711b13c1d94b",
+            "sha256": "f4d85c3e4d411694337cb873abea09b242b664bb013320be6105327c45991537",
+            "projectReferences": [
+                "orbit-core:compile"
+            ],
+            "evidenceCollected": {
+                "vendorEvidence": [],
+                "productEvidence": [],
+                "versionEvidence": []
+            },
+            "packages": [
+                {
+                    "id": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+                    "confidence": "HIGHEST",
+                    "url": "https://ossindex.sonatype.org/component/pkg:maven/com.google.guava/guava@33.0.0-jre?utm_source=dependency-check&utm_medium=integration&utm_content=12.2.2"
+                }
+            ]
+        },
+        {
+            "isVirtual": false,
+            "fileName": "log4j-core-2.14.1.jar",
+            "filePath": "/home/u/.m2/repository/org/apache/logging/log4j/log4j-core/2.14.1/log4j-core-2.14.1.jar",
+            "md5": "f3a7e8b8f7c2a0b5e1d9c6b4a3f2e1d0",
+            "sha1": "9141212b8507ab50a45525b545b39d224614528b",
+            "sha256": "ade7402a70667a727635d5c4c29495f4ff96f061f12539763f6f123973b465b0",
+            "projectReferences": [
+                "orbit-api:compile"
+            ],
+            "evidenceCollected": {
+                "vendorEvidence": [],
+                "productEvidence": [],
+                "versionEvidence": []
+            },
+            "packages": [
+                {
+                    "id": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+                    "confidence": "HIGHEST"
+                }
+            ],
+            "vulnerabilityIds": [
+                {
+                    "id": "cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*",
+                    "confidence": "HIGHEST"
+                }
+            ],
+            "vulnerabilities": [
+                {
+                    "source": "NVD",
+                    "name": "CVE-2021-44228",
+                    "knownExploitedVulnerability": {
+                        "VendorProject": "Apache",
+                        "Product": "Log4j2",
+                        "Name": "Apache Log4j2 Remote Code Execution Vulnerability",
+                        "DateAdded": "2021-12-10",
+                        "Description": "Apache Log4j2 contains a vulnerability where JNDI features do not protect against attacker-controlled JNDI-related endpoints, allowing for remote code execution.",
+                        "RequiredAction": "For all affected software assets for which updates exist, the only acceptable remediation actions are: 1) Apply updates; OR 2) remove affected assets from agency networks.",
+                        "DueDate": "2021-12-24",
+                        "Notes": ""
+                    },
+                    "severity": "CRITICAL",
+                    "cvssv3": {
+                        "baseScore": 10.0,
+                        "attackVector": "NETWORK",
+                        "attackComplexity": "LOW",
+                        "privilegesRequired": "NONE",
+                        "userInteraction": "NONE",
+                        "scope": "CHANGED",
+                        "confidentialityImpact": "HIGH",
+                        "integrityImpact": "HIGH",
+                        "availabilityImpact": "HIGH",
+                        "baseSeverity": "CRITICAL",
+                        "exploitabilityScore": "3.9",
+                        "impactScore": "6.0",
+                        "version": "3.1"
+                    },
+                    "cwes": [
+                        "CWE-917",
+                        "CWE-502"
+                    ],
+                    "description": "Apache Log4j2 2.0-beta9 through 2.15.0 (excluding security releases 2.12.2, 2.12.3, and 2.3.1) JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints.",
+                    "notes": "",
+                    "references": [
+                        {
+                            "source": "af854a3a-2127-422b-91ae-364da2661108",
+                            "url": "https://logging.apache.org/log4j/2.x/security.html",
+                            "name": "https://logging.apache.org/log4j/2.x/security.html"
+                        }
+                    ],
+                    "vulnerableSoftware": [
+                        {
+                            "software": {
+                                "id": "cpe:2.3:a:apache:log4j:*:*:*:*:*:*:*:*",
+                                "vulnerabilityIdMatched": "true",
+                                "versionStartIncluding": "2.13.0",
+                                "versionEndExcluding": "2.15.0"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "source": "NVD",
+                    "name": "CVE-2021-45046",
+                    "severity": "CRITICAL",
+                    "cvssv3": {
+                        "baseScore": 9.0,
+                        "attackVector": "NETWORK",
+                        "attackComplexity": "HIGH",
+                        "privilegesRequired": "NONE",
+                        "userInteraction": "NONE",
+                        "scope": "CHANGED",
+                        "confidentialityImpact": "HIGH",
+                        "integrityImpact": "HIGH",
+                        "availabilityImpact": "HIGH",
+                        "baseSeverity": "CRITICAL",
+                        "version": "3.1"
+                    },
+                    "description": "It was found that the fix to address CVE-2021-44228 in Apache Log4j 2.15.0 was incomplete in certain non-default configurations.",
+                    "notes": "",
+                    "references": [],
+                    "vulnerableSoftware": [
+                        {
+                            "software": {
+                                "id": "cpe:2.3:a:apache:log4j:*:*:*:*:*:*:*:*",
+                                "vulnerabilityIdMatched": "true",
+                                "versionStartIncluding": "2.13.0",
+                                "versionEndExcluding": "2.16.0"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "source": "OSSINDEX",
+                    "name": "CVE-2021-44832",
+                    "unscored": "true",
+                    "severity": "MEDIUM",
+                    "description": "Apache Log4j2 versions 2.0-beta7 through 2.17.0 are vulnerable to a remote code execution attack when a configuration uses a JDBC Appender.",
+                    "notes": "",
+                    "references": [
+                        {
+                            "source": "OSSINDEX",
+                            "url": "https://ossindex.sonatype.org/vulnerability/CVE-2021-44832",
+                            "name": "[CVE-2021-44832] Improper Input Validation"
+                        }
+                    ],
+                    "vulnerableSoftware": [
+                        {
+                            "software": {
+                                "id": "cpe:2.3:a:*:log4j-core:2.14.1:*:*:*:*:*:*:*",
+                                "vulnerabilityIdMatched": "true"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "isVirtual": true,
+            "fileName": "orbit-core",
+            "filePath": "/home/u/orbit/core/pom.xml",
+            "evidenceCollected": {
+                "vendorEvidence": [],
+                "productEvidence": [],
+                "versionEvidence": []
+            }
+        }
+    ]
+}

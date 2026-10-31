@@ -1,0 +1,69 @@
+[extension]
+id = "fenix.images"
+name = "Image viewer"
+version = "1.0.0"
+description = "Pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# A picture opens in it however you open it, which starts it; so do its
+# commands.
+[activation]
+commands = ["images.*"]
+
+[permissions]
+# The folder a picture's in, for ] and [ (one outside the project Fenix
+# lists); the pictures a line names, for the preview.
+filesystem = "project-read"
+# Where you are, for the preview: the file, the line, the cursor, its
+# project.
+editor = "read"
+# An SVG's text, and the details line, in the system's fonts.
+fonts = true
+
+[contributes]
+opens = ["*.png", "*.apng", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.bmp", "*.svg", "*.svgz"]
+
+# SPC m on a picture.
+[[contributes.contexts]]
+name = "images"
+pages = ["image", "preview"]
+
+[[contributes.commands]]
+id = "images.preview"
+title = "Image: preview the picture this line names, beside it (again closes it)"
+
+[[contributes.commands]]
+id = "images.next"
+title = "Image: the next picture in its folder"
+
+[[contributes.commands]]
+id = "images.previous"
+title = "Image: the previous picture in its folder"
+
+[[contributes.commands]]
+id = "images.fit"
+title = "Image: fit it to the pane"
+
+[[contributes.commands]]
+id = "images.actual_size"
+title = "Image: show it at its actual size"
+
+[[contributes.commands]]
+id = "images.source"
+title = "Image: an SVG's source, its text to edit"
+
+[[contributes.commands]]
+id = "images.play"
+title = "Image: play or pause a moving picture"
+
+[[contributes.commands]]
+id = "images.details"
+title = "Image: show or hide the details line"

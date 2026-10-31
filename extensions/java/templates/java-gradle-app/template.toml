@@ -1,0 +1,55 @@
+[template]
+name = "Java · Gradle application"
+kind = "other"
+group = "Java and Kotlin"
+description = "A Java or Kotlin application built by Gradle (Kotlin DSL): its toolchain, JUnit 5 tests, and the wrapper."
+needs = ["gradle"]
+open = ["app/src/main/java/{{name_snake}}/App.java", "app/src/main/kotlin/{{name_snake}}/App.kt"]
+
+[[ask]]
+key = "language"
+label = "Language"
+choices = ["java", "kotlin"]
+default = "java"
+
+[[ask]]
+key = "java"
+label = "Java"
+choices = ["21", "25", "17"]
+default = "21"
+hint = "the toolchain's: Gradle downloads it if it isn't installed"
+
+[[file]]
+path = "settings.gradle.kts"
+from = "settings.gradle.kts"
+
+[[file]]
+path = "app/build.gradle.kts"
+from = "app.gradle.kts"
+after = true
+
+[[file]]
+path = "app/src/main/java/{{name_snake}}/App.java"
+from = "App.java"
+when = "language == java"
+
+[[file]]
+path = "app/src/test/java/{{name_snake}}/AppTest.java"
+from = "AppTest.java"
+when = "language == java"
+
+[[file]]
+path = "app/src/main/kotlin/{{name_snake}}/App.kt"
+from = "App.kt"
+when = "language == kotlin"
+
+[[file]]
+path = "app/src/test/kotlin/{{name_snake}}/AppTest.kt"
+from = "AppTest.kt"
+when = "language == kotlin"
+
+# The wrapper, made by the Gradle installed: the build's own files come
+# after, so making it doesn't read them.
+[[run]]
+exec = "gradle"
+args = ["wrapper", "--gradle-version", "9.8.2", "--distribution-type", "bin"]

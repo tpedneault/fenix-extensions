@@ -1,0 +1,35 @@
+# The pets' keys, under SPC P. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC P"
+group = "pets"
+
+[[leader]]
+keys = "SPC P a"
+label = "adopt a pet"
+command = "pets.adopt"
+
+[[leader]]
+keys = "SPC P b"
+label = "throw the ball"
+command = "pets.throw_ball"
+
+[[leader]]
+keys = "SPC P h"
+label = "hide / bring back"
+command = "pets.hide"
+
+[[leader]]
+keys = "SPC P r"
+label = "rehome one"
+command = "pets.rehome"
+
+[[leader]]
+keys = "SPC P p"
+label = "their home"
+command = "pets.home"
+
+[[leader]]
+keys = "SPC P w"
+label = "dress one up"
+command = "pets.dress"

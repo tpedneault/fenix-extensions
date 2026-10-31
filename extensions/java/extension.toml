@@ -1,0 +1,131 @@
+[extension]
+id = "fenix.java"
+name = "Java and Kotlin"
+version = "1.0.0"
+description = "Java and Kotlin: Eclipse JDT LS, debugging with java-debug, kotlin-language-server and Kotlin's highlighting, google-java-format and ktlint, Gradle's and Maven's tasks, the project's checks with their fixes, outdated and vulnerable dependencies, snippets, and Gradle, Spring Boot and Maven projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Kotlin's grammar as WebAssembly, from its language file (0.8.5); the
+# debug adapter on a port and the machine (0.8.4); formatters, a
+# linter's problems and the tools folder (0.8.3); the project's wrapper
+# by `./gradlew` and its `.bat` on Windows, `${data}` for JDT LS's
+# workspace, ktlint's text kept when it fails, the language file's
+# `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks, and Java's server, are there
+# from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Gradle and Maven (their wrappers, run from the project), the JDK, JDT
+# LS's and the servers' Java, kotlin-lsp, google-java-format and ktlint
+# where they're installed, and what the pack installs into its tools
+# folder.
+process = ["java", "javac", "gradle", "mvn", "gradlew", "mvnw", "kotlin-lsp", "google-java-format", "ktlint", "jdtls", "fenix-java", "${setting:java.jdk}", "/tools/*"]
+# The releases it installs: Temurin's JRE, JDT LS, java-debug,
+# kotlin-language-server, google-java-format, ktlint; and where GitHub
+# sends a download.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com", "download.eclipse.org", "repo1.maven.org"]
+# java-debug, on the port JDT LS starts it on.
+sockets = ["tcp://localhost:1024-65535", "tcp://127.0.0.1:1024-65535"]
+# The build's files, the reports Gradle and Maven write, read.
+filesystem = "project-read"
+# The file saved, for ktlint.
+editor = "read"
+
+[contributes]
+# A file saved: ktlint, or the build read again; the file you're in: its
+# module is the one to test and add to.
+events = ["saved", "focus"]
+
+# Java's language server is the pack: it runs Eclipse JDT LS and passes
+# its messages on.
+[[contributes.language_servers]]
+name = "jdtls"
+languages = ["java"]
+
+[[contributes.contexts]]
+name = "java"
+markers = ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "pom.xml"]
+languages = ["java", "kotlin"]
+
+[[contributes.commands]]
+id = "java.packages"
+title = "Java: dependencies -- outdated and vulnerable, upgrade, add, remove"
+
+[[contributes.commands]]
+id = "java.doctor"
+title = "Java: check the project again (the JDK, the wrapper, JDT LS, java-debug, the formatters)"
+
+[[contributes.commands]]
+id = "java.debug-main"
+title = "Java: debug a main class (held for the debugger)"
+
+[[contributes.commands]]
+id = "java.debug-tests"
+title = "Java: debug the tests (held for the debugger)"
+
+[[contributes.commands]]
+id = "java.reload"
+title = "Java: read the build again"
+
+[[contributes.commands]]
+id = "java.install-jdk"
+title = "Java: download the JDK the project needs"
+
+[[contributes.commands]]
+id = "java.wrapper"
+title = "Java: make the Gradle or Maven wrapper"
+
+[[contributes.commands]]
+id = "java.install.jre"
+title = "Java: install the servers' Java (Temurin JRE 25)"
+
+[[contributes.commands]]
+id = "java.install.jdtls"
+title = "Java: install the language server (Eclipse JDT LS)"
+
+[[contributes.commands]]
+id = "java.install.java-debug"
+title = "Java: install the debugger (java-debug)"
+
+[[contributes.commands]]
+id = "java.install.kotlin-language-server"
+title = "Java: install Kotlin's language server (kotlin-language-server)"
+
+[[contributes.commands]]
+id = "java.install.google-java-format"
+title = "Java: install google-java-format"
+
+[[contributes.commands]]
+id = "java.install.ktlint"
+title = "Java: install ktlint"
+
+[[contributes.settings]]
+key = "java.jdk"
+kind = "path"
+label = "JDK"
+description = "The JDK to use -- its java, or its bin folder -- when it isn't the one on PATH: the project doctor checks it, JDT LS compiles against it, and Gradle and Maven run with it as JAVA_HOME."
+default = ""
+
+[[contributes.settings]]
+key = "java.ktlint_on_save"
+kind = "bool"
+label = "ktlint on save"
+description = "Lint a saved Kotlin file with ktlint and show its problems."
+default = "true"
+
+[[contributes.settings]]
+key = "java.dependency_check"
+kind = "bool"
+label = "OWASP dependency-check"
+description = "Find vulnerable dependencies with OWASP dependency-check on the package page, when the build doesn't have it already. Its first run downloads NVD's database, which takes a while."
+default = "false"

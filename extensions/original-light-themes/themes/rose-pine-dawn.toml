@@ -1,0 +1,56 @@
+# Rosé Pine's light variant.
+#
+# In its published colours, as its authors chose them: Fenix's own copy
+# keeps every colour at a contrast it can read; this one doesn't.
+name = "Rosé Pine Dawn (original)"
+tabs = "underline"
+
+[surfaces]
+bg = "#faf4ed"
+sidebar_bg = "#fffaf3"
+bg_modeline = "#f2e9e1"
+divider = "#dfdad9"
+caret = "#575279"
+hl_line = "#f4ede8"
+selection = { color = "#9893a5", alpha = 0.25 }
+bracket_match = { color = "#56949f", alpha = 0.12 }
+search_match = { color = "#ea9d34", alpha = 0.15 }
+
+[text]
+fg = "#575279"
+caret_text = "#575279"
+gutter_fg = "#9893a5"
+
+[modes]
+normal = "#d7827e"
+insert = "#56949f"
+visual = "#907aa9"
+replace = "#ea9d34"
+command = "#286983"
+explorer = "#56949f"
+picker = "#b4637a"
+text_dark = "#faf4ed"
+
+[syntax]
+keyword = "#907aa9"
+string = "#ea9d34"
+comment = "#9893a5"
+function = "#d7827e"
+type = "#56949f"
+number = "#b4637a"
+constant = "#ea9d34"
+variable = "#575279"
+operator = "#797593"
+punctuation = "#797593"
+attribute = "#286983"
+
+[explorer]
+folder = "#56949f"
+file = "#575279"
+
+[git]
+modified = "#ea9d34"
+staged = "#56949f"
+untracked = "#286983"
+ignored = "#9893a5"
+conflicted = "#b4637a"

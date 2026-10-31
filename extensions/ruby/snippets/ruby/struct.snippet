@@ -1,0 +1,7 @@
+# name: Struct
+# key: struct
+# scope: ruby
+# --
+${1:Point} = Struct.new(${2::x, :y}, keyword_init: true) do
+  $0
+end

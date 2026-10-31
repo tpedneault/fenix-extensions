@@ -1,0 +1,208 @@
+[extension]
+id = "fenix.mib"
+name = "SCOS-2000 MIB"
+version = "1.0.0"
+description = "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form, and XTCE, C, Python or a Wireshark dissector generated from them"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["mission"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# With Fenix: the project doctor's checks are there from the start, and
+# the MIB is read as soon as you're in a project's file, for K, gd and
+# completion.
+[activation]
+on_startup = true
+
+[permissions]
+# Where you are (the call on the cursor's line, the file the insert form
+# goes into), and the telecommand typed into it.
+editor = "write"
+# A project that's a MIB, read; what SPC k g generates, into generated/.
+filesystem = "project-write"
+# The MIB folders mib.roots names: each at /folders/mib/<name>.
+folders = { mib = "${setting:mib.roots}" }
+# The mission profile packets are read and built against: the CCSDS
+# settings.
+settings = ["ccsds"]
+
+[contributes]
+# The notebook's mib: links.
+services = ["mib.open"]
+
+# MIB names in any file (mib.editor_files narrows it).
+[[contributes.language_servers]]
+name = "mib"
+files = ["*"]
+
+# Its SPC m menu in a Tcl file, beside the Tcl extension's.
+[[contributes.contexts]]
+name = "tcl"
+languages = ["tcl"]
+
+[[contributes.commands]]
+id = "mib.page"
+title = "MIB: the MIB page -- telecommands, TC and TM parameters, TM packets, calibrations"
+external = true
+
+[[contributes.commands]]
+id = "mib.search"
+title = "MIB: search every kind of definition"
+external = true
+
+[[contributes.commands]]
+id = "mib.telecommand"
+title = "MIB: open a telecommand by name"
+
+[[contributes.commands]]
+id = "mib.tc_parameter"
+title = "MIB: open a TC parameter by name"
+
+[[contributes.commands]]
+id = "mib.tm_packet"
+title = "MIB: open a TM packet by SPID or name"
+
+[[contributes.commands]]
+id = "mib.tm_parameter"
+title = "MIB: open a TM parameter by name"
+
+[[contributes.commands]]
+id = "mib.calibration"
+title = "MIB: open a calibration by id"
+
+[[contributes.commands]]
+id = "mib.insert"
+title = "MIB: insert a telecommand, with a form for its arguments"
+
+[[contributes.commands]]
+id = "mib.edit_call"
+title = "MIB: edit the telecommand call on this line in the insert form"
+
+[[contributes.commands]]
+id = "mib.reload"
+title = "MIB: read the project's MIBs again"
+
+[[contributes.commands]]
+id = "mib.settings"
+title = "MIB: this project's MIB settings"
+
+[[contributes.commands]]
+id = "mib.copy_bytes"
+title = "MIB: copy the telecommand call on this line as its packet's bytes"
+
+[[contributes.commands]]
+id = "mib.generate"
+title = "MIB: generate XTCE, a Wireshark dissector, C, Python, an ICD or TC test vectors"
+external = true
+
+[[contributes.settings]]
+key = "mib.roots"
+kind = "map"
+columns = ["Name", "Folder"]
+label = "MIBs"
+description = "The MIB folders: their .dat tables. A project's own list takes the place of yours in that project; a folder in a project can be relative to it."
+project = true
+
+[[contributes.settings]]
+key = "mib.default"
+label = "Default MIB"
+description = "The MIB whose definition is used when several define the same name; empty, the first."
+project = true
+
+[[contributes.settings]]
+key = "mib.telecommand_template"
+label = "Telecommand template"
+description = "How an inserted telecommand is written: {mnemo}, {type}, {stype}, {apid}, {description}, {mib} and {arguments} are filled in."
+default = "telecommand_send PUS_T={type} PUS_ST={stype} APID={apid} MNEMO={mnemo} ARGUMENTS=[{arguments}]"
+project = true
+
+[[contributes.settings]]
+key = "mib.telecommand_argument_template"
+label = "Argument template"
+description = "How each argument is written: {name} and {value} are filled in."
+default = "{name}={value}"
+project = true
+
+[[contributes.settings]]
+key = "mib.telecommand_argument_separator"
+label = "Argument separator"
+description = "What goes between arguments."
+default = ", "
+project = true
+
+[[contributes.settings]]
+key = "mib.editor_files"
+kind = "list"
+label = "Files that know the MIB"
+description = "Extensions of the files where K, gd and completion know MIB names (tcl, py). Empty: every file."
+project = true
+
+[[contributes.settings]]
+key = "mib.icd"
+kind = "choice"
+choices = ["7.x", "6.9", "6.x", "5.x", "4.x", "auto"]
+label = "ICD issue"
+description = "The SCOS-2000 Database Import ICD issue the MIBs' .dat tables follow: which tables there are and their columns. Auto works it out from each MIB's files."
+default = "7.x"
+project = true
+
+[[contributes.settings]]
+key = "mib.icd_per_mib"
+kind = "map"
+columns = ["MIB", "Issue"]
+label = "ICD issue per MIB"
+description = "A MIB that follows another issue than the rest: its name, and 7.x, 6.9, 6.x, 5.x, 4.x or auto."
+project = true
+
+[[contributes.settings]]
+key = "mib.columns"
+kind = "map"
+columns = ["Table", "Columns"]
+label = "Table columns"
+description = "A table's columns in file order, separated by commas, in place of the ICD's: for a mission whose tables differ, or a table of its own (xyz reads xyz.dat)."
+project = true
+
+[[contributes.settings]]
+key = "mib.xtce_fields"
+kind = "map"
+columns = ["Field", "Parameters"]
+label = "XTCE identification"
+description = "In an XTCE MIB, the parameters whose restriction values identify a packet, and the arguments that say a telecommand's: apid, service, subtype, pi1 or pi2, each with its names separated by commas. A field not given goes by the names: APID, SERVICE, SUBTYPE, SID."
+project = true
+
+[[contributes.settings]]
+key = "mib.xtce_version"
+kind = "choice"
+choices = ["1.2", "1.1"]
+label = "XTCE export"
+description = "The XTCE version a MIB is exported in (SPC k g): 1.2, or 1.1 for ground systems that read only that."
+default = "1.2"
+project = true
+
+[[contributes.settings]]
+key = "mib.apid_format"
+kind = "choice"
+choices = ["hex", "decimal"]
+label = "APIDs in"
+description = "How APIDs are shown."
+default = "hex"
+
+[[contributes.settings]]
+key = "mib.watch"
+kind = "bool"
+label = "Reload on change"
+description = "Read a MIB again when one of its .dat files changes on disk."
+default = "true"
+
+[[contributes.settings]]
+key = "mib.check_scripts"
+kind = "bool"
+label = "Check scripts"
+description = "Underline telecommand calls in scripts that the MIB disagrees with: unknown mnemonics, missing or out-of-range arguments."
+default = "true"
+project = true

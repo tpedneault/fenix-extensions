@@ -1,0 +1,6 @@
+# More files Fenix reads as JSON: JSON with comments, web app manifests,
+# VS Code workspaces, GeoJSON, HAR captures and JSON-LD; Babel's,
+# ESLint's, JSHint's, SWC's and Watchman's configs without an extension.
+language = "json"
+extensions = ["jsonc", "webmanifest", "code-workspace", "geojson", "har", "jsonld"]
+filenames = [".babelrc", ".eslintrc", ".jshintrc", ".swcrc", ".watchmanconfig"]

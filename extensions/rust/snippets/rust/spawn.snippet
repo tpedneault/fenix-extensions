@@ -1,0 +1,7 @@
+# name: Spawn a task (tokio)
+# key: spawn
+# scope: rust
+# --
+let ${1:handle} = tokio::spawn(async move {
+    $0
+});

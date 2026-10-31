@@ -1,0 +1,21 @@
+/home/user/work/cpp-pack/sample/src/orbit.cpp:7:5: warning: initializing non-owner 'int *' with a newly created 'gsl::owner<>' [cppcoreguidelines-owning-memory]
+    7 |     int *p = new int(radius);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/user/work/cpp-pack/sample/src/orbit.cpp:9:5: warning: Call to function 'strcpy' is insecure as it does not provide bounding of the memory buffer. Replace unbounded copy functions with analogous functions that support length arguments such as 'strlcpy'. CWE-119 [clang-analyzer-security.insecureAPI.strcpy]
+    9 |     strcpy(buf, "toolong!!");
+      |     ^~~~~~
+/home/user/work/cpp-pack/sample/src/orbit.cpp:9:5: note: Call to function 'strcpy' is insecure as it does not provide bounding of the memory buffer. Replace unbounded copy functions with analogous functions that support length arguments such as 'strlcpy'. CWE-119
+    9 |     strcpy(buf, "toolong!!");
+      |     ^~~~~~
+/home/user/work/cpp-pack/sample/src/orbit.cpp:9:5: warning: 'strcpy' will always overflow; destination buffer has size 8, but the source string has length 10 (including NUL byte) [clang-diagnostic-fortify-source]
+    9 |     strcpy(buf, "toolong!!");
+      |     ^
+/home/user/work/cpp-pack/sample/src/orbit.cpp:10:5: warning: Potential leak of memory pointed to by 'p' [clang-analyzer-cplusplus.NewDeleteLeaks]
+   10 |     return *p + buf[0];
+      |     ^
+/home/user/work/cpp-pack/sample/src/orbit.cpp:7:14: note: Memory is allocated
+    7 |     int *p = new int(radius);
+      |              ^~~~~~~~~~~~~~~
+/home/user/work/cpp-pack/sample/src/orbit.cpp:10:5: note: Potential leak of memory pointed to by 'p'
+   10 |     return *p + buf[0];
+      |     ^

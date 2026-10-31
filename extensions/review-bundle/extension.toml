@@ -1,0 +1,18 @@
+[extension]
+id = "fenix.review-bundle"
+name = "Review"
+version = "1.0.0"
+description = "GitHub pull requests, GitLab merge requests"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+# A bundle: nothing of its own, the extensions below. Installing it
+# installs them; removing it removes those nothing else needs.
+runtime = "bundle"
+
+[engine]
+fenix = ">=1.0, <2"
+
+[dependencies]
+"fenix.review" = "^1"

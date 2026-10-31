@@ -1,0 +1,17 @@
+[template]
+name = "Go · library module"
+kind = "go"
+group = "Go"
+description = "A Go module for others to import: a documented package, table-driven tests, and an example that go test checks and pkg.go.dev shows."
+needs = ["go"]
+open = ["{{name_snake}}.go"]
+
+[[ask]]
+key = "module"
+label = "Module path"
+default = "example.com"
+hint = "the module is <this>/<name>: github.com/you for one you'll publish"
+
+[[run]]
+exec = "go"
+args = ["mod", "init", "{{module}}/{{name_kebab}}"]

@@ -1,0 +1,6 @@
+# name: pytest.raises
+# key: raises
+# scope: python
+# --
+with pytest.raises(${1:ValueError}, match=${2:"message"}):
+    $0

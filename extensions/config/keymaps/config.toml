@@ -1,0 +1,12 @@
+# Config & Shell's keys, after SPC m in a YAML, JSON, TOML, Markdown or
+# shell file, or a Dockerfile. Your own keybindings.toml wins.
+
+[[local.config]]
+keys = "d"
+label = "check the config tools again"
+command = "config.doctor"
+
+[[local.config]]
+keys = "s"
+label = "fetch SchemaStore's catalog again"
+command = "config.schemas"

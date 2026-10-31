@@ -1,0 +1,15 @@
+# name: React component with its props typed
+# key: rfct
+# scope: tsx
+# --
+interface ${1:Component}Props {
+  ${2:title}: ${3:string};
+}
+
+export function $1({ $2 }: $1Props) {
+  return (
+    <div>
+      $0
+    </div>
+  );
+}

@@ -1,0 +1,30 @@
+# name: AUnit test case
+# key: aunit
+# scope: ada
+# --
+with AUnit.Assertions; use AUnit.Assertions;
+with AUnit.Test_Cases;
+
+package ${1:Orbit_Tests} is
+   type Test is new AUnit.Test_Cases.Test_Case with null record;
+
+   overriding procedure Register_Tests (T : in out Test);
+   overriding function Name (T : Test) return AUnit.Message_String;
+end $1;
+
+package body $1 is
+   procedure ${2:Test_Something} (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      Assert (${3:1 + 1 = 2}, "${4:it adds}");$0
+   end $2;
+
+   overriding procedure Register_Tests (T : in out Test) is
+      use AUnit.Test_Cases.Registration;
+   begin
+      Register_Routine (T, $2'Access, "$2");
+   end Register_Tests;
+
+   overriding function Name (T : Test) return AUnit.Message_String is
+     (AUnit.Format ("$1"));
+end $1;

@@ -1,0 +1,56 @@
+# Tokyo Night's light variant, enkia's palette.
+#
+# In its published colours, as its authors chose them: Fenix's own copy
+# keeps every colour at a contrast it can read; this one doesn't.
+name = "Tokyo Night Day (original)"
+tabs = "underline"
+
+[surfaces]
+bg = "#e1e2e7"
+sidebar_bg = "#e1e2e7"
+bg_modeline = "#d0d5e3"
+divider = "#a8aecb"
+caret = "#3760bf"
+hl_line = "#d6d8e2"
+selection = { color = "#2e7de9", alpha = 0.15 }
+bracket_match = { color = "#007197", alpha = 0.12 }
+search_match = { color = "#8c6c3e", alpha = 0.18 }
+
+[text]
+fg = "#3760bf"
+caret_text = "#3760bf"
+gutter_fg = "#6172b0"
+
+[modes]
+normal = "#2e7de9"
+insert = "#587539"
+visual = "#9854f1"
+replace = "#b15c00"
+command = "#8c6c3e"
+explorer = "#007197"
+picker = "#9854f1"
+text_dark = "#e1e2e7"
+
+[syntax]
+keyword = "#9854f1"
+string = "#587539"
+comment = "#6172b0"
+function = "#007197"
+type = "#8c6c3e"
+number = "#b15c00"
+constant = "#b15c00"
+variable = "#3760bf"
+operator = "#2e7de9"
+punctuation = "#2e7de9"
+attribute = "#f52a65"
+
+[explorer]
+folder = "#007197"
+file = "#3760bf"
+
+[git]
+modified = "#8c6c3e"
+staged = "#587539"
+untracked = "#2e7de9"
+ignored = "#6172b0"
+conflicted = "#c64343"

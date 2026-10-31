@@ -1,0 +1,410 @@
+//! `fenix-forge`'s `Forge` trait, over GitLab's `/api/v4`.
+//!
+//! Shaped like `fenix-jira`'s own client -- one shared authenticated-
+//! request helper every endpoint funnels through, over [`Http`], raw
+//! `serde_json::Value` in and out rather than derived structs -- with
+//! GitLab's `PRIVATE-TOKEN` header in place of Jira's bearer scheme.
+//! The parsing lives in `parse`, so every response shape is testable
+//! against a literal payload with no instance to point at.
+//!
+//! The only configuration is a base URL and a token: which project a
+//! checkout belongs to is worked out from its `origin` remote (see
+//! `remote`), because the checkout already knows.
+//!
+//! Endpoint paths and field names here were checked against GitLab's
+//! own API documentation rather than recalled -- including the one that
+//! has actually moved: the file list is `/diffs`, with `/changes`
+//! deprecated in GitLab 15.7. `changed_files` tries the current path
+//! and falls back, so a self-hosted instance older than that still
+//! works.
+
+pub mod parse;
+pub mod remote;
+
+use crate::{Approvals, ChangedFile, Check, DraftComment, Discussion, Forge, MergeOptions, MergeRequest, MrFilter, NewRequest, Position, Verdict};
+use crate::{Http, Response};
+use serde_json::Value;
+
+/// How many merge requests one listing asks for. Past this the pane
+/// isn't being read any more, it's being scrolled -- and the filter
+/// (`mine`, `for me`) is the answer to a long list, not pagination.
+const PER_PAGE: usize = 100;
+
+pub struct GitLab<H> {
+    http: H,
+    base_url: String,
+    token: String,
+    /// `group/sub/project`, as it appears in a URL.
+    project: String,
+    /// The same, percent-encoded for the `:id` path segment.
+    encoded: String,
+}
+
+impl<H: Http> GitLab<H> {
+    /// A client for `project` on the instance at `base_url`.
+    ///
+    /// `base_url` is the instance root (`https://gitlab.example.com`),
+    /// not the API root -- `/api/v4` is this crate's business, and
+    /// making the user get it right in the settings would be one more
+    /// way for the setup to fail silently.
+    pub fn new(http: H, base_url: impl Into<String>, token: impl Into<String>, project: impl Into<String>) -> Self {
+        let base_url = base_url.into();
+        let project = project.into();
+        let encoded = remote::encode_project(&project);
+        GitLab { http, base_url: base_url.trim_end_matches('/').to_string(), token: token.into(), project, encoded }
+    }
+
+    /// A client for whichever project `remote_url` points at, or `None`
+    /// when that URL isn't a GitLab project URL this can read.
+    pub fn from_remote(http: H, base_url: impl Into<String>, token: impl Into<String>, remote_url: &str) -> Option<Self> {
+        remote::project_path(remote_url).map(|project| GitLab::new(http, base_url, token, project))
+    }
+
+    /// `method` on the API's `path`, signed, with a JSON `body`: what came
+    /// back, or the status.
+    async fn request(&self, method: &str, url: &str, body: Option<String>) -> Result<String, String> {
+        let mut headers = vec![("PRIVATE-TOKEN", self.token.clone()), ("Accept", "application/json".to_string())];
+        if body.is_some() {
+            headers.push(("Content-Type", "application/json".to_string()));
+        }
+        let response = self.http.request(method, url, &headers, body).await?;
+        if response.status >= 400 {
+            return Err(describe_error(&response));
+        }
+        Ok(response.body)
+    }
+
+    async fn get(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
+        let url = crate::with_query(&format!("{}/api/v4{path}", self.base_url), query);
+        let body = self.request("GET", &url, None).await?;
+        serde_json::from_str(&body).map_err(|err| format!("couldn't parse response as JSON: {err}"))
+    }
+
+    /// The write-side counterpart to `get`.
+    ///
+    /// A successful write whose body isn't JSON (or is empty) is still a
+    /// success -- GitLab answers some of these with `204 No Content`, and
+    /// treating that as a parse failure would report a comment that
+    /// posted fine as an error.
+    async fn send(&self, method: &str, path: &str, body: &Value) -> Result<(), String> {
+        let url = format!("{}/api/v4{path}", self.base_url);
+        let payload = serde_json::to_string(body).map_err(|err| format!("couldn't encode request body: {err}"))?;
+        self.request(method, &url, Some(payload)).await.map(|_| ())
+    }
+
+    /// `send`, keeping what came back -- for a write that answers with
+    /// the thing it made.
+    async fn send_json(&self, method: &str, path: &str, body: &Value) -> Result<Value, String> {
+        let url = format!("{}/api/v4{path}", self.base_url);
+        let payload = serde_json::to_string(body).map_err(|err| format!("couldn't encode request body: {err}"))?;
+        let text = self.request(method, &url, Some(payload)).await?;
+        serde_json::from_str(&text).map_err(|err| format!("couldn't parse response as JSON: {err}"))
+    }
+
+    /// A plain-text endpoint (a job's trace).
+    async fn get_text(&self, path: &str) -> Result<String, String> {
+        let url = format!("{}/api/v4{path}", self.base_url);
+        self.request("GET", &url, None).await
+    }
+
+    /// A username's id, which is what GitLab assigns and asks reviews by.
+    async fn user_id(&self, user: &str) -> Result<u64, String> {
+        let found = self.get("/users", &[("username", user)]).await?;
+        found.as_array().and_then(|l| l.first()).and_then(|u| u.get("id")).and_then(Value::as_u64).ok_or_else(|| format!("no GitLab user called {user}"))
+    }
+
+    fn mr_path(&self, number: u64, suffix: &str) -> String {
+        format!("/projects/{}/merge_requests/{number}{suffix}", self.encoded)
+    }
+}
+
+impl<H: Http> Forge for GitLab<H> {
+    fn project(&self) -> &str {
+        &self.project
+    }
+
+    async fn list_merge_requests(&self, filter: MrFilter) -> Result<Vec<MergeRequest>, String> {
+        let per_page = PER_PAGE.to_string();
+        // `scope` needs `all` alongside `created_by_me` to search the
+        // whole project rather than only what the token's own user can
+        // already see listed; the state filter is separate from it.
+        let mut query: Vec<(&str, &str)> =
+            vec![("state", "opened"), ("per_page", per_page.as_str()), ("order_by", "updated_at"), ("sort", "desc")];
+        match filter {
+            MrFilter::Mine => query.push(("scope", "created_by_me")),
+            MrFilter::ForMe => query.push(("scope", "assigned_to_me")),
+            MrFilter::AllOpen => query.push(("scope", "all")),
+            MrFilter::ReviewRequested => query.push(("scope", "all")),
+        }
+        let me;
+        if filter == MrFilter::ReviewRequested {
+            me = self.current_user().await?;
+            query.push(("reviewer_username", me.as_str()));
+        }
+        let value = self.get(&format!("/projects/{}/merge_requests", self.encoded), &query).await?;
+        let entries = value.as_array().ok_or_else(|| "expected a list of merge requests".to_string())?;
+        Ok(entries.iter().filter_map(parse::merge_request).collect())
+    }
+
+    async fn merge_request(&self, number: u64) -> Result<MergeRequest, String> {
+        let value = self.get(&self.mr_path(number, ""), &[]).await?;
+        parse::merge_request(&value).ok_or_else(|| format!("!{number} came back without an iid"))
+    }
+
+    async fn approvals(&self, number: u64) -> Result<Approvals, String> {
+        self.get(&self.mr_path(number, "/approvals"), &[]).await.map(|v| parse::approvals(&v))
+    }
+
+    async fn changed_files(&self, number: u64) -> Result<Vec<ChangedFile>, String> {
+        let per_page = PER_PAGE.to_string();
+        // `/diffs` is the current path; `/changes` was deprecated in
+        // GitLab 15.7 but is all an older self-hosted instance has, and
+        // returns the same entry shape under a `changes` key. Trying
+        // the current one first means a modern instance never pays for
+        // the fallback.
+        let current = self.get(&self.mr_path(number, "/diffs"), &[("per_page", per_page.as_str())]).await;
+        let entries = match &current {
+            Ok(value) => value.as_array().cloned(),
+            Err(_) => None,
+        };
+        let entries = match entries {
+            Some(entries) => entries,
+            None => {
+                let legacy = self.get(&self.mr_path(number, "/changes"), &[]).await.map_err(|err| match &current {
+                    // Report the modern endpoint's own error: on an
+                    // instance that has `/diffs`, a failure there (401,
+                    // 404) is the real problem, and the fallback's
+                    // error would just describe the same thing twice.
+                    Err(first) => first.clone(),
+                    Ok(_) => err,
+                })?;
+                legacy.get("changes").and_then(Value::as_array).cloned().unwrap_or_default()
+            }
+        };
+        Ok(entries.iter().filter_map(parse::changed_file).collect())
+    }
+
+    async fn discussions(&self, number: u64) -> Result<Vec<Discussion>, String> {
+        let per_page = PER_PAGE.to_string();
+        let value = self.get(&self.mr_path(number, "/discussions"), &[("per_page", per_page.as_str())]).await?;
+        let entries = value.as_array().ok_or_else(|| "expected a list of discussions".to_string())?;
+        Ok(entries.iter().filter_map(parse::discussion).collect())
+    }
+
+    async fn reply(&self, number: u64, discussion: &str, body: &str) -> Result<(), String> {
+        // POST adds a note to the thread; PUT on the same path with a
+        // note id *edits* one, which is a different action entirely.
+        self.send("POST", &self.mr_path(number, &format!("/discussions/{discussion}/notes")), &serde_json::json!({ "body": body })).await
+    }
+
+    async fn resolve(&self, number: u64, discussion: &str, resolved: bool) -> Result<(), String> {
+        self.send("PUT", &self.mr_path(number, &format!("/discussions/{discussion}")), &serde_json::json!({ "resolved": resolved })).await
+    }
+
+    async fn comment_on_line(&self, number: u64, position: &Position, body: &str) -> Result<(), String> {
+        let mut pos = serde_json::json!({
+            "base_sha": position.base_sha,
+            "head_sha": position.head_sha,
+            "start_sha": position.start_sha,
+            "position_type": "text",
+            "old_path": position.old_path,
+            "new_path": position.new_path,
+        });
+        // Sent only when set. A `null` line is not the same as an absent
+        // one here: GitLab reads the pair to decide which side of the
+        // diff the comment belongs on, and sending both for a line that
+        // only exists on one side is rejected.
+        if let Some(old) = position.old_line {
+            pos["old_line"] = serde_json::json!(old);
+        }
+        if let Some(new) = position.new_line {
+            pos["new_line"] = serde_json::json!(new);
+        }
+        self.send("POST", &self.mr_path(number, "/discussions"), &serde_json::json!({ "body": body, "position": pos })).await
+    }
+
+    async fn approve(&self, number: u64, sha: Option<&str>) -> Result<(), String> {
+        let body = match sha {
+            // Optional in the API, always sent here: it makes the forge
+            // refuse rather than record an approval of a version that
+            // moved since it was read.
+            Some(sha) => serde_json::json!({ "sha": sha }),
+            None => serde_json::json!({}),
+        };
+        self.send("POST", &self.mr_path(number, "/approve"), &body).await
+    }
+
+    async fn unapprove(&self, number: u64) -> Result<(), String> {
+        self.send("POST", &self.mr_path(number, "/unapprove"), &serde_json::json!({})).await
+    }
+
+    async fn merge(&self, number: u64, options: &MergeOptions) -> Result<(), String> {
+        let mut body = serde_json::json!({
+            "squash": options.squash,
+            "should_remove_source_branch": options.remove_source_branch,
+        });
+        if let Some(sha) = &options.sha {
+            body["sha"] = serde_json::json!(sha);
+        }
+        if options.when_checks_pass {
+            // The older name and the newer; an instance ignores the one
+            // it doesn't know.
+            body["merge_when_pipeline_succeeds"] = serde_json::json!(true);
+            body["auto_merge"] = serde_json::json!(true);
+        }
+        self.send("PUT", &self.mr_path(number, "/merge"), &body).await
+    }
+
+    async fn current_user(&self) -> Result<String, String> {
+        let user = self.get("/user", &[]).await?;
+        user.get("username").and_then(Value::as_str).map(str::to_string).ok_or_else(|| "GitLab didn't say who the token belongs to".to_string())
+    }
+
+    async fn default_description(&self) -> Result<Option<String>, String> {
+        let project = self.get(&format!("/projects/{}", self.encoded), &[]).await?;
+        Ok(parse::default_description(&project))
+    }
+
+    async fn request_for_branch(&self, branch: &str) -> Result<Option<MergeRequest>, String> {
+        let value = self.get(&format!("/projects/{}/merge_requests", self.encoded), &[("state", "opened"), ("source_branch", branch)]).await?;
+        match value.as_array().and_then(|list| list.first()).and_then(parse::merge_request) {
+            // The listing carries no diff refs; fetch it whole.
+            Some(found) => self.merge_request(found.number).await.map(Some),
+            None => Ok(None),
+        }
+    }
+
+    async fn create_request(&self, request: &NewRequest) -> Result<MergeRequest, String> {
+        // GitLab marks a draft by its title.
+        let title = if request.draft { format!("Draft: {}", request.title) } else { request.title.clone() };
+        // GitLab assigns by user id, not name.
+        let mut assignees = Vec::new();
+        for user in &request.assignees {
+            assignees.push(self.user_id(user).await?);
+        }
+        let body = serde_json::json!({
+            "source_branch": request.source_branch,
+            "target_branch": request.target_branch,
+            "title": title,
+            "description": request.description,
+            "labels": request.labels.join(","),
+            "assignee_ids": assignees,
+        });
+        let value = self.send_json("POST", &format!("/projects/{}/merge_requests", self.encoded), &body).await?;
+        parse::merge_request(&value).ok_or_else(|| "GitLab didn't say what it made".to_string())
+    }
+
+    async fn submit_review(&self, number: u64, head_sha: &str, verdict: Verdict, body: &str, comments: &[DraftComment]) -> Result<(), String> {
+        // The comments first, each its own thread; a range is anchored on
+        // its last line and says which lines it's about.
+        for comment in comments {
+            let text = match (comment.start_line, comment.position.new_line.or(comment.position.old_line)) {
+                (Some(start), Some(end)) if start < end => format!("Lines {start}–{end}:\n\n{}", comment.body),
+                _ => comment.body.clone(),
+            };
+            self.comment_on_line(number, &comment.position, &text).await?;
+        }
+        let summary = match (verdict, body.trim().is_empty()) {
+            (Verdict::RequestChanges, true) => "Requesting changes -- see the comments.".to_string(),
+            (_, true) => String::new(),
+            (_, false) => body.to_string(),
+        };
+        if !summary.is_empty() {
+            self.send("POST", &self.mr_path(number, "/notes"), &serde_json::json!({ "body": summary })).await?;
+        }
+        match verdict {
+            Verdict::Approve => self.approve(number, Some(head_sha)).await,
+            // GitLab's REST API has no "request changes" state of its
+            // own: withdraw an approval, if there was one.
+            Verdict::RequestChanges => {
+                let _ = self.unapprove(number).await;
+                Ok(())
+            }
+            Verdict::Comment => Ok(()),
+        }
+    }
+
+    async fn request_review(&self, number: u64, users: &[String]) -> Result<(), String> {
+        let mut ids = Vec::new();
+        for user in users {
+            ids.push(self.user_id(user).await?);
+        }
+        self.send("PUT", &self.mr_path(number, ""), &serde_json::json!({ "reviewer_ids": ids })).await
+    }
+
+    async fn checks(&self, number: u64, _head_sha: &str) -> Result<Vec<Check>, String> {
+        let pipelines = self.get(&self.mr_path(number, "/pipelines"), &[]).await?;
+        let Some(id) = pipelines.as_array().and_then(|l| l.first()).and_then(|p| p.get("id")).and_then(Value::as_u64) else {
+            return Ok(Vec::new());
+        };
+        let jobs = self.get(&format!("/projects/{}/pipelines/{id}/jobs", self.encoded), &[("per_page", "100")]).await?;
+        Ok(jobs.as_array().map(|list| list.iter().filter_map(parse::job).collect()).unwrap_or_default())
+    }
+
+    async fn job_log(&self, check: &Check) -> Result<String, String> {
+        self.get_text(&format!("/projects/{}/jobs/{}/trace", self.encoded, check.id)).await
+    }
+
+    async fn retry(&self, check: &Check) -> Result<(), String> {
+        self.send("POST", &format!("/projects/{}/jobs/{}/retry", self.encoded, check.id), &serde_json::json!({})).await
+    }
+
+    fn checkout_refspec(&self, number: u64) -> String {
+        // GitLab publishes every merge request's head under this ref on
+        // the project's own remote, so no fork remote has to be added
+        // to review a fork-sourced request.
+        format!("refs/merge-requests/{number}/head:mr-{number}")
+    }
+}
+
+/// A status code plus its reason beats a bare number, and a transport
+/// failure (DNS, TLS, refused) says its own.
+fn describe_error(response: &Response) -> String {
+    format!("HTTP {} ({})", response.status, crate::reason(response.status))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_review_path_is_scoped_to_the_encoded_project_and_the_request() {
+        let gl = GitLab::new(crate::NoHttp, "https://gitlab.example.com", "tok", "group/project");
+        let base = "/projects/group%2Fproject/merge_requests/42";
+        assert_eq!(gl.mr_path(42, "/discussions"), format!("{base}/discussions"));
+        assert_eq!(gl.mr_path(42, "/discussions/abc/notes"), format!("{base}/discussions/abc/notes"));
+        assert_eq!(gl.mr_path(42, "/approve"), format!("{base}/approve"));
+        assert_eq!(gl.mr_path(42, "/unapprove"), format!("{base}/unapprove"));
+        assert_eq!(gl.mr_path(42, "/merge"), format!("{base}/merge"));
+    }
+
+    #[test]
+    fn the_base_url_loses_a_trailing_slash_and_never_carries_the_api_path() {
+        let gl = GitLab::new(crate::NoHttp, "https://gitlab.example.com/", "tok", "group/project");
+        assert_eq!(gl.base_url, "https://gitlab.example.com");
+        // `/api/v4` is this crate's business, not the user's.
+        assert!(!gl.base_url.contains("api"));
+    }
+
+    #[test]
+    fn the_project_is_encoded_once_for_the_url_and_kept_readable_for_display() {
+        let gl = GitLab::new(crate::NoHttp, "https://gitlab.example.com", "tok", "group/sub/project");
+        assert_eq!(gl.project(), "group/sub/project", "what a pane heading shows");
+        assert_eq!(gl.mr_path(42, "/approvals"), "/projects/group%2Fsub%2Fproject/merge_requests/42/approvals");
+    }
+
+    #[test]
+    fn a_client_can_be_built_straight_from_an_origin_url() {
+        let gl = GitLab::from_remote(crate::NoHttp, "https://gitlab.example.com", "tok", "git@gitlab.example.com:group/project.git").unwrap();
+        assert_eq!(gl.project(), "group/project");
+        assert!(GitLab::from_remote(crate::NoHttp, "https://gitlab.example.com", "tok", "not a url").is_none());
+    }
+
+    #[test]
+    fn the_checkout_refspec_lands_on_a_branch_named_after_the_request() {
+        let gl = GitLab::new(crate::NoHttp, "https://gitlab.example.com", "tok", "g/p");
+        // GitLab's own published ref, so reviewing a fork-sourced
+        // request needs no extra remote.
+        assert_eq!(gl.checkout_refspec(42), "refs/merge-requests/42/head:mr-42");
+    }
+}

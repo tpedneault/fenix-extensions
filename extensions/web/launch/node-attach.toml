@@ -1,0 +1,10 @@
+# A Node started with `node --inspect app.js` (or --inspect-brk).
+name = "Node: attach (localhost:9229)"
+languages = ["javascript", "typescript", "tsx"]
+request = "attach"
+
+[attributes]
+type = "pwa-node"
+address = "localhost"
+port = 9229
+skipFiles = ["<node_internals>/**"]

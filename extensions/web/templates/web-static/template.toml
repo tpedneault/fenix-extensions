@@ -1,0 +1,17 @@
+[template]
+name = "Static site"
+kind = "node"
+group = "Web"
+name_rule = "npm"
+description = "A page, its styles and an ES module, nothing to install: a small Node server for development (npm run dev), and the folder as it is to publish."
+open = ["index.html"]
+
+[[ask]]
+key = "title"
+label = "Title"
+default = "{{name}}"
+
+[[ask]]
+key = "port"
+label = "Port"
+default = "8080"

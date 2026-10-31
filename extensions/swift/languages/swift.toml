@@ -1,0 +1,8 @@
+# Swift, which Fenix doesn't highlight itself: tree-sitter-swift's
+# grammar, compiled to WebAssembly (0.8.5), and its queries from
+# queries/swift. The server is the extension's to set, once it has found
+# sourcekit-lsp.
+language = "swift"
+grammar = "grammars/tree-sitter-swift.wasm"
+extensions = ["swift", "swiftinterface"]
+comment = "//"

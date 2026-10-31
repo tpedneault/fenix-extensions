@@ -1,0 +1,89 @@
+[extension]
+id = "fenix.colours"
+name = "Colours"
+version = "1.0.0"
+description = "Colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), CSS names, a theme's), a picker that writes it back as it was written, conversions between hex, RGB, HSL and OKLCH, a WCAG contrast checker, and the project's palette"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Decorations (the swatches), styled pages and the mouse.
+api = "1.0"
+
+# Started with Fenix, for the swatches in the file you open.
+[activation]
+on_startup = true
+commands = ["colours.*"]
+
+[permissions]
+# The file you're in, its swatches, and its colours written back.
+editor = "write"
+# The palette reads the project's files.
+filesystem = "project-read"
+
+[contributes]
+# The file you're in (its swatches), and its changes as you type.
+events = ["focus", "changed"]
+
+[[contributes.commands]]
+id = "colours.pick"
+title = "Colours: pick the colour under the cursor -- hue, saturation, lightness, alpha, hex -- and write it back"
+
+[[contributes.commands]]
+id = "colours.convert"
+title = "Colours: convert the colour under the cursor (or each one selected) to hex, RGB, HSL or OKLCH"
+
+[[contributes.commands]]
+id = "colours.to_hex"
+title = "Colours: the colour under the cursor, or each one selected, as hex"
+
+[[contributes.commands]]
+id = "colours.to_rgb"
+title = "Colours: ... as rgb()"
+
+[[contributes.commands]]
+id = "colours.to_hsl"
+title = "Colours: ... as hsl()"
+
+[[contributes.commands]]
+id = "colours.to_oklch"
+title = "Colours: ... as oklch()"
+
+[[contributes.commands]]
+id = "colours.contrast"
+title = "Colours: check the contrast of the colour under the cursor (WCAG 2.x, AA and AAA)"
+
+[[contributes.commands]]
+id = "colours.palette"
+title = "Colours: the project's palette -- every colour its files use, by hue and near-duplicates"
+
+[[contributes.commands]]
+id = "colours.toggle_swatches"
+title = "Colours: swatches beside colours, on or off"
+
+[[contributes.settings]]
+key = "colours.swatches"
+kind = "bool"
+label = "Swatches"
+description = "A swatch of its colour beside each colour literal in the file you're in."
+default = "true"
+
+[[contributes.settings]]
+key = "colours.most"
+kind = "int"
+label = "Swatches in a file"
+description = "The most swatches in a file (10,000 at most). In a file of more than 10,000 lines, only those within 5,000 of the cursor."
+default = "2000"
+
+[[contributes.settings]]
+key = "colours.syntax"
+kind = "choice"
+choices = ["modern", "legacy"]
+label = "Converted as"
+description = "How hex and names convert: modern CSS, rgb(59 130 246 / 50%), or legacy, rgba(59, 130, 246, 0.5). A function keeps its own."
+default = "modern"
+project = true

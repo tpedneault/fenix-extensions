@@ -1,0 +1,99 @@
+[extension]
+id = "fenix.agenda"
+name = "Agenda"
+version = "1.0.0"
+description = "Tasks on a board, a clock for your time, and a week's timesheet -- linked to Jira issues when Jira is there"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# The clock runs while Fenix does: the modeline shows it, Home lists
+# today, and time away is asked about.
+[activation]
+on_startup = true
+
+[permissions]
+# The file and line `SPC A h` makes a task about.
+editor = "read"
+
+# Fenix 1.x kept the agenda in its own data folder.
+[contributes]
+# The control channel's methods (`fenix/agenda.*`, `fenix/state`), and
+# what Jira asks of it.
+services = ["agenda.tasks", "agenda.clock_in", "agenda.clock_out", "agenda.timer", "agenda.add_issue", "agenda.linked", "agenda.open_task", "agenda.sync_quietly", "agenda.due", "agenda.add_task"]
+events = ["active"]
+
+[[contributes.commands]]
+id = "agenda.open"
+title = "Agenda: open where it was left"
+
+[[contributes.commands]]
+id = "agenda.board"
+title = "Agenda: board"
+
+[[contributes.commands]]
+id = "agenda.list"
+title = "Agenda: list"
+
+[[contributes.commands]]
+id = "agenda.report"
+title = "Agenda: this week's time"
+
+[[contributes.commands]]
+id = "agenda.new_task"
+title = "Agenda: add a task"
+
+[[contributes.commands]]
+id = "agenda.from_here"
+title = "Agenda: a task about the selection or line here"
+
+[[contributes.commands]]
+id = "agenda.find"
+title = "Agenda: find a task"
+
+[[contributes.commands]]
+id = "agenda.toggle_clock"
+title = "Agenda: stop the clock, resume the last task, or switch"
+
+[[contributes.commands]]
+id = "agenda.resume"
+title = "Agenda: start the clock again on what you worked on last"
+
+[[contributes.commands]]
+id = "agenda.import"
+title = "Agenda: pick Jira issues assigned to you to add"
+
+[[contributes.commands]]
+id = "agenda.sync"
+title = "Agenda: refresh linked tasks from Jira and send pending changes"
+
+[[contributes.commands]]
+id = "agenda.worklogs"
+title = "Agenda: review unsent time and send it to Jira"
+
+[[contributes.settings]]
+key = "agenda.categories"
+kind = "list"
+label = "Agenda categories"
+description = "Categories offered when you file a task."
+default = ""
+
+[[contributes.settings]]
+key = "agenda.worklog_round"
+kind = "minutes"
+label = "Round worklogs to"
+description = "Time logged to Jira is rounded to this many minutes."
+default = "15"
+
+[[contributes.settings]]
+key = "agenda.idle_minutes"
+kind = "minutes"
+label = "Ask after idle"
+description = "With the clock running, how long without a key press before Fenix asks what time to keep. 0 never asks."
+default = "60"

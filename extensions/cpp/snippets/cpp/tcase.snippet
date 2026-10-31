@@ -1,0 +1,8 @@
+# name: Catch2 test case
+# key: tcase
+# scope: cpp
+# --
+TEST_CASE("${1:what it does}", "[${2:tag}]") {
+    REQUIRE(${3:true});
+    $0
+}

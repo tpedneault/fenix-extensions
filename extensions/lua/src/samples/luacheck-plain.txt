@@ -1,0 +1,6 @@
+bad.lua:2:16-16: (W211) unused function 'f'
+bad.lua:2:18-18: (W212) unused argument 'a'
+bad.lua:3:10-25: (W113) accessing undefined variable 'undefined_global'
+bad.lua:6:7-7: (W211) unused variable 't'
+bad.lua:6:12-12: (W314) value assigned to field 'a' is overwritten on line 6 before use
+broken.lua:2:1-1: (E011) expected expression near <eof>

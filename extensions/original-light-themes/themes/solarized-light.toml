@@ -1,0 +1,57 @@
+# Solarized's light mode, Ethan Schoonover's palette. Its body text (base00) is
+# darkened toward base01, as far as 7:1 needs.
+#
+# In its published colours, as its authors chose them: Fenix's own copy
+# keeps every colour at a contrast it can read; this one doesn't.
+name = "Solarized Light (original)"
+tabs = "underline"
+
+[surfaces]
+bg = "#fdf6e3"
+sidebar_bg = "#fdf6e3"
+bg_modeline = "#eee8d5"
+divider = "#93a1a1"
+caret = "#586e75"
+hl_line = "#eee8d5"
+selection = { color = "#268bd2", alpha = 0.15 }
+bracket_match = { color = "#2aa198", alpha = 0.15 }
+search_match = { color = "#b58900", alpha = 0.2 }
+
+[text]
+fg = "#586e75"
+caret_text = "#586e75"
+gutter_fg = "#93a1a1"
+
+[modes]
+normal = "#268bd2"
+insert = "#859900"
+visual = "#d33682"
+replace = "#cb4b16"
+command = "#6c71c4"
+explorer = "#2aa198"
+picker = "#6c71c4"
+text_dark = "#fdf6e3"
+
+[syntax]
+keyword = "#859900"
+string = "#2aa198"
+comment = "#93a1a1"
+function = "#268bd2"
+type = "#b58900"
+number = "#d33682"
+constant = "#cb4b16"
+variable = "#586e75"
+operator = "#6c71c4"
+punctuation = "#6c71c4"
+attribute = "#b58900"
+
+[explorer]
+folder = "#268bd2"
+file = "#586e75"
+
+[git]
+modified = "#b58900"
+staged = "#859900"
+untracked = "#268bd2"
+ignored = "#93a1a1"
+conflicted = "#dc322f"

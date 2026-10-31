@@ -1,0 +1,52 @@
+{
+    "data": {
+        "zlib/1.2.11": {
+            "vulnerabilities": {
+                "totalCount": 2,
+                "edges": [
+                    {
+                        "node": {
+                            "name": "CVE-2022-37434",
+                            "description": "zlib through 1.2.12 has a heap-based buffer over-read or buffer overflow in inflate in inflate.c via a large gzip header extra field. NOTE: only applications that call inflateGetHeader are affected.",
+                            "severity": "Critical",
+                            "cvss": {
+                                "preferredBaseScore": 9.8
+                            },
+                            "aliases": [],
+                            "advisories": [],
+                            "references": [
+                                "https://github.com/madler/zlib/blob/21767c654d31d2dccdde4330529775c6c5fd5389/zlib.h#L1062-L1063"
+                            ]
+                        }
+                    },
+                    {
+                        "node": {
+                            "name": "CVE-2018-25032",
+                            "description": "zlib before 1.2.12 allows memory corruption when deflating (i.e., when compressing) if the input has many distant matches.",
+                            "severity": "High",
+                            "cvss": {
+                                "preferredBaseScore": 7.5
+                            },
+                            "aliases": [],
+                            "advisories": [],
+                            "references": []
+                        }
+                    }
+                ]
+            }
+        },
+        "hello/1.0": {
+            "vulnerabilities": {
+                "totalCount": 0,
+                "edges": []
+            }
+        },
+        "greet/2.0": {
+            "error": {
+                "details": "Package 'greet' not found in the audit database"
+            }
+        }
+    },
+    "conan_error": null,
+    "provider_url": "https://audit.conan.io/"
+}

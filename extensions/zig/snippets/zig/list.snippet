@@ -1,0 +1,7 @@
+# name: ArrayList
+# key: list
+# scope: zig
+# --
+var ${1:list}: std.ArrayList(${2:u8}) = .empty;
+defer $1.deinit(${3:gpa});
+try $1.append($3, ${4:item});$0

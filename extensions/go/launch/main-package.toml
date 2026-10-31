@@ -1,0 +1,8 @@
+# The main package at the top of the project, built and run by Delve.
+name = "Go: the project's main package"
+languages = ["go"]
+program = "${project}"
+cwd = "${project}"
+
+[attributes]
+mode = "debug"

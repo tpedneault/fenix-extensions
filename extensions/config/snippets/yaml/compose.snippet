@@ -1,0 +1,12 @@
+# name: Compose file
+# key: compose
+# scope: yaml
+# --
+services:
+  ${1:app}:
+    build: ${2:.}
+    ports:
+      - "${3:8080}:${4:8080}"
+    environment:
+      ${5:LOG_LEVEL}: ${6:info}
+$0

@@ -1,0 +1,112 @@
+# The MIB's keys, as Fenix 1.x had them: SPC k (the mission group, shared
+# with the CCSDS extension), and its entries in a Tcl file's SPC m menu,
+# beside the Tcl extension's. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC k"
+group = "mission"
+
+[[leader]]
+keys = "SPC k k"
+label = "MIB page"
+command = "mib.page"
+
+[[leader]]
+keys = "SPC k /"
+label = "search every kind"
+command = "mib.search"
+
+[[leader]]
+keys = "SPC k t"
+label = "telecommand"
+command = "mib.telecommand"
+
+[[leader]]
+keys = "SPC k p"
+label = "TC parameter"
+command = "mib.tc_parameter"
+
+[[leader]]
+keys = "SPC k m"
+label = "TM packet"
+command = "mib.tm_packet"
+
+[[leader]]
+keys = "SPC k n"
+label = "TM parameter"
+command = "mib.tm_parameter"
+
+[[leader]]
+keys = "SPC k c"
+label = "calibration"
+command = "mib.calibration"
+
+[[leader]]
+keys = "SPC k i"
+label = "insert a telecommand"
+command = "mib.insert"
+
+[[leader]]
+keys = "SPC k e"
+label = "edit the call on this line"
+command = "mib.edit_call"
+
+[[leader]]
+keys = "SPC k r"
+label = "read the MIBs again"
+command = "mib.reload"
+
+[[leader]]
+keys = "SPC k ,"
+label = "this project's MIBs"
+command = "mib.settings"
+
+[[leader]]
+keys = "SPC k b"
+label = "copy this call as bytes"
+command = "mib.copy_bytes"
+
+[[leader]]
+keys = "SPC k g"
+label = "generate from the MIB"
+command = "mib.generate"
+
+[[local.tcl]]
+keys = "i"
+label = "insert a telecommand"
+command = "mib.insert"
+
+[[local.tcl]]
+keys = "e"
+label = "edit the telecommand call"
+command = "mib.edit_call"
+
+[[local.tcl]]
+keys = "t"
+label = "telecommand"
+command = "mib.telecommand"
+
+[[local.tcl]]
+keys = "k"
+label = "TM packet"
+command = "mib.tm_packet"
+
+[[local.tcl]]
+keys = "p"
+label = "TM parameter"
+command = "mib.tm_parameter"
+
+[[local.tcl]]
+keys = "c"
+label = "calibration"
+command = "mib.calibration"
+
+[[local.tcl]]
+keys = "m"
+label = "MIB page"
+command = "mib.page"
+
+[[local.tcl]]
+keys = "r"
+label = "read the MIBs again"
+command = "mib.reload"

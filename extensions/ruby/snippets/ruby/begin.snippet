@@ -1,0 +1,11 @@
+# name: begin ... rescue
+# key: begin
+# scope: ruby
+# --
+begin
+  ${1:work}
+rescue ${2:StandardError} => e
+  ${3:warn e.message}
+ensure
+  $0
+end

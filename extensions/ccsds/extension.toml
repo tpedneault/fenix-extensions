@@ -1,0 +1,261 @@
+[extension]
+id = "fenix.ccsds"
+name = "CCSDS & ECSS"
+version = "1.0.0"
+description = "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["mission"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# With Fenix: the mission clock is in the modeline from the start, and K
+# on hex works in any file.
+[activation]
+on_startup = true
+
+[permissions]
+# Where you are (the hex on the cursor's line, the file the time
+# converter inserts into), and the explorer's selection (a recording).
+editor = "write"
+# Recordings in the project, read; what a stream page writes, into it.
+filesystem = "project-write"
+# The live sources ccsds.sources lists, and nothing else. It only
+# receives (a NATS source gets its protocol's CONNECT, SUB and PONG).
+sockets = ["${setting:ccsds.sources}"]
+# The MIB folders (mib.roots), to name packets through them, and the
+# standards folder.
+folders = { mib = "${setting:mib.roots}", standards = "${setting:ccsds.library}" }
+# The MIB's settings: which MIBs, read how.
+settings = ["mib"]
+# Hex copied from elsewhere, for SPC k d.
+clipboard = true
+
+[contributes]
+# Fenix, for a binary file; the MIB's insert form (D) and a definition's
+# f.
+services = ["ccsds.hex", "ccsds.decode", "ccsds.follow"]
+
+# K on hex or an on-board time, in any file.
+[[contributes.language_servers]]
+name = "ccsds"
+files = ["*"]
+
+[[contributes.commands]]
+id = "ccsds.time"
+title = "CCSDS: time converter -- on-board time codes, UTC, TAI, GPS, CDS"
+external = true
+
+[[contributes.commands]]
+id = "ccsds.hex"
+title = "CCSDS: show the file as hex (view only)"
+
+[[contributes.commands]]
+id = "ccsds.recording"
+title = "CCSDS: open a telemetry recording -- packets, gaps, checks, parameters over time"
+
+[[contributes.commands]]
+id = "ccsds.live"
+title = "CCSDS: follow a live telemetry source -- TCP, UDP, a file being written, NATS"
+external = true
+
+[[contributes.commands]]
+id = "ccsds.standards"
+title = "CCSDS: the CCSDS and ECSS standards, and their PDFs"
+external = true
+
+[[contributes.commands]]
+id = "ccsds.decode"
+title = "CCSDS: decode the hex under the cursor, selected or on the clipboard -- packets, frames, CLTUs"
+
+[[contributes.settings]]
+key = "ccsds.pus"
+kind = "choice"
+choices = ["c", "a", "none"]
+label = "PUS edition"
+description = "The packet utilization standard the mission's packets follow: ECSS-E-ST-70-41C, 70-41A, or plain space packets."
+default = "c"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.tm_time"
+label = "TM time format"
+description = "The time in a TM secondary header: cuc 4.2 (4 coarse, 2 fine octets), cds 16, add p for a P-field, or none."
+default = "cuc 4.2"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.epoch"
+label = "Epoch"
+description = "What on-board times count from: a date and time, then TAI, UTC or GPS."
+default = "1958-01-01 TAI"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.time_correlation"
+label = "Time correlation"
+description = "An on-board time and the UTC it matched (814B878A.8000 = 2026-09-27 14:32:05.5): on-board times are read from the epoch this implies, everywhere, and the time converter shows them uncorrelated too."
+project = true
+
+[[contributes.settings]]
+key = "ccsds.clock"
+kind = "bool"
+label = "Mission clock"
+description = "The modeline shows the time now as the mission writes it on board, beside the clock."
+default = "false"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.crc"
+kind = "choice"
+choices = ["ccitt16", "iso", "none"]
+label = "Packet error control"
+description = "The check at the end of a packet, where the MIB doesn't say: CRC-16-CCITT, the ISO checksum, or none."
+default = "ccitt16"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.tc_source_id"
+kind = "int"
+label = "TC source ID"
+description = "The source ID written into telecommand packets Fenix builds."
+default = "0"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.plf_offset"
+kind = "choice"
+choices = ["after-headers", "packet-start"]
+label = "Parameter offsets from"
+description = "Where the MIB's PLF_OFFBY counts from: after the packet's headers (PID_DFHSIZE), or its first octet."
+default = "after-headers"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.frame_type"
+kind = "choice"
+choices = ["tm", "aos", "uslp", "tc"]
+label = "Frames"
+description = "The transfer frames recordings and live sources carry, when they carry frames."
+default = "tm"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.frame_length"
+kind = "int"
+label = "Frame length"
+description = "Octets in a transfer frame, without its sync marker or Reed-Solomon check symbols."
+default = "1115"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.frame_asm"
+kind = "bool"
+label = "Sync marker"
+description = "Frames are preceded by the 1ACFFC1D attached sync marker (CADUs)."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.frame_randomized"
+kind = "bool"
+label = "Randomized"
+description = "Frames went through the CCSDS pseudo-randomizer."
+default = "false"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.frame_rs_depth"
+kind = "int"
+label = "Reed-Solomon depth"
+description = "Interleave depth of the (255,223) Reed-Solomon code; 0 when there's none. Code words are corrected."
+default = "0"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.frame_ocf"
+kind = "bool"
+label = "Frames carry an OCF"
+description = "TM or AOS frames end in an operational control field (the CLCW)."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.frame_fecf"
+kind = "bool"
+label = "Frames carry an FECF"
+description = "Frames end in a CRC-16 frame error control field."
+default = "false"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.tc_fecf"
+kind = "bool"
+label = "TC frames carry an FECF"
+description = "Telecommand transfer frames (in CLTUs) end in a CRC-16 frame error control field."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.tc_segment_header"
+kind = "bool"
+label = "TC segment header"
+description = "Telecommand transfer frames start their data with a segment header (MAP ID and sequence flags)."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.tc_randomized"
+kind = "bool"
+label = "TC randomized"
+description = "Telecommand transfer frames went through the CCSDS pseudo-randomizer before their CLTU was coded (optional in 231.0-B)."
+default = "false"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.tc_bch"
+kind = "choice"
+choices = ["correct", "detect"]
+label = "CLTU decoding"
+description = "How CLTU code blocks are decoded, as the spacecraft does: correct puts one wrong bit per block right (error-correcting mode), detect turns the block away."
+default = "correct"
+project = true
+
+[[contributes.settings]]
+key = "ccsds.vc_names"
+kind = "map"
+columns = ["VC", "Name"]
+label = "Virtual channels"
+description = "A name for each virtual channel, shown wherever its frames are."
+project = true
+
+[[contributes.settings]]
+key = "ccsds.sources"
+kind = "records"
+columns = ["name", "address", "subject", "framing", "header"]
+label = "Live sources"
+description = "Where live telemetry comes from: tcp://host:port, udp://:port, nats://host:port with a subject, or file://path of a recording being written. Framing, picked: guess, packets, frames (frames fecf or frames no-fecf when a link differs from the frame settings), cltus, or records with the record header's size in octets. Fenix only receives."
+project = true
+
+[[contributes.settings]]
+key = "ccsds.checks_off"
+kind = "list"
+label = "Checks turned off"
+description = "Standards checks not to run on the MIB: apid, size, overlap, width, identification, pus, checksum, calibration, time."
+project = true
+
+[[contributes.settings]]
+key = "ccsds.library"
+kind = "path"
+label = "Standards folder"
+description = "The folder your CCSDS and ECSS standards' PDFs are in; SPC k ? lists them and a field's gd opens its heading."
+
+[[contributes.settings]]
+key = "ccsds.leap_seconds"
+kind = "path"
+label = "Leap seconds"
+description = "A file of `YYYY-MM-DD N` lines (TAI - UTC from that date) to use instead of the table Fenix has."

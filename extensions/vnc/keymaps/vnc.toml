@@ -1,0 +1,20 @@
+# VNC's keys, under SPC v, as 1.x had them. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC v"
+group = "vnc"
+
+[[leader]]
+keys = "SPC v v"
+label = "open/switch vnc session"
+command = "vnc.open"
+
+[[leader]]
+keys = "SPC v q"
+label = "close vnc session"
+command = "vnc.close"
+
+[[leader]]
+keys = "SPC v s"
+label = "save vnc screenshot"
+command = "vnc.screenshot"

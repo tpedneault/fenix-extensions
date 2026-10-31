@@ -1,0 +1,9 @@
+# A program running on this machine: the process picked as the session
+# starts. lldb-dap and GDB both take its id as `pid`. On Linux,
+# attaching needs ptrace (`kernel.yama.ptrace_scope` 0, or root).
+name = "C/C++: attach to a process"
+languages = ["c", "cpp"]
+request = "attach"
+
+[attributes]
+pid = "${pickProcess}"

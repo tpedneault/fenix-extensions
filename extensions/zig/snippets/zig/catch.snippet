@@ -1,0 +1,8 @@
+# name: catch |err|
+# key: catch
+# scope: zig
+# --
+const ${1:result} = ${2:call()} catch |err| {
+	std.log.err("${3:failed}: {}", .{err});
+	return err;
+};$0

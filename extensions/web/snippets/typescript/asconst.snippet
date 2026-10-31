@@ -1,0 +1,6 @@
+# name: Constants, and their union type
+# key: asconst
+# scope: typescript, tsx
+# --
+export const ${1:Colors} = [${2:"red", "green"}] as const;
+export type ${3:Color} = (typeof $1)[number];$0

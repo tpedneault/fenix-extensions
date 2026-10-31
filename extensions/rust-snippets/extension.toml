@@ -1,0 +1,13 @@
+[extension]
+id = "fenix.rust-snippets"
+name = "Rust snippets"
+version = "1.0.0"
+description = "Snippets for everyday Rust: functions, tests, impls, matches and more"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["snippets"]
+runtime = "none"
+
+[engine]
+fenix = ">=1.0, <2"

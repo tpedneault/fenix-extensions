@@ -1,0 +1,5 @@
+# More files Fenix reads as shell scripts: Bash's startup files, the
+# POSIX shell's, Bats tests, and Arch's and Alpine's package builds.
+language = "bash"
+extensions = ["bats", "ksh"]
+filenames = [".bashrc", ".bash_profile", ".bash_aliases", ".bash_logout", ".profile", "PKGBUILD", "APKBUILD"]

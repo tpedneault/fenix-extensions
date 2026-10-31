@@ -1,0 +1,135 @@
+> Task :tasks
+
+------------------------------------------------------------
+Tasks runnable from root project 'orbit'
+------------------------------------------------------------
+
+Application tasks
+-----------------
+app:run - Runs this project as a JVM application
+
+Build tasks
+-----------
+app:assemble - Assembles the outputs of this project.
+core:assemble - Assembles the outputs of this project.
+app:build - Assembles and tests this project.
+core:build - Assembles and tests this project.
+app:buildDependents - Assembles and tests this project and all projects that depend on it.
+core:buildDependents - Assembles and tests this project and all projects that depend on it.
+core:buildKotlinToolingMetadata - Build metadata json file containing information about the used Kotlin tooling
+app:buildNeeded - Assembles and tests this project and all projects it depends on.
+core:buildNeeded - Assembles and tests this project and all projects it depends on.
+app:classes - Assembles main classes.
+core:classes - Assembles main classes.
+app:clean - Deletes the build directory.
+core:clean - Deletes the build directory.
+app:jar - Assembles a jar archive containing the classes of the 'main' feature.
+core:jar - Assembles a jar archive containing the classes of the 'main' feature.
+core:kotlinSourcesJar - Assembles a jar archive containing the sources of target 'kotlin'.
+app:testClasses - Assembles test classes.
+core:testClasses - Assembles test classes.
+
+Build Setup tasks
+-----------------
+init - Initializes a new Gradle build.
+updateDaemonJvm - Generates or updates the Gradle Daemon JVM criteria.
+wrapper - Generates Gradle wrapper files.
+
+Distribution tasks
+------------------
+app:assembleDist - Assembles the main distributions
+app:distTar - Bundles the project as a distribution.
+app:distZip - Bundles the project as a distribution.
+app:installDist - Installs the project as a distribution as-is.
+
+Documentation tasks
+-------------------
+app:javadoc - Generates Javadoc API documentation for the 'main' feature.
+core:javadoc - Generates Javadoc API documentation for the 'main' feature.
+
+Help tasks
+----------
+artifactTransforms - Displays the Artifact Transforms that can be executed in root project 'orbit'.
+app:artifactTransforms - Displays the Artifact Transforms that can be executed in project ':app'.
+core:artifactTransforms - Displays the Artifact Transforms that can be executed in project ':core'.
+buildEnvironment - Displays all buildscript dependencies declared in root project 'orbit'.
+app:buildEnvironment - Displays all buildscript dependencies declared in project ':app'.
+core:buildEnvironment - Displays all buildscript dependencies declared in project ':core'.
+dependencies - Displays all dependencies declared in root project 'orbit'.
+app:dependencies - Displays all dependencies declared in project ':app'.
+core:dependencies - Displays all dependencies declared in project ':core'.
+dependencyInsight - Displays the insight into a specific dependency in root project 'orbit'.
+app:dependencyInsight - Displays the insight into a specific dependency in project ':app'.
+core:dependencyInsight - Displays the insight into a specific dependency in project ':core'.
+dependencyUpdates - Displays the dependency updates for the project.
+help - Displays a help message.
+app:help - Displays a help message.
+core:help - Displays a help message.
+javaToolchains - Displays the detected java toolchains.
+app:javaToolchains - Displays the detected java toolchains.
+core:javaToolchains - Displays the detected java toolchains.
+kotlinDslAccessorsReport - Prints the Kotlin code for accessing the currently available project extensions and conventions.
+app:kotlinDslAccessorsReport - Prints the Kotlin code for accessing the currently available project extensions and conventions.
+core:kotlinDslAccessorsReport - Prints the Kotlin code for accessing the currently available project extensions and conventions.
+outgoingVariants - Displays the outgoing variants of root project 'orbit'.
+app:outgoingVariants - Displays the outgoing variants of project ':app'.
+core:outgoingVariants - Displays the outgoing variants of project ':core'.
+partialDependencyUpdates - Resolves the dependency updates of a single project.
+app:partialDependencyUpdates - Resolves the dependency updates of a single project.
+core:partialDependencyUpdates - Resolves the dependency updates of a single project.
+projects - Displays the sub-projects of root project 'orbit'.
+app:projects - Displays the sub-projects of project ':app'.
+core:projects - Displays the sub-projects of project ':core'.
+properties - Displays the properties of root project 'orbit'.
+app:properties - Displays the properties of project ':app'.
+core:properties - Displays the properties of project ':core'.
+resolvableConfigurations - Displays the configurations that can be resolved in root project 'orbit'.
+app:resolvableConfigurations - Displays the configurations that can be resolved in project ':app'.
+core:resolvableConfigurations - Displays the configurations that can be resolved in project ':core'.
+tasks - Displays the tasks runnable from root project 'orbit' (some of the displayed tasks may belong to subprojects).
+app:tasks - Displays the tasks runnable from project ':app'.
+core:tasks - Displays the tasks runnable from project ':core'.
+
+Verification tasks
+------------------
+app:check - Runs all checks.
+core:check - Runs all checks.
+core:checkKotlinGradlePluginConfigurationErrors - Checks that Kotlin Gradle Plugin hasn't reported project configuration errors, failing otherwise. This task always runs before compileKotlin* or similar tasks.
+app:test - Runs the test suite.
+core:test - Runs the test suite.
+
+Other tasks
+-----------
+app:compileJava - Compiles main Java source.
+core:compileJava - Compiles main Java source.
+core:compileKotlin - Compiles the compilation 'main' in target ''.
+app:compileTestJava - Compiles test Java source.
+core:compileTestJava - Compiles test Java source.
+core:compileTestKotlin - Compiles the compilation 'test' in target ''.
+components - Displays the components produced by root project 'orbit'. [deprecated]
+app:components - Displays the components produced by project ':app'. [deprecated]
+core:components - Displays the components produced by project ':core'. [deprecated]
+dependentComponents - Displays the dependent components of components in root project 'orbit'. [deprecated]
+app:dependentComponents - Displays the dependent components of components in project ':app'. [deprecated]
+core:dependentComponents - Displays the dependent components of components in project ':core'. [deprecated]
+core:mainClasses
+model - Displays the configuration model of root project 'orbit'. [deprecated]
+app:model - Displays the configuration model of project ':app'. [deprecated]
+core:model - Displays the configuration model of project ':core'. [deprecated]
+prepareKotlinBuildScriptModel
+app:processResources - Processes main resources.
+core:processResources - Processes main resources.
+app:processTestResources - Processes test resources.
+core:processTestResources - Processes test resources.
+app:startScripts - Creates OS specific scripts to run the project as a JVM application.
+
+[Incubating] Problems report is available at: file:///home/u/orbit/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 13s
+1 actionable task: 1 executed

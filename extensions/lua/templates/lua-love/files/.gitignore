@@ -1,0 +1,6 @@
+# Built games
+*.love
+/dist/
+
+# Your own
+.env

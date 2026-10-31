@@ -1,0 +1,44 @@
+[template]
+name = "Java · Spring Boot"
+kind = "other"
+group = "Java and Kotlin"
+description = "A Spring Boot web app built by Gradle (Kotlin DSL): an application with a JSON endpoint, its test, Actuator if you like, and the wrapper."
+needs = ["gradle"]
+open = ["src/main/java/{{name_snake}}/Application.java"]
+
+[[ask]]
+key = "java"
+label = "Java"
+choices = ["21", "25", "17"]
+default = "21"
+hint = "the toolchain's: Gradle downloads it if it isn't installed"
+
+[[ask]]
+key = "actuator"
+label = "Actuator"
+default = true
+hint = "health and metrics at /actuator"
+
+[[file]]
+path = "build.gradle.kts"
+from = "build.gradle.kts"
+after = true
+
+[[file]]
+path = "src/main/java/{{name_snake}}/Application.java"
+from = "Application.java"
+
+[[file]]
+path = "src/main/java/{{name_snake}}/HelloController.java"
+from = "HelloController.java"
+
+[[file]]
+path = "src/test/java/{{name_snake}}/ApplicationTests.java"
+from = "ApplicationTests.java"
+
+# The wrapper, made by the Gradle installed: the build's own files come
+# after, so making it doesn't read them.
+[[run]]
+exec = "gradle"
+args = ["wrapper", "--gradle-version", "9.8.2", "--distribution-type", "bin"]
+

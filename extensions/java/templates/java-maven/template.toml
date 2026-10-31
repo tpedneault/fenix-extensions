@@ -1,0 +1,27 @@
+[template]
+name = "Java · Maven"
+kind = "other"
+group = "Java and Kotlin"
+description = "A Java application built by Maven: its release, JUnit 5 tests, `exec:java` to run it, the versions plugin, and the script-only Maven wrapper."
+needs = ["mvn"]
+open = ["src/main/java/{{name_snake}}/App.java"]
+
+[[ask]]
+key = "java"
+label = "Java"
+choices = ["21", "25", "17"]
+default = "21"
+hint = "maven.compiler.release: a JDK at least this new builds it"
+
+[[file]]
+path = "src/main/java/{{name_snake}}/App.java"
+from = "App.java"
+
+[[file]]
+path = "src/test/java/{{name_snake}}/AppTest.java"
+from = "AppTest.java"
+
+# The wrapper: the script-only one (no jar), made by the Maven installed.
+[[run]]
+exec = "mvn"
+args = ["-B", "-q", "-N", "org.apache.maven.plugins:maven-wrapper-plugin:3.3.4:wrapper", "-Dtype=only-script", "-Dmaven=3.9.11"]

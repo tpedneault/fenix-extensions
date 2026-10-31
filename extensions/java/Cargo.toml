@@ -1,0 +1,36 @@
+[package]
+name = "fenix-java"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Java and Kotlin in Fenix: Eclipse JDT LS through the pack, java-debug, kotlin-language-server, google-java-format and ktlint, Gradle's and Maven's tasks, the project doctor's checks and the package manager page."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+serde = { version = "1", features = ["derive"] }
+# pom.xml.
+roxmltree = "0.21"
+
+[dev-dependencies]
+# lang-kit's test host.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# The snippets and project templates read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+# The Kotlin grammar loaded and its queries run as Fenix does: tree-sitter
+# 0.26's WebAssembly store (fenix-syntax's).
+tree-sitter = { version = "0.26.13", features = ["wasm"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

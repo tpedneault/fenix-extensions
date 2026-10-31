@@ -1,0 +1,5 @@
+{
+  "files": { "includes": ["src/**"] },
+  "formatter": { "indentStyle": "space", "indentWidth": 2 },
+  "linter": { "enabled": true }
+}

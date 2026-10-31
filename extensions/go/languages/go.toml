@@ -1,0 +1,4 @@
+# Go's line comment. The server is the extension's to set, once it has
+# found gopls.
+language = "go"
+comment = "//"

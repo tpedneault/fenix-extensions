@@ -1,0 +1,66 @@
+[template]
+name = ".NET · Console app"
+kind = "other"
+group = ".NET"
+description = "A console app in a solution, with xUnit tests if you like: made by dotnet new, with a .gitignore and an .editorconfig."
+needs = ["dotnet"]
+open = ["src/{{name_pascal}}/Program.cs"]
+
+[[ask]]
+key = "framework"
+label = "Framework"
+choices = ["sdk", "net10.0", "net9.0", "net8.0"]
+default = "sdk"
+hint = "sdk: the newest your SDK makes"
+
+[[ask]]
+key = "tests"
+label = "xUnit tests"
+default = true
+hint = "a test project in tests/, referencing it"
+
+[[run]]
+exec = "dotnet"
+args = ["new", "sln", "-n", "{{name_pascal}}"]
+
+[[run]]
+exec = "dotnet"
+args = ["new", "console", "-n", "{{name_pascal}}", "-o", "src/{{name_pascal}}"]
+when = "framework == sdk"
+
+[[run]]
+exec = "dotnet"
+args = ["new", "console", "-n", "{{name_pascal}}", "-o", "src/{{name_pascal}}", "-f", "{{framework}}"]
+when = "framework != sdk"
+
+[[run]]
+exec = "dotnet"
+args = ["sln", "add", "src/{{name_pascal}}"]
+
+[[run]]
+exec = "dotnet"
+args = ["new", "xunit", "-n", "{{name_pascal}}.Tests", "-o", "tests/{{name_pascal}}.Tests"]
+when = ["tests", "framework == sdk"]
+
+[[run]]
+exec = "dotnet"
+args = ["new", "xunit", "-n", "{{name_pascal}}.Tests", "-o", "tests/{{name_pascal}}.Tests", "-f", "{{framework}}"]
+when = ["tests", "framework != sdk"]
+
+[[run]]
+exec = "dotnet"
+args = ["add", "tests/{{name_pascal}}.Tests", "reference", "src/{{name_pascal}}"]
+when = "tests"
+
+[[run]]
+exec = "dotnet"
+args = ["sln", "add", "tests/{{name_pascal}}.Tests"]
+when = "tests"
+
+[[run]]
+exec = "dotnet"
+args = ["new", "gitignore"]
+
+[[run]]
+exec = "dotnet"
+args = ["new", "editorconfig"]

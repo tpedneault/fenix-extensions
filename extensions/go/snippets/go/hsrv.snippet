@@ -1,0 +1,15 @@
+# name: HTTP server that shuts down
+# key: hsrv
+# scope: go
+# --
+srv := &http.Server{Addr: "${1::8080}", Handler: ${2:mux}}
+go func() {
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+}()
+ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+defer stop()
+<-ctx.Done()
+_ = srv.Shutdown(context.Background())
+$0

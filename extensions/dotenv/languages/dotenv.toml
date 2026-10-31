@@ -1,0 +1,8 @@
+# Env files highlighted as shell: Fenix has no dotenv grammar, and
+# KEY=value lines, export, # comments, quotes and ${VAR} are the shell's.
+# `.env.*` is a pattern (API 0.8.4); a pattern wins over a file's
+# extension, so the dotenv_*.toml files beside this give code named
+# `.env.ts`, `.env.json` and the like back its own language.
+language = "bash"
+extensions = ["env"]
+filenames = [".env", ".env.*"]

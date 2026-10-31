@@ -1,0 +1,10 @@
+# PHP, which Fenix doesn't highlight itself: tree-sitter-php's grammar
+# (PHP inside HTML), compiled to WebAssembly (0.8.5), and its queries
+# from queries/php. Templates (.phtml), older suffixes, and PHP's own
+# scripts without one (Laravel's artisan) are PHP too. The server is the
+# extension's to set, once it has found one.
+language = "php"
+grammar = "grammars/tree-sitter-php.wasm"
+extensions = ["php", "phtml", "php4", "php5", "php7", "php8", "phps"]
+filenames = ["artisan"]
+comment = "//"

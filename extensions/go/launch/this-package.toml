@@ -1,0 +1,8 @@
+# The package of the file you're in: a cmd/<name>'s main.
+name = "Go: this package"
+languages = ["go"]
+program = "${fileDir}"
+cwd = "${project}"
+
+[attributes]
+mode = "debug"

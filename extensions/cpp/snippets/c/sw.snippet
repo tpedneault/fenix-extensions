@@ -1,0 +1,11 @@
+# name: switch
+# key: sw
+# scope: c
+# --
+switch (${1:value}) {
+case ${2:0}:
+    $0
+    break;
+default:
+    break;
+}

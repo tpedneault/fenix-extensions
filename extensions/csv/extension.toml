@@ -1,0 +1,35 @@
+[extension]
+id = "fenix.csv"
+name = "CSV table"
+version = "1.0.0"
+description = "CSV and TSV files as a table: columns lined up, sorted and filtered, cells, rows and columns changed through the file's buffer, column stats, copies as CSV or Markdown -- a million rows as fast as ten"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+[permissions]
+# The file's buffer: read, changed and saved, so Fenix's undo has what
+# it does.
+editor = "write"
+# A table kept in the session is read from the project again on the next
+# start.
+filesystem = "project-read"
+
+[contributes]
+# A .csv or .tsv opens in it however you open it, which starts it.
+opens = ["*.csv", "*.tsv"]
+# A file's buffer changed: a table's is read again (with editor = "read").
+events = ["changed"]
+
+[[contributes.settings]]
+key = "csv.rows"
+kind = "int"
+label = "Rows shown"
+description = "How many rows a table shows at once, whatever the pane's height; unset, as many as fit"
+default = ""

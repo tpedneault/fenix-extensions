@@ -1,0 +1,11 @@
+# The tests *Java: debug the tests* (SPC m t) started -- the test class
+# you're in, else its module's -- by Gradle (`test --debug-jvm`) or Maven
+# (`-Dmaven.surefire.debug`), held for the debugger on port 5005.
+name = "Java: the tests"
+languages = ["java"]
+request = "attach"
+
+[attributes]
+hostName = "127.0.0.1"
+port = 5005
+timeout = 30000

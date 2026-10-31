@@ -1,0 +1,111 @@
+// The pack's init script (fenix.java): `fenixDependencies` on the root
+// project prints what each project depends on, and the versions plugin's
+// report (`dependencyUpdates`) as JSON on stdout, between FENIX-JSON
+// lines. The plugin is the build's own when it applies it.
+initscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'io.github.ben-manes:gradle-versions-plugin:0.66.0'
+    }
+}
+
+// A pre-release's version: `2.1.0-alpha1`, `4.2.0-RC1`, `1.0-M2`.
+ext.PRE = /(?i).*[.-](alpha|beta|rc|cr|m|milestone|preview|snapshot|ea)[.\d-]*/
+
+rootProject {
+    afterEvaluate { root ->
+        if (root.tasks.findByName('dependencyUpdates') == null) {
+            root.apply plugin: com.github.benmanes.gradle.versions.VersionsPlugin
+        }
+        root.tasks.named('dependencyUpdates').configure {
+            revision = 'release'
+            checkForGradleUpdate = false
+            // Pre-releases aren't offered.
+            rejectVersionIf { c -> c.candidate.version ==~ PRE }
+            outputFormatter = { result ->
+                def row = { d -> [group: d.group, name: d.name, version: d.version, url: d.projectUrl] }
+                def out = [
+                    current: result.current.dependencies.collect(row),
+                    outdated: result.outdated.dependencies.collect { d -> row(d) + [latest: d.available.release ?: d.available.milestone] },
+                    exceeded: result.exceeded.dependencies.collect(row),
+                    unresolved: result.unresolved.dependencies.collect(row),
+                ]
+                println 'FENIX-JSON'
+                println groovy.json.JsonOutput.toJson(out)
+                println 'FENIX-JSON'
+            }
+        }
+    }
+}
+
+// `fenixEdit`: a dependency added to a project's build file, taken out
+// of it, or moved to another version there (or in the version catalog),
+// for the package page -- Gradle has no command of its own for these.
+//   -Pfenix.op=add -Pfenix.file=app/build.gradle.kts -Pfenix.coords=g:a[:v] [-Pfenix.config=implementation]
+//   -Pfenix.op=remove -Pfenix.file=... -Pfenix.coords=g:a
+//   -Pfenix.op=set -Pfenix.coords=g:a:v,g2:a2:v2
+rootProject {
+    tasks.register('fenixEdit') {
+        doLast {
+            def root = project.rootProject
+            def op = root.findProperty('fenix.op')
+            def coords = (root.findProperty('fenix.coords') ?: '').split(',').findAll { it }
+            def target = root.findProperty('fenix.file') ? root.file(root.findProperty('fenix.file')) : null
+            def edit = { File f, Closure change ->
+                if (f == null || !f.isFile()) return false
+                def before = f.getText('UTF-8')
+                def after = change(before)
+                if (after != before) { f.setText(after, 'UTF-8'); println "fenix: ${root.relativePath(f)}" }
+                after != before
+            }
+            if (op == 'add') {
+                def parts = coords[0].split(':')
+                def version = parts.size() > 2 ? parts[2] : null
+                def owner = root.allprojects.find { it.buildFile == target } ?: root
+                if (!version) {
+                    def conf = owner.configurations.detachedConfiguration(owner.dependencies.create("${parts[0]}:${parts[1]}:+"))
+                    conf.resolutionStrategy.componentSelection { all { s -> if (s.candidate.version ==~ PRE) s.reject('a pre-release') } }
+                    version = conf.resolvedConfiguration.firstLevelModuleDependencies.first().moduleVersion
+                }
+                def config = root.findProperty('fenix.config') ?: 'implementation'
+                def kts = target.name.endsWith('.kts')
+                def line = kts ? "    ${config}(\"${parts[0]}:${parts[1]}:${version}\")" : "    ${config} '${parts[0]}:${parts[1]}:${version}'"
+                edit(target) { text ->
+                    def m = text =~ /(?m)^dependencies\s*\{[^\n]*\n/
+                    m.find() ? text.substring(0, m.end()) + line + '\n' + text.substring(m.end()) : text + "\ndependencies {\n${line}\n}\n"
+                }
+            } else if (op == 'remove') {
+                def (g, a) = coords[0].split(':')
+                edit(target) { text ->
+                    text.readLines().findAll { l -> !(l.contains("${g}:${a}:") || l.contains("\"${g}:${a}\"") || l.contains("'${g}:${a}'")) }.join('\n') + (text.endsWith('\n') ? '\n' : '')
+                }
+            } else if (op == 'set') {
+                def files = root.allprojects.collect { it.buildFile } + [root.file('gradle/libs.versions.toml')]
+                coords.each { c ->
+                    def (g, a, v) = c.split(':')
+                    def plugin = a == "${g}.gradle.plugin"
+                    files.each { f ->
+                        edit(f) { text ->
+                            def lines = text.readLines()
+                            def refs = []
+                            lines = lines.collect { l ->
+                                if (l.contains("${g}:${a}:")) return l.replaceAll(/(${java.util.regex.Pattern.quote(g + ':' + a + ':')})[^"':]+/, '$1' + v)
+                                if (l.contains("\"${g}:${a}\"") || l.contains("group = \"${g}\", name = \"${a}\"") || (plugin && l.contains("\"${g}\""))) {
+                                    def ref = l =~ /version\.ref\s*=\s*"([^"]+)"/
+                                    if (ref.find()) { refs << ref.group(1); return l }
+                                    return l.replaceAll(/(version\s*=?\s*\(?")[^"]+/, '$1' + v)
+                                }
+                                l
+                            }
+                            // A catalog's [versions] entry the module names.
+                            lines = lines.collect { l -> refs.any { r -> l ==~ /^\s*${java.util.regex.Pattern.quote(r)}\s*=.*/ } ? l.replaceAll(/=\s*"[^"]+"/, "= \"${v}\"") : l }
+                            lines.join('\n') + (text.endsWith('\n') ? '\n' : '')
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

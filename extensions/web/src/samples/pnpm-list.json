@@ -1,0 +1,84 @@
+[
+  {
+    "name": "orbit-web",
+    "version": "0.1.0",
+    "path": "/home/me/orbit-web",
+    "private": true,
+    "dependencies": {
+      "lodash": {
+        "from": "lodash",
+        "version": "4.17.20",
+        "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz",
+        "path": "/home/me/orbit-web/node_modules/.pnpm/lodash@4.17.20/node_modules/lodash"
+      },
+      "chalk": {
+        "from": "chalk",
+        "version": "4.1.2",
+        "resolved": "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz",
+        "path": "/home/me/orbit-web/node_modules/.pnpm/chalk@4.1.2/node_modules/chalk",
+        "dependencies": {
+          "supports-color": {
+            "from": "supports-color",
+            "version": "7.2.0",
+            "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz",
+            "path": "/home/me/orbit-web/node_modules/.pnpm/supports-color@7.2.0/node_modules/supports-color",
+            "dependencies": {
+              "has-flag": {
+                "from": "has-flag",
+                "version": "4.0.0",
+                "resolved": "https://registry.npmjs.org/has-flag/-/has-flag-4.0.0.tgz",
+                "path": "/home/me/orbit-web/node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag"
+              }
+            }
+          },
+          "ansi-styles": {
+            "from": "ansi-styles",
+            "version": "4.3.0",
+            "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz",
+            "path": "/home/me/orbit-web/node_modules/.pnpm/ansi-styles@4.3.0/node_modules/ansi-styles",
+            "dependencies": {
+              "color-convert": {
+                "from": "color-convert",
+                "version": "2.0.1",
+                "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
+                "path": "/home/me/orbit-web/node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert",
+                "dependencies": {
+                  "color-name": {
+                    "from": "color-name",
+                    "version": "1.1.4",
+                    "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
+                    "path": "/home/me/orbit-web/node_modules/.pnpm/color-name@1.1.4/node_modules/color-name"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "devDependencies": {
+      "semver": {
+        "from": "semver",
+        "version": "7.5.4",
+        "resolved": "https://registry.npmjs.org/semver/-/semver-7.5.4.tgz",
+        "path": "/home/me/orbit-web/node_modules/.pnpm/semver@7.5.4/node_modules/semver",
+        "dependencies": {
+          "lru-cache": {
+            "from": "lru-cache",
+            "version": "6.0.0",
+            "resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-6.0.0.tgz",
+            "path": "/home/me/orbit-web/node_modules/.pnpm/lru-cache@6.0.0/node_modules/lru-cache",
+            "dependencies": {
+              "yallist": {
+                "from": "yallist",
+                "version": "4.0.0",
+                "resolved": "https://registry.npmjs.org/yallist/-/yallist-4.0.0.tgz",
+                "path": "/home/me/orbit-web/node_modules/.pnpm/yallist@4.0.0/node_modules/yallist"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

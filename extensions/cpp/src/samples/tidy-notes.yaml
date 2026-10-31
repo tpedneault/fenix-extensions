@@ -1,0 +1,53 @@
+---
+MainSourceFile:  '/home/u/orbit/src/leak.cpp'
+Diagnostics:
+  - DiagnosticName:  readability-braces-around-statements
+    DiagnosticMessage:
+      Message:         statement should be inside braces
+      FilePath:        'src/leak.cpp'
+      FileOffset:      72
+      Replacements:
+        - FilePath:        'src/leak.cpp'
+          Offset:          72
+          Length:          0
+          ReplacementText: ' {'
+        - FilePath:        'src/leak.cpp'
+          Offset:          82
+          Length:          0
+          ReplacementText: "\n}"
+    Level:           Warning
+    BuildDirectory:  '/home/u/orbit'
+  - DiagnosticName:  clang-analyzer-cplusplus.NewDeleteLeaks
+    DiagnosticMessage:
+      Message:         'Potential leak of memory pointed to by ''p'''
+      FilePath:        'src/leak.cpp'
+      FileOffset:      80
+      Replacements:    []
+    Notes:
+      - Message:         Memory is allocated
+        FilePath:        'src/leak.cpp'
+        FileOffset:      36
+        Replacements:    []
+        Ranges:
+          - FilePath:        'src/leak.cpp'
+            FileOffset:      36
+            Length:          15
+      - Message:         'Assuming ''radius'' is > 2'
+        FilePath:        'src/leak.cpp'
+        FileOffset:      61
+        Replacements:    []
+        Ranges:
+          - FilePath:        'src/leak.cpp'
+            FileOffset:      61
+            Length:          10
+      - Message:         Taking true branch
+        FilePath:        'src/leak.cpp'
+        FileOffset:      57
+        Replacements:    []
+      - Message:         'Potential leak of memory pointed to by ''p'''
+        FilePath:        'src/leak.cpp'
+        FileOffset:      80
+        Replacements:    []
+    Level:           Warning
+    BuildDirectory:  '/home/u/orbit'
+...

@@ -1,0 +1,12 @@
+src/orbit.cpp:9:17: warning: prefer using 'override' or (rarely) 'final' instead of 'virtual' [modernize-use-override]
+    9 |     virtual int radius() const { return 2; }
+      |     ~~~~~~~     ^
+      |                                override
+src/orbit.cpp:13:14: warning: use nullptr [modernize-use-nullptr]
+   13 |     if (p == NULL) return 0;
+      |              ^~~~
+      |              nullptr
+src/orbit.cpp:13:19: warning: statement should be inside braces [readability-braces-around-statements]
+   13 |     if (p == NULL) return 0;
+      |                   ^         
+      |                    {

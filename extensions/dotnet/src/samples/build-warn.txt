@@ -1,0 +1,4 @@
+/home/u/orbit/src/Orbit.App/Orbit.App.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr
+/home/u/orbit/src/Orbit.App/Orbit.App.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr
+/home/u/orbit/src/Orbit.Core/Class1.cs(7,13): warning CS0168: The variable 'unused' is declared but never used [/home/u/orbit/src/Orbit.Core/Orbit.Core.csproj]
+/home/u/orbit/src/Orbit.Core/Class1.cs(12,46): warning CS8602: Dereference of a possibly null reference. [/home/u/orbit/src/Orbit.Core/Orbit.Core.csproj]

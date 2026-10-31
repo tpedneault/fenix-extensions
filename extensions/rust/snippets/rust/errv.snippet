@@ -1,0 +1,7 @@
+# name: Error variant (thiserror)
+# key: errv
+# scope: rust
+# --
+#[error("${1:what went wrong}")]
+${2:Variant}(#[from] ${3:Source}),
+$0

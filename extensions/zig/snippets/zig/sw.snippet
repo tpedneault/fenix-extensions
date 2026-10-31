@@ -1,0 +1,8 @@
+# name: switch
+# key: sw
+# scope: zig
+# --
+switch (${1:value}) {
+	${2:.a} => $3,
+	else => ${4:unreachable},
+}$0

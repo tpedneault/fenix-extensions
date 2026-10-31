@@ -1,0 +1,93 @@
+[extension]
+id = "fenix.php"
+name = "PHP"
+version = "1.0.0"
+description = "PHP: tree-sitter-php's highlighting, Intelephense or Phpactor, the project's Pint or PHP CS Fixer as the formatter, PHPStan on save, Composer's scripts and the project's tools as tasks, the project's checks with their fixes, snippets, and a Composer package project"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The formatter, a linter's problems, a release into the tools folder
+# (0.8.3); a grammar of its own (0.8.5); the project's own vendor/bin
+# looked at first, and the language file's `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# PHP runs Phpactor's PHAR, Laravel's artisan, and Pint and PHP CS Fixer
+# on a copy of the buffer; Composer installs and runs the scripts; npm
+# installs Intelephense; the servers, and the project's tools in
+# vendor/bin (or where Composer installs them globally); Phpactor in the
+# tools folder.
+process = [
+    "php", "composer", "npm", "intelephense", "phpactor",
+    "phpunit", "pest", "phpstan", "pint", "php-cs-fixer",
+    "/tools/*",
+]
+# Phpactor's release, and where GitHub sends its download.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# composer.json and composer.lock, vendor's record of what's installed,
+# the tools' configs and .env, read.
+filesystem = "project-read"
+# The file saved, for PHPStan.
+editor = "read"
+
+[contributes]
+# A file saved: linted (by its path, file_saved); composer.json and the
+# tools' configs, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "php"
+markers = ["composer.json", "artisan"]
+languages = ["php"]
+
+[[contributes.commands]]
+id = "php.doctor"
+title = "PHP: check the project again (PHP, Composer, vendor, the server, the project's tools)"
+
+[[contributes.commands]]
+id = "php.install"
+title = "PHP: install the project's packages (composer install)"
+
+[[contributes.commands]]
+id = "php.install-intelephense"
+title = "PHP: install Intelephense, the language server (npm)"
+
+[[contributes.commands]]
+id = "php.install.phpactor"
+title = "PHP: install Phpactor, the language server, into Fenix's tools folder"
+
+[[contributes.settings]]
+key = "php.server"
+kind = "choice"
+choices = ["intelephense", "phpactor", "off"]
+label = "Language server"
+description = "intelephense: Intelephense (npm install -g intelephense). phpactor: Phpactor, on PATH or the release the pack installs, run by PHP 8.2 or later. Either falls back to the other when it isn't installed. off: neither."
+default = "intelephense"
+project = true
+
+[[contributes.settings]]
+key = "php.formatter"
+kind = "choice"
+choices = ["project", "server"]
+label = "Formatter"
+description = "project: the project's Pint (pint.json, laravel/pint) or PHP CS Fixer (.php-cs-fixer.php), with its config; the server's where it has neither. server: the language server's formatting."
+default = "project"
+project = true
+
+[[contributes.settings]]
+key = "php.phpstan"
+kind = "bool"
+label = "PHPStan on save"
+description = "Analyse a saved file with the project's PHPStan, and its config, when the project uses it."
+default = "true"
+project = true

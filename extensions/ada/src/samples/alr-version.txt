@@ -1,0 +1,42 @@
+APPLICATION
+alr version:               2.1.1
+libalire version:          2.1.1
+source commit:             fa9a1a9971d159f8cb2b8007dbb73e9e029fc109
+source changes:            clean
+compilation date:          2026-05-25 12:39:46
+compiled with version:     15.2.0
+
+CONFIGURATION
+home folder:               /home/ada
+settings folder:           /home/ada/.config/alire
+cache folder:              /home/ada/.local/share/alire
+vault folder:              /home/ada/.local/share/alire/releases
+build folder:              /home/ada/.local/share/alire/builds
+temp folder:               /tmp
+force flag:                FALSE
+non-interactive flag:      TRUE
+community index branch:    stable-1.4.0
+compatible index versions: ^1.1 & <=1.4.0
+indexes folder:            /home/ada/.config/alire/indexes
+indexes metadata:          OK
+toolchain folder:          /home/ada/.local/share/alire/toolchains
+toolchain assistant:       enabled
+tool #1 gnat:              not configured
+tool #2 gprbuild:          not configured
+system package manager:    /usr/bin/apt
+distro detection disabled: FALSE
+
+WORKSPACE
+root status:               OUTSIDE
+root release:              N/A
+root load error:           N/A
+root folder:               N/A
+current folder:            /tmp
+
+SYSTEM
+distribution:              UBUNTU
+host-arch:                 X86_64
+os:                        LINUX
+target:                    NATIVE
+toolchain:                 USER
+word-size:                 BITS_64

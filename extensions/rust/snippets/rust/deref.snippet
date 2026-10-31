@@ -1,0 +1,12 @@
+# name: Deref impl
+# key: deref
+# scope: rust
+# --
+impl std::ops::Deref for ${1:Type} {
+    type Target = ${2:Inner};
+
+    fn deref(&self) -> &Self::Target {
+        &self.${3:0}
+    }
+}
+$0

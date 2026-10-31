@@ -1,0 +1,56 @@
+# Catppuccin Latte, the light flavour.
+#
+# In its published colours, as its authors chose them: Fenix's own copy
+# keeps every colour at a contrast it can read; this one doesn't.
+name = "Catppuccin Latte (original)"
+tabs = "underline"
+
+[surfaces]
+bg = "#eff1f5"
+sidebar_bg = "#e6e9ef"
+bg_modeline = "#e6e9ef"
+divider = "#acb0be"
+caret = "#dc8a78"
+hl_line = "#dce0e8"
+selection = { color = "#7c7f93", alpha = 0.25 }
+bracket_match = { color = "#fe640b", alpha = 0.15 }
+search_match = { color = "#04a5e5", alpha = 0.18 }
+
+[text]
+fg = "#4c4f69"
+caret_text = "#dc8a78"
+gutter_fg = "#6c6f85"
+
+[modes]
+normal = "#1e66f5"
+insert = "#40a02b"
+visual = "#8839ef"
+replace = "#d20f39"
+command = "#fe640b"
+explorer = "#209fb5"
+picker = "#ea76cb"
+text_dark = "#eff1f5"
+
+[syntax]
+keyword = "#8839ef"
+string = "#40a02b"
+comment = "#7c7f93"
+function = "#1e66f5"
+type = "#df8e1d"
+number = "#fe640b"
+constant = "#fe640b"
+variable = "#4c4f69"
+operator = "#04a5e5"
+punctuation = "#04a5e5"
+attribute = "#179299"
+
+[explorer]
+folder = "#1e66f5"
+file = "#4c4f69"
+
+[git]
+modified = "#df8e1d"
+staged = "#40a02b"
+untracked = "#179299"
+ignored = "#7c7f93"
+conflicted = "#d20f39"

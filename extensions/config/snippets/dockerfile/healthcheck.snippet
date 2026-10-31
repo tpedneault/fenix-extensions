@@ -1,0 +1,6 @@
+# name: HEALTHCHECK
+# key: healthcheck
+# scope: dockerfile
+# --
+HEALTHCHECK --interval=${1:30s} --timeout=${2:3s} CMD ${3:curl -f http://localhost:8080/health || exit 1}
+$0

@@ -1,0 +1,105 @@
+[extension]
+id = "fenix.python"
+name = "Python"
+version = "1.0.0"
+description = "Python: basedpyright with ruff's server beside it, debugging with debugpy (the project's scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The debug adapter, the formatter, a linter's problems (0.8.3); ruff's
+# server beside basedpyright, the Python you chose as a hint, debugpy's
+# module without a program (0.8.5); launches for the scripts, a process
+# to attach to, ruff's fixes, the server's settings (0.8.6); the language
+# file's comment (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# uv runs the project, its tools and its packages; python3 (python on
+# Windows, or the one python.interpreter names) where there's no uv; the
+# servers and ruff where uv and pipx install them; pipx to install uv.
+process = [
+    "uv", "python3", "python", "${setting:python.interpreter}", "pipx", "ruff",
+    "basedpyright-langserver", "pyright-langserver", "basedpyright", "pyright",
+]
+# pyproject.toml, uv.lock, the requirements files, .env and the venv's
+# site-packages, read.
+filesystem = "project-read"
+# The file saved, for ruff on save.
+editor = "read"
+
+[contributes]
+# A file saved: linted (by its path, file_saved); pyproject.toml and the
+# like, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "python"
+markers = ["pyproject.toml", "uv.lock", "requirements.txt", "setup.py", "manage.py"]
+languages = ["python"]
+
+[[contributes.commands]]
+id = "python.packages"
+title = "Python: packages -- outdated and vulnerable, upgrade, add, remove"
+
+[[contributes.commands]]
+id = "python.doctor"
+title = "Python: check the project again (Python, uv, .venv, the server, ruff)"
+
+[[contributes.commands]]
+id = "python.sync"
+title = "Python: sync .venv with uv.lock (uv sync)"
+
+[[contributes.commands]]
+id = "python.install-python"
+title = "Python: install a Python that fits the project (uv python install)"
+
+[[contributes.commands]]
+id = "python.install-uv"
+title = "Python: install uv"
+
+[[contributes.commands]]
+id = "python.install-server"
+title = "Python: install the language server (basedpyright or pyright)"
+
+[[contributes.commands]]
+id = "python.install-ruff"
+title = "Python: install ruff"
+
+[[contributes.commands]]
+id = "python.install-debugpy"
+title = "Python: install debugpy into the Python on PATH"
+
+[[contributes.settings]]
+key = "python.server"
+kind = "choice"
+choices = ["basedpyright", "pyright"]
+label = "Language server"
+description = "The one to use when both are installed; with neither, Fenix's pyright-langserver is started as before."
+default = "basedpyright"
+
+[[contributes.settings]]
+key = "python.ruff"
+kind = "choice"
+choices = ["server", "save", "off"]
+label = "ruff"
+description = "server: ruff's language server beside basedpyright, its problems as you type and its fixes (ruff 0.5.3 or later). save: ruff check on each file saved, its fixes offered too. off: neither; ruff still formats."
+default = "server"
+project = true
+
+[[contributes.settings]]
+key = "python.interpreter"
+kind = "path"
+label = "Python"
+description = "The Python to check, to run tasks and debugpy with where there's no uv, and for the language server; empty for the one uv picks, or the venv's, or the one on PATH."
+default = ""
+project = true

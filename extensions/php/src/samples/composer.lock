@@ -1,0 +1,48 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "6f1c3a1b2f7f0c1d4e5a9b8c7d6e5f40",
+    "packages": [
+        {
+            "name": "brick/math",
+            "version": "0.12.3",
+            "type": "library"
+        },
+        {
+            "name": "laravel/framework",
+            "version": "v11.6.1",
+            "type": "library"
+        },
+        {
+            "name": "nesbot/carbon",
+            "version": "3.8.4",
+            "type": "library"
+        }
+    ],
+    "packages-dev": [
+        {
+            "name": "laravel/pint",
+            "version": "v1.18.3",
+            "type": "project"
+        },
+        {
+            "name": "phpunit/phpunit",
+            "version": "11.4.4",
+            "type": "library"
+        }
+    ],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": true,
+    "prefer-lowest": false,
+    "platform": {
+        "php": "^8.2",
+        "ext-mbstring": "*"
+    },
+    "platform-dev": [],
+    "plugin-api-version": "2.6.0"
+}

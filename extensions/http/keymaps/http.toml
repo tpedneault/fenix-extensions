@@ -1,0 +1,148 @@
+# The HTTP client's keys, under SPC p r (the project's requests), and
+# SPC m in a .http file. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC p r"
+group = "http requests"
+
+[[leader]]
+keys = "SPC p r r"
+label = "send the request here"
+command = "http.send"
+
+[[leader]]
+keys = "SPC p r a"
+label = "run this file's"
+command = "http.send_all"
+
+[[leader]]
+keys = "SPC p r A"
+label = "run the project's"
+command = "http.run_project"
+
+[[leader]]
+keys = "SPC p r o"
+label = "the client"
+command = "http.open"
+
+[[leader]]
+keys = "SPC p r h"
+label = "history"
+command = "http.history"
+
+[[leader]]
+keys = "SPC p r v"
+label = "the response"
+command = "http.response"
+
+[[leader]]
+keys = "SPC p r e"
+label = "environment"
+command = "http.env"
+
+[[leader]]
+keys = "SPC p r y"
+label = "copy as curl or code"
+command = "http.copy_as"
+
+[[leader]]
+keys = "SPC p r i"
+label = "import a collection or spec"
+command = "http.import"
+
+[[leader]]
+keys = "SPC p r c"
+label = "import curl"
+command = "http.import_curl"
+
+[[leader]]
+keys = "SPC p r n"
+label = "new .http file"
+command = "http.new"
+
+[[leader]]
+keys = "SPC p r s"
+label = "sign in (OAuth)"
+command = "http.sign_in"
+
+[[leader]]
+keys = "SPC p r S"
+label = "forget tokens"
+command = "http.sign_out"
+
+[[leader]]
+keys = "SPC p r k"
+label = "set a secret"
+command = "http.secret"
+
+[[leader]]
+keys = "SPC p r w"
+label = "message to the WebSocket"
+command = "http.ws_send"
+
+[[leader]]
+keys = "SPC p r g"
+label = "GraphQL schema, again"
+command = "http.graphql_schema"
+
+[[leader]]
+keys = "SPC p r x"
+label = "cancel"
+command = "http.cancel"
+
+# `SPC m` in a .http file, and on the client's pages.
+
+[[local.http]]
+keys = "r"
+label = "send"
+command = "http.send"
+
+[[local.http]]
+keys = "a"
+label = "run the file's"
+command = "http.send_all"
+
+[[local.http]]
+keys = "v"
+label = "the response"
+command = "http.response"
+
+[[local.http]]
+keys = "e"
+label = "environment"
+command = "http.env"
+
+[[local.http]]
+keys = "y"
+label = "copy as"
+command = "http.copy_as"
+
+[[local.http]]
+keys = "o"
+label = "the client"
+command = "http.open"
+
+[[local.http]]
+keys = "c"
+label = "import curl"
+command = "http.import_curl"
+
+[[local.http]]
+keys = "s"
+label = "sign in"
+command = "http.sign_in"
+
+[[local.http]]
+keys = "x"
+label = "cancel"
+command = "http.cancel"
+
+[[local.http]]
+keys = "w"
+label = "message to the WebSocket"
+command = "http.ws_send"
+
+[[local.http]]
+keys = "g"
+label = "GraphQL schema, again"
+command = "http.graphql_schema"

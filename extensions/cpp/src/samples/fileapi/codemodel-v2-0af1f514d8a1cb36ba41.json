@@ -1,0 +1,78 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.25"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "orbit",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "orbit::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-orbit-Debug-d2571a753ada182db815.json",
+					"name" : "orbit",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "orbit_app::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-orbit_app-Debug-07e689aa02b980f9e9c6.json",
+					"name" : "orbit_app",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "orbit_tests::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-orbit_tests-Debug-03f110a87ef055c0c28e.json",
+					"name" : "orbit_tests",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/user/work/cpp-pack/sample/build/debug",
+		"source" : "/home/user/work/cpp-pack/sample"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

@@ -1,0 +1,12 @@
+# Tcl's keys, in SPC m in a Tcl file (beside the MIB's, when it's on).
+# Your own keybindings.toml wins.
+
+[[local.tcl]]
+keys = "s"
+label = "symbols"
+command = "code.symbols"
+
+[[local.tcl]]
+keys = "T"
+label = "refresh tags"
+command = "completion.refresh_tags"

@@ -1,0 +1,28 @@
+# name: Builder
+# key: builder
+# scope: rust
+# --
+#[derive(Debug, Default)]
+pub struct ${1:Thing}Builder {
+    ${2:name}: Option<${3:String}>,
+}
+
+impl $1Builder {
+    pub fn $2(mut self, $2: impl Into<$3>) -> Self {
+        self.$2 = Some($2.into());
+        self
+    }
+
+    pub fn build(self) -> Result<$1, ${4:&'static str}> {
+        Ok($1 {
+            $2: self.$2.ok_or("$2 is required")?,
+        })
+    }
+}
+
+impl $1 {
+    pub fn builder() -> $1Builder {
+        $1Builder::default()
+    }
+}
+$0

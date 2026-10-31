@@ -1,0 +1,11 @@
+# `fastapi dev <the file you're in>` without its reloader, whose server
+# runs in another process.
+name = "FastAPI: current file"
+languages = ["python"]
+args = ["dev", "${file}", "--no-reload"]
+cwd = "${project}"
+env = { PYTHONUNBUFFERED = "1" }
+
+[attributes]
+module = "fastapi"
+justMyCode = true

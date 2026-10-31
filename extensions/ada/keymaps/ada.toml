@@ -1,0 +1,12 @@
+# Ada's keys, after SPC m in an Ada project or file. Your own
+# keybindings.toml wins.
+
+[[local.ada]]
+keys = "d"
+label = "check the project again"
+command = "ada.doctor"
+
+[[local.ada]]
+keys = "p"
+label = "prove with GNATprove, findings as problems"
+command = "ada.prove"

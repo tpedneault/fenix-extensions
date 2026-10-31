@@ -1,0 +1,8 @@
+# name: match
+# key: match
+# scope: php
+# --
+match (${1:\$value}) {
+    ${2:'a'} => ${3:1},
+    default => ${4:throw new \\UnhandledMatchError(\$value)},
+}$0

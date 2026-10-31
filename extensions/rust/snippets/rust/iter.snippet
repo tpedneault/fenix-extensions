@@ -1,0 +1,11 @@
+# name: Iterator impl
+# key: iter
+# scope: rust
+# --
+impl Iterator for ${1:Type} {
+    type Item = ${2:u32};
+
+    fn next(&mut self) -> Option<Self::Item> {
+        $0
+    }
+}

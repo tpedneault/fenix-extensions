@@ -1,0 +1,91 @@
+[template]
+name = "Python · Django site"
+kind = "python"
+group = "Python"
+description = "A Django site managed by uv: settings from the environment, one app with a page and its test, the database migrated, and tasks to serve, test and migrate."
+needs = ["uv"]
+open = ["{{app}}/views.py"]
+
+[[ask]]
+key = "app"
+label = "First app"
+default = "pages"
+hint = "its folder: models, views, urls and tests"
+
+[[ask]]
+key = "python"
+label = "Python"
+choices = ["3.13", "3.12", "3.11"]
+default = "3.12"
+hint = "uv downloads it if it isn't installed"
+
+[[ask]]
+key = "tests"
+label = "Tests"
+choices = ["pytest", "django"]
+default = "pytest"
+hint = "pytest: pytest-django runs them · django: manage.py test"
+
+[[run]]
+exec = "uv"
+args = ["init", "--bare", "--python", "{{python}}", "--name", "{{name_kebab}}", "--vcs", "none"]
+
+[[run]]
+exec = "uv"
+args = ["add", "django"]
+
+[[run]]
+exec = "uv"
+args = ["add", "--dev", "ruff"]
+
+[[run]]
+exec = "uv"
+args = ["add", "--dev", "pytest", "pytest-django"]
+when = "tests == pytest"
+
+[[run]]
+exec = "uv"
+args = ["run", "python", "manage.py", "migrate"]
+
+[[task]]
+name = "run"
+exec = "uv"
+args = ["run", "python", "manage.py", "runserver"]
+
+[[task]]
+name = "test"
+exec = "uv"
+args = ["run", "pytest"]
+when = "tests == pytest"
+
+[[task]]
+name = "test"
+exec = "uv"
+args = ["run", "python", "manage.py", "test"]
+when = "tests == django"
+
+[[task]]
+name = "migrate"
+exec = "uv"
+args = ["run", "python", "manage.py", "migrate"]
+
+[[task]]
+name = "makemigrations"
+exec = "uv"
+args = ["run", "python", "manage.py", "makemigrations"]
+
+[[task]]
+name = "lint"
+exec = "uv"
+args = ["run", "ruff", "check"]
+
+[[file]]
+path = "pytest.ini"
+from = "pytest.ini"
+when = "tests == pytest"
+
+# The project's .env, kept here as env: the template's own .gitignore
+# would keep .env out of this repository.
+[[file]]
+path = ".env"
+from = "env"

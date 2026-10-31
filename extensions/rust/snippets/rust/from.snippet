@@ -1,0 +1,9 @@
+# name: From impl
+# key: from
+# scope: rust
+# --
+impl From<${1:Source}> for ${2:Type} {
+    fn from(${3:value}: $1) -> Self {
+        $0
+    }
+}

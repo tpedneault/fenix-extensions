@@ -1,0 +1,35 @@
+[package]
+name = "fenix-php"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "PHP in Fenix: tree-sitter-php's grammar, Intelephense or Phpactor, the project's Pint or PHP CS Fixer, PHPStan on save, Composer's scripts as tasks, and the project doctor's checks with their fixes."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+# lang-kit's test host.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# The snippets and the project template read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The language file, read as fenix-gui reads it.
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+# PHP's grammar loaded and its queries run as Fenix does: tree-sitter
+# 0.26's WebAssembly store (fenix-syntax's).
+tree-sitter = { version = "0.26.13", features = ["wasm"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

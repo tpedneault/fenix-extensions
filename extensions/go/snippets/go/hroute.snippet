@@ -1,0 +1,8 @@
+# name: HTTP route
+# key: hroute
+# scope: go
+# --
+mux.HandleFunc("${1:GET} /${2:items/{id\}}", func(w http.ResponseWriter, r *http.Request) {
+	${3:id := r.PathValue("id")}
+	$0
+})

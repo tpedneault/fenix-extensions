@@ -1,0 +1,12 @@
+# name: main with its arguments
+# key: mainv
+# scope: cpp
+# --
+#include <string_view>
+#include <vector>
+
+int main(int argc, char* argv[]) {
+    const std::vector<std::string_view> args(argv + 1, argv + argc);
+    $0
+    return 0;
+}

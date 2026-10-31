@@ -1,0 +1,14 @@
+# name: Backed enum
+# key: enum
+# scope: php
+# --
+enum ${1:Status}: ${2:string}
+{
+    case ${3:Active} = '${4:active}';
+    $0
+
+    public function label(): string
+    {
+        return ucfirst(\$this->value);
+    }
+}

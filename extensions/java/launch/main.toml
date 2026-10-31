@@ -1,0 +1,13 @@
+# The main class *Java: debug a main class* (SPC m m) started, held for
+# the debugger on port 5005 -- java-debug's launch needs a classpath, and
+# a launch file can't carry one, so the pack runs it and the session
+# attaches. An application's own main class runs by Gradle's `run
+# --debug-jvm`, which builds it first.
+name = "Java: the main class"
+languages = ["java"]
+request = "attach"
+
+[attributes]
+hostName = "127.0.0.1"
+port = 5005
+timeout = 30000

@@ -1,0 +1,12 @@
+# name: Context manager (contextlib)
+# key: cm
+# scope: python
+# --
+@contextmanager
+def ${1:name}(${2}) -> Iterator[${3:None}]:
+    ${4:# set up}
+    try:
+        yield${5}
+    finally:
+        ${6:# tear down}
+$0

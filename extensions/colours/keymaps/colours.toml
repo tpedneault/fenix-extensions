@@ -1,0 +1,50 @@
+# The colour tools' keys, under SPC C. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC C"
+group = "colours"
+
+[[leader]]
+keys = "SPC C p"
+label = "pick the colour"
+command = "colours.pick"
+
+[[leader]]
+keys = "SPC C c"
+label = "convert"
+command = "colours.convert"
+
+[[leader]]
+keys = "SPC C h"
+label = "as hex"
+command = "colours.to_hex"
+
+[[leader]]
+keys = "SPC C r"
+label = "as rgb()"
+command = "colours.to_rgb"
+
+[[leader]]
+keys = "SPC C s"
+label = "as hsl()"
+command = "colours.to_hsl"
+
+[[leader]]
+keys = "SPC C o"
+label = "as oklch()"
+command = "colours.to_oklch"
+
+[[leader]]
+keys = "SPC C x"
+label = "contrast"
+command = "colours.contrast"
+
+[[leader]]
+keys = "SPC C P"
+label = "the project's palette"
+command = "colours.palette"
+
+[[leader]]
+keys = "SPC C t"
+label = "swatches on, off"
+command = "colours.toggle_swatches"

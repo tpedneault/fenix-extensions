@@ -1,0 +1,13 @@
+# name: case
+# key: case
+# scope: bash
+# --
+case "${1:\$1}" in
+	${2:start})
+		$0
+		;;
+	*)
+		echo "unknown: \$1" >&2
+		exit 1
+		;;
+esac

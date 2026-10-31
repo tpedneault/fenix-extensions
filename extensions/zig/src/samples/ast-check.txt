@@ -1,0 +1,8 @@
+src/main.zig:7:5: error: local variable is never mutated
+    var period: u32 = 5520;
+    ^~~~~~~~~~~~~~~~~~~~~~
+src/main.zig:7:5: note: consider using 'const'
+src/main.zig:12:20: error: expected ';' after statement
+    const crew = 3
+                   ^
+src/other.zig:1:1: error: not this file

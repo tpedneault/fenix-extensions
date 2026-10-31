@@ -1,0 +1,67 @@
+# Arduino's keys: SPC f n anywhere, and SPC m inside a sketch. Your own
+# keybindings.toml wins.
+
+[[leader]]
+keys = "SPC f n"
+label = "new Arduino sketch"
+command = "arduino.new_sketch"
+
+[[local.arduino]]
+keys = "b"
+label = "build (verify)"
+command = "arduino.build"
+
+[[local.arduino]]
+keys = "u"
+label = "upload to board"
+command = "arduino.upload"
+
+[[local.arduino]]
+keys = "m"
+label = "serial monitor"
+command = "arduino.monitor"
+
+[[local.arduino]]
+keys = "B"
+label = "serial monitor speed"
+command = "arduino.baud"
+
+[[local.arduino]]
+keys = "p"
+label = "choose port"
+command = "arduino.port"
+
+[[local.arduino]]
+keys = "s"
+label = "choose board"
+command = "arduino.board"
+
+[[local.arduino]]
+keys = "o"
+label = "board options"
+command = "arduino.board_options"
+
+[[local.arduino]]
+keys = "l"
+label = "install library"
+command = "arduino.library"
+
+[[local.arduino]]
+keys = "c"
+label = "install board package"
+command = "arduino.package"
+
+[[local.arduino]]
+keys = "d"
+label = "debug"
+command = "arduino.debug"
+
+[[local.arduino]]
+keys = "n"
+label = "new sketch"
+command = "arduino.new_sketch"
+
+[[local.arduino]]
+keys = "i"
+label = "project info"
+command = "arduino.info"

@@ -1,0 +1,45 @@
+# The image viewer's keys: SPC f i from anywhere, and SPC m on a picture
+# (whose own keys are the same, unprefixed). Your own keybindings.toml
+# wins.
+
+[[leader]]
+keys = "SPC f i"
+label = "preview the picture on this line"
+command = "images.preview"
+
+# `SPC m` on a picture.
+
+[[local.images]]
+keys = "]"
+label = "next in its folder (])"
+command = "images.next"
+
+[[local.images]]
+keys = "["
+label = "previous in its folder ([)"
+command = "images.previous"
+
+[[local.images]]
+keys = "0"
+label = "fit the pane (0)"
+command = "images.fit"
+
+[[local.images]]
+keys = "1"
+label = "actual size (1)"
+command = "images.actual_size"
+
+[[local.images]]
+keys = "s"
+label = "SVG source (s)"
+command = "images.source"
+
+[[local.images]]
+keys = "p"
+label = "play / pause (p)"
+command = "images.play"
+
+[[local.images]]
+keys = "d"
+label = "details line (d)"
+command = "images.details"

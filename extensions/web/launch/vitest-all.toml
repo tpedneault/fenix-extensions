@@ -1,0 +1,11 @@
+name = "Vitest: all tests"
+languages = ["javascript", "typescript", "tsx"]
+program = "${project}/node_modules/vitest/vitest.mjs"
+args = ["run"]
+cwd = "${project}"
+
+[attributes]
+type = "pwa-node"
+autoAttachChildProcesses = true
+smartStep = true
+skipFiles = ["<node_internals>/**", "**/node_modules/**"]

@@ -1,0 +1,12 @@
+{
+  "name": "{{name_kebab}}",
+  "version": "0.1.0",
+  "dependencies": [
+{{#if tests == Catch2}}
+    "fmt",
+    "catch2"
+{{else}}
+    "fmt"
+{{/if}}
+  ]
+}

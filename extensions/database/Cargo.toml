@@ -1,0 +1,43 @@
+[package]
+name = "fenix-database"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "A database browser in Fenix: SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server -- the schema, statements run from a .sql buffer, results as a table, a table's rows paged and edited."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-ui-kit = { path = "../../crates/ui-kit" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# SQLite in Rust, no C: it builds for wasm32-wasip2 as it is, and reads
+# and writes the file through std::fs (its GenericIO there).
+turso_core = { version = "=0.9.0-pre.2", default-features = false, features = ["fs"] }
+# PostgreSQL's SCRAM-SHA-256 and md5, MySQL's caching_sha2_password and
+# mysql_native_password.
+sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
+hmac = "0.12"
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+base64 = "0.22"
+getrandom = "0.3"
+# caching_sha2_password's full authentication without TLS: the password
+# encrypted to the server's RSA key.
+rsa = { version = "0.9", default-features = false, features = ["std", "pem"] }
+rand_core = "0.6"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

@@ -1,0 +1,11 @@
+# name: RSpec describe
+# key: describe
+# scope: ruby
+# --
+RSpec.describe ${1:Subject} do
+  subject { described_class.new }
+
+  it "${2:does something}" do
+    $0
+  end
+end

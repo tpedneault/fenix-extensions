@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.yml`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "yaml"
+filenames = [".env*.yaml", ".env*.yml"]

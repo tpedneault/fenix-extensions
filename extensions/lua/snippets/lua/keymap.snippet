@@ -1,0 +1,7 @@
+# name: Neovim key mapping
+# key: keymap
+# scope: lua
+# --
+vim.keymap.set("${1:n}", "${2:<leader>x}", function()
+	$0
+end, { desc = "${3:what it does}" })

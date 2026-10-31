@@ -1,0 +1,2 @@
+# Development only: Fenix's tasks are given these. Not committed.
+FLASK_DEBUG=1

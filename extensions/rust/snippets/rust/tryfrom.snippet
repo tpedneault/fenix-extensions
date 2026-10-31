@@ -1,0 +1,11 @@
+# name: TryFrom impl
+# key: tryfrom
+# scope: rust
+# --
+impl TryFrom<${1:Source}> for ${2:Type} {
+    type Error = ${3:Error};
+
+    fn try_from(${4:value}: $1) -> Result<Self, Self::Error> {
+        $0
+    }
+}

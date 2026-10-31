@@ -1,0 +1,100 @@
+[extension]
+id = "fenix.arduino"
+name = "Arduino"
+version = "1.0.0"
+description = "Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# With Fenix: a sketch you open needs its language server from the start.
+[activation]
+on_startup = true
+
+[permissions]
+process = [
+    "arduino-cli", "clangd", "arduino-language-server",
+    "${setting:arduino.cli}", "${setting:arduino.clangd}", "${setting:arduino.language_server}",
+]
+# sketch.yaml (the board and port) and .fenix/settings.toml (the speed).
+filesystem = "project-write"
+
+[[contributes.contexts]]
+name = "arduino"
+markers = ["sketch.yaml", "{folder}.ino", "{folder}.pde"]
+
+[[contributes.commands]]
+id = "arduino.build"
+title = "Arduino: build (verify)"
+
+[[contributes.commands]]
+id = "arduino.upload"
+title = "Arduino: build and upload to the board"
+
+[[contributes.commands]]
+id = "arduino.monitor"
+title = "Arduino: serial monitor"
+
+[[contributes.commands]]
+id = "arduino.baud"
+title = "Arduino: serial monitor speed"
+
+[[contributes.commands]]
+id = "arduino.port"
+title = "Arduino: choose the port"
+
+[[contributes.commands]]
+id = "arduino.board"
+title = "Arduino: choose the board"
+
+[[contributes.commands]]
+id = "arduino.board_options"
+title = "Arduino: the board's options"
+
+[[contributes.commands]]
+id = "arduino.library"
+title = "Arduino: install a library"
+
+[[contributes.commands]]
+id = "arduino.package"
+title = "Arduino: install board support"
+
+[[contributes.commands]]
+id = "arduino.install_core"
+title = "Arduino: install the board's core"
+
+[[contributes.commands]]
+id = "arduino.debug"
+title = "Arduino: debug on the board"
+
+[[contributes.commands]]
+id = "arduino.new_sketch"
+title = "Arduino: new sketch"
+
+[[contributes.commands]]
+id = "arduino.info"
+title = "Arduino: the sketch's board, port and tools"
+
+[[contributes.settings]]
+key = "arduino.cli"
+kind = "path"
+description = "Where arduino-cli is, when it isn't found by itself."
+default = ""
+
+[[contributes.settings]]
+key = "arduino.clangd"
+kind = "path"
+description = "Where clangd is, when it isn't found by itself."
+default = ""
+
+[[contributes.settings]]
+key = "arduino.language_server"
+kind = "path"
+description = "Where arduino-language-server is, when it isn't found by itself."
+default = ""

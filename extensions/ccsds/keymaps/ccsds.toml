@@ -1,0 +1,36 @@
+# The CCSDS keys, as Fenix 1.x had them: SPC f x, and SPC k (the mission
+# group, shared with the MIB extension). Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC f x"
+label = "hex view"
+command = "ccsds.hex"
+
+[[leader]]
+keys = "SPC k"
+group = "mission"
+
+[[leader]]
+keys = "SPC k d"
+label = "decode the hex here"
+command = "ccsds.decode"
+
+[[leader]]
+keys = "SPC k T"
+label = "time converter"
+command = "ccsds.time"
+
+[[leader]]
+keys = "SPC k f"
+label = "open a recording"
+command = "ccsds.recording"
+
+[[leader]]
+keys = "SPC k l"
+label = "follow a live source"
+command = "ccsds.live"
+
+[[leader]]
+keys = "SPC k ?"
+label = "standards"
+command = "ccsds.standards"

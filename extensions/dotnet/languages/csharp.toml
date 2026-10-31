@@ -1,0 +1,5 @@
+# More files Fenix reads as C#: Cake's build scripts. The server is the
+# extension's to set, once it has found csharp-ls.
+language = "csharp"
+extensions = ["cake"]
+comment = "//"

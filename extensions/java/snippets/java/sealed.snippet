@@ -1,0 +1,9 @@
+# name: Sealed interface and its records
+# key: sealed
+# scope: java
+# --
+public sealed interface ${1:Shape} permits ${2:Circle}, ${3:Square} {}
+
+record $2(double ${4:radius}) implements $1 {}
+
+record $3(double ${5:side}) implements $1 {}$0

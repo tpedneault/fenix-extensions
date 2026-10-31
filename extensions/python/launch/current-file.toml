@@ -1,0 +1,8 @@
+name = "Python: current file"
+languages = ["python"]
+program = "${file}"
+cwd = "${project}"
+env = { PYTHONUNBUFFERED = "1" }
+
+[attributes]
+justMyCode = true

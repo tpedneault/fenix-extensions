@@ -1,0 +1,11 @@
+# The tests in the file you're in, in one process so its breakpoints are
+# hit.
+name = "Jest: current file"
+languages = ["javascript", "typescript", "tsx"]
+program = "${project}/node_modules/jest/bin/jest.js"
+args = ["--runInBand", "--watchAll=false", "${file}"]
+cwd = "${project}"
+
+[attributes]
+type = "pwa-node"
+skipFiles = ["<node_internals>/**", "**/node_modules/**"]

@@ -1,0 +1,13 @@
+# name: Task type and body
+# key: task
+# scope: ada
+# --
+task type ${1:Worker} is
+   entry ${2:Start};
+end $1;
+
+task body $1 is
+begin
+   accept $2;
+   $0
+end $1;

@@ -1,0 +1,7 @@
+# name: if
+# key: if
+# scope: bash
+# --
+if [[ ${1:-f "\$file"} ]]; then
+	$0
+fi

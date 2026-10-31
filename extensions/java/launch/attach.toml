@@ -1,0 +1,12 @@
+# A JVM started for debugging, here or elsewhere:
+#   java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -jar app.jar
+# Another host or port: copy this into .fenix/tools.json's launch
+# configurations and change them.
+name = "Java: attach (remote, port 5005)"
+languages = ["java"]
+request = "attach"
+
+[attributes]
+hostName = "localhost"
+port = 5005
+timeout = 30000

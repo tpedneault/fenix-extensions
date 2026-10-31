@@ -1,0 +1,10 @@
+# name: Clean up on exit
+# key: trap
+# scope: bash
+# --
+tmp=\$(mktemp -d)
+cleanup() {
+	rm -rf "\$tmp"
+}
+trap cleanup EXIT
+$0

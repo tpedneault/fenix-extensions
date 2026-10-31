@@ -1,0 +1,12 @@
+# name: Select (tokio)
+# key: select
+# scope: rust
+# --
+tokio::select! {
+    ${1:value} = ${2:rx.recv()} => {
+        $0
+    }
+    _ = ${3:tokio::signal::ctrl_c()} => {
+        ${4:break};
+    }
+}

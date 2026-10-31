@@ -1,0 +1,66 @@
+# The agenda's keys, under SPC A (SPC a is Fenix's coding agents, from
+# Fenix 2.2). Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC A"
+group = "agenda"
+
+[[leader]]
+keys = "SPC A a"
+label = "open agenda"
+command = "agenda.open"
+
+[[leader]]
+keys = "SPC A b"
+label = "board"
+command = "agenda.board"
+
+[[leader]]
+keys = "SPC A l"
+label = "list"
+command = "agenda.list"
+
+[[leader]]
+keys = "SPC A r"
+label = "this week's time"
+command = "agenda.report"
+
+[[leader]]
+keys = "SPC A n"
+label = "new task"
+command = "agenda.new_task"
+
+[[leader]]
+keys = "SPC A h"
+label = "task from here"
+command = "agenda.from_here"
+
+[[leader]]
+keys = "SPC A /"
+label = "find a task"
+command = "agenda.find"
+
+[[leader]]
+keys = "SPC A t"
+label = "clock -- stop, resume, switch"
+command = "agenda.toggle_clock"
+
+[[leader]]
+keys = "SPC A T"
+label = "resume the clock"
+command = "agenda.resume"
+
+[[leader]]
+keys = "SPC A i"
+label = "import Jira issues"
+command = "agenda.import"
+
+[[leader]]
+keys = "SPC A s"
+label = "sync with Jira"
+command = "agenda.sync"
+
+[[leader]]
+keys = "SPC A w"
+label = "review worklogs"
+command = "agenda.worklogs"

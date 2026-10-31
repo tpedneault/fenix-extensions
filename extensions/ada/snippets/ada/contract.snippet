@@ -1,0 +1,8 @@
+# name: SPARK contract (Global, Pre, Post)
+# key: contract
+# scope: ada
+# --
+procedure ${1:Increment} (${2:X : in out Natural})
+  with Global => ${3:null},
+       Pre    => ${4:X < Natural'Last},
+       Post   => ${5:X = X'Old + 1};$0

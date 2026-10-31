@@ -1,0 +1,10 @@
+{
+  "name": "{{name_kebab}}",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20.11" },
+  "scripts": {
+    "dev": "node serve.mjs"
+  }
+}

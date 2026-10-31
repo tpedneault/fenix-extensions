@@ -1,0 +1,207 @@
+[extension]
+id = "fenix.http"
+name = "HTTP client"
+version = "1.0.0"
+description = "An HTTP client on .http files (REST Client's and JetBrains'): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response's body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server's schema, and imports from Postman, Insomnia, OpenAPI and curl"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["web", "tools", "languages"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# http-send with its timing, tagged decorations, page-render-ex, the
+# grammar for .http files; 0.8.7: the keychain (secret-set, patterns), the
+# masked prompt, tcp-listen, env-var.
+api = "1.0"
+
+# With Fenix: a .http file you open has its requests' statuses and ▶s.
+[activation]
+on_startup = true
+
+[permissions]
+# Any host: the requests are yours.
+network = ["*"]
+# The .http file you're in: the request under the cursor, its statuses
+# drawn in it, and the GUI's changes made to it.
+editor = "write"
+# The .http files and env files; imports written, bodies saved (>>).
+filesystem = "project-write"
+# Your secrets, {{name}}, each in the system's keychain
+# (http.secret.<name>), and OAuth tokens (http.token.<hash>); the older
+# http.secrets setting, read and moved into the keychain.
+secrets = ["http.secret.*", "http.token.*", "http.secrets"]
+# An OAuth sign-in's redirect, on this machine's loopback: the Redirect
+# URL's port, or any free one.
+listen = ["127.0.0.1:*"]
+# WebSocket requests: any host and port, as the requests are yours.
+sockets = ["tcp://*:*"]
+# {{$processEnv NAME}}: the environment variables http.env names, no others.
+env = ["${setting:http.env}"]
+# A curl command copied, imported.
+clipboard = true
+
+[contributes]
+# Statuses again as you edit, on the file you move to; the collections
+# read again when one's saved.
+events = ["changed", "focus", "saved"]
+
+# Completion of {{variables}}, headers and directives; variables nothing
+# sets underlined.
+[[contributes.language_servers]]
+name = "http"
+languages = ["http"]
+files = ["*.http", "*.rest"]
+
+# Its SPC m menu in .http files, and on its pages.
+[[contributes.contexts]]
+name = "http"
+languages = ["http"]
+pages = ["client", "response", "report"]
+
+[[contributes.commands]]
+id = "http.send"
+title = "HTTP: send the request under the cursor"
+
+[[contributes.commands]]
+id = "http.send_all"
+title = "HTTP: run every request in this file, and report"
+
+[[contributes.commands]]
+id = "http.run_project"
+title = "HTTP: run every request in the project, and report"
+
+[[contributes.commands]]
+id = "http.open"
+title = "HTTP: the client -- collections, the request, its response"
+
+[[contributes.commands]]
+id = "http.history"
+title = "HTTP: history of what was sent"
+
+[[contributes.commands]]
+id = "http.response"
+title = "HTTP: the response to the request under the cursor"
+
+[[contributes.commands]]
+id = "http.env"
+title = "HTTP: choose the environment"
+
+[[contributes.commands]]
+id = "http.copy_as"
+title = "HTTP: copy the request as curl, Python, JavaScript, Go or Rust"
+
+[[contributes.commands]]
+id = "http.import"
+title = "HTTP: import a Postman collection, an Insomnia export or an OpenAPI spec"
+
+[[contributes.commands]]
+id = "http.import_curl"
+title = "HTTP: import a curl command (the clipboard's)"
+
+[[contributes.commands]]
+id = "http.new"
+title = "HTTP: new .http file"
+
+[[contributes.commands]]
+id = "http.sign_in"
+title = "HTTP: sign in with OAuth 2.0 (from http-client.env.json)"
+
+[[contributes.commands]]
+id = "http.sign_out"
+title = "HTTP: forget the OAuth tokens"
+
+[[contributes.commands]]
+id = "http.secret"
+title = "HTTP: set a secret ({{name}}), kept in the system's keychain"
+
+[[contributes.commands]]
+id = "http.ws_send"
+title = "HTTP: send a message on the open WebSocket"
+
+[[contributes.commands]]
+id = "http.graphql_schema"
+title = "HTTP: read the GraphQL server's schema again (for completion)"
+
+[[contributes.commands]]
+id = "http.cookies_clear"
+title = "HTTP: clear the environment's cookies"
+
+[[contributes.commands]]
+id = "http.cancel"
+title = "HTTP: cancel the requests in flight, close WebSockets, stop a sign-in"
+
+[[contributes.settings]]
+key = "http.timeout"
+kind = "int"
+label = "Timeout"
+description = "Seconds a request may take; # @timeout says it for one."
+default = "30"
+project = true
+
+[[contributes.settings]]
+key = "http.follow_redirects"
+kind = "bool"
+label = "Follow redirects"
+description = "Follow 3xx answers (up to 10); # @no-redirect for one."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "http.insecure"
+kind = "bool"
+label = "Accept bad certificates"
+description = "Reach servers whose certificate doesn't check out: your own, self-signed. # @insecure for one."
+default = "false"
+project = true
+
+[[contributes.settings]]
+key = "http.proxy"
+label = "Proxy"
+description = "An HTTP proxy, http://host:port, for every request."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "http.response"
+kind = "choice"
+choices = ["beside", "none"]
+label = "Response from the buffer"
+description = "Where a request sent from its .http file shows its response: beside, or only its status after it."
+default = "beside"
+
+[[contributes.settings]]
+key = "http.save_edits"
+kind = "bool"
+label = "Save the client's edits"
+description = "Save the .http file after each change the client's page makes to it."
+default = "true"
+
+[[contributes.settings]]
+key = "http.send_marks"
+kind = "bool"
+label = "▶ before requests"
+description = "A ▶ before each request line of a .http file; a click on it sends the request."
+default = "true"
+
+[[contributes.settings]]
+key = "http.history"
+kind = "int"
+label = "History"
+description = "How many requests the history keeps, for each project."
+default = "200"
+
+[[contributes.settings]]
+key = "http.secrets"
+kind = "secret"
+label = "Secrets (older)"
+description = "name=value pairs, a ; between them, for {{name}}: read, and moved into the system's keychain a secret each. HTTP: set a secret keeps one there."
+default = ""
+
+[[contributes.settings]]
+key = "http.env"
+kind = "list"
+label = "Environment variables"
+description = "The environment variables {{$processEnv NAME}} may read (JAVA_*: those starting so); none unless you list them."
+default = ""

@@ -1,0 +1,6 @@
+[template]
+name = "Lua · LÖVE game"
+kind = "other"
+group = "Lua"
+description = "A LÖVE 11 game: main.lua's load, update and draw callbacks, conf.lua for its window, and StyLua's and the server's configs, the server knowing LÖVE's API."
+open = ["main.lua"]

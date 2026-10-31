@@ -1,0 +1,8 @@
+# The program you pick, of those CMake's code model says the build makes
+# (`${cmakeTarget}`, the pack's), after the preset's build. Each also has
+# a launch of its own, `CMake: <target>`, which builds only it.
+name = "C/C++: a CMake target, picked"
+languages = ["c", "cpp"]
+program = "${cmakeTarget}"
+cwd = "${project}"
+preLaunchTask = "build"

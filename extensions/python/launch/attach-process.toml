@@ -1,0 +1,10 @@
+# To a Python running on this machine, picked as the session starts
+# (`${pickProcess}`): debugpy is put into it, by gdb on Linux, lldb on
+# macOS.
+name = "Python: attach to a process"
+languages = ["python"]
+request = "attach"
+
+[attributes]
+processId = "${pickProcess}"
+justMyCode = true

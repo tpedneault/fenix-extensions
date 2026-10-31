@@ -1,0 +1,13 @@
+# name: WaitGroup
+# key: wg
+# scope: go
+# --
+var wg sync.WaitGroup
+for _, ${1:item} := range ${2:items} {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		$0
+	}()
+}
+wg.Wait()

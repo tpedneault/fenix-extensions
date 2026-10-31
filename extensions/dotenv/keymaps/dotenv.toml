@@ -1,0 +1,51 @@
+# The env files' keys, under SPC p e (the project's env). Your own
+# keybindings.toml wins.
+
+[[leader]]
+keys = "SPC p e"
+group = "env files"
+
+[[leader]]
+keys = "SPC p e e"
+label = "every env file"
+command = "dotenv.page"
+
+[[leader]]
+keys = "SPC p e r"
+label = "show or hide values"
+command = "dotenv.reveal"
+
+[[leader]]
+keys = "SPC p e p"
+label = "switch profile"
+command = "dotenv.profile"
+
+[[leader]]
+keys = "SPC p e t"
+label = "env file tasks run with"
+command = "dotenv.task_profile"
+
+[[leader]]
+keys = "SPC p e b"
+label = "put back a backup"
+command = "dotenv.restore"
+
+[[leader]]
+keys = "SPC p e m"
+label = "add missing keys"
+command = "dotenv.add_missing"
+
+[[leader]]
+keys = "SPC p e i"
+label = "add to .gitignore"
+command = "dotenv.gitignore"
+
+[[leader]]
+keys = "SPC p e u"
+label = "stop tracking in Git"
+command = "dotenv.untrack"
+
+[[leader]]
+keys = "SPC p e c"
+label = "check again"
+command = "dotenv.check"

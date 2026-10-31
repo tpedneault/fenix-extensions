@@ -1,0 +1,5 @@
+# name: Minimal API: GET endpoint
+# key: mapget
+# scope: csharp
+# --
+app.MapGet("/${1:items}/{id}", (${2:int} id) => ${3:Results.Ok(id)});$0

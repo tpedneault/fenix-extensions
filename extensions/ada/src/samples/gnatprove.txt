@@ -1,0 +1,13 @@
+Phase 1 of 3: generation of data representation information ...
+Phase 2 of 3: generation of Global contracts ...
+Phase 3 of 3: flow analysis and proof ...
+altitudes.adb:6:14: medium: range check might fail, cannot prove upper bound for H + By [reason for check: result of addition must fit in the target type of the assignment] [possible fix: subprogram at altitudes.ads:6 should mention By and H in a precondition] [provers gave up before completing the proof]
+altitudes.adb:13:56: medium: overflow check might fail, cannot prove upper bound for (I - R'First) * 100_000 [reason for check: result of multiplication must fit in a 32-bits machine integer] [possible fix: use pragma Overflow_Mode or switch -gnato13 or unit SPARK.Big_Integers] [provers reached time limit before completing the proof]
+altitudes.adb:14:25: medium: overflow check might fail, cannot prove upper bound for Total + Natural (R (I)) [reason for check: result of addition must fit in a 32-bits machine integer] [provers reached time limit before completing the proof]
+beacons.adb:4:37: high: "Count" must be listed in the Global aspect of "Next" (SPARK RM 6.1.4(15))
+beacons.ads:7:11: error: "Count" is referenced in expression function but missing from the Global
+beacons.ads:9:20: warning: unused variable "Ok"
+beacons.ads:9:20: high: "Ok" is not initialized in "Ping" [reason for check: OUT parameter should be initialized on return] [possible fix: initialize "Ok" on all paths or make "Ok" an IN OUT parameter]
+Summary logged in /tmp/claude-0/ada/crates/orbit/obj/development/gnatprove/gnatprove.out
+gnatprove: error during flow analysis and proof
+ERROR: Command ["gnatprove", "-P", "orbit.gpr", "--level=1", "--output=oneline"] exited with code 1

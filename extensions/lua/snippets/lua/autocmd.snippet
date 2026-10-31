@@ -1,0 +1,11 @@
+# name: Neovim autocommand
+# key: autocmd
+# scope: lua
+# --
+vim.api.nvim_create_autocmd("${1:BufWritePre}", {
+	group = vim.api.nvim_create_augroup("${2:my-group}", { clear = true }),
+	pattern = "${3:*.lua}",
+	callback = function(args)
+		$0
+	end,
+})

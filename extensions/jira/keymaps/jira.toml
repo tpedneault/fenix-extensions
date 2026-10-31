@@ -1,0 +1,30 @@
+# Jira's keys, under SPC j. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC j"
+group = "jira"
+
+[[leader]]
+keys = "SPC j j"
+label = "open jira"
+command = "jira.open"
+
+[[leader]]
+keys = "SPC j r"
+label = "refresh jira"
+command = "jira.refresh"
+
+[[leader]]
+keys = "SPC j g"
+label = "go to issue"
+command = "jira.goto_issue"
+
+[[leader]]
+keys = "SPC j /"
+label = "search jira"
+command = "jira.search"
+
+[[leader]]
+keys = "SPC j n"
+label = "new issue"
+command = "jira.create_issue"

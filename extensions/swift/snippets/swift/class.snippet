@@ -1,0 +1,12 @@
+# name: Final class with an initializer
+# key: class
+# scope: swift
+# --
+final class ${1:Name} {
+    ${2:let name: String}
+
+    init(${3:name: String}) {
+        ${4:self.name = name}
+    }
+    $0
+}

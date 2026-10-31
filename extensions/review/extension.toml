@@ -1,0 +1,57 @@
+[extension]
+id = "fenix.review"
+name = "Review"
+version = "1.0.0"
+description = "Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Its commands load it, and so does the Git status page asking about the
+# branch's request.
+[activation]
+commands = ["git.pull_request", "git.merge_requests", "git.merge_requests_close"]
+
+[permissions]
+# The repository: its remotes, fetches, pushes and worktrees -- and the
+# GitHub CLI's token when it's signed in (gh auth token).
+process = ["git", "gh"]
+# GitHub's API (and where it sends a job's log), and your GitLab.
+network = ["api.github.com", "*.actions.githubusercontent.com", "*.blob.core.windows.net", "${setting:gitlab.base_url}"]
+secrets = ["github.token", "gitlab.token"]
+# Fenix's own Git and Forges settings: the base branch, the reviewers, the
+# GitLab server.
+settings = ["git", "gitlab"]
+# Where you are (the project's Jira key), files opened at a comment.
+editor = "write"
+filesystem = "project-write"
+
+[contributes]
+# 1.x's names for SPC g P and SPC g M.
+namespaces = ["git"]
+
+[[contributes.forges]]
+name = "GitHub"
+hosts = ["github.com"]
+
+[[contributes.forges]]
+name = "GitLab"
+hosts = ["${setting:gitlab.base_url}", "*"]
+
+[[contributes.commands]]
+id = "git.pull_request"
+title = "Open a pull (merge) request for this branch, prefilled from its commits"
+
+[[contributes.commands]]
+id = "git.merge_requests"
+title = "Reviews: the pull and merge requests of this repository"
+
+[[contributes.commands]]
+id = "git.merge_requests_close"
+title = "Close the reviews page"

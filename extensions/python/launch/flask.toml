@@ -1,0 +1,12 @@
+# `flask --app <the file you're in> run`, without Flask's own debugger and
+# reloader, which would get in debugpy's way.
+name = "Flask: current file"
+languages = ["python"]
+args = ["--app", "${file}", "run", "--no-debugger", "--no-reload"]
+cwd = "${project}"
+env = { PYTHONUNBUFFERED = "1" }
+
+[attributes]
+module = "flask"
+jinja = true
+justMyCode = true

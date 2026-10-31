@@ -1,0 +1,7 @@
+# name: vi.mock, a module mocked (Vitest)
+# key: vmock
+# scope: javascript, typescript, tsx
+# --
+vi.mock("${1:./module}", () => ({
+  ${2:name}: vi.fn(${3}),
+}));$0

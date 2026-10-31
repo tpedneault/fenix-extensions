@@ -1,0 +1,16 @@
+[package]
+name = "fenix-forge"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Code-review forges -- GitHub and GitLab -- in neutral terms, their clients talking HTTP through whoever uses them: shared by the review extension."
+
+[dependencies]
+serde_json = "1"
+
+[dev-dependencies]
+futures = { version = "0.3", default-features = false, features = ["executor"] }
+
+# Built with whichever extension uses it.
+[workspace]

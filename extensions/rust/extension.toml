@@ -1,0 +1,126 @@
+[extension]
+id = "fenix.rust"
+name = "Rust"
+version = "1.0.0"
+description = "Rust: rust-analyzer, debugging with lldb-dap or CodeLLDB (each binary and example, the tests in your file, built by cargo first), clippy on save with its suggestions as fixes, rustfmt, tasks from Cargo.toml's targets, the toolchain checked with its fixes, outdated and vulnerable crates, snippets, and an Axum service"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The debug adapter, the formatter, a linter's problems (0.8.3);
+# CodeLLDB over a socket, the platform (0.8.4); CodeLLDB where you put it,
+# as a hint (0.8.5); a launch for each binary and example, built first,
+# clippy's fixes (0.8.6). Built on 0.8.7's bindings.
+api = "1.0"
+
+# The everyday snippets are rust-snippets', which stays installable on
+# its own.
+[dependencies]
+"fenix.rust-snippets" = "^1"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# cargo builds, runs, lints, lists and changes the crates (and runs
+# cargo-audit and cargo-outdated); rustup installs toolchains and their
+# components; rust-analyzer and lldb-dap (by any of the names LLVM's
+# packages give it) or CodeLLDB (where rust.codelldb says) are the server
+# and the adapter.
+process = [
+    "cargo", "rustup", "rustc", "rustfmt", "rust-analyzer",
+    "cargo-audit", "cargo-outdated", "cargo-binstall",
+    "lldb-dap", "lldb-dap-22", "lldb-dap-21", "lldb-dap-20", "lldb-dap-19", "lldb-dap-18",
+    "lldb-vscode", "lldb-vscode-17", "lldb-vscode-16", "lldb-vscode-15",
+    "codelldb", "${setting:rust.codelldb}",
+]
+# The newest version of each crate the project asks for, from crates.io's
+# sparse index.
+network = ["index.crates.io"]
+# Cargo.toml, Cargo.lock and rust-toolchain(.toml), read.
+filesystem = "project-read"
+# The file saved, for clippy.
+editor = "read"
+
+[contributes]
+# A file saved: clippy (by its path, file_saved); Cargo.toml and the like,
+# read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "rust"
+markers = ["Cargo.toml", "rust-toolchain.toml", "rust-toolchain"]
+languages = ["rust"]
+
+[[contributes.commands]]
+id = "rust.packages"
+title = "Rust: crates -- outdated and vulnerable, upgrade, add, remove"
+
+[[contributes.commands]]
+id = "rust.doctor"
+title = "Rust: check the project again (the toolchain, rust-analyzer, clippy, rustfmt, the debugger)"
+
+[[contributes.commands]]
+id = "rust.clippy"
+title = "Rust: run clippy on the project now"
+
+[[contributes.commands]]
+id = "rust.install-toolchain"
+title = "Rust: install the project's toolchain (rustup toolchain install)"
+
+[[contributes.commands]]
+id = "rust.update-toolchain"
+title = "Rust: update the toolchain (rustup update)"
+
+[[contributes.commands]]
+id = "rust.install-rust-analyzer"
+title = "Rust: install rust-analyzer (rustup component add)"
+
+[[contributes.commands]]
+id = "rust.install-clippy"
+title = "Rust: install clippy (rustup component add)"
+
+[[contributes.commands]]
+id = "rust.install-rustfmt"
+title = "Rust: install rustfmt (rustup component add)"
+
+[[contributes.commands]]
+id = "rust.install-lldb-dap"
+title = "Rust: how to install the debugger (lldb-dap or CodeLLDB)"
+
+[[contributes.commands]]
+id = "rust.install-cargo-audit"
+title = "Rust: install cargo-audit"
+
+[[contributes.commands]]
+id = "rust.install-cargo-outdated"
+title = "Rust: install cargo-outdated"
+
+[[contributes.settings]]
+key = "rust.clippy"
+kind = "bool"
+label = "clippy on save"
+description = "Run cargo clippy when a Rust file is saved, and show its lints with rust-analyzer's problems."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "rust.debugger"
+kind = "choice"
+choices = ["lldb-dap", "codelldb"]
+label = "Debugger"
+description = "The debug adapter to use when both are installed: LLVM's lldb-dap, or CodeLLDB (over a socket). With one, that one."
+default = "lldb-dap"
+
+[[contributes.settings]]
+key = "rust.codelldb"
+kind = "path"
+label = "CodeLLDB"
+description = "CodeLLDB's adapter, its release's extension/adapter/codelldb (or VS Code's copy); empty for one on PATH."
+default = ""

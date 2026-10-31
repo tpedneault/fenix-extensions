@@ -1,0 +1,16 @@
+[package]
+name = "fenix-jira-client"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Jira Server/Data Center's REST API, async over a transport: shared by the Jira and agenda extensions."
+
+[dependencies]
+serde_json = "1"
+
+[dev-dependencies]
+futures-executor = "0.3"
+
+# Built with whichever extension uses it.
+[workspace]

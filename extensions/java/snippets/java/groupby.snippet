@@ -1,0 +1,6 @@
+# name: Stream: grouped and counted
+# key: groupby
+# scope: java
+# --
+Map<${1:String}, Long> ${2:counts} = ${3:items}.stream()
+    .collect(Collectors.groupingBy(${4:x} -> ${5:x}, Collectors.counting()));$0

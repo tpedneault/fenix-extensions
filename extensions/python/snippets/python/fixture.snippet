@@ -1,0 +1,9 @@
+# name: pytest fixture
+# key: fixture
+# scope: python
+# --
+@pytest.fixture
+def ${1:name}() -> Iterator[${2:object}]:
+    ${3:value = object()}
+    yield ${4:value}
+    $0

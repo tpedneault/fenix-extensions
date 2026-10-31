@@ -1,0 +1,16 @@
+# name: Class with the rule of five
+# key: cls
+# scope: cpp
+# --
+class ${1:Name} {
+public:
+    $1();
+    $1(const $1& other);
+    $1($1&& other) noexcept;
+    $1& operator=(const $1& other);
+    $1& operator=($1&& other) noexcept;
+    ~$1();
+
+private:
+    $0
+};

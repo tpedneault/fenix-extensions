@@ -1,0 +1,67 @@
+# A collection: requests between ### lines. Run the one the cursor's in
+# with SPC p r r (SPC m r), or click its ▶.
+
+@baseUrl = https://httpbin.org
+
+### Who am I
+# @name me
+# @test status == 200
+# @test $.headers.Accept contains json
+GET {{baseUrl}}/get?page=1
+    &limit=10
+Accept: application/json
+
+### Log in: its answer feeds the next
+# @name login
+POST {{baseUrl}}/post
+Content-Type: application/json
+
+{
+  "user": "{{user}}",
+  "password": "{{password}}"
+}
+
+### Chained: the token from login's answer
+# @test status < 400
+GET {{baseUrl}}/bearer
+Authorization: Bearer {{login.response.body.$.json.user}}
+
+### A form
+POST {{baseUrl}}/post
+Content-Type: application/x-www-form-urlencoded
+
+name=ada
+&role=admin
+
+### A file, as multipart
+POST {{baseUrl}}/post
+Content-Type: multipart/form-data; boundary=----FenixFormBoundary
+
+------FenixFormBoundary
+Content-Disposition: form-data; name="note"
+
+hello
+------FenixFormBoundary
+Content-Disposition: form-data; name="file"; filename="users.http"
+
+< ./users.http
+------FenixFormBoundary--
+
+### GraphQL
+POST https://countries.trevorblades.com/graphql
+X-Request-Type: GraphQL
+
+query Country($code: ID!) {
+  country(code: $code) { name capital }
+}
+
+{"code": "CA"}
+
+### OAuth 2.0, from http-client.env.json
+GET {{baseUrl}}/bearer
+Authorization: Bearer {{$auth.token("httpbin")}}
+
+### Server-sent events, as they come
+# @stream
+GET https://sse.dev/test
+Accept: text/event-stream

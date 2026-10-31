@@ -1,0 +1,9 @@
+# To a Delve started headless, with go.delve_server set to its address:
+#   dlv attach <pid> --headless --listen 127.0.0.1:2345 --accept-multiclient
+#   dlv exec ./orbit --headless --listen 127.0.0.1:2345 --accept-multiclient
+name = "Go: attach to a headless Delve"
+languages = ["go"]
+request = "attach"
+
+[attributes]
+mode = "remote"

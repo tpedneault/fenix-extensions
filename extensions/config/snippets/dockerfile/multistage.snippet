@@ -1,0 +1,14 @@
+# name: Multi-stage build
+# key: multistage
+# scope: dockerfile
+# --
+FROM ${1:golang:1.25} AS build
+WORKDIR /src
+COPY . .
+RUN ${2:go build -o /out/app .}
+
+FROM ${3:gcr.io/distroless/static-debian12}
+COPY --from=build /out/app /app
+USER nonroot
+ENTRYPOINT ["/app"]
+$0

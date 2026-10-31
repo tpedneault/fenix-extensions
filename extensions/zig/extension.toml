@@ -1,0 +1,72 @@
+[extension]
+id = "fenix.zig"
+name = "Zig"
+version = "1.0.0"
+description = "Zig: its grammar, ZLS, zig fmt, zig ast-check on save, zig build's steps as tasks, the project's checks with fixes that install Zig and ZLS, and snippets"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The grammar and its queries (0.8.5), the server given its settings
+# (0.8.6), the language file's `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Zig builds, tests, formats and checks; ZLS serves; both where the pack
+# installs them (the tools folder) or where they're found.
+process = ["zig", "zls", "/tools/*"]
+# ZLS's releases, and where GitHub sends their downloads; Zig's wheels,
+# on PyPI's file host.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com", "files.pythonhosted.org"]
+# build.zig, build.zig.zon, the Zig files at the top and .env, read.
+filesystem = "project-read"
+# The file saved, for zig ast-check.
+editor = "read"
+
+[contributes]
+# A file saved: checked; build.zig and build.zig.zon, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "zig"
+markers = ["build.zig", "build.zig.zon"]
+languages = ["zig"]
+
+[[contributes.commands]]
+id = "zig.doctor"
+title = "Zig: check the project again (Zig, ZLS)"
+
+[[contributes.commands]]
+id = "zig.steps"
+title = "Zig: list zig build's steps again, as tasks"
+
+[[contributes.commands]]
+id = "zig.install.zig"
+title = "Zig: install Zig 0.17.0"
+
+[[contributes.commands]]
+id = "zig.install.zls"
+title = "Zig: install ZLS 0.17.0, the Zig language server"
+
+[[contributes.settings]]
+key = "zig.ast_check"
+kind = "bool"
+label = "zig ast-check on save"
+description = "Check a saved Zig file with zig ast-check -- syntax, unused locals, a var never changed -- and show its problems with ZLS's."
+default = "true"
+
+[[contributes.settings]]
+key = "zig.build_steps"
+kind = "bool"
+label = "zig build's steps as tasks"
+description = "Run zig build -l when the project opens and build.zig is saved, and offer each step it lists as a task. Off: build, test and run only."
+default = "true"

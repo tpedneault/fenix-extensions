@@ -1,0 +1,19 @@
+[extension]
+id = "fenix.kotlin-bundle"
+name = "Kotlin"
+version = "1.0.0"
+description = "Kotlin: its highlighting, kotlin-lsp or kotlin-language-server, ktlint, Gradle's tasks, snippets and Kotlin DSL projects -- the Java and Kotlin pack"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages"]
+# A bundle: nothing of its own, the extension below. Kotlin lives in the
+# Java and Kotlin pack, where it shares the JVM, Gradle and the doctor;
+# this is the name a Kotlin user looks for.
+runtime = "bundle"
+
+[engine]
+fenix = ">=1.0, <2"
+
+[dependencies]
+"fenix.java" = "^1"

@@ -1,0 +1,10 @@
+# name: switch over an enum
+# key: switch
+# scope: swift
+# --
+switch ${1:value} {
+case .${2:first}:
+    $0
+case .${3:second}(let ${4:payload}):
+    print($4)
+}

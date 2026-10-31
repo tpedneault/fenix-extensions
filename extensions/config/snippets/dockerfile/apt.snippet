@@ -1,0 +1,8 @@
+# name: apt-get install, cleaned up
+# key: apt
+# scope: dockerfile
+# --
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ${1:ca-certificates} \
+    && rm -rf /var/lib/apt/lists/*
+$0

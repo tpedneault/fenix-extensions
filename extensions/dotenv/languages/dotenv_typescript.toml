@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.d.ts`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "typescript"
+filenames = [".env*.ts", ".env*.mts", ".env*.cts"]

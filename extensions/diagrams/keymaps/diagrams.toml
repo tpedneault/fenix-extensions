@@ -1,0 +1,21 @@
+# The diagrams' SPC m menu, in a Mermaid file. Your own keybindings.toml wins.
+
+[[local.mermaid]]
+keys = "p"
+label = "preview beside"
+command = "diagram.preview"
+
+[[local.mermaid]]
+keys = "v"
+label = "view it on its own"
+command = "diagram.viewer"
+
+[[local.mermaid]]
+keys = "t"
+label = "set its theme"
+command = "diagram.theme"
+
+[[local.mermaid]]
+keys = "e"
+label = "export"
+command = "diagram.export"

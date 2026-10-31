@@ -1,0 +1,6 @@
+# More files Fenix reads as Lua: LuaRocks' rockspecs, wxLua's scripts and
+# Nmap's; luacheck's, busted's and LDoc's configs, which are Lua too.
+# Fenix knows Lua's comment, and the server is the extension's to set.
+language = "lua"
+extensions = ["rockspec", "wlua", "nse"]
+filenames = [".luacheckrc", ".busted", "config.ld"]

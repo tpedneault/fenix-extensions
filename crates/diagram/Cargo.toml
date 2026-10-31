@@ -1,0 +1,15 @@
+[package]
+name = "fenix-diagram"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Mermaid diagrams drawn as SVG and pictures, in Fenix's themes: shared by the diagrams and notebook extensions."
+
+[dependencies]
+mermaid-rs-renderer = { version = "0.3.1", default-features = false }
+resvg = { version = "0.47", default-features = false, features = ["text", "system-fonts"] }
+serde_json = "1"
+
+# Built with whichever extension uses it.
+[workspace]

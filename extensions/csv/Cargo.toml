@@ -1,0 +1,30 @@
+[package]
+name = "fenix-csv"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "CSV and TSV files as a table in Fenix: aligned, sorted, filtered, edited through the file's buffer."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-ui-kit = { path = "../../crates/ui-kit" }
+# Records and fields read as the csv crate reads them; cells written back
+# quoted as it quotes them.
+csv = "1"
+csv-core = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+# Speed over size: a million rows are indexed, sorted and filtered in the
+# sandbox, within a key's second.
+opt-level = 3
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

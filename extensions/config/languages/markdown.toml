@@ -1,0 +1,3 @@
+# More files Fenix reads as Markdown: its other extensions.
+language = "markdown"
+extensions = ["mdown", "mkd", "mkdn", "mdwn"]

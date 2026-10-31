@@ -1,0 +1,11 @@
+# A Go program running on this machine: the process picked as the
+# session starts, attached to by the Delve Fenix starts (`mode: local`).
+# Not with go.delve_server set: that Delve has its program already. On
+# Linux, attaching needs ptrace (`kernel.yama.ptrace_scope` 0, or root).
+name = "Go: attach to a process"
+languages = ["go"]
+request = "attach"
+
+[attributes]
+mode = "local"
+processId = "${pickProcess}"

@@ -1,0 +1,17 @@
+# .NET's keys, after SPC m in a .NET project or a C# file. Your own
+# keybindings.toml wins.
+
+[[local.dotnet]]
+keys = "p"
+label = "packages"
+command = "dotnet.packages"
+
+[[local.dotnet]]
+keys = "d"
+label = "check the project again"
+command = "dotnet.doctor"
+
+[[local.dotnet]]
+keys = "t"
+label = "debug the tests"
+command = "dotnet.debug-tests"

@@ -1,0 +1,12 @@
+# Swift's keys, after SPC m in a Swift package or file. Your own
+# keybindings.toml wins.
+
+[[local.swift]]
+keys = "d"
+label = "check the project again"
+command = "swift.doctor"
+
+[[local.swift]]
+keys = "g"
+label = "how to get Swift (swift.org)"
+command = "swift.get-swift"

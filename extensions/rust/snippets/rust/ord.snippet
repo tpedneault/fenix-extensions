@@ -1,0 +1,16 @@
+# name: Ord and PartialOrd impls
+# key: ord
+# scope: rust
+# --
+impl Ord for ${1:Type} {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.${2:key}.cmp(&other.$2)
+    }
+}
+
+impl PartialOrd for $1 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+$0

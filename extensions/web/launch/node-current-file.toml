@@ -1,0 +1,9 @@
+# The file you're in, by Node (a TypeScript one by Node 22.18 or later,
+# which strips its types).
+name = "Node: current file"
+languages = ["javascript", "typescript", "tsx"]
+cwd = "${project}"
+
+[attributes]
+type = "pwa-node"
+skipFiles = ["<node_internals>/**"]

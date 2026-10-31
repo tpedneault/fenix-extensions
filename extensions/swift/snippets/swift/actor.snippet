@@ -1,0 +1,12 @@
+# name: Actor
+# key: actor
+# scope: swift
+# --
+actor ${1:Store} {
+    private var ${2:items}: [${3:String}] = []
+
+    func add(_ item: $3) {
+        $2.append(item)
+    }
+    $0
+}

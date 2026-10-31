@@ -1,0 +1,6 @@
+# .http and .rest files, highlighted by tree-sitter-http (rest-nvim's),
+# compiled to WebAssembly in grammars/. Fenix has no grammar of its own
+# for them.
+language = "http"
+grammar = "grammars/tree-sitter-http.wasm"
+extensions = ["http", "rest"]

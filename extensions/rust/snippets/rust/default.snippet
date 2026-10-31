@@ -1,0 +1,11 @@
+# name: Default impl
+# key: default
+# scope: rust
+# --
+impl Default for ${1:Type} {
+    fn default() -> Self {
+        Self {
+            $0
+        }
+    }
+}

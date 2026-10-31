@@ -1,0 +1,154 @@
+[extension]
+id = "fenix.notebook"
+name = "Notebook"
+version = "1.0.0"
+description = "Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Home lists it, notes save themselves as you type, and the control
+# channel captures into it: it runs while Fenix does.
+[activation]
+on_startup = true
+
+[permissions]
+# Where you are (a capture's link back, SPC n t's checkbox), and the
+# notebook file you're in, edited and saved.
+editor = "write"
+# Your notebook, read in place: `notebook.folder`, else Fenix's data folder.
+folders = { notebook = "${setting:notebook.folder}|data:notebook" }
+# A note moved into the project (`p`), exports into its docs, and its own
+# .md files listed (`notebook.show_project_files`).
+filesystem = "project-write"
+# A journal day's commits (SPC m g).
+process = ["git"]
+
+[contributes]
+# 1.x's name for SPC i D.
+namespaces = ["insert"]
+# The control channel's `fenix/notebook.capture`; what Fenix's reading
+# view and the diagrams extension ask of it.
+services = ["notebook.capture", "notebook.new_diagram", "notebook.entry_name", "notebook.link", "notebook.follow"]
+
+[[contributes.language_servers]]
+name = "notebook"
+languages = ["markdown", "mermaid"]
+
+[[contributes.commands]]
+id = "notebook.open"
+title = "Notebook: every note, journal day and diagram"
+
+[[contributes.commands]]
+id = "notebook.new_note"
+title = "Notebook: a new note, from a template"
+
+[[contributes.commands]]
+id = "notebook.new_diagram"
+title = "Notebook: a new Mermaid diagram"
+
+[[contributes.commands]]
+id = "notebook.find"
+title = "Notebook: find a note or diagram by name"
+
+[[contributes.commands]]
+id = "notebook.recent"
+title = "Notebook: reopen the note or diagram you touched last"
+
+[[contributes.commands]]
+id = "notebook.journal"
+title = "Notebook: today's journal day"
+
+[[contributes.commands]]
+id = "notebook.capture"
+title = "Notebook: capture a line into the journal or the Inbox"
+
+[[contributes.commands]]
+id = "notebook.search"
+title = "Notebook: search every note and diagram"
+
+[[contributes.commands]]
+id = "notebook.tags"
+title = "Notebook: every tag"
+
+[[contributes.commands]]
+id = "notebook.project"
+title = "Notebook: the notes about this project"
+
+[[contributes.commands]]
+id = "notebook.to_agenda"
+title = "Notebook: send the checkbox under the cursor to the agenda"
+
+[[contributes.commands]]
+id = "notebook.journal_agenda"
+title = "Notebook: refresh a journal day's agenda list"
+
+[[contributes.commands]]
+id = "notebook.journal_commits"
+title = "Notebook: add today's commits to a journal day"
+
+[[contributes.commands]]
+id = "notebook.export"
+title = "Notebook: export this diagram or note"
+
+[[contributes.commands]]
+id = "notebook.save_block"
+title = "Notebook: save the ```mermaid block here to the notebook"
+
+[[contributes.commands]]
+id = "notebook.import"
+title = "Notebook: copy a .md or .mmd file into the notebook"
+
+[[contributes.commands]]
+id = "insert.diagram"
+title = "Insert a notebook diagram: its block, or an SVG and a link"
+
+[[contributes.commands]]
+id = "notebook.backlinks"
+title = "Notebook: what links to this note, beside it"
+
+[[contributes.commands]]
+id = "notebook.insert_link"
+title = "Notebook: insert a link to a note"
+
+[[contributes.commands]]
+id = "notebook.copy_link"
+title = "Notebook: copy a link to this line, for a note"
+
+[[contributes.commands]]
+id = "notebook.paste_image"
+title = "Notebook: paste the clipboard's picture into the note"
+
+[[contributes.settings]]
+key = "notebook.folder"
+kind = "path"
+label = "Notebook folder"
+description = "Where your notes, journal and diagrams are kept. Point it at a synced folder or an Obsidian vault to use that instead; empty keeps them in Fenix's data folder."
+default = ""
+
+[[contributes.settings]]
+key = "notebook.history"
+kind = "int"
+label = "Versions kept"
+description = "How many earlier versions of each note and diagram are kept; h on the notebook page lists them."
+default = "50"
+
+[[contributes.settings]]
+key = "notebook.journal"
+kind = "bool"
+label = "Journal"
+description = "Keep a note per day (SPC n j). Captures go to today's; turned off, they go to the Inbox note."
+default = "true"
+
+[[contributes.settings]]
+key = "notebook.show_project_files"
+kind = "bool"
+label = "List project files"
+description = "Also list the project's own .md and .mmd files at the bottom of the notebook page."
+default = "false"

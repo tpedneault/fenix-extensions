@@ -1,0 +1,19 @@
+# name: Protected object
+# key: prot
+# scope: ada
+# --
+protected ${1:Counter} is
+   procedure Increment;
+   function Value return Natural;
+private
+   Count : Natural := 0;
+end $1;
+
+protected body $1 is
+   procedure Increment is
+   begin
+      Count := Count + 1;
+   end Increment;
+
+   function Value return Natural is (Count);
+end $1;$0

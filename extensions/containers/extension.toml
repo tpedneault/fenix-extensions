@@ -1,0 +1,42 @@
+[extension]
+id = "fenix.containers"
+name = "Containers"
+version = "1.0.0"
+description = "Docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Nothing loads until one of its commands runs.
+[activation]
+commands = ["containers.*"]
+
+[permissions]
+process = ["docker", "podman", "wslc"]
+# A compose.yaml in the project, read for the Compose tab.
+filesystem = "project-read"
+
+[[contributes.commands]]
+id = "containers.open"
+title = "Containers: open"
+
+[[contributes.commands]]
+id = "containers.performance"
+title = "Containers: performance"
+
+[[contributes.commands]]
+id = "containers.build"
+title = "Containers: build the project's image"
+
+[[contributes.settings]]
+key = "containers.engine"
+kind = "choice"
+description = "The container engine to use: docker, podman or wslc. Empty uses the first that runs."
+default = ""
+choices = ["", "docker", "podman", "wslc"]

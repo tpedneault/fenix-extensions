@@ -1,0 +1,86 @@
+[extension]
+id = "fenix.dotnet"
+name = "C# and .NET"
+version = "1.0.0"
+description = "C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution's tasks, the project's checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new's projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The debug adapter, the formatter, a linter's problems, closing a
+# program's stdin; the machine, for netcoredbg's release (0.8.4); a
+# launch for each program, built first (0.8.6); the language file's
+# `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# dotnet builds, tests, lists and installs; csharp-ls, netcoredbg and
+# CSharpier where dotnet tool and the pack put them.
+process = ["dotnet", "csharp-ls", "netcoredbg", "csharpier", "/tools/*"]
+# netcoredbg's release, and where GitHub sends its download.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# The solution, its projects, global.json, the tools manifest, the
+# builds' dlls, read.
+filesystem = "project-read"
+# The file saved, for the build.
+editor = "read"
+
+[contributes]
+# A file saved: built; a project file and the like, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "dotnet"
+markers = ["{folder}.sln", "{folder}.slnx", "{folder}.csproj", "global.json", "Directory.Build.props"]
+languages = ["csharp"]
+
+[[contributes.commands]]
+id = "dotnet.packages"
+title = ".NET: packages -- outdated and vulnerable, upgrade, add, remove"
+
+[[contributes.commands]]
+id = "dotnet.doctor"
+title = ".NET: check the project again (the SDK, csharp-ls, netcoredbg, CSharpier)"
+
+[[contributes.commands]]
+id = "dotnet.debug-tests"
+title = ".NET: debug the tests (dotnet test, held for the debugger)"
+
+[[contributes.commands]]
+id = "dotnet.build"
+title = ".NET: build the project to debug"
+
+[[contributes.commands]]
+id = "dotnet.install-sdk"
+title = ".NET: download the SDK the project needs"
+
+[[contributes.commands]]
+id = "dotnet.install-server"
+title = ".NET: install the language server (csharp-ls)"
+
+[[contributes.commands]]
+id = "dotnet.install-debugger"
+title = ".NET: install the debugger (netcoredbg)"
+
+[[contributes.commands]]
+id = "dotnet.install.netcoredbg"
+title = ".NET: install netcoredbg again"
+
+[[contributes.commands]]
+id = "dotnet.install-csharpier"
+title = ".NET: install CSharpier"
+
+[[contributes.settings]]
+key = "dotnet.lint_on_save"
+kind = "bool"
+label = "Build on save"
+description = "Build a saved file's project and show MSBuild's warnings and errors. Unset, it's on only where csharp-ls isn't found: csharp-ls's own problems come as Fenix asks for them."

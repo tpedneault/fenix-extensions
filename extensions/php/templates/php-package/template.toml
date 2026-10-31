@@ -1,0 +1,23 @@
+[template]
+name = "PHP · Composer package"
+kind = "other"
+group = "PHP"
+description = "A Composer package: PSR-4 autoloading from src/, strict types, and PHPUnit tests, installed with composer install."
+needs = ["composer"]
+open = ["src/{{name_pascal}}.php"]
+
+[[ask]]
+key = "vendor"
+label = "Vendor"
+default = "acme"
+hint = "the package is <this>/<name> on Packagist: your name or your organisation's"
+
+[[ask]]
+key = "namespace"
+label = "Namespace"
+default = "Acme"
+hint = "its classes are <this>\\<Name>\\..."
+
+[[run]]
+exec = "composer"
+args = ["install"]

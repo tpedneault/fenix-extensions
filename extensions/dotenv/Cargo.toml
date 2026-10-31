@@ -1,0 +1,25 @@
+[package]
+name = "fenix-dotenv"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Env files in Fenix: values hidden but on the cursor's line, every env file side by side, profiles switched, what Git would commit warned of, keys checked against the example, and variable names completed in code."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-ui-kit = { path = "../../crates/ui-kit" }
+
+[dev-dependencies]
+regex = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

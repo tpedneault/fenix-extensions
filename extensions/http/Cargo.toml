@@ -1,0 +1,29 @@
+[package]
+name = "fenix-http"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "An HTTP client in Fenix: .http files run from the buffer, their status inline, a collections sidebar, request and response views, environments, history, auth with OAuth 2.0, chained requests, tests and a runner, cookies, imports and exports."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-ui-kit = { path = "../../crates/ui-kit" }
+getrandom = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+serde_json_path = "0.7.2"
+sha1 = "0.10"
+sha2 = "0.10"
+yaml-rust2 = "0.13.0"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

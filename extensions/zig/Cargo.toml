@@ -1,0 +1,34 @@
+[package]
+name = "fenix-zig"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Zig in Fenix: its grammar, ZLS, zig fmt, zig ast-check on save, zig build's steps as tasks, and the project doctor's checks with their fixes."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+
+[dev-dependencies]
+# lang-kit's test host.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# The snippets read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The language file, read as fenix-gui reads it.
+serde = { version = "1", features = ["derive"] }
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+# The Zig grammar loaded and its queries run as Fenix does: tree-sitter
+# 0.26's WebAssembly store (fenix-syntax's).
+tree-sitter = { version = "0.26.13", features = ["wasm"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

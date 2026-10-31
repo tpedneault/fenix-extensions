@@ -1,0 +1,123 @@
+[extension]
+id = "fenix.cpp"
+name = "C/C++"
+version = "1.0.0"
+description = "C and C++: clangd with the build's compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake's presets as tasks, clang-format, clang-tidy on save with its fixes, the project's checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The debug adapter, the formatter, a linter's problems (0.8.3); the
+# system, for the fixes that install a compiler and LLVM (0.8.4); a
+# launch for each target, clang-tidy's fixes (0.8.6); the language file's
+# `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# CMake, CTest and Ninja build; the compilers say their versions; clangd,
+# clang-format, clang-tidy, lldb-dap (lldb-vscode before LLVM 18) and GDB
+# are LLVM's and GNU's; vcpkg and Conan manage packages; uv, pipx or
+# Python's pip install what PyPI has, and Homebrew, winget and
+# xcode-select the rest.
+process = [
+    "cmake", "ctest", "ninja",
+    "c++", "cc", "g++", "gcc", "clang++", "clang", "cl",
+    "clangd", "clang-format", "clang-tidy", "lldb-dap", "lldb-vscode", "gdb",
+    "vcpkg", "conan",
+    "uv", "pipx", "python3", "python", "brew", "winget", "xcode-select",
+]
+# CMakeLists.txt, the presets, vcpkg.json and the conanfile read; CMake's
+# file API query left in each build folder, and clang-tidy's fixes read
+# there and removed.
+filesystem = "project-write"
+# The file saved, for clang-tidy.
+editor = "read"
+
+[contributes]
+# A file saved: linted; CMakeLists.txt and the like, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "cpp"
+markers = ["CMakeLists.txt", "CMakePresets.json", "compile_commands.json", "vcpkg.json", "conanfile.txt", "conanfile.py", ".clangd"]
+languages = ["c", "cpp"]
+
+[[contributes.commands]]
+id = "cpp.packages"
+title = "C/C++: packages -- vcpkg's or Conan's, outdated and vulnerable"
+
+[[contributes.commands]]
+id = "cpp.doctor"
+title = "C/C++: check the project again (compiler, CMake, Ninja, clangd, compile_commands.json)"
+
+[[contributes.commands]]
+id = "cpp.configure"
+title = "C/C++: configure (CMake, writing compile_commands.json)"
+
+[[contributes.commands]]
+id = "cpp.install-compiler"
+title = "C/C++: install a compiler (Apple's command line tools, or Visual Studio's build tools)"
+
+[[contributes.commands]]
+id = "cpp.install-llvm"
+title = "C/C++: install LLVM, for lldb-dap (Homebrew or winget)"
+
+[[contributes.commands]]
+id = "cpp.install-cmake"
+title = "C/C++: install CMake"
+
+[[contributes.commands]]
+id = "cpp.install-ninja"
+title = "C/C++: install Ninja"
+
+[[contributes.commands]]
+id = "cpp.install-clangd"
+title = "C/C++: install clangd"
+
+[[contributes.commands]]
+id = "cpp.install-clang-format"
+title = "C/C++: install clang-format"
+
+[[contributes.commands]]
+id = "cpp.install-clang-tidy"
+title = "C/C++: install clang-tidy"
+
+[[contributes.commands]]
+id = "cpp.install-conan"
+title = "C/C++: install Conan"
+
+[[contributes.commands]]
+id = "cpp.conan-profile"
+title = "C/C++: make Conan's default profile (conan profile detect)"
+
+[[contributes.settings]]
+key = "cpp.preset"
+kind = "text"
+label = "CMake preset"
+description = "The configure preset the tasks, clangd and the debugger use; empty for the one called debug, else the first."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "cpp.debugger"
+kind = "choice"
+choices = ["lldb-dap", "gdb"]
+label = "Debugger"
+description = "The debug adapter to use when both are installed. GDB needs 14 or later."
+default = "lldb-dap"
+
+[[contributes.settings]]
+key = "cpp.tidy_on_save"
+kind = "bool"
+label = "clang-tidy on save"
+description = "Run clang-tidy on a source file when it's saved, once the build has a compile_commands.json."
+default = "true"

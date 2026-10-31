@@ -1,0 +1,12 @@
+# PHP's keys, after SPC m in a PHP project or file. Your own
+# keybindings.toml wins.
+
+[[local.php]]
+keys = "d"
+label = "check the project again"
+command = "php.doctor"
+
+[[local.php]]
+keys = "i"
+label = "install the project's packages (composer install)"
+command = "php.install"

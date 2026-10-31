@@ -1,0 +1,13 @@
+[extension]
+id = "fenix.original-light-themes"
+name = "Original light themes"
+version = "1.0.0"
+description = "The light themes Fenix ships, in their published colours, untouched"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["themes"]
+runtime = "none"
+
+[engine]
+fenix = ">=1.0, <2"

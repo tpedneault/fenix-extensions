@@ -1,0 +1,7 @@
+# name: Optional: map or else
+# key: opt
+# scope: java
+# --
+${1:optional}
+    .map(${2:x} -> ${3:x})
+    .orElse(${4:null});$0

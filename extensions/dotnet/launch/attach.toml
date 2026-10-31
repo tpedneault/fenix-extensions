@@ -1,0 +1,9 @@
+# A .NET program running: the process picked as the session starts. The
+# tests `.NET: debug the tests` holds for the debugger have a launch of
+# their own, the pack's, once dotnet test says their process.
+name = ".NET: attach to a process"
+languages = ["csharp"]
+request = "attach"
+
+[attributes]
+processId = "${pickProcess}"

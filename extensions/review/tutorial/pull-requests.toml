@@ -1,0 +1,49 @@
+id = "review.pull-requests"
+track = "Pull requests"
+order = 1
+title = "Reviews and pull requests"
+about = "The reviews waiting on you, and a pull request for your branch -- written, kept as a draft, and opened when it's ready. In a project on GitHub or GitLab."
+text = """
+Pull requests and reviews, on GitHub or GitLab: the project you were in
+needs a remote there, and you logged in -- gh auth login, or a token on
+the settings page (SPC ,, Forges). Without one, s on the tutorial page
+skips a step.
+
+SPC g M   the reviews: what waits on you, and yours. On one:
+          Enter reviews it, w in a worktree, c checks it out, o browser.
+SPC g P   a pull request for your branch -- title and description from
+          its commits. On the form: Enter edits a field, e the
+          description, d draft or not, S S opens it, q puts it away.
+          What you wrote is kept for the branch until it's opened.
+On the Git page (SPC g g), o is the same form, M the reviews.
+"""
+
+[[step]]
+say = "SPC g M: the reviews -- the requests waiting on you, and yours."
+hint = "Space, g, capital M. It needs the project on GitHub or GitLab and you logged in; s on the tutorial page skips this."
+page = "fenix.review/reviews"
+
+[[step]]
+say = "Enter on one would review it: its files, threads and checks. q closes the list for now."
+hint = "q, on the reviews page."
+closed = "fenix.review/reviews"
+
+[[step]]
+say = "SPC g P: a new pull request for the branch you're on, its title and description from its commits."
+hint = "Space, g, capital P. On the main branch there's nothing to ask for: from a branch of your own."
+page = "fenix.review/new-request"
+
+[[step]]
+say = "Enter on the title, change it, Enter. Then q -- nothing is opened, and what you wrote is kept."
+hint = "j and k move between fields; Enter edits one, Enter again is done. q puts the form away."
+closed = "fenix.review/new-request"
+
+[[step]]
+say = "SPC g P again: your draft is back, as you left it. S S would open it on the forge; q puts it away again."
+hint = "Space, g, capital P."
+page = "fenix.review/new-request"
+
+[[step]]
+say = "q. The draft stays until the request is opened."
+hint = "q, on the form."
+closed = "fenix.review/new-request"

@@ -1,0 +1,35 @@
+# The timer's keys, under SPC o p. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC o p"
+group = "pomodoro"
+
+[[leader]]
+keys = "SPC o p o"
+label = "the round, today, the week"
+command = "pomodoro.open"
+
+[[leader]]
+keys = "SPC o p s"
+label = "start / go on"
+command = "pomodoro.start"
+
+[[leader]]
+keys = "SPC o p p"
+label = "pause"
+command = "pomodoro.pause"
+
+[[leader]]
+keys = "SPC o p n"
+label = "skip to the next round"
+command = "pomodoro.skip"
+
+[[leader]]
+keys = "SPC o p r"
+label = "reset"
+command = "pomodoro.reset"
+
+[[leader]]
+keys = "SPC o p t"
+label = "agenda task to clock into"
+command = "pomodoro.task"

@@ -1,0 +1,4 @@
+# More files Fenix reads as JSON: swift-format's configuration and
+# SwiftPM's pinned dependencies.
+language = "json"
+filenames = [".swift-format", "Package.resolved"]

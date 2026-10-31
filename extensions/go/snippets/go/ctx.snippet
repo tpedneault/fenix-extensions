@@ -1,0 +1,7 @@
+# name: Context with a timeout
+# key: ctx
+# scope: go
+# --
+ctx, cancel := context.WithTimeout(${1:ctx}, ${2:5*time.Second})
+defer cancel()
+$0

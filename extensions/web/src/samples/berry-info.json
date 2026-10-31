@@ -1,0 +1,11 @@
+{"value":"ansi-styles@npm:4.3.0","children":{"Version":"4.3.0","Dependencies":[{"descriptor":"color-convert@npm:^2.0.1","locator":"color-convert@npm:2.0.1"}]}}
+{"value":"chalk@npm:4.1.2","children":{"Version":"4.1.2","Dependencies":[{"descriptor":"ansi-styles@npm:^4.1.0","locator":"ansi-styles@npm:4.3.0"},{"descriptor":"supports-color@npm:^7.1.0","locator":"supports-color@npm:7.2.0"}]}}
+{"value":"color-convert@npm:2.0.1","children":{"Version":"2.0.1","Dependencies":[{"descriptor":"color-name@npm:~1.1.4","locator":"color-name@npm:1.1.4"}]}}
+{"value":"color-name@npm:1.1.4","children":{"Version":"1.1.4"}}
+{"value":"has-flag@npm:4.0.0","children":{"Version":"4.0.0"}}
+{"value":"lodash@npm:4.17.20","children":{"Version":"4.17.20"}}
+{"value":"lru-cache@npm:6.0.0","children":{"Version":"6.0.0","Dependencies":[{"descriptor":"yallist@npm:^4.0.0","locator":"yallist@npm:4.0.0"}]}}
+{"value":"orbit-web@workspace:.","children":{"Version":"0.1.0","Dependencies":[{"descriptor":"chalk@npm:^4.1.0","locator":"chalk@npm:4.1.2"},{"descriptor":"lodash@npm:4.17.20","locator":"lodash@npm:4.17.20"},{"descriptor":"semver@npm:~7.5.0","locator":"semver@npm:7.5.4"}]}}
+{"value":"semver@npm:7.5.4","children":{"Version":"7.5.4","Exported Binaries":["semver"],"Dependencies":[{"descriptor":"lru-cache@npm:^6.0.0","locator":"lru-cache@npm:6.0.0"}]}}
+{"value":"supports-color@npm:7.2.0","children":{"Version":"7.2.0","Dependencies":[{"descriptor":"has-flag@npm:^4.0.0","locator":"has-flag@npm:4.0.0"}]}}
+{"value":"yallist@npm:4.0.0","children":{"Version":"4.0.0"}}

@@ -1,0 +1,17 @@
+# Rust's keys, after SPC m in a Rust project or file. Your own
+# keybindings.toml wins.
+
+[[local.rust]]
+keys = "p"
+label = "crates"
+command = "rust.packages"
+
+[[local.rust]]
+keys = "d"
+label = "check the project again"
+command = "rust.doctor"
+
+[[local.rust]]
+keys = "c"
+label = "clippy now"
+command = "rust.clippy"

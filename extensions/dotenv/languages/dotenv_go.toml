@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.go`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "go"
+filenames = [".env*.go"]

@@ -1,0 +1,48 @@
+[template]
+name = "Web app · Next.js"
+kind = "node"
+group = "Web"
+name_rule = "npm"
+description = "A Next.js app in TypeScript with the App Router and ESLint, scaffolded by create-next-app; Tailwind CSS if you like."
+needs = ["npm"]
+open = ["src/app/page.tsx", "app/page.tsx"]
+
+[[ask]]
+key = "manager"
+label = "Package manager"
+choices = ["npm", "pnpm", "yarn", "bun"]
+default = "npm"
+hint = "the one it installs with, and the tasks run with"
+
+[[ask]]
+key = "tailwind"
+label = "Tailwind CSS"
+default = true
+
+[[ask]]
+key = "src"
+label = "In src/"
+default = false
+hint = "app/ under src/, beside your other code"
+
+# create-next-app refuses a folder with files in it: none are written
+# before it.
+[[run]]
+exec = "npm"
+args = ["create", "--yes", "next-app@latest", ".", "--", "--ts", "--app", "--eslint", "--tailwind", "--src-dir", "--import-alias", "@/*", "--use-{{manager}}", "--disable-git", "--yes"]
+when = ["tailwind", "src"]
+
+[[run]]
+exec = "npm"
+args = ["create", "--yes", "next-app@latest", ".", "--", "--ts", "--app", "--eslint", "--tailwind", "--no-src-dir", "--import-alias", "@/*", "--use-{{manager}}", "--disable-git", "--yes"]
+when = ["tailwind", "!src"]
+
+[[run]]
+exec = "npm"
+args = ["create", "--yes", "next-app@latest", ".", "--", "--ts", "--app", "--eslint", "--no-tailwind", "--src-dir", "--import-alias", "@/*", "--use-{{manager}}", "--disable-git", "--yes"]
+when = ["!tailwind", "src"]
+
+[[run]]
+exec = "npm"
+args = ["create", "--yes", "next-app@latest", ".", "--", "--ts", "--app", "--eslint", "--no-tailwind", "--no-src-dir", "--import-alias", "@/*", "--use-{{manager}}", "--disable-git", "--yes"]
+when = ["!tailwind", "!src"]

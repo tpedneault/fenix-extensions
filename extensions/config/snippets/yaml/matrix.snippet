@@ -1,0 +1,10 @@
+# name: GitHub Actions matrix
+# key: matrix
+# scope: yaml
+# --
+strategy:
+  fail-fast: false
+  matrix:
+    ${1:os}: [${2:ubuntu-latest, windows-latest, macos-latest}]
+runs-on: \${{ matrix.$1 }}
+$0

@@ -1,0 +1,23 @@
+// The pack's init script (fenix.java): OWASP dependency-check for the
+// package page -- the build's own plugin when it applies it -- its report
+// as JSON, `build/reports/dependency-check-report.json`.
+initscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'org.owasp:dependency-check-gradle:12.2.2'
+    }
+}
+
+rootProject {
+    afterEvaluate { root ->
+        if (root.tasks.findByName('dependencyCheckAggregate') == null) {
+            root.apply plugin: org.owasp.dependencycheck.gradle.DependencyCheckPlugin
+        }
+        root.dependencyCheck {
+            formats = ['JSON', 'HTML']
+            outputDirectory = root.layout.buildDirectory.dir('reports').get().asFile
+        }
+    }
+}

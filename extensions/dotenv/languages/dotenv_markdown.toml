@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.md`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "markdown"
+filenames = [".env*.md"]

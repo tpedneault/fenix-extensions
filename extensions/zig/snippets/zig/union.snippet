@@ -1,0 +1,9 @@
+# name: Tagged union, union(enum)
+# key: union
+# scope: zig
+# --
+const ${1:Name} = union(enum) {
+	${2:number}: ${3:i64},
+	${4:text}: ${5:[]const u8},
+	$0
+};

@@ -1,0 +1,8 @@
+# Zig, which Fenix doesn't highlight itself: tree-sitter-zig's grammar,
+# compiled to WebAssembly (0.8.5), and its queries from queries/zig.
+# build.zig.zon, the package's manifest, is Zig too. The server is the
+# extension's to set, once it has found ZLS.
+language = "zig"
+grammar = "grammars/tree-sitter-zig.wasm"
+extensions = ["zig", "zon"]
+comment = "//"

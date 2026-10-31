@@ -1,0 +1,13 @@
+# name: XCTest case
+# key: xctest
+# scope: swift
+# --
+import XCTest
+@testable import ${1:Module}
+
+final class ${2:Name}Tests: XCTestCase {
+    func test${3:Something}() throws {
+        XCTAssertEqual(${4:1 + 1}, ${5:2})
+        $0
+    }
+}

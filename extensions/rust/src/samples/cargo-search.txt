@@ -1,0 +1,6 @@
+axum = "0.8.9"                # HTTP routing and request handling library that focuses on ergonomics and modularity
+axum-api-kit = "2.2.0"        # Shared response types for Axum JSON APIs: ApiError, ListResponse, and HealthResponse
+axum-valid = "0.25.0"         # Provides validation extractors for your Axum application, allowing you to validate data using val…
+axum-oidc-client = "0.7.0"    # OpenID Connect (OIDC) and OAuth2 client middleware for Axum web framework
+axum-prometheus = "0.10.1"    # A tower middleware to collect and export HTTP metrics for Axum
+... and 6332 crates more (use --limit N to see more)

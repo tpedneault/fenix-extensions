@@ -1,0 +1,19 @@
+with "config/orbit_config.gpr";
+
+project Orbit is
+   for Source_Dirs use ("src/", "config/");
+   for Object_Dir use "obj/" & Orbit_Config.Build_Profile;
+   for Exec_Dir use "bin";
+   for Main use ("orbit.adb");
+
+   type Mode_Type is ("debug", "release");
+   Mode : Mode_Type := external ("MODE", "debug");
+
+   package Compiler is
+      for Default_Switches ("Ada") use Orbit_Config.Ada_Compiler_Switches;
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es");
+   end Binder;
+end Orbit;

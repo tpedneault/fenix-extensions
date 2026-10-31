@@ -1,0 +1,10 @@
+# A Node running on this machine, picked as the session starts
+# (`${pickProcess}`): js-debug turns its inspector on and attaches.
+name = "Node: attach to a process"
+languages = ["javascript", "typescript", "tsx"]
+request = "attach"
+
+[attributes]
+type = "pwa-node"
+processId = "${pickProcess}"
+skipFiles = ["<node_internals>/**"]

@@ -1,0 +1,7 @@
+# name: asyncio.gather in a TaskGroup
+# key: tg
+# scope: python
+# --
+async with asyncio.TaskGroup() as tg:
+    ${1:first} = tg.create_task(${2:coro()})
+    $0

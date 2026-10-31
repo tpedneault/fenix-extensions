@@ -1,0 +1,48 @@
+[extension]
+id = "fenix.tcl"
+name = "Tcl"
+version = "1.0.0"
+description = "Tcl scripts: Tcl's own usage lines on K, completion of options, subcommands, built-ins and your procs, go to definition, and the project's definitions by name"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# With Fenix: the project doctor's checks are there from the start, and a
+# Tcl file needs its language server as soon as it opens.
+[activation]
+on_startup = true
+
+[permissions]
+# ctags scans the project for its procs; tclsh is looked for, for the
+# doctor.
+process = ["ctags", "tclsh"]
+# Whether the project is a Tcl one, and its files opened from SPC m s.
+filesystem = "project-read"
+# The project of the file you're in, when SPC m s or SPC m T runs.
+editor = "read"
+
+[contributes]
+# Fenix 1.x's names for its commands.
+namespaces = ["code", "completion"]
+
+[[contributes.language_servers]]
+name = "tcl"
+languages = ["tcl"]
+
+[[contributes.contexts]]
+name = "tcl"
+languages = ["tcl"]
+
+[[contributes.commands]]
+id = "code.symbols"
+title = "Tcl: fuzzy-find a definition by its fully-qualified name and jump to it"
+
+[[contributes.commands]]
+id = "completion.refresh_tags"
+title = "Tcl: refresh completion tags (scans the project with ctags again)"

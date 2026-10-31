@@ -1,0 +1,9 @@
+# name: pcall, its error given back
+# key: pcall
+# scope: lua
+# --
+local ok, ${1:err} = pcall(${2:fn})
+if not ok then
+	return nil, $1
+end
+$0

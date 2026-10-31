@@ -1,0 +1,51 @@
+[template]
+name = "C++ · CMake with Conan"
+kind = "cpp"
+group = "Systems"
+description = "A CMake program whose libraries Conan brings (conanfile.txt): fmt to start with, Catch2 for the tests if you like, and Conan's own CMake presets, which clangd and the tasks use."
+needs = ["cmake", "conan"]
+open = ["src/main.cpp"]
+
+[[ask]]
+key = "cxx_standard"
+label = "C++ standard"
+choices = ["20", "17", "23"]
+default = "20"
+
+[[ask]]
+key = "tests"
+label = "Tests"
+choices = ["Catch2", "none"]
+default = "Catch2"
+hint = "Conan brings it as a test requirement"
+
+[[ask]]
+key = "install"
+label = "Install the libraries now"
+default = false
+hint = "conan install for a debug build, then cmake --preset conan-debug: Conan builds what it has no binary for"
+
+[[file]]
+path = "tests/CMakeLists.txt"
+from = "tests/CMakeLists.txt"
+when = "tests == Catch2"
+
+[[file]]
+path = "tests/test_main.cpp"
+from = "tests/test_main.cpp"
+when = "tests == Catch2"
+
+# A profile for this machine, if Conan has none yet.
+[[run]]
+exec = "conan"
+args = ["profile", "detect", "--exist-ok"]
+
+[[run]]
+exec = "conan"
+args = ["install", ".", "--build=missing", "-s", "build_type=Debug", "-s", "compiler.cppstd={{cxx_standard}}"]
+when = "install"
+
+[[run]]
+exec = "cmake"
+args = ["--preset", "conan-debug"]
+when = "install"

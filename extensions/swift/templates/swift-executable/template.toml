@@ -1,0 +1,16 @@
+[template]
+name = "Swift · command-line tool"
+kind = "other"
+group = "Swift"
+description = "A Swift package: a command-line tool over a library target that does the work, with Swift Testing tests for it. swift build, swift run and swift test, on Linux, macOS or Windows."
+needs = ["swift"]
+open = ["Sources/{{name_pascal}}Core/Greeting.swift", "Package.swift"]
+
+[[file]]
+path = ".gitignore"
+content = ".build/\n.swiftpm/\n*.xcodeproj/\nxcuserdata/\nDerivedData/\n"
+
+[[task]]
+name = "run"
+exec = "swift"
+args = ["run", "{{name_kebab}}", "Ada"]

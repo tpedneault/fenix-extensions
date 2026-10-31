@@ -1,0 +1,14 @@
+[requires]
+fmt/11.1.4
+{{#if tests == Catch2}}
+
+[test_requires]
+catch2/3.8.1
+{{/if}}
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[layout]
+cmake_layout

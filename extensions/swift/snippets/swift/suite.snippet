@@ -1,0 +1,14 @@
+# name: Swift Testing suite with arguments
+# key: suite
+# scope: swift
+# --
+import Testing
+@testable import ${1:Module}
+
+@Suite struct ${2:Name}Tests {
+    @Test(arguments: [${3:1, 2, 3}])
+    func ${4:isPositive}(value: Int) {
+        #expect(${5:value > 0})
+        $0
+    }
+}

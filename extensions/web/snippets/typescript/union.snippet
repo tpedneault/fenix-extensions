@@ -1,0 +1,7 @@
+# name: A union told apart by its kind
+# key: union
+# scope: typescript, tsx
+# --
+export type ${1:Shape} =
+  | { kind: "${2:circle}"; ${3:radius}: number }
+  | { kind: "${4:square}"; ${5:side}: number };$0

@@ -1,0 +1,96 @@
+[extension]
+id = "fenix.diagrams"
+name = "Diagrams"
+version = "1.0.0"
+description = "Mermaid diagrams drawn as you type, their errors on their lines, Fenix's themes and yours, and exports"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# A Mermaid file's errors show as you type; its commands load it too.
+[activation]
+commands = ["diagram.*", "diagrams.*"]
+
+[permissions]
+# The diagram you're editing, as it is now, and its theme written into it.
+editor = "write"
+# To draw text into the pictures.
+fonts = true
+# Exports go beside the diagram, in the project.
+filesystem = "project-write"
+
+[contributes]
+# 1.x's names for its commands.
+namespaces = ["diagram"]
+# What others draw with: Fenix's reading view and the notebook.
+services = ["diagrams.render", "diagrams.svg", "diagrams.portable", "diagrams.problem", "diagrams.export", "diagrams.copy_picture", "diagrams.view", "diagrams.preview", "diagrams.pick_theme", "diagrams.new"]
+
+[[contributes.language_servers]]
+name = "diagrams"
+languages = ["mermaid"]
+
+[[contributes.contexts]]
+name = "mermaid"
+languages = ["mermaid"]
+
+[[contributes.commands]]
+id = "diagram.preview"
+title = "Diagram: drawn beside its source (again closes it)"
+
+[[contributes.commands]]
+id = "diagram.viewer"
+title = "Diagram: on its own -- zoom, pan, walk its nodes"
+
+[[contributes.commands]]
+id = "diagram.theme"
+title = "Diagram: set its theme"
+
+[[contributes.commands]]
+id = "diagram.export"
+title = "Diagram: export"
+
+[[contributes.settings]]
+key = "diagrams.theme"
+label = "Diagram theme"
+description = "The theme a diagram is drawn in when it doesn't name one: fenix (follows the editor theme), default, neutral, dark, forest, base, or one of yours."
+default = "fenix"
+
+[[contributes.settings]]
+key = "diagrams.export_theme"
+label = "Export theme"
+description = "The theme exports are drawn in: same (as shown), or a theme's name."
+default = "same"
+
+[[contributes.settings]]
+key = "diagrams.background"
+kind = "choice"
+label = "Export background"
+description = "What's behind an exported diagram."
+default = "theme"
+choices = ["theme", "transparent", "white"]
+
+[[contributes.settings]]
+key = "diagrams.themes"
+kind = "records"
+columns = ["name", "base", "primaryColor", "primaryBorderColor", "primaryTextColor", "lineColor", "secondaryColor", "background"]
+label = "Your themes"
+description = "Themes of your own: Mermaid theme variables over a theme to start from. Colours as #rrggbb; empty ones keep the starting theme's."
+
+[[contributes.settings]]
+key = "diagrams.edges"
+kind = "choice"
+label = "Flowchart edges"
+description = "How a flowchart's edges turn: straight lines with square corners, or rounded as Mermaid draws them."
+default = "straight"
+choices = ["straight", "rounded"]
+
+[[contributes.settings]]
+key = "diagrams.font"
+label = "Diagram font"
+description = "The font diagrams are drawn with."

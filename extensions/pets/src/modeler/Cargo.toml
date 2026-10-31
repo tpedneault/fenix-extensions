@@ -1,0 +1,14 @@
+[package]
+name = "pets-modeler"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Builds the pets' models, writing ../../models/*.glb: cargo run --release"
+
+[dependencies]
+fenix-model = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+glam = "0.30"
+
+# Run on its own, on the machine, not with the extension.
+[workspace]

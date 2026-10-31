@@ -1,0 +1,9 @@
+# name: Drop impl
+# key: drop
+# scope: rust
+# --
+impl Drop for ${1:Type} {
+    fn drop(&mut self) {
+        $0
+    }
+}

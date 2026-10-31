@@ -1,0 +1,9 @@
+# name: try / catch
+# key: try
+# scope: cpp
+# --
+try {
+    ${1}
+} catch (const ${2:std::exception}& e) {
+    $0
+}

@@ -1,0 +1,12 @@
+# name: Error struct (thiserror), with a source
+# key: errs
+# scope: rust
+# --
+#[derive(Debug, thiserror::Error)]
+#[error("${1:couldn't load} {${2:path}}")]
+pub struct ${3:LoadError} {
+    $2: ${4:String},
+    #[source]
+    source: ${5:std::io::Error},
+}
+$0

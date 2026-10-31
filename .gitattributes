@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# What a program wrote, byte for byte: the Java pack's JDT LS sample.
+*.bin binary

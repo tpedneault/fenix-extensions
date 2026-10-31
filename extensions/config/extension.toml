@@ -1,0 +1,157 @@
+[extension]
+id = "fenix.config"
+name = "Config & Shell"
+version = "1.0.0"
+description = "YAML, JSON, TOML, Dockerfiles, shell scripts and Markdown: their language servers, SchemaStore's schemas for GitHub Actions, Compose, package.json, tsconfig and the rest, Taplo, shfmt and Prettier formatting, ShellCheck and hadolint, the project's checks with their fixes, and snippets"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Servers added beside the others (0.8.5), given their settings (0.8.6),
+# the language file's `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: config files are in every kind of project.
+[activation]
+on_startup = true
+
+[permissions]
+# npm installs the servers written in Node, which run on node; Taplo,
+# Marksman, shfmt, ShellCheck and hadolint where the pack installs them
+# (the tools folder) or where they're found; Prettier formats.
+process = [
+    "node", "npm",
+    "yaml-language-server", "vscode-json-language-server", "docker-langserver", "bash-language-server",
+    "taplo", "marksman", "shfmt", "shellcheck", "hadolint", "prettier",
+    "/tools/*",
+]
+# SchemaStore's catalog, for the JSON server; the tools' releases, and
+# where GitHub sends their downloads.
+network = ["www.schemastore.org", "github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# Which kinds of config file the project has, and its Prettier config.
+filesystem = "project-read"
+# The file saved, for hadolint.
+editor = "read"
+
+[contributes]
+# A Dockerfile saved: linted; a Prettier config saved: read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "config"
+languages = ["yaml", "json", "toml", "dockerfile", "bash", "markdown"]
+
+[[contributes.commands]]
+id = "config.doctor"
+title = "Config: check the project's config and shell tools again"
+
+[[contributes.commands]]
+id = "config.schemas"
+title = "Config: fetch SchemaStore's catalog again, for the JSON server"
+
+[[contributes.commands]]
+id = "config.install-yaml-server"
+title = "Config: install the YAML language server (npm)"
+
+[[contributes.commands]]
+id = "config.install-json-server"
+title = "Config: install the JSON language server, vscode-langservers-extracted (npm)"
+
+[[contributes.commands]]
+id = "config.install-docker-server"
+title = "Config: install the Dockerfile language server (npm)"
+
+[[contributes.commands]]
+id = "config.install-bash-server"
+title = "Config: install the Bash language server (npm)"
+
+[[contributes.commands]]
+id = "config.install-prettier"
+title = "Config: install Prettier (npm)"
+
+[[contributes.commands]]
+id = "config.install.taplo"
+title = "Config: install Taplo, the TOML language server and formatter"
+
+[[contributes.commands]]
+id = "config.install.marksman"
+title = "Config: install Marksman, the Markdown language server"
+
+[[contributes.commands]]
+id = "config.install.shfmt"
+title = "Config: install shfmt, the shell script formatter"
+
+[[contributes.commands]]
+id = "config.install.shellcheck"
+title = "Config: install ShellCheck"
+
+[[contributes.commands]]
+id = "config.install.hadolint"
+title = "Config: install hadolint, the Dockerfile linter"
+
+[[contributes.settings]]
+key = "config.yaml"
+kind = "bool"
+label = "YAML"
+description = "yaml-language-server for YAML files, with SchemaStore's schemas (GitHub Actions, Compose, Kubernetes manifests named in a modeline, and the rest)."
+default = "true"
+
+[[contributes.settings]]
+key = "config.json"
+kind = "bool"
+label = "JSON"
+description = "vscode-json-language-server for JSON files, given SchemaStore's schemas (package.json, tsconfig.json, .eslintrc and the rest)."
+default = "true"
+
+[[contributes.settings]]
+key = "config.toml"
+kind = "bool"
+label = "TOML"
+description = "Taplo for TOML files: problems, completion from SchemaStore's schemas (Cargo.toml, pyproject.toml), and formatting."
+default = "true"
+
+[[contributes.settings]]
+key = "config.dockerfile"
+kind = "bool"
+label = "Dockerfiles"
+description = "docker-langserver for Dockerfiles and Containerfiles."
+default = "true"
+
+[[contributes.settings]]
+key = "config.shell"
+kind = "bool"
+label = "Shell scripts"
+description = "bash-language-server for shell scripts, with ShellCheck's problems and shfmt's formatting when they're installed."
+default = "true"
+
+[[contributes.settings]]
+key = "config.markdown"
+kind = "bool"
+label = "Markdown"
+description = "Marksman for Markdown files: links and headings checked, completed and followed. Runs beside the notebook's own server."
+default = "true"
+
+[[contributes.settings]]
+key = "config.schemastore"
+kind = "bool"
+label = "SchemaStore"
+description = "Schemas from schemastore.org for YAML and JSON files, chosen by their names. The JSON server's catalog is fetched once a week."
+default = "true"
+
+[[contributes.settings]]
+key = "config.prettier"
+kind = "bool"
+label = "Prettier"
+description = "Format JSON with Prettier when it's installed; YAML and Markdown too in a project with a Prettier config. Without it, YAML is formatted by its server."
+default = "true"
+
+[[contributes.settings]]
+key = "config.hadolint"
+kind = "bool"
+label = "hadolint on save"
+description = "Lint a saved Dockerfile with hadolint, when it's installed, and show its problems with the server's."
+default = "true"

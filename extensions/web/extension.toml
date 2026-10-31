@@ -1,0 +1,118 @@
+[extension]
+id = "fenix.web"
+name = "Web: JavaScript and TypeScript"
+version = "1.0.0"
+description = "JavaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config & Shell, debugging with js-debug (Node, each of package.json's scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json's scripts as tasks, the project's checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates", "web"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The debug adapter, the formatter, a linter's problems (0.8.3); js-debug
+# over a socket (0.8.4); servers beside Fenix's own, the dev server in the
+# background, the Node you chose as a hint, launch files without a
+# program (0.8.5); ESLint's server given its settings, a launch for each
+# script, a process to attach to (0.8.6). Built on 0.8.7's bindings.
+api = "1.0"
+
+# JSON, with SchemaStore's schemas for package.json, tsconfig.json and the
+# rest, is Config & Shell's: one JSON server, not two.
+[dependencies]
+"fenix.config" = "^1"
+
+# With Fenix: the project doctor's checks and the servers are there from
+# the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Node runs js-debug and the project's ESLint, Prettier and Biome (the
+# one web.node names, else the one found); the managers list, install
+# and audit; corepack, fnm and Volta install what the project pins; the
+# servers, and Prettier and Biome where the project has none; js-debug in
+# the tools folder.
+process = [
+    "node", "${setting:web.node}", "npm", "pnpm", "yarn", "bun", "corepack", "fnm", "volta",
+    "typescript-language-server", "vscode-eslint-language-server", "tailwindcss-language-server",
+    "vscode-css-language-server", "vscode-html-language-server",
+    "prettier", "biome", "/tools/*",
+]
+# js-debug's release.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# package.json, the lockfiles, .nvmrc and node_modules' own records, read.
+filesystem = "project-read"
+# The file saved, for ESLint.
+editor = "read"
+
+[contributes]
+# A file saved: linted (by its path, file_saved); package.json and the
+# like, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "web"
+markers = ["package.json", "tsconfig.json", "jsconfig.json", "deno.json"]
+languages = ["javascript", "typescript", "tsx"]
+
+[[contributes.commands]]
+id = "web.packages"
+title = "Web: packages -- outdated and vulnerable, upgrade, add, remove"
+
+[[contributes.commands]]
+id = "web.doctor"
+title = "Web: check the project again (Node, the package manager, node_modules, the servers)"
+
+[[contributes.commands]]
+id = "web.install"
+title = "Web: install the project's packages (npm, pnpm, yarn or bun install)"
+
+[[contributes.commands]]
+id = "web.dev"
+title = "Web: start the dev server in the background (its output, when it's running)"
+
+[[contributes.commands]]
+id = "web.dev-stop"
+title = "Web: stop the dev server"
+
+[[contributes.commands]]
+id = "web.install-node"
+title = "Web: install the Node the project asks for (fnm or Volta)"
+
+[[contributes.commands]]
+id = "web.install-manager"
+title = "Web: install the project's package manager (corepack enable, or npm install -g)"
+
+[[contributes.commands]]
+id = "web.install-tsserver"
+title = "Web: install typescript-language-server"
+
+[[contributes.commands]]
+id = "web.install-servers"
+title = "Web: install the CSS, HTML and ESLint servers (vscode-langservers-extracted)"
+
+[[contributes.commands]]
+id = "web.install-tailwind"
+title = "Web: install the Tailwind CSS server"
+
+[[contributes.commands]]
+id = "web.install.js-debug"
+title = "Web: install js-debug, the debugger, into Fenix's tools folder"
+
+[[contributes.settings]]
+key = "web.eslint"
+kind = "choice"
+choices = ["server", "save", "off"]
+label = "ESLint"
+description = "server: vscode-eslint-language-server beside the TypeScript server, its problems as you type and its fixes (on save while it isn't installed). save: the project's ESLint on each file saved. off: neither."
+default = "server"
+project = true
+
+[[contributes.settings]]
+key = "web.node"
+kind = "path"
+label = "Node"
+description = "The Node to run js-debug and the project's tools with, and to check; empty for the one on PATH (or fnm's, Volta's)."
+default = ""

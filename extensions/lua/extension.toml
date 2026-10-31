@@ -1,0 +1,89 @@
+[extension]
+id = "fenix.lua"
+name = "Lua"
+version = "1.0.0"
+description = "Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project's checks with their fixes, snippets, and LÖVE game and LuaRocks module projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The language server, the formatter, a linter's problems (0.8.3); the
+# saved file's path, and the system, for the release to install (0.8.4);
+# the server given its settings (0.8.6); LuaRocks' `busted.bat` and
+# `luacheck.bat` found on Windows (0.8.7).
+api = "1.0"
+
+# With Fenix: the server is there for the first Lua file, and the project
+# doctor's checks from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Lua or LuaJIT run the project and say their versions; LuaRocks builds,
+# tests and installs busted and luacheck; LÖVE runs a game; the server,
+# StyLua, selene and luacheck where the pack installs them (the tools
+# folder) or where they're found.
+process = [
+    "lua", "luajit", "luarocks", "busted", "love",
+    "lua-language-server", "stylua", "selene", "luacheck",
+    "/tools/*",
+]
+# The releases, and where GitHub sends their downloads.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# The rockspecs, the tools' configs and main.lua, read.
+filesystem = "project-read"
+# The file saved, for the linter.
+editor = "read"
+
+[contributes]
+# A Lua file saved: linted; a rockspec or a tool's config, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "lua"
+markers = [".luarc.json", ".luarc.jsonc", "selene.toml", "stylua.toml", ".stylua.toml", ".luacheckrc", ".busted", "conf.lua"]
+languages = ["lua"]
+
+[[contributes.commands]]
+id = "lua.doctor"
+title = "Lua: check the project again (Lua, LuaRocks, the server, StyLua, the linter)"
+
+[[contributes.commands]]
+id = "lua.install.lua-language-server"
+title = "Lua: install lua-language-server"
+
+[[contributes.commands]]
+id = "lua.install.stylua"
+title = "Lua: install StyLua, the formatter"
+
+[[contributes.commands]]
+id = "lua.install.selene"
+title = "Lua: install selene, the linter"
+
+[[contributes.commands]]
+id = "lua.install-busted"
+title = "Lua: install busted (luarocks install --local)"
+
+[[contributes.commands]]
+id = "lua.install-luacheck"
+title = "Lua: install luacheck (luarocks install --local)"
+
+[[contributes.settings]]
+key = "lua.formatter"
+kind = "choice"
+choices = ["auto", "stylua", "server"]
+label = "Formatter"
+description = "auto: StyLua in a project with a stylua.toml, else the server's own formatting (which reads .editorconfig). stylua: StyLua whenever it's installed."
+default = "auto"
+
+[[contributes.settings]]
+key = "lua.linter"
+kind = "choice"
+choices = ["auto", "selene", "luacheck", "off"]
+label = "Linter on save"
+description = "auto: selene in a project with a selene.toml, luacheck in one with a .luacheckrc, else the server's checks alone."
+default = "auto"

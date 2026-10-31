@@ -1,0 +1,6 @@
+# name: Channel (tokio mpsc)
+# key: chan
+# scope: rust
+# --
+let (${1:tx}, mut ${2:rx}) = tokio::sync::mpsc::channel::<${3:Message}>(${4:32});
+$0

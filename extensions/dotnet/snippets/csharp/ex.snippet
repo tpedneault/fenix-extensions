@@ -1,0 +1,10 @@
+# name: Exception type
+# key: ex
+# scope: csharp
+# --
+public class ${1:Name}Exception : Exception
+{
+    public $1Exception() { }
+    public $1Exception(string message) : base(message) { }
+    public $1Exception(string message, Exception inner) : base(message, inner) { }
+}$0

@@ -1,0 +1,8 @@
+# name: DebugAllocator, the general purpose one
+# key: gpa
+# scope: zig
+# --
+var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+defer _ = debug_allocator.deinit();
+const ${1:gpa} = debug_allocator.allocator();
+$0

@@ -1,0 +1,17 @@
+# Go's keys, after SPC m in a Go project or file. Your own
+# keybindings.toml wins.
+
+[[local.go]]
+keys = "p"
+label = "modules"
+command = "go.packages"
+
+[[local.go]]
+keys = "d"
+label = "check the project again"
+command = "go.doctor"
+
+[[local.go]]
+keys = "t"
+label = "tidy go.mod and go.sum"
+command = "go.tidy"

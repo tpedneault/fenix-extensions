@@ -1,0 +1,109 @@
+[extension]
+id = "fenix.dotenv"
+name = "Env files"
+version = "1.0.0"
+description = "Env files (.env): values hidden but on the cursor's line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Decorations (the values hidden), styled pages; tasks with variables
+# (0.8.3); rules Fenix masks values by from a file's first frame, and
+# `.env.*` in a language file (0.8.4).
+api = "1.0"
+
+# With Fenix: its masking rules given, its tasks offered.
+[activation]
+on_startup = true
+
+[permissions]
+# The env file you're in, its values hidden; keys added to it, a profile
+# copied over it, .gitignore added to.
+editor = "write"
+# The project's env files, read; a profile copied over .env, .gitignore.
+filesystem = "project-write"
+# git ls-files and check-ignore, whether Git would commit an env file;
+# git rm --cached, when you ask it to stop tracking one. The rest, what
+# the commands in dotenv.tasks may run: your tasks, with a profile's
+# variables.
+process = ["git", "npm", "npx", "pnpm", "yarn", "bun", "node", "deno", "python", "python3", "uv", "poetry", "pipenv", "cargo", "go", "make", "just", "docker", "dotnet", "php", "ruby", "bundle", "rails"]
+
+[contributes]
+# Masked again as you edit; masked as you move to one.
+events = ["changed", "focus", "saved"]
+
+# In env files, their problems; in code, variable names completed.
+[[contributes.language_servers]]
+name = "dotenv"
+languages = ["javascript", "typescript", "tsx", "python", "rust", "go"]
+files = [".env", ".env.*", "*.env", "*.php", "*.rb", "*.rake", "Gemfile", "Rakefile", "*.vue", "*.svelte", "*.astro"]
+
+[[contributes.commands]]
+id = "dotenv.page"
+title = "Env: every env file in the project, keys side by side"
+
+[[contributes.commands]]
+id = "dotenv.reveal"
+title = "Env: show or hide the values in this env file"
+
+[[contributes.commands]]
+id = "dotenv.profile"
+title = "Env: switch profile -- copy .env.<name> over .env, the old one kept"
+
+[[contributes.commands]]
+id = "dotenv.restore"
+title = "Env: put back a backup a profile switch kept"
+
+[[contributes.commands]]
+id = "dotenv.task_profile"
+title = "Env: pick the env file whose variables tasks run with (dotenv.tasks)"
+
+[[contributes.commands]]
+id = "dotenv.add_missing"
+title = "Env: add the keys .env.example has and this file lacks, empty"
+
+[[contributes.commands]]
+id = "dotenv.gitignore"
+title = "Env: add the env files Git would commit to .gitignore"
+
+[[contributes.commands]]
+id = "dotenv.untrack"
+title = "Env: stop tracking env files in Git (git rm --cached), the files kept"
+
+[[contributes.commands]]
+id = "dotenv.check"
+title = "Env: look for env files and ask Git about them again"
+
+[[contributes.settings]]
+key = "dotenv.mask"
+kind = "bool"
+label = "Hide values"
+description = "Draw env files' values as •••••• but on the cursor's line. SPC p e r shows a file's."
+default = "true"
+
+[[contributes.settings]]
+key = "dotenv.mask_examples"
+kind = "bool"
+label = "Hide examples' values"
+description = "Hide .env.example's values too; they're meant to be committed, so by default they're shown."
+default = "false"
+
+[[contributes.settings]]
+key = "dotenv.git"
+kind = "bool"
+label = "Ask Git"
+description = "Warn when Git tracks an env file, or .gitignore doesn't ignore it."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "dotenv.tasks"
+kind = "list"
+label = "Tasks"
+description = "Commands offered in the task picker (SPC p t), run in the project with the variables of the env file SPC p e t picks (.env until then): npm run dev, cargo run. The program is one of npm, npx, pnpm, yarn, bun, node, deno, python, python3, uv, poetry, pipenv, cargo, go, make, just, docker, dotnet, php, ruby, bundle, rails."
+default = ""
+project = true

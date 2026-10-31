@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "parameters": "",
+  "problems": [
+    {
+      "project": "/home/u/norestore/norestore.csproj",
+      "level": "error",
+      "text": "No assets file was found for `/home/u/norestore/norestore.csproj`. Please run restore before running this command."
+    }
+  ],
+  "projects": [
+    {
+      "path": "/home/u/norestore/norestore.csproj"
+    }
+  ]
+}

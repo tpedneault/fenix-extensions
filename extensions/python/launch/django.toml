@@ -1,0 +1,12 @@
+# Without the reloader: it runs the server in a process of its own, which
+# the breakpoints wouldn't be in.
+name = "Django: runserver"
+languages = ["python"]
+program = "${project}/manage.py"
+args = ["runserver", "--noreload"]
+cwd = "${project}"
+env = { PYTHONUNBUFFERED = "1" }
+
+[attributes]
+django = true
+justMyCode = true

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate and pack
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Rust stable with Clippy
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy --target wasm32-wasip2 --no-self-update
+          rustup override set stable
+      - name: Clippy
+        run: cargo clippy --locked -- -D warnings
+      - name: xtask's tests
+        run: cargo test --locked -p xtask
+      - name: Every manifest
+        run: cargo xtask validate
+      - name: Each code extension's tests, and the crates they share
+        run: |
+          for manifest in crates/*/Cargo.toml extensions/*/Cargo.toml; do
+            cargo test --locked --manifest-path "$manifest"
+          done
+      - name: Every extension packs
+        run: |
+          for dir in extensions/*/; do
+            cargo xtask pack "$dir" dist
+          done

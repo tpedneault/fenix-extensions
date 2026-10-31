@@ -1,0 +1,8 @@
+# name: Sealed interface
+# key: sealed
+# scope: kotlin
+# --
+sealed interface ${1:Result} {
+    data class ${2:Ok}(val ${3:value}: ${4:String}) : $1
+    data class ${5:Err}(val ${6:message}: String) : $1
+}$0

@@ -1,0 +1,10 @@
+# name: xUnit: theory with inline data
+# key: theory
+# scope: csharp
+# --
+[Theory]
+[InlineData(${1:1}, ${2:2})]
+public void ${3:Name}(int ${4:given}, int ${5:expected})
+{
+    Assert.Equal($5, $4);$0
+}

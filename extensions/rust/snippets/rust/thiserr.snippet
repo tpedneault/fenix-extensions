@@ -1,0 +1,14 @@
+# name: Error enum (thiserror)
+# key: thiserr
+# scope: rust
+# --
+#[derive(Debug, thiserror::Error)]
+pub enum ${1:Error} {
+    #[error("${2:couldn't read the file}")]
+    ${3:Io}(#[from] ${4:std::io::Error}),
+    #[error("${5:invalid input}: {0}")]
+    ${6:Invalid}(String),
+}
+
+pub type Result<T, E = $1> = std::result::Result<T, E>;
+$0

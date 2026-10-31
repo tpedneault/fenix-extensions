@@ -1,0 +1,8 @@
+# name: Match
+# key: match
+# scope: rust
+# --
+match ${1:value} {
+    ${2:pattern} => ${3:todo!()},
+    _ => ${4:todo!()},
+}$0

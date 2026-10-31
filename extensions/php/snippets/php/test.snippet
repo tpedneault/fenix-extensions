@@ -1,0 +1,22 @@
+# name: PHPUnit test case
+# key: test
+# scope: php
+# --
+<?php
+
+declare(strict_types=1);
+
+namespace ${1:Tests};
+
+use PHPUnit\\Framework\\Attributes\\Test;
+use PHPUnit\\Framework\\TestCase;
+
+final class ${2:Name}Test extends TestCase
+{
+    #[Test]
+    public function ${3:it_works}(): void
+    {
+        $0
+        self::assertTrue(true);
+    }
+}

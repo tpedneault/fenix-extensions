@@ -1,0 +1,8 @@
+name = "pytest: all tests"
+languages = ["python"]
+args = ["-q"]
+cwd = "${project}"
+
+[attributes]
+module = "pytest"
+justMyCode = false

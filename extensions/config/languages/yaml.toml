@@ -1,0 +1,5 @@
+# More files Fenix reads as YAML: clang-format's, clang-tidy's and
+# clangd's configs, yamllint's. The server is the extension's to set,
+# once it has found one.
+language = "yaml"
+filenames = [".clang-format", ".clang-tidy", ".clangd", ".yamllint"]

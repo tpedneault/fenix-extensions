@@ -1,0 +1,11 @@
+# The Vite dev server's page in Chrome (or Edge, `type = "pwa-msedge"`),
+# its breakpoints in your sources: start the server first (Web: start the
+# dev server, or `npm run dev`).
+name = "Vite: dev server in Chrome (localhost:5173)"
+languages = ["javascript", "typescript", "tsx"]
+program = false
+
+[attributes]
+type = "pwa-chrome"
+url = "http://localhost:5173"
+webRoot = "${project}"

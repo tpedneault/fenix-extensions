@@ -1,0 +1,34 @@
+[template]
+name = "Rust · Axum service"
+kind = "rust"
+group = "Systems"
+description = "An HTTP service on Axum and tokio: a router with a page and a JSON route, tests that call it without a server, tracing, and a clean shutdown on Ctrl+C."
+needs = ["cargo"]
+open = ["src/app.rs"]
+
+[[ask]]
+key = "port"
+label = "Port"
+default = "3000"
+hint = "PORT in the environment wins"
+
+# Written first, so cargo init keeps them and makes a binary.
+[[file]]
+path = "src/main.rs"
+from = "main.rs"
+
+[[file]]
+path = "src/app.rs"
+from = "app.rs"
+
+[[run]]
+exec = "cargo"
+args = ["init", "--bin", "--name", "{{name_snake}}", "--vcs", "none"]
+
+[[run]]
+exec = "cargo"
+args = ["add", "axum", "serde", "tracing", "tokio", "tracing-subscriber", "--features", "serde/derive,tokio/macros,tokio/rt-multi-thread,tokio/net,tokio/signal,tracing-subscriber/env-filter"]
+
+[[run]]
+exec = "cargo"
+args = ["add", "--dev", "tower", "http-body-util", "serde_json", "--features", "tower/util"]

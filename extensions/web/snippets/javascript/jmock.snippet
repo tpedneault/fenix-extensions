@@ -1,0 +1,7 @@
+# name: jest.mock, a module mocked (Jest)
+# key: jmock
+# scope: javascript, typescript, tsx
+# --
+jest.mock("${1:./module}", () => ({
+  ${2:name}: jest.fn(${3}),
+}));$0

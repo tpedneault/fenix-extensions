@@ -1,0 +1,27 @@
+[template]
+name = "Node · Express API"
+kind = "node"
+group = "Web"
+name_rule = "npm"
+description = "An Express service in TypeScript: an app you can test without a port, its server apart, a JSON route and its test with Vitest, run by tsx as you edit."
+needs = ["npm"]
+open = ["src/app.ts"]
+
+[[ask]]
+key = "manager"
+label = "Package manager"
+choices = ["npm", "pnpm", "yarn", "bun"]
+default = "npm"
+
+[[ask]]
+key = "port"
+label = "Port"
+default = "3000"
+
+[[run]]
+exec = "{{manager}}"
+args = ["add", "express"]
+
+[[run]]
+exec = "{{manager}}"
+args = ["add", "-D", "typescript", "tsx", "vitest", "@types/express", "@types/node"]

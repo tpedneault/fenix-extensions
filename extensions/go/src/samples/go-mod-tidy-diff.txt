@@ -1,0 +1,23 @@
+diff current/go.mod tidy/go.mod
+--- current/go.mod
++++ tidy/go.mod
+@@ -9,8 +9,6 @@
+ 	gopkg.in/yaml.v2 v2.2.2
+ )
+ 
+-require github.com/google/uuid v1.3.0 // indirect
+-
+ require github.com/spf13/pflag v1.0.5
+ 
+ replace github.com/spf13/pflag => github.com/spf13/pflag v1.0.3
+
+diff current/go.sum tidy/go.sum
+--- current/go.sum
++++ tidy/go.sum
+@@ -1,4 +1,4 @@
+-github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
++github.com/spf13/pflag v1.0.3 h1:zPAT6CGy6wXeQ7NtTnaTerfKOsV6V6F8agHXFiazDkg=
+ github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
+ golang.org/x/text v0.3.5 h1:i6eZZ+zk0SOf0xgBpEpPD18qWcJda6q1sxt3S0kzyUQ=
+ golang.org/x/text v0.3.5/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
+

@@ -1,0 +1,22 @@
+[package]
+name = "fenix-colours"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Colour literals in Fenix: a swatch beside each, a picker, conversions between hex, RGB, HSL and OKLCH, a contrast checker, and the project's palette."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-ui-kit = { path = "../../crates/ui-kit" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

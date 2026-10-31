@@ -1,0 +1,8 @@
+# name: A stream: filter, map, collect
+# key: stream
+# scope: java
+# --
+${1:items}.stream()
+    .filter(${2:x} -> ${3:true})
+    .map($2 -> ${4:x})
+    .toList();$0

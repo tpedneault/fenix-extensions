@@ -1,0 +1,48 @@
+---
+MainSourceFile:  '/home/u/orbit/src/orbit.cpp'
+Diagnostics:
+  - DiagnosticName:  modernize-use-override
+    DiagnosticMessage:
+      Message:         'prefer using ''override'' or (rarely) ''final'' instead of ''virtual'''
+      FilePath:        'src/orbit.cpp'
+      FileOffset:      151
+      Replacements:
+        - FilePath:        'src/orbit.cpp'
+          Offset:          139
+          Length:          8
+          ReplacementText: ''
+        - FilePath:        'src/orbit.cpp'
+          Offset:          165
+          Length:          0
+          ReplacementText: ' override'
+    Level:           Warning
+    BuildDirectory:  '/home/u/orbit'
+  - DiagnosticName:  modernize-use-nullptr
+    DiagnosticMessage:
+      Message:         use nullptr
+      FilePath:        'src/orbit.cpp'
+      FileOffset:      217
+      Replacements:
+        - FilePath:        'src/orbit.cpp'
+          Offset:          217
+          Length:          4
+          ReplacementText: nullptr
+    Level:           Warning
+    BuildDirectory:  '/home/u/orbit'
+  - DiagnosticName:  readability-braces-around-statements
+    DiagnosticMessage:
+      Message:         statement should be inside braces
+      FilePath:        'src/orbit.cpp'
+      FileOffset:      222
+      Replacements:
+        - FilePath:        'src/orbit.cpp'
+          Offset:          222
+          Length:          0
+          ReplacementText: ' {'
+        - FilePath:        'src/orbit.cpp'
+          Offset:          232
+          Length:          0
+          ReplacementText: "\n}"
+    Level:           Warning
+    BuildDirectory:  '/home/u/orbit'
+...

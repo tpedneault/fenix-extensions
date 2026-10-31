@@ -1,0 +1,15 @@
+# name: Error type
+# key: errt
+# scope: go
+# --
+type ${1:Parse}Error struct {
+	${2:Line} int
+	Err  error
+}
+
+func (e *$1Error) Error() string {
+	return fmt.Sprintf("${3:line} %d: %v", e.$2, e.Err)
+}
+
+func (e *$1Error) Unwrap() error { return e.Err }
+$0

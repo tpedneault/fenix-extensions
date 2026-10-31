@@ -1,0 +1,19 @@
+[extension]
+id = "fenix.jira-bundle"
+name = "Jira"
+version = "1.0.0"
+description = "Jira, with the agenda kept in step"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+# A bundle: nothing of its own, the extensions below. Installing it
+# installs them; removing it removes those nothing else needs.
+runtime = "bundle"
+
+[engine]
+fenix = ">=1.0, <2"
+
+[dependencies]
+"fenix.jira" = "^1"
+"fenix.agenda" = "^1"

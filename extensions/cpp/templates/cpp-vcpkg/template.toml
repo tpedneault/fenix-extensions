@@ -1,0 +1,53 @@
+[template]
+name = "C++ · CMake with vcpkg"
+kind = "cpp"
+group = "Systems"
+description = "A CMake program whose libraries vcpkg brings, from its manifest (vcpkg.json): fmt to start with, Catch2 for the tests if you like, presets that use vcpkg's toolchain, and clangd pointed at the build."
+needs = ["cmake", "vcpkg", "git"]
+open = ["src/main.cpp"]
+
+[[ask]]
+key = "cxx_standard"
+label = "C++ standard"
+choices = ["20", "17", "23"]
+default = "20"
+
+[[ask]]
+key = "tests"
+label = "Tests"
+choices = ["Catch2", "none"]
+default = "Catch2"
+hint = "vcpkg builds it with the rest"
+
+[[ask]]
+key = "generator"
+label = "Generator"
+choices = ["Ninja", "platform default"]
+default = "Ninja"
+hint = "Ninja writes compile_commands.json for clangd, but needs ninja and a compiler on PATH"
+
+[[ask]]
+key = "configure"
+label = "Configure now"
+default = false
+hint = "cmake --preset debug: vcpkg builds the libraries first, which takes a while"
+
+[[file]]
+path = "tests/CMakeLists.txt"
+from = "tests/CMakeLists.txt"
+when = "tests == Catch2"
+
+[[file]]
+path = "tests/test_main.cpp"
+from = "tests/test_main.cpp"
+when = "tests == Catch2"
+
+# The manifest's baseline: the vcpkg commit its versions come from.
+[[run]]
+exec = "vcpkg"
+args = ["x-update-baseline", "--add-initial-baseline"]
+
+[[run]]
+exec = "cmake"
+args = ["--preset", "debug"]
+when = "configure"

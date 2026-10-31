@@ -1,0 +1,17 @@
+# Lua's keys, after SPC m in a Lua project or file. Your own
+# keybindings.toml wins.
+
+[[local.lua]]
+keys = "d"
+label = "check the project again"
+command = "lua.doctor"
+
+[[local.lua]]
+keys = "s"
+label = "install lua-language-server"
+command = "lua.install.lua-language-server"
+
+[[local.lua]]
+keys = "f"
+label = "install StyLua"
+command = "lua.install.stylua"

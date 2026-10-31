@@ -1,0 +1,9 @@
+# The tests in the file you're in: `python -m pytest <file>`.
+name = "pytest: current file"
+languages = ["python"]
+args = ["-q", "${file}"]
+cwd = "${project}"
+
+[attributes]
+module = "pytest"
+justMyCode = false

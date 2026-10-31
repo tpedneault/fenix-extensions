@@ -1,0 +1,11 @@
+# To a program started with `python -m debugpy --listen 5678
+# --wait-for-client app.py`. That runs debugpy's own adapter on the port,
+# which Fenix talks to (`debugServer`, Fenix 2.1.1). No `connect`: told
+# one, debugpy's adapter goes to wait for a server of its own.
+name = "Python: attach (localhost:5678)"
+languages = ["python"]
+request = "attach"
+
+[attributes]
+debugServer = 5678
+justMyCode = true

@@ -1,0 +1,20 @@
+# Containers' keys, under SPC d. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC d"
+group = "containers"
+
+[[leader]]
+keys = "SPC d d"
+label = "containers"
+command = "containers.open"
+
+[[leader]]
+keys = "SPC d p"
+label = "performance"
+command = "containers.performance"
+
+[[leader]]
+keys = "SPC d b"
+label = "build the project's image"
+command = "containers.build"

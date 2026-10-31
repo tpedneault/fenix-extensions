@@ -1,0 +1,17 @@
+# Ruby's keys, after SPC m in a Ruby project or file. Your own
+# keybindings.toml wins.
+
+[[local.ruby]]
+keys = "d"
+label = "check the project again"
+command = "ruby.doctor"
+
+[[local.ruby]]
+keys = "b"
+label = "install the gems (bundle install)"
+command = "ruby.bundle-install"
+
+[[local.ruby]]
+keys = "r"
+label = "read the project again, and Rake's tasks"
+command = "ruby.reload"

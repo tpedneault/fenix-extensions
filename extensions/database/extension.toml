@@ -1,0 +1,129 @@
+[extension]
+id = "fenix.database"
+name = "Database browser"
+version = "1.0.0"
+description = "SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table's rows paged and changed, history, completion of the schema's names"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools", "data"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Passwords in the system's keychain (secret-set, patterns), the masked
+# prompt, a minute a call, contributes.magic.
+api = "1.0"
+
+# Its commands load it; so does a .sqlite file opened, and a .sql buffer
+# (its language server).
+[activation]
+commands = ["database.*"]
+
+[permissions]
+# The servers in database.connections (a row's host, then its port); and
+# any on an engine's own port, for a row whose port is left out.
+sockets = ["${setting:database.connections}", "*:5432", "*:3306", "*:1433"]
+# A connection's password, asked for once and kept in the system's
+# keychain (database.password.<name>); the older map, still read.
+secrets = ["database.password.*", "database.passwords"]
+# A SQLite file in the project is read and written where it is; an export
+# is written there.
+filesystem = "project-write"
+# The .sql buffer you run from: its text, the cursor, the selection; a
+# statement from the history put at the cursor.
+editor = "write"
+
+# A SQLite statement may take up to database.timeout (30 s, at most 55).
+[limits]
+call_ms = 60000
+
+[contributes]
+opens = ["*.sqlite", "*.sqlite3", "*.db", "*.db3"]
+# The .sql buffer you're in: its connection on the modeline.
+events = ["focus"]
+
+# A .db that isn't SQLite opens as text.
+[contributes.magic]
+"*.sqlite" = "SQLite format 3"
+"*.sqlite3" = "SQLite format 3"
+"*.db" = "SQLite format 3"
+"*.db3" = "SQLite format 3"
+
+[[contributes.language_servers]]
+name = "database"
+languages = ["sql"]
+
+[[contributes.contexts]]
+name = "sql"
+languages = ["sql"]
+
+[[contributes.commands]]
+id = "database.open"
+title = "Database: the browser -- connections, their schemas, results"
+
+[[contributes.commands]]
+id = "database.run"
+title = "Database: run the statement under the cursor, or the selection"
+
+[[contributes.commands]]
+id = "database.run_all"
+title = "Database: run every statement in the buffer"
+
+[[contributes.commands]]
+id = "database.connection"
+title = "Database: the connection this .sql buffer runs on"
+
+[[contributes.commands]]
+id = "database.history"
+title = "Database: the statements you ran, searched"
+
+[[contributes.commands]]
+id = "database.new_query"
+title = "Database: a new query buffer"
+
+[[contributes.commands]]
+id = "database.forget_password"
+title = "Database: forget the password kept for a connection"
+
+[[contributes.settings]]
+key = "database.connections"
+kind = "records"
+columns = ["Name", "Engine", "Host", "Port", "Database", "User", "Options"]
+label = "Connections"
+description = "Saved connections: an engine (sqlite, postgres, mysql, mssql), the host and port, the database (a SQLite file's path), the user, and options -- readonly, production, tls=off|prefer|require|strict, insecure"
+
+[[contributes.settings]]
+key = "database.passwords"
+kind = "map"
+columns = ["Connection", "Password"]
+label = "Passwords"
+description = "Older: a connection's password, by its name (FENIX_DATABASE_PASSWORDS overrides it). A password asked for is kept in the system's keychain instead, once it signs in"
+
+[[contributes.settings]]
+key = "database.max_rows"
+kind = "int"
+label = "Rows kept"
+description = "The most rows a statement's result keeps"
+default = "5000"
+
+[[contributes.settings]]
+key = "database.page_rows"
+kind = "int"
+label = "Rows a page"
+description = "How many rows a table's page shows"
+default = "200"
+
+[[contributes.settings]]
+key = "database.keep_passwords"
+kind = "bool"
+label = "Keep passwords"
+description = "Keep a password you type, once it signs in, in the system's keychain (Database: forget the password kept for a connection takes it away). Off: kept until Fenix closes"
+default = "true"
+
+[[contributes.settings]]
+key = "database.timeout"
+kind = "int"
+label = "SQLite timeout"
+description = "Seconds a SQLite statement may run, 1 to 55; the browser waits meanwhile"
+default = "30"

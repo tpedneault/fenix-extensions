@@ -1,0 +1,13 @@
+[package]
+name = "fenix-ccsds"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "CCSDS and ECSS packets, frames, CLTUs, time codes and PUS, sans I/O: shared by the CCSDS and MIB extensions."
+
+[dependencies]
+chrono = "0.4"
+
+# Built with whichever extension uses it.
+[workspace]

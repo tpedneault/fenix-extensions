@@ -1,0 +1,7 @@
+# name: try-with-resources
+# key: tryr
+# scope: java
+# --
+try (var ${1:in} = ${2:Files.newBufferedReader(path)}) {
+    $0
+}

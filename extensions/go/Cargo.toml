@@ -1,0 +1,32 @@
+[package]
+name = "fenix-go"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Go in Fenix: gopls, Delve over DAP, go vet or golangci-lint on save, gofmt or goimports, tasks, the project doctor's checks and the package manager page for Go modules."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+# lang-kit's test host.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# The snippets and project templates read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The launch and language files, read as fenix-gui reads them.
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

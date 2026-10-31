@@ -1,0 +1,17 @@
+# C and C++'s keys, after SPC m in a C or C++ project or file. Your own
+# keybindings.toml wins.
+
+[[local.cpp]]
+keys = "p"
+label = "packages"
+command = "cpp.packages"
+
+[[local.cpp]]
+keys = "d"
+label = "check the project again"
+command = "cpp.doctor"
+
+[[local.cpp]]
+keys = "c"
+label = "configure"
+command = "cpp.configure"

@@ -1,0 +1,2 @@
+# example.com/orbit/internal/broken
+vet: internal/broken/broken.go:4:9: undefined: missing

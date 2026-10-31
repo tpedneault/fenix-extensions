@@ -1,0 +1,17 @@
+[template]
+name = "Go · command-line tool"
+kind = "go"
+group = "Go"
+description = "A command-line tool on Go's standard library: flags and subcommands parsed in a run function that returns an error, and tests that run it."
+needs = ["go"]
+open = ["main.go"]
+
+[[ask]]
+key = "module"
+label = "Module path"
+default = "example.com"
+hint = "the module is <this>/<name>: github.com/you for one you'll publish"
+
+[[run]]
+exec = "go"
+args = ["mod", "init", "{{module}}/{{name_kebab}}"]

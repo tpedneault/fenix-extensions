@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.rs`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "rust"
+filenames = [".env*.rs"]

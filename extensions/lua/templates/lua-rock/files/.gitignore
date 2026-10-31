@@ -1,0 +1,10 @@
+# Rocks installed here, and built ones
+/lua_modules/
+/.luarocks/
+*.rock
+
+# Coverage
+luacov.*.out
+
+# Your own
+.env

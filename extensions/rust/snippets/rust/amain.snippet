@@ -1,0 +1,9 @@
+# name: Async main (tokio)
+# key: amain
+# scope: rust
+# --
+#[tokio::main]
+async fn main() -> ${1:anyhow::Result<()>} {
+    $0
+    Ok(())
+}

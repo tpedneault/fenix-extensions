@@ -1,0 +1,23 @@
+{
+  "chalk": {
+    "current": "4.1.2",
+    "wanted": "4.1.2",
+    "latest": "6.0.1",
+    "dependent": "orbit-web",
+    "location": "/home/me/orbit-web/node_modules/chalk"
+  },
+  "lodash": {
+    "current": "4.17.20",
+    "wanted": "4.17.20",
+    "latest": "4.18.1",
+    "dependent": "orbit-web",
+    "location": "/home/me/orbit-web/node_modules/lodash"
+  },
+  "semver": {
+    "current": "7.5.4",
+    "wanted": "7.5.4",
+    "latest": "7.8.5",
+    "dependent": "orbit-web",
+    "location": "/home/me/orbit-web/node_modules/semver"
+  }
+}

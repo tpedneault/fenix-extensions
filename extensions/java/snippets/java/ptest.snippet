@@ -1,0 +1,9 @@
+# name: JUnit 5: parameterized test
+# key: ptest
+# scope: java
+# --
+@ParameterizedTest
+@ValueSource(${1:strings} = {${2:"a", "b"}})
+void ${3:name}(${4:String} ${5:value}) {
+    $0
+}

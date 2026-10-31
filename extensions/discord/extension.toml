@@ -1,0 +1,85 @@
+[extension]
+id = "fenix.discord"
+name = "Discord"
+version = "1.0.0"
+description = "Discord Rich Presence: the project, the file and its language, what you're debugging or running, and how long you've been at it, on your Discord profile"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools", "fun"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Local sockets (0.8.4); a task starting, debug sessions, Fenix's
+# process id (0.8.6).
+api = "1.0"
+
+# Your activity shows from the start, and Discord's looked for as it
+# starts too.
+[activation]
+on_startup = true
+
+[permissions]
+# Discord's desktop app, by its local socket: discord-ipc-0 to -9 (a
+# named pipe on Windows, a Unix socket elsewhere), and on Linux those of
+# Discord's Flatpak and Snap.
+ipc = ["discord-ipc-*", "app/com.discordapp.Discord/discord-ipc-*", "snap.discord/discord-ipc-*"]
+# The file you're in and its project, for what's shown.
+editor = "read"
+
+[contributes]
+# What has the focus (the file); typing and keys, for when you're idle;
+# a task starting and ending, a debug session's start, stops and end.
+events = ["focus", "typing", "active", "tasks", "debug"]
+
+[[contributes.commands]]
+id = "discord.toggle"
+title = "Discord: toggle -- stop showing your activity for this session, or show it again"
+
+[[contributes.commands]]
+id = "discord.reconnect"
+title = "Discord: look for Discord now"
+
+[[contributes.settings]]
+key = "discord.client_id"
+kind = "text"
+label = "Application ID"
+description = "Your Discord application's ID (discord.com/developers/applications): its name is what your profile says you're playing, and its art assets the pictures. Empty, nothing is shown."
+default = ""
+
+[[contributes.settings]]
+key = "discord.idle"
+kind = "minutes"
+label = "Idle after"
+description = "Minutes without a key before it shows you as idle. 0: never."
+default = "5"
+
+[[contributes.settings]]
+key = "discord.elapsed"
+kind = "choice"
+choices = ["project", "file", "none"]
+label = "Time shown"
+description = "How long you've been at it: since you came to the project, to the file, or not shown."
+default = "project"
+
+[[contributes.settings]]
+key = "discord.hide_files"
+kind = "bool"
+label = "Hide file names"
+description = "Show the file's language (\"Editing Rust\"), not its name."
+default = "false"
+
+[[contributes.settings]]
+key = "discord.hide_projects"
+kind = "bool"
+label = "Hide project names"
+description = "Show no project's name."
+default = "false"
+
+[[contributes.settings]]
+key = "discord.private"
+kind = "list"
+label = "Private projects"
+description = "Projects nothing is shown for, while you're in them: their names or folders, * for any characters (work-*)."
+default = ""

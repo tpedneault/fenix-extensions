@@ -1,0 +1,15 @@
+# name: Minitest test case
+# key: test
+# scope: ruby
+# --
+require "minitest/autorun"
+
+class ${1:Thing}Test < Minitest::Test
+  def setup
+    @${2:thing} = $1.new
+  end
+
+  def test_${3:it_works}
+    $0
+  end
+end

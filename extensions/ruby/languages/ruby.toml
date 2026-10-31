@@ -1,0 +1,13 @@
+# Ruby, which Fenix doesn't highlight itself: tree-sitter-ruby's grammar,
+# compiled to WebAssembly (0.8.5), and its queries from queries/ruby.
+# Rake's, Bundler's, RubyGems' and the tools' files written in Ruby are
+# Ruby too (Gemfile.lock isn't). The server is the extension's to set,
+# once it has found one.
+language = "ruby"
+grammar = "grammars/tree-sitter-ruby.wasm"
+extensions = ["rb", "rbw", "rake", "gemspec", "ru", "jbuilder", "builder", "thor", "podspec"]
+filenames = [
+    "Gemfile", "gems.rb", "Rakefile", "Guardfile", "Capfile", "Vagrantfile", "Podfile", "Fastfile", "Appfile",
+    "Dangerfile", "Berksfile", "Brewfile", "Steepfile", "Thorfile", ".irbrc", ".pryrc", ".simplecov",
+]
+comment = "#"

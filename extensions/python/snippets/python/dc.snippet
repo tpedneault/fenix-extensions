@@ -1,0 +1,8 @@
+# name: Dataclass
+# key: dc
+# scope: python
+# --
+@dataclass${1:(frozen=True)}
+class ${2:Name}:
+    ${3:field}: ${4:str}
+    $0

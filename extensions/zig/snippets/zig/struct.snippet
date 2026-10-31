@@ -1,0 +1,12 @@
+# name: Struct
+# key: struct
+# scope: zig
+# --
+const ${1:Name} = struct {
+	${2:field}: ${3:u32},
+
+	pub fn init($4) $1 {
+		return .{ .$2 = ${5:0} };
+	}
+	$0
+};

@@ -1,0 +1,11 @@
+    Updating crates.io index
+     Locking 4 packages to latest compatible versions
+    Updating cc v1.0.83 -> v1.10.0
+   Unchanged clap v3.2.0 (available: v3.2.25)
+      Adding find-msvc-tools v0.1.15
+    Updating libc v0.2.150 -> v0.2.191
+      Adding shlex v2.0.1
+   Unchanged smallvec v1.6.0 (available: v1.16.4)
+   Unchanged time v0.1.43 (available: v0.1.45)
+note: to see how you depend on a package, run `cargo tree --invert <dep>@<ver>`
+warning: not updating lockfile due to dry run

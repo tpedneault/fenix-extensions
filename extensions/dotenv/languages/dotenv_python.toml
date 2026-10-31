@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.py`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "python"
+filenames = [".env*.py"]

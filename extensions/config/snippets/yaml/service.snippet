@@ -1,0 +1,12 @@
+# name: Compose service
+# key: service
+# scope: yaml
+# --
+${1:db}:
+  image: ${2:postgres:17}
+  restart: unless-stopped
+  environment:
+    ${3:POSTGRES_PASSWORD}: ${4:postgres}
+  volumes:
+    - ${5:data}:${6:/var/lib/postgresql/data}
+$0

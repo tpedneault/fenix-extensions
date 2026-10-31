@@ -1,0 +1,27 @@
+# Java's keys, after SPC m in a Gradle or Maven project, or a Java or
+# Kotlin file. Your own keybindings.toml wins.
+
+[[local.java]]
+keys = "p"
+label = "dependencies"
+command = "java.packages"
+
+[[local.java]]
+keys = "d"
+label = "check the project again"
+command = "java.doctor"
+
+[[local.java]]
+keys = "m"
+label = "debug a main class"
+command = "java.debug-main"
+
+[[local.java]]
+keys = "t"
+label = "debug the tests"
+command = "java.debug-tests"
+
+[[local.java]]
+keys = "r"
+label = "read the build again"
+command = "java.reload"

@@ -1,0 +1,90 @@
+[extension]
+id = "fenix.ruby"
+name = "Ruby"
+version = "1.0.0"
+description = "Ruby: tree-sitter-ruby's highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler's, Rake's, RSpec's and Rails' tasks, the project's checks with their fixes, and snippets"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Ruby's grammar as WebAssembly, from its language file (0.8.5); a
+# linter's problems with their fixes (0.8.6); RuboCop's text kept when it
+# exits 1 on what isn't layout, the language file's `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Ruby, RubyGems and Bundler (the project's gems run by `bundle exec`),
+# Rake, RSpec, the servers, RuboCop and Standard where they're installed.
+process = ["ruby", "gem", "bundle", "rake", "rspec", "ruby-lsp", "solargraph", "rubocop", "standardrb"]
+# The Gemfile, Gemfile.lock, .ruby-version and the like, read.
+filesystem = "project-read"
+# The file saved, for RuboCop on save.
+editor = "read"
+
+[contributes]
+# A file saved: linted (by its path, file_saved); the Gemfile, its lock,
+# the Rakefile and the like, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "ruby"
+markers = ["Gemfile", "gems.rb", "Rakefile", ".ruby-version", "config.ru"]
+languages = ["ruby"]
+
+[[contributes.commands]]
+id = "ruby.doctor"
+title = "Ruby: check the project again (Ruby, Bundler, the gems, the server, RuboCop)"
+
+[[contributes.commands]]
+id = "ruby.reload"
+title = "Ruby: read the project again, and Rake's tasks"
+
+[[contributes.commands]]
+id = "ruby.bundle-install"
+title = "Ruby: install the gems in Gemfile.lock (bundle install)"
+
+[[contributes.commands]]
+id = "ruby.install-bundler"
+title = "Ruby: install Bundler (gem install bundler)"
+
+[[contributes.commands]]
+id = "ruby.install-server"
+title = "Ruby: install the language server (Ruby LSP or Solargraph)"
+
+[[contributes.commands]]
+id = "ruby.install-rubocop"
+title = "Ruby: install RuboCop (or Standard)"
+
+[[contributes.settings]]
+key = "ruby.server"
+kind = "choice"
+choices = ["ruby-lsp", "solargraph"]
+label = "Language server"
+description = "The one to use when both are installed; with one, that one. Solargraph runs as the project's (bundle exec) when its Gemfile.lock pins it."
+default = "ruby-lsp"
+
+[[contributes.settings]]
+key = "ruby.lint"
+kind = "choice"
+choices = ["auto", "save", "off"]
+label = "RuboCop on save"
+description = "auto: RuboCop (or Standard) on each file saved, with its corrections, unless Ruby LSP gives the project's RuboCop's problems as you type. save: on each file saved whatever the server. off: never."
+default = "auto"
+project = true
+
+[[contributes.settings]]
+key = "ruby.format"
+kind = "bool"
+label = "Format with RuboCop"
+description = "RuboCop's layout corrections (Standard's in a project that uses it) as the formatter, for SPC c F and format on save. Off leaves formatting to the language server."
+default = "true"
+project = true

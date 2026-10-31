@@ -1,0 +1,12 @@
+# name: Readonly class (a value object)
+# key: rclass
+# scope: php
+# --
+final readonly class ${1:Name}
+{
+    public function __construct(
+        public ${2:string} \$${3:value},
+    ) {
+    }
+$0
+}

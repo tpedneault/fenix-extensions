@@ -1,0 +1,9 @@
+# name: Builder method
+# key: setter
+# scope: rust
+# --
+pub fn ${1:name}(mut self, $1: ${2:impl Into<String>}) -> Self {
+    self.$1 = ${3:Some($1.into())};
+    self
+}
+$0

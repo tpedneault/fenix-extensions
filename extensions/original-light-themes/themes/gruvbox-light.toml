@@ -1,0 +1,56 @@
+# Gruvbox's light mode, morhetz's palette: its faded accents, which read on cream.
+#
+# In its published colours, as its authors chose them: Fenix's own copy
+# keeps every colour at a contrast it can read; this one doesn't.
+name = "Gruvbox Light (original)"
+tabs = "underline"
+
+[surfaces]
+bg = "#fbf1c7"
+sidebar_bg = "#f2e5bc"
+bg_modeline = "#ebdbb2"
+divider = "#bdae93"
+caret = "#3c3836"
+hl_line = "#f2e5bc"
+selection = { color = "#076678", alpha = 0.15 }
+bracket_match = { color = "#427b58", alpha = 0.15 }
+search_match = { color = "#b57614", alpha = 0.2 }
+
+[text]
+fg = "#3c3836"
+caret_text = "#3c3836"
+gutter_fg = "#7c6f64"
+
+[modes]
+normal = "#076678"
+insert = "#79740e"
+visual = "#9d0006"
+replace = "#af3a03"
+command = "#8f3f71"
+explorer = "#427b58"
+picker = "#8f3f71"
+text_dark = "#fbf1c7"
+
+[syntax]
+keyword = "#9d0006"
+string = "#79740e"
+comment = "#7c6f64"
+function = "#076678"
+type = "#b57614"
+number = "#8f3f71"
+constant = "#af3a03"
+variable = "#3c3836"
+operator = "#427b58"
+punctuation = "#427b58"
+attribute = "#b57614"
+
+[explorer]
+folder = "#076678"
+file = "#3c3836"
+
+[git]
+modified = "#af3a03"
+staged = "#79740e"
+untracked = "#076678"
+ignored = "#7c6f64"
+conflicted = "#9d0006"

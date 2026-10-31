@@ -1,0 +1,787 @@
+{
+  "config": {
+    "protocol_version": "v1.0.0",
+    "scanner_name": "govulncheck",
+    "scanner_version": "v1.9.0",
+    "db": "https://vuln.go.dev",
+    "db_last_modified": "2026-10-28T00:00:00Z",
+    "go_version": "go1.24.7",
+    "scan_level": "symbol",
+    "scan_mode": "source"
+  }
+}
+{
+  "SBOM": {
+    "go_version": "go1.24.7",
+    "modules": [
+      {
+        "path": "example.com/orbit"
+      },
+      {
+        "path": "github.com/spf13/pflag",
+        "version": "v1.0.3"
+      },
+      {
+        "path": "golang.org/x/text",
+        "version": "v0.3.5"
+      },
+      {
+        "path": "gopkg.in/yaml.v2",
+        "version": "v2.2.2"
+      },
+      {
+        "path": "stdlib",
+        "version": "v1.24.7"
+      }
+    ],
+    "roots": [
+      "example.com/orbit",
+      "example.com/orbit/internal/store"
+    ]
+  }
+}
+{
+  "progress": {
+    "message": "Fetching vulnerabilities from the database..."
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.7.3",
+    "id": "GO-2020-0036",
+    "modified": "2026-02-04T04:18:29.126333Z",
+    "published": "2021-04-14T20:04:52Z",
+    "aliases": [
+      "CVE-2019-11254",
+      "GHSA-wxc4-f4m6-wwqv"
+    ],
+    "summary": "Excessive resource consumption in YAML parsing in gopkg.in/yaml.v2",
+    "details": "Due to unbounded aliasing, a crafted YAML file can cause consumption of significant system resources. If parsing user supplied input, this may be used as a denial of service vector.",
+    "affected": [
+      {
+        "package": {
+          "name": "gopkg.in/yaml.v2",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.2.8"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "gopkg.in/yaml.v2",
+              "symbols": [
+                "Decoder.Decode",
+                "Unmarshal",
+                "UnmarshalStrict",
+                "yaml_parser_decrease_flow_level",
+                "yaml_parser_fetch_more_tokens",
+                "yaml_parser_fetch_stream_start",
+                "yaml_parser_fetch_value",
+                "yaml_parser_remove_simple_key",
+                "yaml_parser_save_simple_key"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "package": {
+          "name": "github.com/go-yaml/yaml",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/go-yaml/yaml",
+              "symbols": [
+                "Decoder.Decode",
+                "Unmarshal",
+                "UnmarshalStrict",
+                "yaml_parser_decrease_flow_level",
+                "yaml_parser_fetch_more_tokens",
+                "yaml_parser_fetch_stream_start",
+                "yaml_parser_fetch_value",
+                "yaml_parser_remove_simple_key",
+                "yaml_parser_save_simple_key"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "FIX",
+        "url": "https://github.com/go-yaml/yaml/pull/555"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/go-yaml/yaml/commit/53403b58ad1b561927d19068c655246f2db79d48"
+      },
+      {
+        "type": "WEB",
+        "url": "https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=18496"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2020-0036",
+      "review_status": "REVIEWED"
+    }
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.7.3",
+    "id": "GO-2021-0061",
+    "modified": "2026-02-04T03:07:53.209826Z",
+    "published": "2021-04-14T20:04:52Z",
+    "aliases": [
+      "CVE-2021-4235",
+      "GHSA-r88r-gmrh-7j83"
+    ],
+    "summary": "Denial of service in gopkg.in/yaml.v2",
+    "details": "Due to unbounded alias chasing, a maliciously crafted YAML file can cause the system to consume significant system resources. If parsing user input, this may be used as a denial of service vector.",
+    "affected": [
+      {
+        "package": {
+          "name": "gopkg.in/yaml.v2",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.2.3"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "gopkg.in/yaml.v2",
+              "symbols": [
+                "Decoder.Decode",
+                "Unmarshal",
+                "UnmarshalStrict",
+                "decoder.unmarshal"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "package": {
+          "name": "github.com/go-yaml/yaml",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/go-yaml/yaml",
+              "symbols": [
+                "Decoder.Decode",
+                "Unmarshal",
+                "UnmarshalStrict",
+                "decoder.unmarshal"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "FIX",
+        "url": "https://github.com/go-yaml/yaml/pull/375"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/go-yaml/yaml/commit/bb4e33bf68bf89cad44d386192cbed201f35b241"
+      }
+    ],
+    "credits": [
+      {
+        "name": "@simonferquel"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2021-0061",
+      "review_status": "REVIEWED"
+    }
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.7.3",
+    "id": "GO-2022-0956",
+    "modified": "2026-02-04T02:18:50.393856Z",
+    "published": "2022-08-29T22:15:46Z",
+    "aliases": [
+      "CVE-2022-3064",
+      "GHSA-6q6q-88xp-6f2r"
+    ],
+    "summary": "Excessive resource consumption in gopkg.in/yaml.v2",
+    "details": "Parsing malicious or large YAML documents can consume excessive amounts of CPU or memory.",
+    "affected": [
+      {
+        "package": {
+          "name": "gopkg.in/yaml.v2",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.2.4"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "gopkg.in/yaml.v2",
+              "symbols": [
+                "Decoder.Decode",
+                "Unmarshal",
+                "UnmarshalStrict",
+                "decoder.unmarshal",
+                "yaml_parser_increase_flow_level",
+                "yaml_parser_roll_indent"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "FIX",
+        "url": "https://github.com/go-yaml/yaml/commit/f221b8435cfb71e54062f6c6e99e9ade30b124d5"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/go-yaml/yaml/releases/tag/v2.2.4"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2022-0956",
+      "review_status": "REVIEWED"
+    }
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.7.3",
+    "id": "GO-2020-0015",
+    "modified": "2026-02-04T03:02:32.031255Z",
+    "published": "2021-04-14T20:04:52Z",
+    "aliases": [
+      "CVE-2020-14040",
+      "GHSA-5rcv-m4m3-hfh7"
+    ],
+    "summary": "Infinite loop when decoding some inputs in golang.org/x/text",
+    "details": "An attacker could provide a single byte to a UTF16 decoder instantiated with UseBOM or ExpectBOM to trigger an infinite loop if the String function on the Decoder is called, or the Decoder is passed to transform.String. If used to parse user supplied input, this may be used as a denial of service vector.",
+    "affected": [
+      {
+        "package": {
+          "name": "golang.org/x/text",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "0.3.3"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "golang.org/x/text/encoding/unicode",
+              "symbols": [
+                "bomOverride.Transform",
+                "utf16Decoder.Transform"
+              ]
+            },
+            {
+              "path": "golang.org/x/text/transform",
+              "symbols": [
+                "String"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "FIX",
+        "url": "https://go.dev/cl/238238"
+      },
+      {
+        "type": "FIX",
+        "url": "https://go.googlesource.com/text/+/23ae387dee1f90d29a23c0e87ee0b46038fbed0e"
+      },
+      {
+        "type": "REPORT",
+        "url": "https://go.dev/issue/39491"
+      },
+      {
+        "type": "WEB",
+        "url": "https://groups.google.com/g/golang-announce/c/bXVeAmGOqz0"
+      }
+    ],
+    "credits": [
+      {
+        "name": "@abacabadabacaba"
+      },
+      {
+        "name": "Anton Gyllenberg"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2020-0015",
+      "review_status": "REVIEWED"
+    }
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.7.3",
+    "id": "GO-2021-0113",
+    "modified": "2026-02-04T02:31:07.297346Z",
+    "published": "2021-10-06T17:51:21Z",
+    "aliases": [
+      "CVE-2021-38561",
+      "GHSA-ppp9-7jff-5vj2"
+    ],
+    "summary": "Out-of-bounds read in golang.org/x/text/language",
+    "details": "Due to improper index calculation, an incorrectly formatted language tag can cause Parse to panic via an out of bounds read. If Parse is used to process untrusted user inputs, this may be used as a vector for a denial of service attack.",
+    "affected": [
+      {
+        "package": {
+          "name": "golang.org/x/text",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "0.3.7"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "golang.org/x/text/language",
+              "symbols": [
+                "MatchStrings",
+                "MustParse",
+                "Parse",
+                "ParseAcceptLanguage"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "FIX",
+        "url": "https://go.dev/cl/340830"
+      },
+      {
+        "type": "FIX",
+        "url": "https://go.googlesource.com/text/+/383b2e75a7a4198c42f8f87833eefb772868a56f"
+      }
+    ],
+    "credits": [
+      {
+        "name": "Guido Vranken"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2021-0113",
+      "review_status": "REVIEWED"
+    }
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.7.3",
+    "id": "GO-2022-1059",
+    "modified": "2026-02-04T03:39:03.311488Z",
+    "published": "2022-10-11T18:16:24Z",
+    "aliases": [
+      "CVE-2022-32149",
+      "GHSA-69ch-w2m2-3vjp"
+    ],
+    "summary": "Denial of service via crafted Accept-Language header in golang.org/x/text/language",
+    "details": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+    "affected": [
+      {
+        "package": {
+          "name": "golang.org/x/text",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "0.3.8"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "golang.org/x/text/language",
+              "symbols": [
+                "MatchStrings",
+                "ParseAcceptLanguage"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "REPORT",
+        "url": "https://go.dev/issue/56152"
+      },
+      {
+        "type": "FIX",
+        "url": "https://go.dev/cl/442235"
+      },
+      {
+        "type": "WEB",
+        "url": "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ"
+      }
+    ],
+    "credits": [
+      {
+        "name": "Adam Korczynski (ADA Logics)"
+      },
+      {
+        "name": "OSS-Fuzz"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2022-1059",
+      "review_status": "REVIEWED"
+    }
+  }
+}
+{
+  "progress": {
+    "message": "Checking the code against the vulnerabilities..."
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2020-0036",
+    "fixed_version": "v2.2.8",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2021-0061",
+    "fixed_version": "v2.2.3",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2022-0956",
+    "fixed_version": "v2.2.4",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2021-0113",
+    "fixed_version": "v0.3.7",
+    "trace": [
+      {
+        "module": "golang.org/x/text",
+        "version": "v0.3.5"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2022-1059",
+    "fixed_version": "v0.3.8",
+    "trace": [
+      {
+        "module": "golang.org/x/text",
+        "version": "v0.3.5"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2021-0113",
+    "fixed_version": "v0.3.7",
+    "trace": [
+      {
+        "module": "golang.org/x/text",
+        "version": "v0.3.5",
+        "package": "golang.org/x/text/language"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2022-1059",
+    "fixed_version": "v0.3.8",
+    "trace": [
+      {
+        "module": "golang.org/x/text",
+        "version": "v0.3.5",
+        "package": "golang.org/x/text/language"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2020-0036",
+    "fixed_version": "v2.2.8",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2",
+        "package": "gopkg.in/yaml.v2"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2021-0061",
+    "fixed_version": "v2.2.3",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2",
+        "package": "gopkg.in/yaml.v2"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2022-0956",
+    "fixed_version": "v2.2.4",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2",
+        "package": "gopkg.in/yaml.v2"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2021-0113",
+    "fixed_version": "v0.3.7",
+    "trace": [
+      {
+        "module": "golang.org/x/text",
+        "version": "v0.3.5",
+        "package": "golang.org/x/text/language",
+        "function": "Parse",
+        "position": {
+          "filename": "language/parse.go",
+          "offset": 1121,
+          "line": 33,
+          "column": 6
+        }
+      },
+      {
+        "module": "example.com/orbit",
+        "package": "example.com/orbit",
+        "function": "main",
+        "position": {
+          "filename": "main.go",
+          "offset": 172,
+          "line": 14,
+          "column": 28
+        }
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2020-0036",
+    "fixed_version": "v2.2.8",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2",
+        "package": "gopkg.in/yaml.v2",
+        "function": "Unmarshal",
+        "position": {
+          "filename": "yaml.go",
+          "offset": 2757,
+          "line": 80,
+          "column": 6
+        }
+      },
+      {
+        "module": "example.com/orbit",
+        "package": "example.com/orbit",
+        "function": "main",
+        "position": {
+          "filename": "main.go",
+          "offset": 265,
+          "line": 19,
+          "column": 20
+        }
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2021-0061",
+    "fixed_version": "v2.2.3",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2",
+        "package": "gopkg.in/yaml.v2",
+        "function": "Unmarshal",
+        "position": {
+          "filename": "yaml.go",
+          "offset": 2757,
+          "line": 80,
+          "column": 6
+        }
+      },
+      {
+        "module": "example.com/orbit",
+        "package": "example.com/orbit",
+        "function": "main",
+        "position": {
+          "filename": "main.go",
+          "offset": 265,
+          "line": 19,
+          "column": 20
+        }
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2022-0956",
+    "fixed_version": "v2.2.4",
+    "trace": [
+      {
+        "module": "gopkg.in/yaml.v2",
+        "version": "v2.2.2",
+        "package": "gopkg.in/yaml.v2",
+        "function": "Unmarshal",
+        "position": {
+          "filename": "yaml.go",
+          "offset": 2757,
+          "line": 80,
+          "column": 6
+        }
+      },
+      {
+        "module": "example.com/orbit",
+        "package": "example.com/orbit",
+        "function": "main",
+        "position": {
+          "filename": "main.go",
+          "offset": 265,
+          "line": 19,
+          "column": 20
+        }
+      }
+    ]
+  }
+}

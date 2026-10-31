@@ -1,0 +1,44 @@
+[template]
+name = "TypeScript library"
+kind = "node"
+group = "Web"
+name_rule = "npm"
+description = "An npm package in TypeScript: ES modules with their types, built by tsc into dist/, tested by Vitest, ready for npm publish."
+needs = ["npm"]
+open = ["src/index.ts"]
+
+[[ask]]
+key = "manager"
+label = "Package manager"
+choices = ["npm", "pnpm", "yarn", "bun"]
+default = "npm"
+
+[[ask]]
+key = "formatter"
+label = "Formatter"
+choices = ["prettier", "biome", "none"]
+default = "prettier"
+
+[[run]]
+exec = "{{manager}}"
+args = ["add", "-D", "typescript", "vitest", "@types/node"]
+
+[[run]]
+exec = "{{manager}}"
+args = ["add", "-D", "prettier"]
+when = "formatter == prettier"
+
+[[run]]
+exec = "{{manager}}"
+args = ["add", "-D", "@biomejs/biome"]
+when = "formatter == biome"
+
+[[file]]
+path = ".prettierrc.json"
+content = "{}\n"
+when = "formatter == prettier"
+
+[[file]]
+path = "biome.json"
+from = "biome.json"
+when = "formatter == biome"

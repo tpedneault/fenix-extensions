@@ -1,0 +1,28 @@
+{
+    "name": "{{vendor}}/{{name_kebab}}",
+    "description": "{{name}}",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5 || ^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "{{namespace}}\\{{name_pascal}}\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "{{namespace}}\\{{name_pascal}}\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

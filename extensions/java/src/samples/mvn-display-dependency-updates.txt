@@ -1,0 +1,48 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=40367 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] orbit                                                              [pom]
+[INFO] orbit-core                                                         [jar]
+[INFO] orbit-api                                                          [jar]
+[INFO] 
+[INFO] ----------------------------< orbit:orbit >-----------------------------
+[INFO] Building orbit 0.1.0-SNAPSHOT                                      [1/3]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- versions:2.23.0:display-dependency-updates (default-cli) @ orbit ---
+[INFO] 
+[INFO] --------------------------< orbit:orbit-core >--------------------------
+[INFO] Building orbit-core 0.1.0-SNAPSHOT                                 [2/3]
+[INFO]   from core/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- versions:2.23.0:display-dependency-updates (default-cli) @ orbit-core ---
+[INFO] The following dependencies in Dependencies have newer versions:
+[INFO]   com.google.guava:guava .............................................................................................................................................. 33.0.0-jre -> 33.7.2-jre
+[INFO]   org.junit.jupiter:junit-jupiter .............................................................................................................................................. 5.10.0 -> 6.1.3
+[INFO] 
+[INFO] 
+[INFO] --------------------------< orbit:orbit-api >---------------------------
+[INFO] Building orbit-api 0.1.0-SNAPSHOT                                  [3/3]
+[INFO]   from api/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- versions:2.23.0:display-dependency-updates (default-cli) @ orbit-api ---
+[INFO] The following dependencies in Dependencies have newer versions:
+[INFO]   org.springframework.boot:spring-boot-starter-web .............................................................................................................................. 3.4.0 -> 4.1.2
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for orbit 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] orbit .............................................. SUCCESS [  1.158 s]
+[INFO] orbit-core ......................................... SUCCESS [  0.102 s]
+[INFO] orbit-api .......................................... SUCCESS [  0.053 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.195 s
+[INFO] Finished at: 2026-10-29T07:27:55Z
+[INFO] ------------------------------------------------------------------------

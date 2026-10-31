@@ -1,0 +1,9 @@
+rake build            # Build orbit-0.1.0.gem into the pkg directory
+rake build:checksum   # Generate SHA512 checksum of orbit-0.1.0.gem into the checksums directory
+rake clean            # Remove any temporary products
+rake clobber          # Remove any generated files
+rake hello[name]      # Say hello
+rake install          # Build and install orbit-0.1.0.gem into system gems
+rake install:local    # Build and install orbit-0.1.0.gem into system gems without network access
+rake release[remote]  # Create tag v0.1.0 and build and push orbit-0.1.0.gem to rubygems.org
+rake test             # Run tests

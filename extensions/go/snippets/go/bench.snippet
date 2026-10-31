@@ -1,0 +1,9 @@
+# name: Benchmark
+# key: bench
+# scope: go
+# --
+func Benchmark${1:Name}(b *testing.B) {
+	for b.Loop() {
+		$0
+	}
+}

@@ -1,0 +1,87 @@
+[extension]
+id = "fenix.pets"
+name = "Pets"
+version = "1.0.0"
+description = "Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["fun"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# With Fenix: they're there when you start.
+[activation]
+on_startup = true
+
+[permissions]
+draw = "over"
+
+[contributes]
+events = ["saved", "diagnostics", "tasks", "typing"]
+
+[[contributes.commands]]
+id = "pets.adopt"
+title = "Pets: adopt a pet"
+
+[[contributes.commands]]
+id = "pets.throw_ball"
+title = "Pets: throw the ball"
+
+[[contributes.commands]]
+id = "pets.hide"
+title = "Pets: hide them, or bring them back"
+
+[[contributes.commands]]
+id = "pets.rehome"
+title = "Pets: rehome one"
+
+[[contributes.commands]]
+id = "pets.home"
+title = "Pets: their home -- levels, happiness, what they wear"
+
+[[contributes.commands]]
+id = "pets.dress"
+title = "Pets: dress one up"
+
+[[contributes.settings]]
+key = "pets.place"
+kind = "choice"
+description = "Where they live: on the modeline, or at the foot of the pane you're in."
+default = "modeline"
+choices = ["modeline", "panes"]
+
+[[contributes.settings]]
+key = "pets.size"
+kind = "choice"
+description = "How big they are."
+default = "medium"
+choices = ["small", "medium", "large"]
+
+[[contributes.settings]]
+key = "pets.most"
+kind = "int"
+description = "How many you may have at once."
+default = "5"
+
+[[contributes.settings]]
+key = "pets.style"
+kind = "choice"
+description = "How they're drawn: pixel (chunky, to sit with pixel art) or smooth."
+default = "pixel"
+choices = ["pixel", "smooth"]
+
+[[contributes.settings]]
+key = "pets.visits"
+kind = "bool"
+description = "Now and then one comes up to sit beside the line you're on."
+default = "true"
+
+[[contributes.settings]]
+key = "pets.seasons"
+kind = "bool"
+description = "Snow and Santa hats in December, a pumpkin for Halloween, party hats on New Year's Day and adoption days."
+default = "true"

@@ -1,0 +1,7 @@
+# name: Type guard
+# key: guard
+# scope: typescript, tsx
+# --
+export function is${1:Name}(value: unknown): value is $1 {
+  return ${2:typeof value === "object" && value !== null};$0
+}

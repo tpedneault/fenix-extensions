@@ -1,0 +1,90 @@
+[extension]
+id = "fenix.jira"
+name = "Jira"
+version = "1.0.0"
+description = "Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Its commands load it, and so does the agenda's first call to Jira.
+[activation]
+commands = ["jira.*"]
+
+[permissions]
+# Your Jira, and only it: the server in your settings.
+network = ["${setting:jira.base_url}"]
+secrets = ["jira.token"]
+# The project's Jira key (`.fenix/project.toml`), for its searches.
+editor = "read"
+
+[contributes]
+services = ["jira.request", "jira.config", "jira.set_blocked", "jira.new_issue"]
+
+[[contributes.commands]]
+id = "jira.open"
+title = "Jira: open -- your searches, their issues, a preview"
+
+[[contributes.commands]]
+id = "jira.refresh"
+title = "Jira: run the search again"
+
+[[contributes.commands]]
+id = "jira.goto_issue"
+title = "Jira: open an issue by key"
+
+[[contributes.commands]]
+id = "jira.search"
+title = "Jira: search -- words, or JQL after :"
+
+[[contributes.commands]]
+id = "jira.create_issue"
+title = "Jira: create an issue"
+
+[[contributes.settings]]
+key = "jira.sync_minutes"
+kind = "minutes"
+label = "Sync every"
+description = "How often linked agenda tasks are brought up to date, in minutes."
+default = "10"
+
+[[contributes.settings]]
+key = "jira.projects"
+kind = "map"
+columns = ["Key", "Name"]
+label = "Projects"
+description = "Jira projects the Jira page lists open issues and the current sprint for."
+
+[[contributes.settings]]
+key = "jira.users"
+kind = "map"
+columns = ["Username", "Name"]
+label = "People"
+description = "People the Jira page lists issues assigned to."
+
+[[contributes.settings]]
+key = "jira.queries"
+kind = "map"
+columns = ["Name", "JQL"]
+label = "Saved searches"
+description = "Searches saved on the Jira page, by name."
+
+[[contributes.settings]]
+key = "jira.blocked"
+kind = "map"
+columns = ["Project", "Meaning"]
+label = "What Blocked means"
+description = "Per project: flag, local, or the status to move to, as ID: Name. Learned the first time you block a task."
+
+[[contributes.settings]]
+key = "jira.priorities"
+kind = "map"
+columns = ["Jira priority", "Agenda priority"]
+label = "Priority names"
+description = "How a Jira priority maps onto the agenda's."

@@ -1,0 +1,17 @@
+# example.com/orbit/internal/store
+{
+	"example.com/orbit/internal/store": {
+		"copylocks": [
+			{
+				"posn": "/home/u/orbit/internal/store/store.go:14:9",
+				"message": "Get passes lock by value: example.com/orbit/internal/store.Store contains sync.Mutex"
+			}
+		],
+		"unusedresult": [
+			{
+				"posn": "/home/u/orbit/internal/store/store.go:26:12",
+				"message": "result of fmt.Errorf call not used"
+			}
+		]
+	}
+}

@@ -1,0 +1,12 @@
+# The tests in the file you're in, once (not watching).
+name = "Vitest: current file"
+languages = ["javascript", "typescript", "tsx"]
+program = "${project}/node_modules/vitest/vitest.mjs"
+args = ["run", "${file}"]
+cwd = "${project}"
+
+[attributes]
+type = "pwa-node"
+autoAttachChildProcesses = true
+smartStep = true
+skipFiles = ["<node_internals>/**", "**/node_modules/**"]

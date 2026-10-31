@@ -1,0 +1,12 @@
+# Zig's keys, after SPC m in a Zig project or file. Your own
+# keybindings.toml wins.
+
+[[local.zig]]
+keys = "d"
+label = "check the project again"
+command = "zig.doctor"
+
+[[local.zig]]
+keys = "s"
+label = "list zig build's steps again"
+command = "zig.steps"

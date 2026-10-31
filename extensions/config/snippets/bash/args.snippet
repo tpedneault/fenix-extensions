@@ -1,0 +1,20 @@
+# name: Options with getopts
+# key: args
+# scope: bash
+# --
+usage() {
+	echo "usage: \$(basename "\$0") [-v] [-o file]" >&2
+	exit 2
+}
+
+verbose=0
+out=
+while getopts "vo:h" opt; do
+	case "\$opt" in
+		v) verbose=1 ;;
+		o) out=\$OPTARG ;;
+		*) usage ;;
+	esac
+done
+shift \$((OPTIND - 1))
+$0

@@ -1,0 +1,161 @@
+[extension]
+id = "fenix.data-tools"
+name = "Data tools"
+version = "1.0.0"
+description = "JSON, YAML and TOML: format with the project's indent, minify, sort keys, convert between them, query with JSONPath or jq, check against a JSON Schema (SchemaStore's by the file's name), escape strings, copy a key's path, and types from a sample"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["data", "tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# editor-cursor, scratch buffers.
+api = "1.0"
+
+# Its commands load it; a JSON, YAML or TOML file starts its language
+# server, for the checks.
+[activation]
+commands = ["data-tools.*"]
+
+[permissions]
+# The selection or the buffer it works on, and put back.
+editor = "write"
+# The project's .editorconfig, for the indent; a schema in the project.
+filesystem = "project-read"
+# Fenix's indent width (editor.indent_width), when .editorconfig hasn't one.
+settings = ["editor"]
+# jq, for a query that isn't JSONPath, when it's installed.
+process = ["jq"]
+# SchemaStore's catalog and its schemas; and one more host of yours.
+network = ["www.schemastore.org", "json.schemastore.org", "raw.githubusercontent.com", "${setting:data-tools.schema_host}"]
+
+# Syntax errors, and what the file's schema says against it.
+[[contributes.language_servers]]
+name = "data-tools"
+languages = ["json", "yaml", "toml"]
+
+# Its SPC m menu in these files: the same as SPC x.
+[[contributes.contexts]]
+name = "data"
+languages = ["json", "yaml", "toml"]
+
+[[contributes.commands]]
+id = "data-tools.format"
+title = "Data: format the JSON, YAML or TOML -- the selection, else the buffer -- with the project's indent"
+
+[[contributes.commands]]
+id = "data-tools.minify"
+title = "Data: minify -- JSON on one line, YAML in flow style"
+
+[[contributes.commands]]
+id = "data-tools.sort"
+title = "Data: sort keys, in every object"
+
+[[contributes.commands]]
+id = "data-tools.sort_top"
+title = "Data: sort the top level's keys"
+
+[[contributes.commands]]
+id = "data-tools.to_json"
+title = "Data: as JSON, in a buffer beside"
+
+[[contributes.commands]]
+id = "data-tools.to_yaml"
+title = "Data: as YAML, in a buffer beside"
+
+[[contributes.commands]]
+id = "data-tools.to_toml"
+title = "Data: as TOML, in a buffer beside"
+
+[[contributes.commands]]
+id = "data-tools.convert"
+title = "Data: convert in place, to JSON, YAML or TOML"
+
+[[contributes.commands]]
+id = "data-tools.query"
+title = "Data: query with JSONPath, or jq -- the result beside"
+
+[[contributes.commands]]
+id = "data-tools.validate"
+title = "Data: check the file against its JSON Schema"
+
+[[contributes.commands]]
+id = "data-tools.schema"
+title = "Data: pick the JSON Schema this file is checked against"
+
+[[contributes.commands]]
+id = "data-tools.copy_path"
+title = "Data: copy the path to the key under the cursor (.servers[2].port)"
+
+[[contributes.commands]]
+id = "data-tools.escape"
+title = "Data: the selection as a JSON string, escaped"
+
+[[contributes.commands]]
+id = "data-tools.unescape"
+title = "Data: a JSON string unescaped"
+
+[[contributes.commands]]
+id = "data-tools.stringify"
+title = "Data: the document as a string of JSON (\"{\\\"a\\\":1}\")"
+
+[[contributes.commands]]
+id = "data-tools.parse_string"
+title = "Data: a string of JSON as the document, formatted"
+
+[[contributes.commands]]
+id = "data-tools.types"
+title = "Data: types from this sample -- TypeScript, Rust, Python or Go"
+
+[[contributes.settings]]
+key = "data-tools.indent"
+label = "Indent"
+description = "Spaces a level formats with, or tab. Empty: the project's .editorconfig, else Fenix's indent width."
+project = true
+
+[[contributes.settings]]
+key = "data-tools.results"
+kind = "choice"
+choices = ["beside", "here"]
+label = "Results"
+description = "Where a conversion, a query's result or types open: in a pane beside, or in the one you're in."
+default = "beside"
+
+[[contributes.settings]]
+key = "data-tools.path_style"
+kind = "choice"
+choices = ["jq", "jsonpath", "pointer"]
+label = "Paths copied as"
+description = "jq's .servers[2].port, JSONPath's $.servers[2].port, or a JSON Pointer, /servers/2/port."
+default = "jq"
+
+[[contributes.settings]]
+key = "data-tools.check"
+kind = "bool"
+label = "Check files"
+description = "Underline what doesn't parse in JSON, YAML and TOML files, and what their schema says against them."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "data-tools.schemastore"
+kind = "bool"
+label = "SchemaStore"
+description = "Check a file that names no schema against SchemaStore's for its name (package.json, a GitHub workflow): its catalog is fetched once a week."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "data-tools.schemas"
+kind = "map"
+columns = ["Files", "Schema"]
+label = "Schemas"
+description = "Schemas for files by pattern (config/*.yaml): a URL, or a path from the file's folder. Before $schema and SchemaStore's."
+project = true
+
+[[contributes.settings]]
+key = "data-tools.schema_host"
+label = "Another schema host"
+description = "A URL on one more host schemas may be fetched from (https://schemas.example.com), besides SchemaStore and GitHub."

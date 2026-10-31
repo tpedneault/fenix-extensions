@@ -1,0 +1,12 @@
+# name: Context manager class
+# key: cmc
+# scope: python
+# --
+class ${1:Name}:
+    def __enter__(self) -> "$1":
+        ${2:# set up}
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        ${3:# tear down}
+$0

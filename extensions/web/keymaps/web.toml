@@ -1,0 +1,27 @@
+# JavaScript's and TypeScript's keys, after SPC m in a project with a
+# package.json. Your own keybindings.toml wins.
+
+[[local.web]]
+keys = "p"
+label = "packages"
+command = "web.packages"
+
+[[local.web]]
+keys = "d"
+label = "check the project again"
+command = "web.doctor"
+
+[[local.web]]
+keys = "i"
+label = "install packages"
+command = "web.install"
+
+[[local.web]]
+keys = "s"
+label = "start the dev server"
+command = "web.dev"
+
+[[local.web]]
+keys = "S"
+label = "stop the dev server"
+command = "web.dev-stop"

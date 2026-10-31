@@ -1,0 +1,9 @@
+# name: Generic package
+# key: gen
+# scope: ada
+# --
+generic
+   type ${1:Element} is private;
+package ${2:Name} is
+   procedure ${3:Put} (E : $1);$0
+end $2;

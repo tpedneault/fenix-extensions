@@ -1,0 +1,8 @@
+# Kotlin, which Fenix doesn't highlight itself: tree-sitter-kotlin's
+# grammar, compiled to WebAssembly (0.8.5), and its queries from
+# queries/kotlin. Gradle's Kotlin build scripts are Kotlin too. The
+# server is the extension's to set, once it has found one.
+language = "kotlin"
+grammar = "grammars/tree-sitter-kotlin.wasm"
+extensions = ["kt", "kts"]
+comment = "//"

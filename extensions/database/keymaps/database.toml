@@ -1,0 +1,37 @@
+# The database browser's keys: SPC o b anywhere, and SPC m in a .sql
+# buffer. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC o b"
+label = "database browser"
+command = "database.open"
+
+[[local.sql]]
+keys = "r"
+label = "run the statement (or the selection)"
+command = "database.run"
+
+[[local.sql]]
+keys = "R"
+label = "run them all"
+command = "database.run_all"
+
+[[local.sql]]
+keys = "c"
+label = "its connection"
+command = "database.connection"
+
+[[local.sql]]
+keys = "h"
+label = "history"
+command = "database.history"
+
+[[local.sql]]
+keys = "b"
+label = "the browser"
+command = "database.open"
+
+[[local.sql]]
+keys = "n"
+label = "a new query buffer"
+command = "database.new_query"

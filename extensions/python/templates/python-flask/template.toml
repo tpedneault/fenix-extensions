@@ -1,0 +1,47 @@
+[template]
+name = "Python · Flask app"
+kind = "python"
+group = "Python"
+description = "A Flask app managed by uv: an app factory, a blueprint with a page and a JSON route, tests against it, and a dev server that reloads as you edit."
+needs = ["uv"]
+open = ["src/{{name_snake}}/views.py"]
+
+[[ask]]
+key = "python"
+label = "Python"
+choices = ["3.13", "3.12", "3.11"]
+default = "3.12"
+hint = "uv downloads it if it isn't installed"
+
+[[run]]
+exec = "uv"
+args = ["init", "--app", "--package", "--python", "{{python}}", "--name", "{{name_kebab}}", "--vcs", "none", "--no-readme"]
+
+[[run]]
+exec = "uv"
+args = ["add", "flask"]
+
+[[run]]
+exec = "uv"
+args = ["add", "--dev", "pytest", "ruff"]
+
+[[task]]
+name = "run"
+exec = "uv"
+args = ["run", "flask", "--app", "{{name_snake}}", "run", "--debug"]
+
+[[task]]
+name = "test"
+exec = "uv"
+args = ["run", "pytest"]
+
+[[task]]
+name = "lint"
+exec = "uv"
+args = ["run", "ruff", "check"]
+
+# The project's .env, kept here as env: the template's own .gitignore
+# would keep .env out of this repository.
+[[file]]
+path = ".env"
+from = "env"

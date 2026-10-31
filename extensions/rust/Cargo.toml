@@ -1,0 +1,32 @@
+[package]
+name = "fenix-rust"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Rust in Fenix: rust-analyzer, lldb-dap or CodeLLDB, clippy on save with its fixes, rustfmt, tasks from Cargo.toml's targets, the project doctor's checks and the package manager page."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The later host calls: launches, problems with their fixes.
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+serde = { version = "1", features = ["derive"] }
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+
+[dev-dependencies]
+# lang-kit's test host.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# The snippets and project templates read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

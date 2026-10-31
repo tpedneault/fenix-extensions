@@ -1,0 +1,12 @@
+# name: A Vitest file
+# key: vt
+# scope: javascript, typescript, tsx
+# --
+import { describe, expect, it } from "vitest";
+import { ${2:name} } from "${1:./module}";
+
+describe("$2", () => {
+  it("${3:works}", () => {
+    expect($2(${4})).toBe(${5:true});$0
+  });
+});

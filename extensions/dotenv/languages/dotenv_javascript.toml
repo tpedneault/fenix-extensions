@@ -1,0 +1,4 @@
+# Code about env files, not one (`.env.mjs`): its own language, after
+# dotenv.toml's `.env.*`.
+language = "javascript"
+filenames = [".env*.js", ".env*.mjs", ".env*.cjs"]

@@ -1,0 +1,20 @@
+[package]
+name = "fenix-ui-kit"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Widgets for canvas pages -- a canvas laid out cell by cell, tables, tabs, text fields, splits, scrolled regions, lists and trees -- and their keys: shared by the extensions that lay pages out."
+
+[features]
+default = ["api"]
+# Converting to and from the extension API's types: `Canvas::to_api`,
+# `Key::from`. Off, the crate has no Fenix in it at all.
+api = ["dep:fenix-extension-api"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0", optional = true }
+unicode-width = "0.2"
+
+# Built with whichever extension uses it.
+[workspace]

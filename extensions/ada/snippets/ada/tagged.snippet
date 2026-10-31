@@ -1,0 +1,9 @@
+# name: Tagged type and a primitive
+# key: tagged
+# scope: ada
+# --
+type ${1:Shape} is tagged record
+   ${2:Name} : ${3:Natural} := 0;
+end record;
+
+function ${4:Area} (Self : $1) return ${5:Float};$0

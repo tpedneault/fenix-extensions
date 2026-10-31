@@ -1,0 +1,81 @@
+[extension]
+id = "fenix.swift"
+name = "Swift"
+version = "1.0.0"
+description = "Swift on Linux and macOS: sourcekit-lsp, Swift's highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM's tasks, the project's checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# Swift's grammar as WebAssembly, from its language file (0.8.5); the
+# machine, for SwiftLint's release and swift.org's page (0.8.4); the
+# formatter, a linter's problems and the tools folder (0.8.3); the
+# language file's `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the server and the project doctor's checks are there from
+# the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Swift builds, tests and runs the package, and is swift-format since 6;
+# sourcekit-lsp, swift-format, SwiftFormat and SwiftLint where they're
+# installed, Xcode's through xcrun, SwiftLint where the pack installs it
+# (the tools folder); Homebrew installs the formatters on macOS.
+process = ["swift", "sourcekit-lsp", "swift-format", "swiftformat", "swiftlint", "xcrun", "brew", "/tools/*"]
+# SwiftLint's release, and where GitHub sends its download.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# Package.swift, the formatters' and SwiftLint's configs, and .env, read.
+filesystem = "project-read"
+# The file saved, for SwiftLint.
+editor = "read"
+
+[contributes]
+# A Swift file saved: linted; Package.swift and the configs, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "swift"
+markers = ["Package.swift"]
+languages = ["swift"]
+
+[[contributes.commands]]
+id = "swift.doctor"
+title = "Swift: check the project again (Swift, sourcekit-lsp, the formatter, SwiftLint)"
+
+[[contributes.commands]]
+id = "swift.get-swift"
+title = "Swift: how to get Swift for this machine (swift.org)"
+
+[[contributes.commands]]
+id = "swift.install.swiftlint"
+title = "Swift: install SwiftLint (its release)"
+
+[[contributes.commands]]
+id = "swift.install-swift-format"
+title = "Swift: install swift-format (Homebrew)"
+
+[[contributes.commands]]
+id = "swift.install-swiftformat"
+title = "Swift: install SwiftFormat (Homebrew)"
+
+[[contributes.settings]]
+key = "swift.formatter"
+kind = "choice"
+choices = ["auto", "swift-format", "SwiftFormat", "off"]
+label = "Formatter"
+description = "auto: SwiftFormat in a project with a .swiftformat (and no .swift-format), else swift-format -- the one installed, or Swift 6's swift format."
+default = "auto"
+
+[[contributes.settings]]
+key = "swift.swiftlint"
+kind = "choice"
+choices = ["project", "always", "off"]
+label = "SwiftLint on save"
+description = "project: in a project with a .swiftlint.yml; always: with SwiftLint's default rules where there's none."
+default = "project"

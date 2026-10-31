@@ -1,0 +1,12 @@
+# The playground's keys, in the search group. Your own keybindings.toml
+# wins.
+
+[[leader]]
+keys = "SPC s x"
+label = "regex playground"
+command = "regex.open"
+
+[[leader]]
+keys = "SPC s X"
+label = "regex cheatsheet"
+command = "regex.cheatsheet"

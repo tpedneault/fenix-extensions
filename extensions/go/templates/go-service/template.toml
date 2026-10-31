@@ -1,0 +1,17 @@
+[template]
+name = "Go · HTTP service"
+kind = "go"
+group = "Go"
+description = "An HTTP service on net/http's routing patterns: JSON handlers in a package of their own, structured logs, a health check, a graceful shutdown, and tests with httptest."
+needs = ["go"]
+open = ["internal/server/server.go"]
+
+[[ask]]
+key = "module"
+label = "Module path"
+default = "example.com"
+hint = "the module is <this>/<name>: github.com/you for one you'll publish"
+
+[[run]]
+exec = "go"
+args = ["mod", "init", "{{module}}/{{name_kebab}}"]

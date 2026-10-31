@@ -1,0 +1,12 @@
+# name: Async context manager (contextlib)
+# key: acm
+# scope: python
+# --
+@asynccontextmanager
+async def ${1:name}(${2}) -> AsyncIterator[${3:None}]:
+    ${4:# set up}
+    try:
+        yield${5}
+    finally:
+        ${6:# tear down}
+$0

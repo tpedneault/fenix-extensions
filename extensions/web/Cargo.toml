@@ -1,0 +1,34 @@
+[package]
+name = "fenix-web"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "JavaScript and TypeScript in Fenix: typescript-language-server with ESLint, Tailwind CSS and the CSS, HTML and JSON servers beside it, js-debug, Prettier or Biome, ESLint on save, package.json's scripts as tasks, the project doctor's checks and the package manager page, for npm, pnpm, yarn and bun."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The later host calls: servers added and given settings, background
+# tasks, launches.
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+# lang-kit's test host.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# The snippets and project templates read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The launch files and the language file, read as Fenix reads them.
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

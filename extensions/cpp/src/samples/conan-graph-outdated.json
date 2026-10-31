@@ -1,0 +1,1 @@
+{"hello": {"current_versions": ["hello/1.0"], "version_ranges": [], "latest_remote": {"ref": "hello/1.2", "remote": "local"}}}

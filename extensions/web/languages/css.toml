@@ -1,0 +1,3 @@
+# PostCSS' files, which are CSS with plugins' syntax.
+language = "css"
+extensions = ["pcss", "postcss"]

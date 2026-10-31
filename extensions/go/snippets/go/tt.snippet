@@ -1,0 +1,22 @@
+# name: Table-driven test
+# key: tt
+# scope: go
+# --
+func Test${1:Name}(t *testing.T) {
+	tests := []struct {
+		name string
+		${2:in}   ${3:string}
+		want ${4:string}
+	}{
+		{name: "${5:empty}", $2: ${6:""}, want: ${7:""}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ${8:$1}(tt.$2)
+			if got != tt.want {
+				t.Errorf("$8(%v) = %v, want %v", tt.$2, got, tt.want)
+			}
+		})
+	}
+}
+$0

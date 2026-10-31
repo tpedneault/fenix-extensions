@@ -1,0 +1,4 @@
+*.test
+*.out
+__debug_bin*
+.env

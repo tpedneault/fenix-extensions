@@ -1,0 +1,9 @@
+name = "Jest: all tests"
+languages = ["javascript", "typescript", "tsx"]
+program = "${project}/node_modules/jest/bin/jest.js"
+args = ["--runInBand", "--watchAll=false"]
+cwd = "${project}"
+
+[attributes]
+type = "pwa-node"
+skipFiles = ["<node_internals>/**", "**/node_modules/**"]

@@ -1,0 +1,9 @@
+# name: Enum with associated values
+# key: enum
+# scope: swift
+# --
+enum ${1:Name} {
+    case ${2:loaded}(${3:Data})
+    case ${4:failed}(any Error)
+    $0
+}

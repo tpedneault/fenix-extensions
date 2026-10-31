@@ -1,0 +1,6 @@
+  install (default)            Copy build artifacts to prefix path
+  uninstall                    Remove build artifacts from prefix path
+  run                          Run the app
+  test                         Run tests
+  docs                         Build the documentation
+  bench-orbit                  Benchmark the orbit propagator

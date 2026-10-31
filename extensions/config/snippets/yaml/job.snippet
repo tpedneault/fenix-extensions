@@ -1,0 +1,10 @@
+# name: GitHub Actions job
+# key: job
+# scope: yaml
+# --
+${1:test}:
+  runs-on: ${2:ubuntu-latest}
+  steps:
+    - uses: actions/checkout@v5
+    - run: ${3:make test}
+$0
