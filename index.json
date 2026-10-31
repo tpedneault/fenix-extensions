@@ -258,6 +258,65 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.cpp",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/cpp-v1.0.0/fenix.cpp-1.0.0.fenixext",
+          "sha256": "41462786cbee690ea16e8c45e00ab6ebddc7a738d28cf6d5307128fcf72fffe7",
+          "size": 398596,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-write",
+            "process": [
+              "cmake",
+              "ctest",
+              "ninja",
+              "c++",
+              "cc",
+              "g++",
+              "gcc",
+              "clang++",
+              "clang",
+              "cl",
+              "clangd",
+              "clang-format",
+              "clang-tidy",
+              "lldb-dap",
+              "lldb-vscode",
+              "gdb",
+              "vcpkg",
+              "conan",
+              "uv",
+              "pipx",
+              "python3",
+              "python",
+              "brew",
+              "winget",
+              "xcode-select"
+            ]
+          }
+        }
+      ],
+      "name": "C/C++",
+      "description": "C and C++: clangd with the build's compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake's presets as tasks, clang-format, clang-tidy on save with its fixes, the project's checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
