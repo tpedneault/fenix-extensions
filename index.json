@@ -427,6 +427,35 @@
         "data"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.diagrams",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/diagrams-v1.0.0/fenix.diagrams-1.0.0.fenixext",
+          "sha256": "5a3a82e5f174bd3ad11a0e686ad76802c7ddff581ea7d0afd21cf2ad798893d3",
+          "size": 1745230,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "fonts": true
+          }
+        }
+      ],
+      "name": "Diagrams",
+      "description": "Mermaid diagrams drawn as you type, their errors on their lines, Fenix's themes and yours, and exports",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
