@@ -108,6 +108,45 @@
         "tools"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.ccsds",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.0.0/fenix.ccsds-1.0.0.fenixext",
+          "sha256": "2b7fc4f1142ed45c94d1685afbb52d00444301269c4acce0d3689a88107be104",
+          "size": 449811,
+          "dependencies": {},
+          "categories": [
+            "mission"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "clipboard": true,
+            "editor": "write",
+            "filesystem": "project-write",
+            "folders": {
+              "mib": "${setting:mib.roots}",
+              "standards": "${setting:ccsds.library}"
+            },
+            "settings": [
+              "mib"
+            ],
+            "sockets": [
+              "${setting:ccsds.sources}"
+            ]
+          }
+        }
+      ],
+      "name": "CCSDS & ECSS",
+      "description": "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards",
+      "categories": [
+        "mission"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
