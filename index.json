@@ -1368,6 +1368,38 @@
         "templates"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.tcl",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/tcl-v1.0.0/fenix.tcl-1.0.0.fenixext",
+          "sha256": "cb028d68f684c87f2482223f8dddb25d20b017254338357da763bfc77077a6a2",
+          "size": 169652,
+          "dependencies": {},
+          "categories": [
+            "languages"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "ctags",
+              "tclsh"
+            ]
+          }
+        }
+      ],
+      "name": "Tcl",
+      "description": "Tcl scripts: Tcl's own usage lines on K, completion of options, subcommands, built-ins and your procs, go to definition, and the project's definitions by name",
+      "categories": [
+        "languages"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
