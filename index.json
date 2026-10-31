@@ -589,6 +589,54 @@
         "templates"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.go",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/go-v1.0.0/fenix.go-1.0.0.fenixext",
+          "sha256": "dacf3b3da4cb88e03b1433268aca07df0b78db5dd71e12f8d19957e76777a28d",
+          "size": 345962,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "go",
+              "gofmt",
+              "goimports",
+              "gopls",
+              "dlv",
+              "govulncheck",
+              "golangci-lint",
+              "brew",
+              "winget"
+            ],
+            "sockets": [
+              "${setting:go.delve_server}",
+              "127.0.0.1:2345",
+              "localhost:2345"
+            ]
+          }
+        }
+      ],
+      "name": "Go",
+      "description": "Go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
