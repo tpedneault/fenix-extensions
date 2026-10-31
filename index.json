@@ -1054,6 +1054,33 @@
         "templates"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.pomodoro",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/pomodoro-v1.0.0/fenix.pomodoro-1.0.0.fenixext",
+          "sha256": "ba03051a587f7e03c02348bb756195e70718c57b77a292acc6b5985fbca1166b",
+          "size": 144118,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "sound": true
+          }
+        }
+      ],
+      "name": "Pomodoro",
+      "description": "A focus timer: work rounds and breaks counted down on the modeline, today's rounds and the week's -- clocked into the agenda when it's there",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
