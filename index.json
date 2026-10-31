@@ -1494,6 +1494,47 @@
         "web"
       ],
       "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
+      "id": "fenix.zig",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/zig-v1.0.0/fenix.zig-1.0.0.fenixext",
+          "sha256": "a4b9afaf8df9e652b4c8e477238194ffc6c2046c836695be0a85077bdf77ba14",
+          "size": 374788,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com",
+              "files.pythonhosted.org"
+            ],
+            "process": [
+              "zig",
+              "zls",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Zig",
+      "description": "Zig: its grammar, ZLS, zig fmt, zig ast-check on save, zig build's steps as tasks, the project's checks with fixes that install Zig and ZLS, and snippets",
+      "categories": [
+        "languages",
+        "snippets"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
     }
   ]
 }
