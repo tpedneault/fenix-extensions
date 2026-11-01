@@ -1,0 +1,42 @@
+[extension]
+id = "fenix.hex"
+name = "Hex viewer"
+version = "1.0.0"
+description = "Binary files as a hex dump: offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor's bytes read as integers and floats both ways round and as UTF-8, selections copied as hex, text or code -- and any file at all shown in hex"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+[permissions]
+# A file in the project is read where it is, as far as each read needs;
+# one elsewhere Fenix reads whole for it.
+filesystem = "project-read"
+# Which file hex.open shows, and where the project is.
+editor = "read"
+
+[contributes]
+# What's only ever bytes opens in it however you open it, which starts
+# it. Not *.hex: that's mostly Intel HEX, which is text, as are *.dat and
+# *.srec more often than not -- hex.open shows those, and anything else.
+opens = [
+    "*.bin", "*.img", "*.rom", "*.iso", "*.dmp",
+    "*.exe", "*.dll", "*.so", "*.dylib", "*.o", "*.obj", "*.a", "*.lib", "*.elf",
+    "*.class", "*.pyc", "*.wasm",
+]
+
+[[contributes.commands]]
+id = "hex.open"
+title = "Hex: show this file as a hex dump"
+
+[[contributes.settings]]
+key = "hex.bytesPerRow"
+kind = "int"
+label = "Bytes per row"
+description = "How many bytes each row of the dump shows, up to 64; 0 fits as many as the pane takes (8, 16 or 32)"
+default = "16"
