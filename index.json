@@ -949,6 +949,35 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.parquet",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/parquet-v1.0.0/fenix.parquet-1.0.0.fenixext",
+          "sha256": "3452e2ca42fbd262bef3e7394922f943b692096c11e4546448426a01e366bea8",
+          "size": 2264269,
+          "dependencies": {},
+          "categories": [
+            "tools",
+            "data"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "filesystem": "project-read"
+          }
+        }
+      ],
+      "name": "Parquet viewer",
+      "description": "Parquet files read in a pane: their rows as a table, read a page at a time so a billion rows open at once, and their schema with each column's type, nulls, range, size and codec -- snappy, zstd, gzip, LZ4 and Brotli",
+      "categories": [
+        "tools",
+        "data"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.pdf",
       "versions": [
         {
