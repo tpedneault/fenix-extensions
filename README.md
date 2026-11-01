@@ -53,6 +53,7 @@ bundles install several at once, and are what the welcome's packs offer.
 | [`fenix.mib`](extensions/mib) | SCOS-2000 MIB | SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form, and XTCE, C, Python or a Wireshark dissector generated from them |
 | [`fenix.notebook`](extensions/notebook) | Notebook | Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is |
 | [`fenix.original-light-themes`](extensions/original-light-themes) | Original light themes | The light themes Fenix ships, in their published colours, untouched |
+| [`fenix.parquet`](extensions/parquet) | Parquet viewer | Parquet files read in a pane: their rows as a table, read a page at a time so a billion rows open at once, and their schema with each column's type, nulls, range, size and codec -- snappy, zstd, gzip, LZ4 and Brotli |
 | [`fenix.pdf`](extensions/pdf) | PDF reader | PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read |
 | [`fenix.pets`](extensions/pets) | Pets | Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails |
 | [`fenix.pomodoro`](extensions/pomodoro) | Pomodoro | A focus timer: work rounds and breaks counted down on the modeline, today's rounds and the week's -- clocked into the agenda when it's there |
@@ -89,7 +90,10 @@ one extension uses go under `crates/` (`crates/jira`, the Jira client the
 agenda and Jira share; `crates/ui-kit`, the widgets canvas pages are
 built from; `crates/lang-kit`, what the language packs share: the
 package manager page, doctor checks, tasks, installing a server, a
-formatter and a linter).
+formatter and a linter). So do stand-ins for crates that need C, which
+an extension's build has no compiler for: `crates/zstd-shim` is the
+`zstd` crate's decoder in pure Rust, patched in for it
+(`[patch.crates-io]`, as `extensions/parquet` does).
 
 ```text
 extensions/my-themes/
