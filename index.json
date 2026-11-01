@@ -967,6 +967,24 @@
           "permissions": {
             "filesystem": "project-read"
           }
+        },
+        {
+          "version": "1.0.1",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/parquet-v1.0.1/fenix.parquet-1.0.1.fenixext",
+          "sha256": "63e20fa5d0e52a5ec69804c63d205f335eddf0c2468e2fe2691889fe44965227",
+          "size": 2265019,
+          "dependencies": {},
+          "categories": [
+            "tools",
+            "data"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read"
+          }
         }
       ],
       "name": "Parquet viewer",
