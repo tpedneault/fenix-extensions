@@ -1,0 +1,15 @@
+[package]
+# Named for the crate it stands in for: an extension patches crates.io's
+# `zstd` with it (`[patch.crates-io]`), so what asks for zstd gets this.
+name = "zstd"
+version = "0.13.3"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "zstd decompression in pure Rust (ruzstd) behind the zstd crate's Decoder, for extensions built for wasm32-wasip2, where zstd-sys's C doesn't build."
+
+[dependencies]
+ruzstd = "0.8"
+
+# Built with whichever extension uses it.
+[workspace]
