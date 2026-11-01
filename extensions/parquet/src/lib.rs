@@ -43,7 +43,7 @@ fn input(path: &str) -> Result<Input, String> {
         let len = std::fs::metadata(path).map_err(|e| e.to_string())?.len();
         return Ok(Input::Path(path.to_string(), len));
     }
-    fenix_extension_api::read_file(path).map(|b| Input::Bytes(b.into())).map_err(|e| format!("{e} (a file outside the project is read whole, up to 64 MiB)"))
+    fenix_extension_api::read_file(path).map(|b| Input::Bytes(b.into())).map_err(|e| format!("{e} -- a file outside the project is read whole; one in it is read a part at a time, whatever its size"))
 }
 
 #[derive(Default)]

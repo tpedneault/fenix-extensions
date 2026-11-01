@@ -125,8 +125,12 @@ impl ParquetPage {
         let f = match &self.file {
             Ok(f) => f,
             Err(e) => {
-                c.put_fit(0, 2, w, &format!("Not read as Parquet: {e}"), Role::Bad);
-                c.put_fit(0, 4, w, "R reads it again", Role::Muted);
+                // Wrapped: a long path ahead of it mustn't hide why.
+                let lines = fenix_ui_kit::text::wrap(&format!("Not read: {e}"), w);
+                for (i, line) in lines.iter().enumerate() {
+                    c.put_fit(0, 2 + i, w, line, Role::Bad);
+                }
+                c.put_fit(0, 3 + lines.len(), w, "R reads it again", Role::Muted);
                 return c;
             }
         };
@@ -363,10 +367,13 @@ mod tests {
     #[test]
     fn a_file_that_isnt_parquet_says_why() {
         let mut p = ParquetPage::new("/x/a.parquet", "/x/a.parquet", Ok(Input::Bytes(bytes::Bytes::from_static(b"nope"))));
-        assert!(p.render(80, 10).text().contains("Not read as Parquet"));
+        assert!(p.render(80, 10).text().contains("Not read: "));
         assert_eq!(p.key(Key::Char('j')), Action::Nothing);
         assert_eq!(p.key(Key::Char('R')), Action::Reload);
         let p = ParquetPage::new("/x/b.parquet", "/x/b.parquet", Err("too big".into()));
-        assert!(p.render(80, 10).text().contains("Not read as Parquet: too big"));
+        assert!(p.render(80, 10).text().contains("Not read: too big"));
+        let long = format!("/{}/c.parquet: file-read gives at most 64 MiB", "deep".repeat(30));
+        let text = ParquetPage::new("/x/c.parquet", "/x/c.parquet", Err(long)).render(60, 12).text();
+        assert!(text.contains("64 MiB"), "a long path doesn't hide why: {text}");
     }
 }
