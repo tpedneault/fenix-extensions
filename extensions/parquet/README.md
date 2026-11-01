@@ -61,3 +61,4 @@ extension; open a bigger one from its project.
 | Permission | Why |
 | --- | --- |
 | `filesystem = "project-read"` | A file in the project is read where it is, as far as each read needs |
+| `editor = "read"` | Which project is open: whether a file is in it |
