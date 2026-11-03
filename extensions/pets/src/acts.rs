@@ -3,13 +3,24 @@
 
 /// The kinds there are: model name, what the picker calls it, the name
 /// it suggests.
-pub const KINDS: [(&str, &str, &str); 4] = [("ember", "Ember, Fenix's phoenix", "Ember"), ("ferris", "Ferris, the Rust crab", "Ferris"), ("cat", "A cat", "Tom"), ("duck", "A rubber duck", "Quackers")];
+pub const KINDS: [(&str, &str, &str); 7] = [
+    ("ember", "Ember, Fenix's phoenix", "Ember"),
+    ("ferris", "Ferris, the Rust crab", "Ferris"),
+    ("cat", "A cat", "Tom"),
+    ("duck", "A rubber duck", "Quackers"),
+    ("owl", "An owl, up when you're up late", "Pip"),
+    ("fox", "A fox", "Rusty"),
+    ("snail", "A snail, in no hurry", "Shelly"),
+];
 
 /// How big a kind is beside the others: a crab is mostly width.
 pub fn stature(kind: &str) -> f32 {
     match kind {
         "ferris" => 0.72,
         "duck" => 0.9,
+        "owl" => 0.85,
+        "fox" => 0.95,
+        "snail" => 0.6,
         _ => 1.0,
     }
 }
@@ -42,6 +53,8 @@ pub enum Act {
     Ash,
     Rise,
     Fly,
+    /// The owl's head turned right round.
+    Hoot,
 }
 
 /// How a pet is standing: what an act starts from and leaves it in.
@@ -83,6 +96,7 @@ impl Act {
             Act::Burn => "burn",
             Act::Ash => "ash",
             Act::Rise => "rise",
+            Act::Hoot => "hoot",
             Act::Fly => match kind {
                 "ember" => "fly",
                 _ => "jump",
@@ -125,7 +139,8 @@ impl Act {
         match self {
             Act::Quack => kind != "duck",
             Act::Snap => kind != "ferris",
-            Act::Stalk | Act::Pounce => kind != "cat",
+            Act::Stalk | Act::Pounce => kind != "cat" && kind != "fox",
+            Act::Hoot => kind != "owl",
             Act::Burn | Act::Ash | Act::Rise => kind != "ember",
             _ => false,
         }
@@ -156,6 +171,8 @@ impl Act {
         match (self, kind) {
             (Act::Walk, "ferris") => 2.6,
             (Act::Walk, "duck") => 2.8,
+            (Act::Walk, "snail") => 0.9,
+            (Act::Run, "snail") => 2.2,
             (Act::Walk, _) => 3.4,
             (Act::Run, _) => 11.0,
             (Act::Stalk, _) => 1.4,
@@ -185,6 +202,8 @@ mod tests {
         assert_eq!(Act::Fly.clip("ember"), "fly");
         assert_eq!(Act::Fly.clip("cat"), "jump");
         assert!(Act::Quack.not_for("cat") && !Act::Quack.not_for("duck"));
+        assert!(!Act::Pounce.not_for("fox") && Act::Pounce.not_for("owl") && !Act::Hoot.not_for("owl"));
+        assert!(Act::Walk.speed("snail") < Act::Walk.speed("duck"));
         assert!(Act::Jump.once() && !Act::Walk.once());
         assert_eq!((Act::SitDown.leaves(), Act::Burn.leaves(), Act::Rise.leaves()), (Posture::Sitting, Posture::Gone, Posture::Standing));
     }

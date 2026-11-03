@@ -21,6 +21,8 @@ use crate::world::{Floor, Screen, Spot};
 
 /// Nobody's typed for this long: they nap.
 pub const SLEEP_AFTER: u64 = 3 * 60 * 1000;
+/// Late at night, they nap sooner.
+pub const SLEEP_AFTER_LATE: u64 = 60 * 1000;
 /// Typing this long without a pause, and Ember catches fire.
 const ON_FIRE_AFTER: u64 = 6000;
 /// A pause this long ends a run of typing.
@@ -31,12 +33,24 @@ const ASH_AT_MOST: u64 = 10 * 60 * 1000;
 const SAVE_XP_EVERY: u64 = 20_000;
 /// The ball's item id.
 pub const BALL_ID: u32 = 900;
+/// The yarn's item id.
+pub const YARN_ID: u32 = 901;
 /// A long while: until something happens.
 const UNTIL_TOLD: u64 = u64::MAX / 4;
 /// Away this long, and they greet you when you're back.
 const AWAY_AFTER: u64 = 90_000;
 /// Moving between files makes one look round this often, at most.
 const LOOK_ROUND_EVERY: u64 = 5000;
+
+/// How a kind gets up to another floor: Ember flies, a snail creeps
+/// there, the rest hop.
+fn climb(kind: &str) -> Act {
+    match kind {
+        "ember" => Act::Fly,
+        "snail" => Act::Walk,
+        _ => Act::Hop,
+    }
+}
 
 /// One step of a plan: an act, where it goes (if anywhere), how long it
 /// lasts (else its clip's length, or a few seconds).
@@ -182,6 +196,36 @@ pub struct State {
     debugging: Option<u64>,
     /// When moving between files last made one look round.
     looked_round_at: u64,
+    /// The focused file's warnings.
+    pub warnings: u32,
+    /// How long they linger, sitting and idling, and how far apart their
+    /// games are: 1 normally, more when calm, less when lively.
+    pub pace: f32,
+    /// The hour, local time: late at night they're sleepy.
+    pub hour: u8,
+    next_follow: u64,
+    /// The yarn's out: where it rolls from and to, and when it's put away.
+    pub yarn: Option<Yarn>,
+    /// There's a yarn model to play with.
+    pub has_yarn: bool,
+    /// A Pomodoro work round is on: they keep still and quiet.
+    pub working: bool,
+}
+
+/// The cat's yarn, rolling from one spot to another.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Yarn {
+    pub from: Spot,
+    pub to: Spot,
+    pub start: u64,
+    pub millis: u32,
+    pub away_at: u64,
+}
+
+impl Yarn {
+    pub fn rolling(&self, now: u64) -> bool {
+        now < self.start + self.millis as u64
+    }
 }
 
 impl State {
@@ -215,6 +259,13 @@ impl State {
             drifted_at: 0,
             debugging: None,
             looked_round_at: 0,
+            warnings: 0,
+            pace: 1.0,
+            hour: 12,
+            next_follow: 20_000,
+            yarn: None,
+            has_yarn: false,
+            working: false,
         }
     }
 
@@ -369,6 +420,11 @@ impl State {
         }
     }
 
+    /// How long they linger: their pace, and slower in a work round.
+    fn lingering(&self) -> f32 {
+        self.pace * if self.working { 1.8 } else { 1.0 }
+    }
+
     /// What pet `i` does when it's nothing else to do.
     fn wander(&mut self, i: usize, now: u64) -> Vec<Step> {
         let pet = &self.pets[i];
@@ -388,40 +444,50 @@ impl State {
         if here.floor != home && !matches!(here.floor, Floor::Margin(_))
             && (self.random() < 0.5 || !self.screen.has(here.floor)) {
                 let x = here.x + self.between(-6.0, 6.0);
-                return vec![Step::go(if kind == "ember" { Act::Fly } else { Act::Hop }, Spot::new(home, x))];
+                return vec![Step::go(climb(&kind), Spot::new(home, x))];
             }
         let roll = self.random();
         let seated = posture == Posture::Sitting;
         let far = self.between(4.0, 22.0) * if self.random() < 0.5 { -1.0 } else { 1.0 };
         let wide = Spot::new(here.floor, here.x + far);
         if seated && roll < 0.4 {
-            return vec![Step::lasting(Act::Sit, self.between(2500.0, 6000.0) as u64)];
+            return vec![Step::lasting(Act::Sit, (self.between(2500.0, 6000.0) * self.lingering()) as u64)];
         }
         match roll {
             r if r < 0.36 => vec![Step::go(Act::Walk, wide)],
-            r if r < 0.46 => vec![Step::lasting(Act::Sit, self.between(3000.0, 7000.0) as u64)],
+            r if r < 0.46 => vec![Step::lasting(Act::Sit, (self.between(3000.0, 7000.0) * self.lingering()) as u64)],
             r if r < 0.56 => vec![Step::act(Act::Look)],
             r if r < 0.60 => vec![Step::act(Act::Stretch)],
             r if r < 0.65 && happy > 70.0 => vec![Step::lasting(Act::Happy, 1600)],
             r if r < 0.70 => {
                 let ledges = self.screen.ledges();
-                if ledges.is_empty() || here.floor != home {
+                if ledges.is_empty() || here.floor != home || kind == "snail" {
                     vec![Step::go(Act::Walk, wide)]
                 } else {
                     let pick = ledges[(self.random() * ledges.len() as f32) as usize % ledges.len()];
                     let x = here.x + self.between(-4.0, 4.0);
-                    vec![Step::go(if kind == "ember" { Act::Fly } else { Act::Hop }, Spot::new(pick, x)), Step::lasting(Act::Sit, self.between(5000.0, 12000.0) as u64)]
+                    vec![Step::go(climb(&kind), Spot::new(pick, x)), Step::lasting(Act::Sit, self.between(5000.0, 12000.0) as u64)]
                 }
             }
-            // The zoomies: a dash one way and back again, when content.
-            r if r < 0.74 && happy > 50.0 => {
+            // The zoomies: a dash one way and back again, when content
+            // (not while you're in a work round).
+            r if r < 0.74 && happy > 50.0 && !self.working && kind != "snail" => {
                 let dash = self.between(10.0, 18.0) * far.signum();
                 vec![Step::go(Act::Run, Spot::new(here.floor, here.x + dash)), Step::go(Act::Run, Spot::new(here.floor, here.x + dash * 0.3)), Step::act(Act::Look)]
             }
             r if r < 0.79 && kind == "duck" => vec![Step::act(Act::Quack)],
             r if r < 0.79 && kind == "ferris" => vec![Step::lasting(Act::Snap, 1800)],
             r if r < 0.79 && kind == "ember" => vec![Step::go(Act::Fly, wide)],
-            _ => vec![Step::lasting(Act::Idle, self.between(1000.0, 2500.0) as u64)],
+            // The owl hoots, the more so late at night.
+            r if r < if self.late() { 0.86 } else { 0.79 } && kind == "owl" => vec![Step::act(Act::Hoot)],
+            // The fox hunts something in the grass: creeps, and leaps.
+            r if r < 0.79 && kind == "fox" => {
+                let creep = Spot::new(here.floor, here.x + far * 0.5);
+                vec![Step::go(Act::Stalk, creep), Step::go(Act::Pounce, Spot::new(here.floor, here.x + far * 0.7)), Step::act(Act::Look)]
+            }
+            r if r < 0.79 && kind == "snail" => vec![Step::act(Act::Look)],
+            r if r < 0.79 && kind == "cat" && self.has_yarn && self.yarn.is_none() && !self.working => self.yarn_for(i, now),
+            _ => vec![Step::lasting(Act::Idle, (self.between(1000.0, 2500.0) * self.lingering()) as u64)],
         }
     }
 
@@ -469,7 +535,23 @@ impl State {
 
     /// The focused file's errors: they hide while there are any, and
     /// stretch and cheer when they're gone.
-    pub fn diagnostics(&mut self, errors: u32, now: u64) {
+    pub fn diagnostics(&mut self, errors: u32, warnings: u32, now: u64) {
+        let had_warnings = self.warnings;
+        self.warnings = warnings;
+        // Warnings, and no errors: the one nearest the caret tilts its
+        // head at them.
+        if had_warnings == 0 && warnings > 0 && errors == 0 && self.errors == 0 {
+            let caret = self.screen.caret.map(|(c, _)| c as f32);
+            let near = (0..self.pets.len())
+                .filter(|&i| self.pets[i].free() && !self.pets[i].gone() && self.pets[i].posture != Posture::Lying)
+                .min_by(|&a, &b| {
+                    let d = |i: usize| caret.map_or(i as f32, |c| (self.pets[i].at(now).x - c).abs());
+                    d(a).total_cmp(&d(b))
+                });
+            if let Some(i) = near {
+                self.plan(i, vec![Step::act(Act::Look), Step::act(Act::Look)], now, true);
+            }
+        }
         let was = self.errors;
         self.errors = errors;
         if (was > 0) == (errors > 0) {
@@ -772,9 +854,19 @@ impl State {
     pub fn tick(&mut self, now: u64) {
         self.fx.prune(now);
         self.ball_tick(now);
-        // Nobody's typed in a while: a nap, all together.
-        if now.saturating_sub(self.last_typed) > SLEEP_AFTER && self.errors == 0 {
+        // Nobody's typed in a while: a nap, all together -- sooner late
+        // at night.
+        if now.saturating_sub(self.last_typed) > self.sleep_after() && self.errors == 0 {
             self.nap(now);
+        }
+        if now >= self.next_follow {
+            self.next_follow = now + (self.between(15_000.0, 35_000.0) * self.pace) as u64;
+            if !self.working {
+                self.follow(now);
+            }
+        }
+        if self.yarn.as_ref().is_some_and(|y| now >= y.away_at) {
+            self.yarn = None;
         }
         for i in 0..self.pets.len() {
             if now >= self.pets[i].until {
@@ -783,12 +875,14 @@ impl State {
         }
         self.puffs(now);
         if now >= self.next_social {
-            self.next_social = now + self.between(25_000.0, 75_000.0) as u64;
-            self.social(now);
+            self.next_social = now + (self.between(25_000.0, 75_000.0) * self.pace) as u64;
+            if !self.working {
+                self.social(now);
+            }
         }
         if now >= self.next_visit {
-            self.next_visit = now + self.between(120_000.0, 300_000.0) as u64;
-            if self.visits {
+            self.next_visit = now + (self.between(120_000.0, 300_000.0) * self.pace) as u64;
+            if self.visits && !self.working {
                 self.visit(now);
             }
         }
@@ -808,6 +902,38 @@ impl State {
                 }
             }
         }
+    }
+
+    /// Whether it's late at night, local time.
+    pub fn late(&self) -> bool {
+        self.hour >= 22 || self.hour < 6
+    }
+
+    /// How long nobody types before they nap.
+    pub fn sleep_after(&self) -> u64 {
+        if self.late() {
+            SLEEP_AFTER_LATE
+        } else {
+            SLEEP_AFTER
+        }
+    }
+
+    /// Now and then the pet nearest the caret, if it's wandered off,
+    /// trots back over to where you're working.
+    fn follow(&mut self, now: u64) {
+        let Some((col, _)) = self.screen.caret else { return };
+        let (caret, home) = (col as f32, self.home_floor());
+        let near = (0..self.pets.len())
+            .filter(|&i| self.pets[i].free() && !self.pets[i].gone() && self.pets[i].posture == Posture::Standing && !self.pets[i].moving(now) && self.pets[i].at(now).floor == home)
+            .min_by(|&a, &b| (self.pets[a].at(now).x - caret).abs().total_cmp(&(self.pets[b].at(now).x - caret).abs()));
+        let Some(i) = near else { return };
+        let x = self.pets[i].at(now).x;
+        if (x - caret).abs() < 8.0 {
+            return;
+        }
+        let to = caret + if x < caret { -3.0 } else { 3.0 };
+        let act = if (x - caret).abs() > 30.0 { Act::Run } else { Act::Walk };
+        self.plan(i, vec![Step::go(act, Spot::new(home, to)), Step::act(Act::Look)], now, true);
     }
 
     /// Z's from sleepers, smoke from the ash, flames off Ember on fire.
@@ -851,7 +977,10 @@ impl State {
 
     /// Asleep, all of them, curled up near the first to drop off.
     fn nap(&mut self, now: u64) {
-        let awake: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].posture != Posture::Lying && !self.pets[i].gone() && !matches!(self.pets[i].act, Act::LieDown) && !self.pets[i].plan.iter().any(|s| s.act == Act::Sleep)).collect();
+        // Late at night the owl's wide awake: it naps only when everyone
+        // would by day.
+        let owl_up = self.late() && now.saturating_sub(self.last_typed) <= SLEEP_AFTER;
+        let awake: Vec<usize> = (0..self.pets.len()).filter(|&i| !(owl_up && self.pets[i].kind == "owl") && self.pets[i].posture != Posture::Lying && !self.pets[i].gone() && !matches!(self.pets[i].act, Act::LieDown) && !self.pets[i].plan.iter().any(|s| s.act == Act::Sleep)).collect();
         if awake.is_empty() {
             return;
         }
@@ -878,9 +1007,77 @@ impl State {
                 return self.stalk(cat, duck, now);
             }
         }
+        // Snowing, and Ember's about: they gather round it to keep warm.
+        if self.season().snow && self.random() < 0.5 {
+            if let Some(ember) = free.iter().copied().find(|&i| self.pets[i].kind == "ember") {
+                return self.warm_by(ember, &free, now);
+            }
+        }
         let a = free[(self.random() * free.len() as f32) as usize % free.len()];
         let b = free.iter().copied().find(|&b| b != a).unwrap_or(a);
+        if self.random() < 0.35 {
+            return self.race(a, b, now);
+        }
         self.chase(a, b, now);
+    }
+
+    /// Two race to the same spot: the one that gets there first is pleased
+    /// with itself; the other looks round for a rematch.
+    fn race(&mut self, a: usize, b: usize, now: u64) {
+        let home = self.home_floor();
+        let (ax, bx) = (self.pets[a].at(now).x, self.pets[b].at(now).x);
+        let dir = if self.random() < 0.5 { -1.0 } else { 1.0 };
+        let line = (ax + bx) / 2.0 + dir * self.between(14.0, 24.0);
+        let time = |i: usize, x: f32, st: &State| (line - x).abs() / Act::Run.speed(&st.pets[i].kind);
+        let (first, second) = if time(a, ax, self) <= time(b, bx, self) { (a, b) } else { (b, a) };
+        for (i, gap) in [(first, 0.0), (second, self.half() * 2.2)] {
+            let at = Spot::new(home, line - dir * gap);
+            let last = if i == first { Step::lasting(Act::Happy, 1600) } else { Step::act(Act::Look) };
+            self.plan(i, vec![Step::lasting(Act::Look, 400), Step::go(Act::Run, at), last], now, true);
+        }
+        self.sparkle(first, now + 2500);
+    }
+
+    /// The others come and sit round Ember, out of the snow.
+    fn warm_by(&mut self, ember: usize, free: &[usize], now: u64) {
+        let home = self.home_floor();
+        let x = self.pets[ember].at(now).x;
+        self.plan(ember, vec![Step::lasting(Act::Sit, 15_000)], now, true);
+        let others: Vec<usize> = free.iter().copied().filter(|&i| i != ember).collect();
+        for (n, i) in others.into_iter().enumerate() {
+            let side = if n % 2 == 0 { 1.0 } else { -1.0 };
+            let at = x + side * (n as f32 / 2.0 + 1.0).floor() * self.half() * 2.2;
+            self.plan(i, vec![Step::go(Act::Walk, Spot::new(home, at)), Step::lasting(Act::Sit, 15_000)], now, true);
+        }
+    }
+
+    /// The cat bats its yarn: it rolls off, and the cat creeps after it
+    /// and pounces.
+    fn yarn_for(&mut self, i: usize, now: u64) -> Vec<Step> {
+        let here = self.pets[i].at(now);
+        let dir = if self.random() < 0.5 { -1.0 } else { 1.0 };
+        let from = Spot::new(here.floor, here.x + dir * self.half() * 1.2);
+        let to = Spot::new(here.floor, from.x + dir * self.between(6.0, 11.0));
+        let yarn = Yarn { from, to, start: now, millis: 1100, away_at: now + 14_000 };
+        let near = Spot::new(here.floor, to.x - dir * self.half() * 3.0);
+        let pounce = Spot::new(here.floor, to.x - dir * self.half());
+        self.yarn = Some(yarn);
+        vec![Step::lasting(Act::Look, 600), Step::go(Act::Stalk, near), Step::go(Act::Pounce, pounce), Step::lasting(Act::Happy, 1500)]
+    }
+
+    /// The Pomodoro timer's phase (`pomodoro.state`): in a work round they
+    /// keep still and quiet; when the break comes, they play.
+    pub fn pomodoro(&mut self, phase: &str, now: u64) {
+        let was = self.working;
+        self.working = phase == "work";
+        if was && !self.working && phase == "break" {
+            for i in 0..self.pets.len() {
+                if self.pets[i].free() && !self.pets[i].gone() && self.pets[i].posture != Posture::Lying {
+                    self.plan(i, vec![Step::act(Act::Stretch), Step::lasting(Act::Happy, 1200)], now, true);
+                }
+            }
+            self.next_social = now + 3000;
+        }
     }
 
     /// The cat creeps up on the duck and pounces; the duck jumps and runs.
@@ -914,13 +1111,13 @@ impl State {
     fn visit(&mut self, now: u64) {
         let Some(margin) = self.screen.margin() else { return };
         let home = self.home_floor();
-        let free: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].free() && self.pets[i].posture != Posture::Lying && self.pets[i].at(now).floor == home).collect();
+        let free: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].free() && self.pets[i].posture != Posture::Lying && self.pets[i].at(now).floor == home && self.pets[i].kind != "snail").collect();
         if free.is_empty() {
             return;
         }
         let i = free[(self.random() * free.len() as f32) as usize % free.len()];
         let Some((l, r)) = self.screen.span(margin) else { return };
-        let up = if self.pets[i].kind == "ember" { Act::Fly } else { Act::Hop };
+        let up = climb(&self.pets[i].kind);
         let back = self.pets[i].at(now).x;
         let stay = self.between(20_000.0, 40_000.0) as u64;
         self.plan(i, vec![Step::go(up, Spot::new(margin, (l + r) / 2.0)), Step::lasting(Act::Sit, stay), Step::go(up, Spot::new(home, back))], now, true);
@@ -960,7 +1157,7 @@ impl State {
             let pet = &self.pets[i];
             let (at, gone) = (pet.at(now), pet.gone());
             let target = pet.to.floor;
-            let up = if pet.kind == "ember" { Act::Fly } else { Act::Hop };
+            let up = climb(&pet.kind);
             match target {
                 Floor::Margin(row) if margin != Some(Floor::Margin(row)) => {
                     let steps = match margin {
@@ -1097,6 +1294,13 @@ impl State {
             };
             out.push(item);
         }
+        if let (Some(&model), Some(y)) = (models.get("yarn"), &self.yarn) {
+            let rolling = y.rolling(now);
+            let dir = (y.to.x - y.from.x).signum();
+            let pose = Pose::new(model, "roll").speed(if rolling { 1.6 } else { 0.0 }).yaw(dir * 90.0).style(self.style);
+            let item = Item::model(YARN_ID, pose, self.screen.place(y.from, 0.0)).size(self.size * 0.25).redraws(redraws);
+            out.push(item.glide(self.screen.place(y.to, 0.0), y.millis).ease(Ease::Out));
+        }
         if let Some(sheet) = fx {
             out.extend(self.fx.items(sheet));
         }
@@ -1157,6 +1361,139 @@ mod tests {
         assert!(st.fx.list.iter().any(|p| p.frames == [fx::ZED] || p.frames == [fx::ZED_BIG]), "z's");
         st.typing(later + 41_000);
         assert!(st.pets.iter().all(|p| p.act == Act::Wake));
+    }
+
+    #[test]
+    fn one_trots_over_to_the_caret_and_late_at_night_they_nap_sooner() {
+        let mut st = state(&["cat"]);
+        st.tick(0);
+        st.pets[0].plan.clear();
+        st.pets[0].act = Act::Idle;
+        st.pets[0].posture = Posture::Standing;
+        st.pets[0].until = u64::MAX;
+        let far = st.pets[0].at(0).x + 25.0;
+        st.screen.caret = Some((far as u32, 3));
+        st.follow(100);
+        assert_eq!(st.pets[0].act, Act::Walk);
+        assert!((st.pets[0].to.x - far).abs() <= 3.5, "to the caret: {:?}", st.pets[0].to);
+        assert_eq!(st.sleep_after(), SLEEP_AFTER);
+        st.hour = 23;
+        assert_eq!(st.sleep_after(), SLEEP_AFTER_LATE);
+        st.hour = 4;
+        assert!(st.late());
+    }
+
+    #[test]
+    fn warnings_get_a_look_and_calm_pets_linger() {
+        let mut st = state(&["duck"]);
+        st.tick(0);
+        st.pets[0].plan.clear();
+        st.pets[0].act = Act::Idle;
+        st.pets[0].posture = Posture::Standing;
+        st.diagnostics(0, 2, 100);
+        assert_eq!(st.pets[0].act, Act::Look);
+        st.pets[0].plan.clear();
+        st.pets[0].act = Act::Idle;
+        st.diagnostics(0, 3, 200);
+        assert_eq!(st.pets[0].act, Act::Idle, "only when they appear");
+        // How often they change what they're doing, over a few lives.
+        let busy = |pace: f32| {
+            let mut changes = 0;
+            for seed in 1..9u64 {
+                let mut st = state(&["cat"]);
+                st.rng = (seed * 7919) | 1;
+                st.pace = pace;
+                let mut was = st.pets[0].act;
+                for t in (0..300_000).step_by(200) {
+                    st.last_typed = t;
+                    st.tick(t);
+                    changes += (st.pets[0].act != was) as u32;
+                    was = st.pets[0].act;
+                }
+            }
+            changes
+        };
+        let (calm, lively) = (busy(1.6), busy(0.6));
+        assert!(calm < lively, "calm pets move less than lively ones: {calm} {lively}");
+    }
+
+    #[test]
+    fn the_new_friends_do_their_own_things() {
+        let mut st = state(&["owl", "fox", "snail", "cat"]);
+        st.has_yarn = true;
+        let mut seen = std::collections::HashSet::new();
+        for t in (0..600_000).step_by(200) {
+            st.last_typed = t;
+            st.tick(t);
+            for p in &st.pets {
+                seen.insert((p.kind.clone(), p.act));
+            }
+            if st.yarn.is_some() {
+                seen.insert(("yarn".into(), Act::Idle));
+            }
+        }
+        for want in [("owl", Act::Hoot), ("fox", Act::Pounce), ("snail", Act::Walk), ("cat", Act::Stalk)] {
+            assert!(seen.contains(&(want.0.to_string(), want.1)), "{want:?}");
+        }
+        assert!(seen.contains(&("yarn".to_string(), Act::Idle)), "the cat played with its yarn");
+        assert!(!seen.iter().any(|(k, a)| k != "owl" && *a == Act::Hoot), "only the owl hoots");
+        assert!(!seen.iter().any(|(k, a)| k == "snail" && *a == Act::Hop), "a snail doesn't hop");
+    }
+
+    #[test]
+    fn late_at_night_the_owl_stays_up() {
+        let mut st = state(&["owl", "cat"]);
+        st.hour = 23;
+        st.last_typed = 0;
+        let t = SLEEP_AFTER_LATE + 30_000;
+        for t in (0..t).step_by(250) {
+            st.tick(t);
+        }
+        assert_eq!(st.pets[1].act, Act::Sleep, "the cat's asleep");
+        assert_ne!(st.pets[0].posture, Posture::Lying, "the owl's up");
+    }
+
+    #[test]
+    fn they_race_and_keep_warm_by_ember() {
+        let mut st = state(&["duck", "ferris", "ember"]);
+        st.tick(0);
+        for i in 0..3 {
+            st.pets[i].plan.clear();
+            st.pets[i].act = Act::Idle;
+            st.pets[i].posture = Posture::Standing;
+        }
+        st.race(0, 1, 100);
+        assert!(st.pets[..2].iter().all(|p| p.act == Act::Look && p.plan.front().is_some_and(|s| s.act == Act::Run)));
+        let finish: Vec<f32> = st.pets[..2].iter().map(|p| p.plan[0].to.unwrap().x).collect();
+        assert!((finish[0] - finish[1]).abs() > 1.0, "side by side at the line: {finish:?}");
+        let free = [0, 1, 2];
+        st.warm_by(2, &free, 200);
+        let ember = st.pets[2].at(200).x;
+        for i in 0..2 {
+            let to = st.pets[i].to.x;
+            assert!((to - ember).abs() < 12.0, "by Ember: {to} {ember}");
+        }
+    }
+
+    #[test]
+    fn in_a_work_round_they_keep_still_and_play_in_the_break() {
+        let mut st = state(&["cat", "duck"]);
+        st.pomodoro("work", 0);
+        assert!(st.working);
+        st.next_social = 0;
+        for t in (0..60_000).step_by(200) {
+            st.last_typed = t;
+            st.tick(t);
+            assert!(!matches!(st.pets[0].act, Act::Run | Act::Pounce), "no games in a work round");
+        }
+        for i in 0..2 {
+            st.pets[i].plan.clear();
+            st.pets[i].act = Act::Idle;
+            st.pets[i].posture = Posture::Standing;
+        }
+        st.pomodoro("break", 60_000);
+        assert!(!st.working);
+        assert!(st.pets.iter().all(|p| p.act == Act::Stretch), "a stretch, and play");
     }
 
     #[test]
@@ -1247,9 +1584,9 @@ mod tests {
         assert_eq!((st.pets[0].act, st.pets[0].posture), (Act::Ash, Posture::Gone));
         assert!(st.parts(0).contains(&"ash".to_string()));
         // Errors don't move the ash.
-        st.diagnostics(3, 3000);
+        st.diagnostics(3, 0, 3000);
         assert_eq!(st.pets[0].act, Act::Ash);
-        st.diagnostics(0, 3500);
+        st.diagnostics(0, 0, 3500);
         st.tick(4000);
         assert!(st.fx.list.iter().any(|p| p.frames == fx::SMOKE), "smoke from the ash");
         st.task_ended(true, 5000);
@@ -1262,13 +1599,13 @@ mod tests {
     #[test]
     fn errors_send_them_into_hiding_until_theyre_fixed() {
         let mut st = state(&["cat", "ferris"]);
-        st.diagnostics(2, 100);
+        st.diagnostics(2, 0, 100);
         assert!(st.pets.iter().all(|p| p.act == Act::Hide));
         for t in (200..20_000).step_by(250) {
             st.tick(t);
         }
         assert!(st.pets.iter().all(|p| p.act == Act::Hide), "still hiding");
-        st.diagnostics(0, 20_000);
+        st.diagnostics(0, 0, 20_000);
         assert!(st.pets.iter().all(|p| p.act == Act::Stretch));
     }
 

@@ -1,14 +1,18 @@
 # Pets
 
 Little 3D pets that live on Fenix's modeline: Ember (Fenix's phoenix),
-Ferris the crab, a cat and a rubber duck. They're low-poly toys, drawn
+Ferris the crab, a cat, a rubber duck, an owl, a fox and a snail. They're low-poly toys, drawn
 toon-shaded and outlined in your theme's light -- chunky pixel style by
 default, or smooth.
 
 They wander, sit, look about and stretch; hop up onto the edges of your
 panes; and nap together when you've stopped typing for a while. Now and
 then one comes up to sit in the margin beside the line you're on, and
-follows you from line to line.
+follows you from line to line, or trots over to where you're working.
+Each has its ways: the owl hoots, turning its head right round, and is up
+when you're up late; the fox creeps up on something in the grass and
+leaps; the snail takes its time, and hides right inside its shell; the cat
+bats its yarn about and pounces on it.
 
 They notice what you do:
 
@@ -27,7 +31,13 @@ They notice what you do:
 - **Open another file** and the one nearest the caret looks round.
 - **Click one** for a heart.
 - They play together, too: the cat stalks the duck, and they chase each
-  other. When they're happy they get the zoomies.
+  other, race, and get the zoomies when they're happy. In the snow they
+  gather round Ember to keep warm.
+- **New warnings** get a tilt of the head from the one nearest the caret.
+- **Late at night** they nap after a minute without typing -- all but the
+  owl.
+- **With the Pomodoro extension**, they keep still and quiet in a work
+  round, and stretch and play when the break comes.
 
 ## Looking after them
 
@@ -56,6 +66,7 @@ on), party hats.
 | `pets.size` | `small`, `medium` or `large` |
 | `pets.style` | `pixel` or `smooth` |
 | `pets.most` | How many you may have at once |
+| `pets.liveliness` | `calm`, `normal` or `lively` |
 | `pets.visits` | Whether one comes up to sit beside your line now and then |
 | `pets.seasons` | Snow and seasonal hats |
 

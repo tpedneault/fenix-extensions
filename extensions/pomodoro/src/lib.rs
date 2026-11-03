@@ -315,6 +315,17 @@ impl Pomodoro {
     }
 }
 
+/// What `pomodoro.state` answers: `{"phase": "work"}`, `"break"` or
+/// `"off"` when no round's running.
+fn state_json(running: bool, phase: Phase) -> String {
+    let phase = match (running, phase) {
+        (false, _) => "off",
+        (true, Phase::Work) => "work",
+        (true, _) => "break",
+    };
+    format!(r#"{{"phase": "{phase}"}}"#)
+}
+
 impl Extension for Pomodoro {
     fn activate(&mut self) -> Result<(), String> {
         self.settings();
@@ -394,6 +405,15 @@ impl Extension for Pomodoro {
         kind == "main"
     }
 
+    /// `pomodoro.state`: what the timer's doing, for other extensions --
+    /// the pets keep still in a work round and play in the break.
+    fn serve(&mut self, _call: u64, name: &str, _payload: &str) -> Option<Result<String, String>> {
+        match name {
+            "pomodoro.state" => Some(Ok(state_json(self.kept.timer.running(), self.kept.timer.phase))),
+            _ => Some(Err(format!("no service {name}"))),
+        }
+    }
+
     fn page_closed(&mut self, page: u64) {
         if self.page == Some(page) {
             self.page = None;
@@ -410,6 +430,15 @@ export!(Pomodoro);
 
 #[cfg(test)]
 mod tests {
+    use super::{state_json, Phase};
+
+    #[test]
+    fn its_state_is_served_for_other_extensions() {
+        assert_eq!(state_json(false, Phase::Work), r#"{"phase": "off"}"#);
+        assert_eq!(state_json(true, Phase::Work), r#"{"phase": "work"}"#);
+        assert_eq!(state_json(true, Phase::LongBreak), r#"{"phase": "break"}"#);
+    }
+
     /// What Fenix plays: a RIFF/WAVE file in its folder, well under 8 MiB.
     #[test]
     fn the_chime_is_a_small_wav() {

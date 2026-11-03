@@ -736,10 +736,189 @@ fn ball() -> Vec<u8> {
     r.finish(vec![roll])
 }
 
+/// The owl: round, big-eyed, tufted; a night bird, it turns its head
+/// right round to hoot.
+fn owl() -> Vec<u8> {
+    let brown = rgb(0.55, 0.4, 0.28);
+    let dark = rgb(0.38, 0.26, 0.18);
+    let belly = rgb(0.92, 0.82, 0.64);
+    let disc = rgb(0.98, 0.93, 0.8);
+    let beak = rgb(0.95, 0.68, 0.2);
+    let mut r = Rig::new();
+    let root = r.joint("root", None, Vec3::ZERO);
+    let body = r.joint("body", Some(root), Vec3::new(0.0, 0.3, 0.0));
+    r.ball(body, Vec3::new(0.0, 0.33, 0.0), Vec3::new(0.25, 0.3, 0.23), brown);
+    r.ball(body, Vec3::new(0.0, 0.3, 0.09), Vec3::new(0.18, 0.22, 0.15), belly);
+    for (k, y) in [0.36f32, 0.27, 0.18].into_iter().enumerate() {
+        let x = if k % 2 == 0 { 0.05 } else { -0.05 };
+        r.ball(body, Vec3::new(x, y, 0.235), Vec3::new(0.03, 0.015, 0.01), dark);
+    }
+    r.cone(body, Vec3::new(0.0, 0.1, -0.15), Vec3::new(0.0, 0.0, -0.3), 0.09, dark);
+    let head = r.joint("head", Some(body), Vec3::new(0.0, 0.6, 0.0));
+    r.ball(head, Vec3::new(0.0, 0.74, 0.0), Vec3::new(0.24, 0.2, 0.21), brown);
+    for x in [0.09f32, -0.09] {
+        r.ball(head, Vec3::new(x, 0.75, 0.15), Vec3::new(0.095, 0.1, 0.05), disc);
+        r.cone(head, Vec3::new(x * 1.6, 0.88, 0.0), Vec3::new(x * 2.0, 1.02, -0.03), 0.05, dark);
+    }
+    r.cone(head, Vec3::new(0.0, 0.72, 0.19), Vec3::new(0.0, 0.66, 0.24), 0.03, beak);
+    let eye_at = [Vec3::new(0.09, 0.76, 0.2), Vec3::new(-0.09, 0.76, 0.2)];
+    let eyes = r.eyes(head, eye_at, Vec3::new(0.05, 0.055, 0.02));
+    let mut wings = Vec::new();
+    for (name, x) in [("wing_l", 0.23f32), ("wing_r", -0.23)] {
+        let j = r.joint(name, Some(body), Vec3::new(x, 0.5, 0.0));
+        r.ball_turned(j, Vec3::new(x * 1.05, 0.33, -0.02), Vec3::new(0.06, 0.2, 0.15), rz(-6.0 * x.signum()), dark);
+        wings.push((j, x.signum()));
+    }
+    let mut legs = Vec::new();
+    for (name, x, phase) in [("foot_l", 0.09f32, 0.0f32), ("foot_r", -0.09, 0.5)] {
+        let j = r.joint(name, Some(body), Vec3::new(x, 0.08, 0.05));
+        r.tube(j, Vec3::new(x, 0.08, 0.05), Vec3::new(x, 0.02, 0.07), 0.03, 0.025, beak);
+        for k in [-1.0f32, 0.0, 1.0] {
+            r.cone(j, Vec3::new(x, 0.02, 0.07), Vec3::new(x + 0.035 * k, 0.01, 0.13), 0.014, beak);
+        }
+        legs.push((j, phase));
+    }
+    accessories(&mut r, &Fit { head, face: head, top: Vec3::new(0.0, 0.93, 0.0), size: 1.05, eyes: eye_at, neck: body, neck_at: Vec3::new(0.0, 0.58, 0.02), neck_r: 0.19 });
+    let p = Parts { root, body, head, eyes, legs, tail: Vec::new(), wings, sideways: false };
+    let mut clips = shared(&r, &p);
+    // A hoot: the head turned right round and back, the body puffed up.
+    let mut a = Anim::new(&r, 1.4, 28);
+    a.turn(head, |q| ry(160.0 * bump(q, 0.05, 0.55) - 160.0 * bump(q, 0.5, 0.95)));
+    a.scale(body, |q| Vec3::new(1.0 + 0.08 * bump(q, 0.3, 0.7), 1.0 + 0.05 * bump(q, 0.3, 0.7), 1.0 + 0.08 * bump(q, 0.3, 0.7)));
+    for &(w, side) in &p.wings {
+        a.turn(w, move |q| rz(side * 12.0 * bump(q, 0.3, 0.7)));
+    }
+    clips.push(a.done("hoot"));
+    r.finish(clips)
+}
+
+/// The fox: slim, red, a big white-tipped brush of a tail; it creeps up
+/// and leaps, as a fox does at a mouse in the grass.
+fn fox() -> Vec<u8> {
+    let red = rgb(0.93, 0.42, 0.14);
+    let white = rgb(0.99, 0.96, 0.9);
+    let dark = rgb(0.2, 0.13, 0.12);
+    let mut r = Rig::new();
+    let root = r.joint("root", None, Vec3::ZERO);
+    let body = r.joint("body", Some(root), Vec3::new(0.0, 0.38, 0.0));
+    r.ball(body, Vec3::new(0.0, 0.4, 0.0), Vec3::new(0.15, 0.15, 0.33), red);
+    r.ball(body, Vec3::new(0.0, 0.34, 0.1), Vec3::new(0.11, 0.1, 0.2), white);
+    let head = r.joint("head", Some(body), Vec3::new(0.0, 0.52, 0.28));
+    r.ball(head, Vec3::new(0.0, 0.62, 0.33), Vec3::new(0.15, 0.13, 0.14), red);
+    r.ball(head, Vec3::new(0.0, 0.57, 0.36), Vec3::new(0.12, 0.08, 0.12), white);
+    r.cone(head, Vec3::new(0.0, 0.59, 0.42), Vec3::new(0.0, 0.57, 0.58), 0.06, white);
+    r.ball(head, Vec3::new(0.0, 0.575, 0.585), Vec3::splat(0.022), dark);
+    for x in [0.08f32, -0.08] {
+        let s = x.signum();
+        r.cone(head, Vec3::new(x, 0.71, 0.3), Vec3::new(x + 0.035 * s, 0.9, 0.28), 0.06, red);
+        r.cone(head, Vec3::new(x, 0.72, 0.33), Vec3::new(x + 0.03 * s, 0.85, 0.315), 0.03, dark);
+    }
+    let eye_at = [Vec3::new(0.065, 0.65, 0.45), Vec3::new(-0.065, 0.65, 0.45)];
+    let eyes = r.eyes(head, eye_at, Vec3::new(0.026, 0.032, 0.018));
+    let mut legs = Vec::new();
+    for (name, x, z, phase) in [("leg_fl", 0.08f32, 0.2f32, 0.0f32), ("leg_fr", -0.08, 0.2, 0.5), ("leg_bl", 0.08, -0.2, 0.5), ("leg_br", -0.08, -0.2, 0.0)] {
+        let j = r.joint(name, Some(body), Vec3::new(x, 0.32, z));
+        r.tube(j, Vec3::new(x, 0.34, z), Vec3::new(x, 0.12, z), 0.045, 0.035, red);
+        r.tube(j, Vec3::new(x, 0.12, z), Vec3::new(x, 0.03, z), 0.035, 0.035, dark);
+        r.ball(j, Vec3::new(x, 0.03, z + 0.02), Vec3::new(0.045, 0.03, 0.06), dark);
+        legs.push((j, phase));
+    }
+    let t1 = r.joint("tail1", Some(body), Vec3::new(0.0, 0.44, -0.3));
+    let t2 = r.joint("tail2", Some(t1), Vec3::new(0.0, 0.42, -0.5));
+    r.ball_turned(t1, Vec3::new(0.0, 0.43, -0.42), Vec3::new(0.1, 0.1, 0.17), rx(10.0), red);
+    r.ball_turned(t2, Vec3::new(0.0, 0.4, -0.62), Vec3::new(0.085, 0.085, 0.1), rx(20.0), white);
+    accessories(&mut r, &Fit { head, face: head, top: Vec3::new(0.0, 0.74, 0.31), size: 0.85, eyes: eye_at, neck: body, neck_at: Vec3::new(0.0, 0.5, 0.25), neck_r: 0.11 });
+    let p = Parts { root, body, head, eyes, legs, tail: vec![t1, t2], wings: Vec::new(), sideways: false };
+    let mut clips = shared(&r, &p);
+    // Creeping, ears forward and the brush low; then the leap, up and
+    // down nose first.
+    let mut a = Anim::new(&r, 1.2, 24);
+    a.shift(root, |_| Vec3::new(0.0, -0.07, 0.0));
+    a.turn(head, |q| rx(14.0) * ry(5.0 * wave(q, 1.0, 0.0)));
+    for &(leg, phase) in &p.legs {
+        a.turn(leg, move |q| rx(12.0 * wave(q, 1.0, phase)));
+    }
+    a.turn(t1, |_| rx(-15.0));
+    a.turn(t2, |q| ry(15.0 * wave(q, 2.0, 0.0)));
+    clips.push(a.done("stalk"));
+    let mut a = Anim::new(&r, 0.8, 24);
+    a.shift(root, |q| Vec3::new(0.0, 0.35 * bump(q, 0.15, 0.85), 0.0));
+    a.turn(body, |q| rx(-35.0 * bump(q, 0.1, 0.45) + 45.0 * bump(q, 0.45, 0.9)));
+    for &(leg, _) in &p.legs {
+        let front = r.world[leg].z > 0.0;
+        a.turn(leg, move |q| rx(if front { -50.0 } else { 40.0 } * bump(q, 0.15, 0.85)));
+    }
+    a.turn(t1, |q| rx(-30.0 * bump(q, 0.1, 0.9)));
+    clips.push(a.done("pounce"));
+    r.finish(clips)
+}
+
+/// The snail: a shell on a soft foot, eyes on stalks; slow, and it hides
+/// right inside its shell.
+fn snail() -> Vec<u8> {
+    let skin = rgb(0.72, 0.82, 0.55);
+    let shell = rgb(0.75, 0.48, 0.3);
+    let band = rgb(0.95, 0.78, 0.5);
+    let mut r = Rig::new();
+    let root = r.joint("root", None, Vec3::ZERO);
+    let body = r.joint("body", Some(root), Vec3::new(0.0, 0.08, 0.0));
+    r.ball(body, Vec3::new(0.0, 0.07, 0.02), Vec3::new(0.13, 0.07, 0.36), skin);
+    let house = r.joint("shell", Some(body), Vec3::new(0.0, 0.25, -0.06));
+    r.ball(house, Vec3::new(0.0, 0.27, -0.06), Vec3::new(0.15, 0.22, 0.22), shell);
+    r.ball(house, Vec3::new(0.0, 0.29, -0.06), Vec3::new(0.155, 0.13, 0.13), band);
+    r.ball(house, Vec3::new(0.0, 0.3, -0.06), Vec3::new(0.16, 0.07, 0.07), shell);
+    let head = r.joint("head", Some(body), Vec3::new(0.0, 0.12, 0.3));
+    r.ball(head, Vec3::new(0.0, 0.16, 0.33), Vec3::new(0.09, 0.1, 0.09), skin);
+    let mut eye_at = [Vec3::ZERO; 2];
+    for (i, x) in [0.045f32, -0.045].into_iter().enumerate() {
+        r.tube(head, Vec3::new(x, 0.22, 0.35), Vec3::new(x * 1.6, 0.38, 0.38), 0.016, 0.012, skin);
+        eye_at[i] = Vec3::new(x * 1.6, 0.4, 0.385);
+    }
+    let eyes = r.eyes(head, eye_at, Vec3::new(0.025, 0.025, 0.02));
+    accessories(&mut r, &Fit { head: house, face: head, top: Vec3::new(0.0, 0.49, -0.06), size: 0.8, eyes: eye_at, neck: head, neck_at: Vec3::new(0.0, 0.14, 0.3), neck_r: 0.09 });
+    let p = Parts { root, body, head, eyes, legs: Vec::new(), tail: Vec::new(), wings: Vec::new(), sideways: false };
+    let mut clips = shared(&r, &p);
+    clips.retain(|(n, _)| n != "walk" && n != "run" && n != "hide");
+    // A glide on its foot: stretching and gathering, the shell rocking.
+    for (name, seconds) in [("walk", 1.4f32), ("run", 0.7)] {
+        let mut a = Anim::new(&r, seconds, 24);
+        a.scale(body, |q| Vec3::new(1.0, 1.0, 1.0 + 0.1 * wave(q, 1.0, 0.0)));
+        a.turn(house, |q| rx(4.0 * wave(q, 1.0, 0.25)));
+        a.turn(head, |q| rx(-5.0 * wave(q, 1.0, 0.5)));
+        clips.push(a.done(name));
+    }
+    // Hiding: all of it drawn into the shell.
+    let mut a = Anim::new(&r, 0.6, 12);
+    a.scale(head, |q| Vec3::splat(1.0 - 0.95 * ramp(q, 0.0, 0.6)));
+    a.shift(head, |q| Vec3::new(0.0, 0.0, -0.25 * ramp(q, 0.0, 0.6)));
+    a.scale(body, |q| Vec3::new(1.0, 1.0, 1.0 - 0.5 * ramp(q, 0.0, 0.6)));
+    a.turn(house, |q| rx(3.0 * wave(q, 2.0, 0.0) * (1.0 - ramp(q, 0.4, 1.0))));
+    clips.push(a.done("hide"));
+    r.finish(clips)
+}
+
+/// A ball of yarn for the cat: it rolls.
+fn yarn() -> Vec<u8> {
+    let wool = rgb(0.55, 0.45, 0.95);
+    let mut r = Rig::new();
+    let root = r.joint("root", None, Vec3::ZERO);
+    let ball = r.joint("ball", Some(root), Vec3::new(0.0, 0.5, 0.0));
+    r.ball(ball, Vec3::new(0.0, 0.5, 0.0), Vec3::splat(0.5), wool);
+    for k in 0..4 {
+        let turn = ry(45.0 * k as f32) * rx(70.0);
+        r.ball_turned(ball, Vec3::new(0.0, 0.5, 0.0), Vec3::new(0.51, 0.08, 0.51), turn, rgb(0.42, 0.33, 0.85));
+    }
+    r.tube(root, Vec3::new(0.3, 0.05, 0.3), Vec3::new(0.8, 0.02, 0.45), 0.03, 0.03, wool);
+    let mut a = Anim::new(&r, 0.6, 12);
+    a.turn(ball, |q| rz(-360.0 * q));
+    let roll = a.done("roll");
+    r.finish(vec![roll])
+}
+
 fn main() {
     let out = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../models");
     std::fs::create_dir_all(&out).expect("the models folder");
-    for (name, glb) in [("cat", cat()), ("duck", duck()), ("ferris", ferris()), ("ember", ember()), ("ball", ball())] {
+    for (name, glb) in [("cat", cat()), ("duck", duck()), ("ferris", ferris()), ("ember", ember()), ("owl", owl()), ("fox", fox()), ("snail", snail()), ("ball", ball()), ("yarn", yarn())] {
         let model = fenix_model::Model::from_glb(&glb).unwrap_or_else(|e| panic!("{name}: {e}"));
         let clips: Vec<String> = model.clips.iter().map(|c| format!("{} {:.2}", c.name, c.seconds)).collect();
         println!("{name}: {} bytes, {} vertices; {}", glb.len(), model.parts.iter().map(|p| p.vertices()).sum::<usize>(), clips.join(", "));
