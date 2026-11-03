@@ -83,7 +83,7 @@ checksum = "00d174d5400e5e8fd687ad1049e2f578285fa914201b1af7e8b112a4546bd826"
 [[package]]
 name = "fenix-extension-api"
 version = "1.0.0"
-source = "git+https://github.com/tpedneault/fenix?rev=a15e4576cfdc1b266b95a2253e67764e85032586#a15e4576cfdc1b266b95a2253e67764e85032586"
+source = "git+https://github.com/tpedneault/fenix?rev=aeaa0a65358bc5c756a04ecd8156216c7b549371#aeaa0a65358bc5c756a04ecd8156216c7b549371"
 dependencies = [
  "chrono",
  "lsp-types",
