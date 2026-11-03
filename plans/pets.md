@@ -3,9 +3,10 @@
 The plan for growing the Pets extension, most worthwhile first. Each step
 should be a release that stands on its own.
 
-## Done in 1.0.2
+## Done in 1.1.0, part one
 
-Everything below needs only extension API 1.0.
+Everything below needs only extension API 1.0. It was built as 1.0.2,
+but ships in 1.1.0: 1.0.2 was never released.
 
 - **Rubber duck debugging**: the duck sits by the caret and listens for
   the whole debug session, and quacks at breakpoints.
@@ -27,7 +28,7 @@ Everything below needs only extension API 1.0.
 - **Fenix 1.0.1 fix**: model frames are drawn at the rate the extension
   asks for.
 
-## 1.1: reactions on extension API 1.1 (done, for Fenix 1.0.1)
+## Done in 1.1.0, part two: reactions on extension API 1.1 (Fenix 1.0.1)
 
 **The constraint.** Extension API 1.0 is one WIT world. Fenix's bindings
 (`Extension::new`) need every export the world declares, and the
@@ -66,8 +67,7 @@ only imports, and the pets ask for what's new.
 
 Decided: API 1.1 ships in Fenix 1.0.1, and `git-state` is gated by
 `events = ["git"]`, with no install prompt, like the other editor events.
-Before tagging `pets-v1.1.0`, point its `fenix-extension-api` at the tag
-`v1.0.1` instead of the commit it builds against now.
+It builds against Fenix's tag `v1.0.1`.
 
 ## Polish, anytime
 
