@@ -20,9 +20,14 @@ They notice what you do:
   listen. The cat sits it out.
 - **Type for a while without stopping** and Ember catches fire, running
   along the modeline trailing flames.
+- **Debug** and the rubber duck comes to sit by the line you're on and
+  listens until the session's over. It quacks at each breakpoint, and the
+  others start.
+- **Come back after a while away** and they look up and greet you.
+- **Open another file** and the one nearest the caret looks round.
 - **Click one** for a heart.
 - They play together, too: the cat stalks the duck, and they chase each
-  other.
+  other. When they're happy they get the zoomies.
 
 ## Looking after them
 

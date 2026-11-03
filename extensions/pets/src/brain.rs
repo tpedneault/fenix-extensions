@@ -33,6 +33,10 @@ const SAVE_XP_EVERY: u64 = 20_000;
 pub const BALL_ID: u32 = 900;
 /// A long while: until something happens.
 const UNTIL_TOLD: u64 = u64::MAX / 4;
+/// Away this long, and they greet you when you're back.
+const AWAY_AFTER: u64 = 90_000;
+/// Moving between files makes one look round this often, at most.
+const LOOK_ROUND_EVERY: u64 = 5000;
 
 /// One step of a plan: an act, where it goes (if anywhere), how long it
 /// lasts (else its clip's length, or a few seconds).
@@ -174,6 +178,10 @@ pub struct State {
     next_visit: u64,
     next_flake: u64,
     drifted_at: u64,
+    /// The debug session the rubber duck is listening to.
+    debugging: Option<u64>,
+    /// When moving between files last made one look round.
+    looked_round_at: u64,
 }
 
 impl State {
@@ -205,6 +213,8 @@ impl State {
             next_visit: 120_000,
             next_flake: 0,
             drifted_at: 0,
+            debugging: None,
+            looked_round_at: 0,
         }
     }
 
@@ -370,6 +380,10 @@ impl State {
         if self.errors > 0 {
             return vec![Step::lasting(Act::Hide, UNTIL_TOLD)];
         }
+        // Debugging: the rubber duck stays by you, listening.
+        if self.debugging.is_some() && kind == "duck" && posture != Posture::Lying {
+            return vec![Step::lasting(Act::Listen, 8000)];
+        }
         // Up on a ledge, or visiting: back home before long.
         if here.floor != home && !matches!(here.floor, Floor::Margin(_))
             && (self.random() < 0.5 || !self.screen.has(here.floor)) {
@@ -380,16 +394,16 @@ impl State {
         let seated = posture == Posture::Sitting;
         let far = self.between(4.0, 22.0) * if self.random() < 0.5 { -1.0 } else { 1.0 };
         let wide = Spot::new(here.floor, here.x + far);
-        if seated && roll < 0.55 {
-            return vec![Step::lasting(Act::Sit, self.between(3000.0, 8000.0) as u64)];
+        if seated && roll < 0.4 {
+            return vec![Step::lasting(Act::Sit, self.between(2500.0, 6000.0) as u64)];
         }
         match roll {
-            r if r < 0.32 => vec![Step::go(Act::Walk, wide)],
-            r if r < 0.47 => vec![Step::lasting(Act::Sit, self.between(4000.0, 10000.0) as u64)],
-            r if r < 0.57 => vec![Step::act(Act::Look)],
-            r if r < 0.61 => vec![Step::act(Act::Stretch)],
-            r if r < 0.66 && happy > 70.0 => vec![Step::lasting(Act::Happy, 1600)],
-            r if r < 0.71 => {
+            r if r < 0.36 => vec![Step::go(Act::Walk, wide)],
+            r if r < 0.46 => vec![Step::lasting(Act::Sit, self.between(3000.0, 7000.0) as u64)],
+            r if r < 0.56 => vec![Step::act(Act::Look)],
+            r if r < 0.60 => vec![Step::act(Act::Stretch)],
+            r if r < 0.65 && happy > 70.0 => vec![Step::lasting(Act::Happy, 1600)],
+            r if r < 0.70 => {
                 let ledges = self.screen.ledges();
                 if ledges.is_empty() || here.floor != home {
                     vec![Step::go(Act::Walk, wide)]
@@ -399,10 +413,15 @@ impl State {
                     vec![Step::go(if kind == "ember" { Act::Fly } else { Act::Hop }, Spot::new(pick, x)), Step::lasting(Act::Sit, self.between(5000.0, 12000.0) as u64)]
                 }
             }
-            r if r < 0.76 && kind == "duck" => vec![Step::act(Act::Quack)],
-            r if r < 0.76 && kind == "ferris" => vec![Step::lasting(Act::Snap, 1800)],
-            r if r < 0.76 && kind == "ember" => vec![Step::go(Act::Fly, wide)],
-            _ => vec![Step::lasting(Act::Idle, self.between(2000.0, 5000.0) as u64)],
+            // The zoomies: a dash one way and back again, when content.
+            r if r < 0.74 && happy > 50.0 => {
+                let dash = self.between(10.0, 18.0) * far.signum();
+                vec![Step::go(Act::Run, Spot::new(here.floor, here.x + dash)), Step::go(Act::Run, Spot::new(here.floor, here.x + dash * 0.3)), Step::act(Act::Look)]
+            }
+            r if r < 0.79 && kind == "duck" => vec![Step::act(Act::Quack)],
+            r if r < 0.79 && kind == "ferris" => vec![Step::lasting(Act::Snap, 1800)],
+            r if r < 0.79 && kind == "ember" => vec![Step::go(Act::Fly, wide)],
+            _ => vec![Step::lasting(Act::Idle, self.between(1000.0, 2500.0) as u64)],
         }
     }
 
@@ -501,6 +520,108 @@ impl State {
                 _ if !self.pets[i].gone() => self.plan(i, vec![Step::lasting(Act::Hide, 3000)], now, true),
                 _ => {}
             }
+        }
+    }
+
+    /// A debug session started: the rubber duck comes to sit by the line
+    /// you're on and listens until it's over; the others look up. An
+    /// adapter's child sessions are part of the one already going.
+    pub fn debug_started(&mut self, id: u64, now: u64) {
+        if self.debugging.is_some() {
+            return;
+        }
+        self.debugging = Some(id);
+        let home = self.home_floor();
+        let caret = self.screen.caret.map(|(c, _)| c as f32);
+        for i in 0..self.pets.len() {
+            if self.pets[i].gone() || self.pets[i].posture == Posture::Lying {
+                continue;
+            }
+            if self.pets[i].kind == "duck" {
+                let x = caret.unwrap_or(self.pets[i].at(now).x) + 3.0;
+                self.plan(i, vec![Step::go(Act::Walk, Spot::new(home, x)), Step::lasting(Act::Listen, UNTIL_TOLD)], now, true);
+            } else if self.pets[i].free() {
+                self.plan(i, vec![Step::act(Act::Look)], now, true);
+            }
+        }
+    }
+
+    /// Stopped at a breakpoint: a start from each who's watching, and the
+    /// duck quacks; a step only gets a look.
+    pub fn debug_paused(&mut self, breakpoint: bool, now: u64) {
+        if self.debugging.is_none() {
+            return;
+        }
+        for i in 0..self.pets.len() {
+            if self.pets[i].gone() || self.pets[i].posture == Posture::Lying {
+                continue;
+            }
+            if breakpoint {
+                let head = self.head(i, now);
+                self.fx.add(now, &[fx::BANG], 0, head, nudge(&head, 0.0, -0.8), 800, Ease::Out, 0.0, 0.6);
+            }
+            if self.pets[i].kind == "duck" {
+                let steps = if breakpoint { vec![Step::act(Act::Quack), Step::lasting(Act::Listen, UNTIL_TOLD)] } else { vec![Step::lasting(Act::Listen, UNTIL_TOLD)] };
+                self.plan(i, steps, now, true);
+            } else if breakpoint && self.pets[i].free() {
+                self.plan(i, vec![Step::act(Act::Jump), Step::act(Act::Look)], now, true);
+            }
+        }
+    }
+
+    /// The debug session's over: the duck's pleased it helped, and goes
+    /// back to its day; the others stretch.
+    pub fn debug_ended(&mut self, id: u64, now: u64) {
+        if self.debugging != Some(id) {
+            return;
+        }
+        self.debugging = None;
+        for i in 0..self.pets.len() {
+            if self.pets[i].gone() || self.pets[i].posture == Posture::Lying {
+                continue;
+            }
+            if self.pets[i].kind == "duck" {
+                self.sparkle(i, now);
+                self.plan(i, vec![Step::lasting(Act::Happy, 1400)], now, true);
+            } else if self.pets[i].free() {
+                self.plan(i, vec![Step::act(Act::Stretch)], now, true);
+            }
+        }
+    }
+
+    /// A key, the first in a while: back after a good while away, those
+    /// awake look up and greet you, one with a heart.
+    pub fn came_back(&mut self, now: u64) {
+        if now.saturating_sub(self.last_typed) < AWAY_AFTER || self.errors > 0 {
+            return;
+        }
+        let mut hearted = false;
+        for i in 0..self.pets.len() {
+            if self.pets[i].gone() || self.pets[i].posture == Posture::Lying || !self.pets[i].free() {
+                continue;
+            }
+            if !hearted {
+                hearted = true;
+                let head = self.head(i, now);
+                self.fx.add(now, &[fx::HEART], 0, head, nudge(&head, 0.0, -1.6), 1300, Ease::Out, 0.0, 0.8);
+            }
+            self.plan(i, vec![Step::act(Act::Look), Step::lasting(Act::Happy, 1200)], now, true);
+        }
+    }
+
+    /// You moved to another file: the pet nearest the caret looks round.
+    pub fn focus_moved(&mut self, now: u64) {
+        if now.saturating_sub(self.looked_round_at) < LOOK_ROUND_EVERY && self.looked_round_at > 0 {
+            return;
+        }
+        let caret = self.screen.caret.map(|(c, _)| c as f32);
+        let nearest = (0..self.pets.len()).filter(|&i| self.pets[i].free() && !self.pets[i].gone() && self.pets[i].posture != Posture::Lying && !self.pets[i].moving(now)).min_by(|&a, &b| {
+            let d = |i: usize| caret.map_or(i as f32, |c| (self.pets[i].at(now).x - c).abs());
+            d(a).total_cmp(&d(b))
+        });
+        if let Some(i) = nearest {
+            self.looked_round_at = now;
+            self.plan(i, vec![Step::act(Act::Look)], now, true);
         }
     }
 
@@ -662,7 +783,7 @@ impl State {
         }
         self.puffs(now);
         if now >= self.next_social {
-            self.next_social = now + self.between(40_000.0, 120_000.0) as u64;
+            self.next_social = now + self.between(25_000.0, 75_000.0) as u64;
             self.social(now);
         }
         if now >= self.next_visit {
@@ -1036,6 +1157,81 @@ mod tests {
         assert!(st.fx.list.iter().any(|p| p.frames == [fx::ZED] || p.frames == [fx::ZED_BIG]), "z's");
         st.typing(later + 41_000);
         assert!(st.pets.iter().all(|p| p.act == Act::Wake));
+    }
+
+    #[test]
+    fn the_rubber_duck_listens_while_you_debug() {
+        let mut st = state(&["duck", "cat"]);
+        st.tick(0);
+        st.debug_started(7, 1000);
+        assert_eq!(st.pets[0].act, Act::Walk, "the duck comes over");
+        st.debug_started(8, 1100);
+        for t in (1100..20_000).step_by(250) {
+            st.tick(t);
+        }
+        assert_eq!(st.pets[0].act, Act::Listen, "and listens");
+        st.debug_paused(true, 20_000);
+        assert_eq!(st.pets[0].act, Act::Quack, "a breakpoint: a quack");
+        assert!(st.fx.list.iter().any(|p| p.frames == [fx::BANG]));
+        for t in (20_000..40_000).step_by(250) {
+            st.tick(t);
+        }
+        assert_eq!(st.pets[0].act, Act::Listen, "listening still");
+        st.debug_ended(8, 40_000);
+        assert_eq!(st.pets[0].act, Act::Listen, "a child session's end isn't the end");
+        st.debug_ended(7, 40_000);
+        assert_eq!(st.pets[0].act, Act::Happy, "pleased it helped");
+        for t in (40_000..90_000).step_by(250) {
+            st.tick(t);
+        }
+        assert!(st.debugging.is_none());
+    }
+
+    #[test]
+    fn back_after_a_while_they_greet_you_and_a_new_file_gets_a_look() {
+        let mut st = state(&["cat", "ferris"]);
+        st.last_typed = 0;
+        st.tick(0);
+        for i in 0..2 {
+            st.pets[i].plan.clear();
+            st.pets[i].act = Act::Idle;
+            st.pets[i].posture = Posture::Standing;
+        }
+        st.came_back(30_000);
+        assert!(st.pets.iter().all(|p| p.act == Act::Idle), "only after a good while");
+        st.came_back(AWAY_AFTER + 1000);
+        assert!(st.pets.iter().all(|p| p.act == Act::Look), "they look up");
+        assert!(st.fx.list.iter().any(|p| p.frames == [fx::HEART]));
+        for i in 0..2 {
+            st.pets[i].plan.clear();
+            st.pets[i].act = Act::Idle;
+            st.pets[i].posture = Posture::Standing;
+        }
+        st.focus_moved(200_000);
+        assert_eq!(st.pets.iter().filter(|p| p.act == Act::Look).count(), 1, "one looks round");
+        for i in 0..2 {
+            st.pets[i].plan.clear();
+            st.pets[i].act = Act::Idle;
+            st.pets[i].posture = Posture::Standing;
+        }
+        st.focus_moved(201_000);
+        assert!(st.pets.iter().all(|p| p.act == Act::Idle), "not every time");
+    }
+
+    #[test]
+    fn they_get_about() {
+        let mut st = state(&["cat"]);
+        st.last_typed = 0;
+        let mut acts = std::collections::HashSet::new();
+        let mut walking = 0;
+        for t in (0..120_000).step_by(200) {
+            st.last_typed = t;
+            st.tick(t);
+            acts.insert(st.pets[0].act);
+            walking += st.pets[0].moving(t) as u32;
+        }
+        assert!(walking * 200 > 20_000, "on the move a good part of two minutes: {walking}");
+        assert!(acts.len() >= 5, "{acts:?}");
     }
 
     #[test]
