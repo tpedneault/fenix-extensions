@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pets"
 name = "Pets"
-version = "1.1.0"
+version = "1.0.2"
 description = "Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -73,6 +73,13 @@ kind = "choice"
 description = "How they're drawn: pixel (chunky, to sit with pixel art) or smooth."
 default = "pixel"
 choices = ["pixel", "smooth"]
+
+[[contributes.settings]]
+key = "pets.liveliness"
+kind = "choice"
+description = "How busy they are: calm ones linger, lively ones are always up to something."
+default = "normal"
+choices = ["calm", "normal", "lively"]
 
 [[contributes.settings]]
 key = "pets.visits"

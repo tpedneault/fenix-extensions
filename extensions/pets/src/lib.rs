@@ -34,6 +34,8 @@ enum Asked {
     Rehome,
     Dress(u32),
     Rename(u32),
+    /// What the Pomodoro timer's doing (`pomodoro.state`).
+    Pomodoro,
 }
 
 #[derive(Default)]
@@ -49,6 +51,19 @@ struct Pets {
     home: Option<u64>,
     focus: usize,
     kept_at: u64,
+    /// What the layer was last set to: an unchanged one isn't sent again.
+    drawn: Option<Vec<fenix_extension_api::Item>>,
+    /// When the hour was last read.
+    hour_at: Option<u64>,
+    /// When the Pomodoro timer was last asked about.
+    pomodoro_at: Option<u64>,
+}
+
+/// The hour, local time.
+fn local_hour() -> u8 {
+    let utc = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    let local = utc + i64::from(host::utc_offset(utc));
+    (local.rem_euclid(86_400) / 3600) as u8
 }
 
 /// Days since 1970, today.
@@ -69,7 +84,12 @@ impl Pets {
     fn draw(&mut self) {
         let now = self.now();
         let (Some(layer), Some(st)) = (self.layer, self.state.as_ref()) else { return };
-        layer::set(layer, &st.items(now, &self.models, self.ball, self.fx));
+        let items = st.items(now, &self.models, self.ball, self.fx);
+        // Each send has Fenix draw again: none while nothing's changed.
+        if self.drawn.as_ref() != Some(&items) {
+            layer::set(layer, &items);
+            self.drawn = Some(items);
+        }
     }
 
     fn keep(&mut self) {
@@ -104,6 +124,11 @@ impl Pets {
         let style = if setting("pets.style").as_deref() == Some("smooth") { Style::Smooth } else { Style::Pixel };
         let off = |key: &str| setting(key).as_deref() == Some("false");
         let (seasons, visits) = (!off("pets.seasons"), !off("pets.visits"));
+        let pace = match setting("pets.liveliness").as_deref() {
+            Some("calm") => 1.6,
+            Some("lively") => 0.6,
+            _ => 1.0,
+        };
         let st = self.state();
         st.size = size;
         st.home = home;
@@ -111,6 +136,7 @@ impl Pets {
         st.style = style;
         st.seasons = seasons;
         st.visits = visits;
+        st.pace = pace;
     }
 
     fn rehome(&mut self) {
@@ -162,6 +188,9 @@ impl Extension for Pets {
             }
         }
         self.ball = layer::model("models/ball.glb").map(|info| info.id).ok();
+        if let Ok(info) = layer::model("models/yarn.glb") {
+            self.models.insert("yarn".into(), info.id);
+        }
         self.fx = layer::sheet("sprites/fx.png", (16, 16)).ok();
         self.layer = Some(layer::open(LayerLevel::AboveText)?);
         let day = today();
@@ -173,6 +202,7 @@ impl Extension for Pets {
         };
         let mut st = State::new(pets, seed, day);
         st.clips = clips;
+        st.has_yarn = self.models.contains_key("yarn");
         self.state = Some(st);
         self.settings();
         if first {
@@ -227,6 +257,17 @@ impl Extension for Pets {
         let now = self.now();
         match event {
             Event::Timer(_) | Event::Arrived(_) => {
+                if self.hour_at.is_none_or(|at| now.saturating_sub(at) >= 60_000) {
+                    self.hour_at = Some(now);
+                    let hour = local_hour();
+                    self.state().hour = hour;
+                }
+                // The Pomodoro timer, when it's installed: asked now and then.
+                if self.pomodoro_at.is_none_or(|at| now.saturating_sub(at) >= 20_000) {
+                    self.pomodoro_at = Some(now);
+                    let call = fenix_extension_api::call_service("pomodoro.state", "null");
+                    self.asked.insert(call, Asked::Pomodoro);
+                }
                 self.state().tick(now);
                 if self.state().dirty && now.saturating_sub(self.kept_at) > 30_000 {
                     self.keep();
@@ -235,7 +276,7 @@ impl Extension for Pets {
             Event::Layout(layout) => self.state().layout(Screen::from_layout(&layout), now),
             Event::LayerClicked((_, item)) => self.state().petted(item, now),
             Event::Saved(_) => self.state().saved(now),
-            Event::Diagnostics((errors, _)) => self.state().diagnostics(errors, now),
+            Event::Diagnostics((errors, warnings)) => self.state().diagnostics(errors, warnings, now),
             Event::TaskEnded(ok) => self.state().task_ended(ok, now),
             Event::Typing => self.state().typing(now),
             Event::Active => self.state().came_back(now),
@@ -298,6 +339,12 @@ impl Extension for Pets {
                 }
                 _ => {}
             },
+            Event::ServiceReply((id, reply)) if matches!(self.asked.get(&id), Some(Asked::Pomodoro)) => {
+                self.asked.remove(&id);
+                // Not installed (an error) is the same as no round.
+                let phase = reply.ok().and_then(|text| fenix_extension_api::serde_json::from_str::<fenix_extension_api::serde_json::Value>(&text).ok()).and_then(|v| v["phase"].as_str().map(String::from));
+                self.state().pomodoro(phase.as_deref().unwrap_or("off"), now);
+            }
             Event::Picked((id, None)) | Event::Prompted((id, None)) => {
                 self.asked.remove(&id);
             }
