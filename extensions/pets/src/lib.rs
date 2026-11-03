@@ -15,7 +15,7 @@ pub mod world;
 use std::collections::HashMap;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use fenix_extension_api::{export, host, layer, page, Event, Extension, Key, LayerLevel, Page, PickerItem, Style};
+use fenix_extension_api::{export, host, layer, page, DebugState, Event, Extension, Key, LayerLevel, Page, PickerItem, Style};
 
 use acts::KINDS;
 use brain::{Home, State};
@@ -238,6 +238,8 @@ impl Extension for Pets {
             Event::Diagnostics((errors, _)) => self.state().diagnostics(errors, now),
             Event::TaskEnded(ok) => self.state().task_ended(ok, now),
             Event::Typing => self.state().typing(now),
+            Event::Active => self.state().came_back(now),
+            Event::FocusChanged(_) => self.state().focus_moved(now),
             Event::SettingChanged(_) => self.settings(),
             Event::PageShown((page, false)) if Some(page) == self.home => {}
             Event::Picked((id, Some(value))) => match self.asked.remove(&id) {
@@ -305,7 +307,18 @@ impl Extension for Pets {
         self.draw();
     }
 
-    fn page(&mut self, _page: u64, width: u32, _height: u32) -> Page {
+    fn debug_changed(&mut self, state: DebugState) {
+        let now = self.now();
+        match state {
+            DebugState::Started(session) => self.state().debug_started(session.id, now),
+            DebugState::Paused((_, why)) => self.state().debug_paused(why == "breakpoint", now),
+            DebugState::Resumed(_) => return,
+            DebugState::Ended(id) => self.state().debug_ended(id, now),
+        }
+        self.draw();
+    }
+
+        fn page(&mut self, _page: u64, width: u32, _height: u32) -> Page {
         let focus = self.focus;
         home::render(self.state(), focus, width)
     }
