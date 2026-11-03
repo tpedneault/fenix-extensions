@@ -38,6 +38,13 @@ They notice what you do:
   owl.
 - **With the Pomodoro extension**, they keep still and quiet in a work
   round, and stretch and play when the break comes.
+- **Commit** and the one nearest the caret throws confetti; **push** and
+  they hop to see it off; a **merge conflict** sends them into hiding until
+  it's resolved.
+- **A task starts** and one sits down to watch it, dozing off if it drags.
+  **100 tests or more passed** is a party.
+- **A coding agent finishes** and one cheers; an error, and Ember singes.
+  They hear only that it finished, never what it said.
 
 ## Looking after them
 

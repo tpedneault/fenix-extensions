@@ -15,10 +15,10 @@ pub mod world;
 use std::collections::HashMap;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use fenix_extension_api::{export, host, layer, page, DebugState, Event, Extension, Key, LayerLevel, Page, PickerItem, Style};
+use fenix_extension_api::{export, host, layer, page, AgentTurn, DebugState, Event, Extension, Key, LayerLevel, Page, PickerItem, Style};
 
 use acts::KINDS;
-use brain::{Home, State};
+use brain::{Home, Repo, State};
 use home::Action;
 use world::Screen;
 
@@ -57,6 +57,8 @@ struct Pets {
     hour_at: Option<u64>,
     /// When the Pomodoro timer was last asked about.
     pomodoro_at: Option<u64>,
+    /// When the repository was last looked at.
+    git_at: Option<u64>,
 }
 
 /// The hour, local time.
@@ -262,6 +264,13 @@ impl Extension for Pets {
                     let hour = local_hour();
                     self.state().hour = hour;
                 }
+                // The repository, every couple of seconds: a commit, a push,
+                // a conflict (API 1.1).
+                if self.git_at.is_none_or(|at| now.saturating_sub(at) >= 2000) {
+                    self.git_at = Some(now);
+                    let repo = host::git_state().map(|g| Repo { branch: g.branch, head: g.head, ahead: g.ahead, behind: g.behind, conflicts: g.conflicts });
+                    self.state().git(repo, now);
+                }
                 // The Pomodoro timer, when it's installed: asked now and then.
                 if self.pomodoro_at.is_none_or(|at| now.saturating_sub(at) >= 20_000) {
                     self.pomodoro_at = Some(now);
@@ -277,7 +286,11 @@ impl Extension for Pets {
             Event::LayerClicked((_, item)) => self.state().petted(item, now),
             Event::Saved(_) => self.state().saved(now),
             Event::Diagnostics((errors, warnings)) => self.state().diagnostics(errors, warnings, now),
-            Event::TaskEnded(ok) => self.state().task_ended(ok, now),
+            Event::TaskEnded(ok) => {
+                // Its tests' counts, when Fenix read them (API 1.1).
+                let tests = host::last_task().and_then(|t| t.tests);
+                self.state().task_ended_with(ok, tests, now);
+            }
             Event::Typing => self.state().typing(now),
             Event::Active => self.state().came_back(now),
             Event::FocusChanged(_) => self.state().focus_moved(now),
@@ -351,6 +364,18 @@ impl Extension for Pets {
             _ => return,
         }
         self.tell();
+        self.draw();
+    }
+
+    fn task_started(&mut self, _name: &str) {
+        let now = self.now();
+        self.state().task_started(now);
+        self.draw();
+    }
+
+    fn agent_turn_ended(&mut self, turn: AgentTurn) {
+        let now = self.now();
+        self.state().agent_done(&turn.stop_reason, now);
         self.draw();
     }
 
