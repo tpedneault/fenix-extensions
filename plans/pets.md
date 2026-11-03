@@ -67,8 +67,7 @@ only imports, and the pets ask for what's new.
 
 Decided: API 1.1 ships in Fenix 1.0.1, and `git-state` is gated by
 `events = ["git"]`, with no install prompt, like the other editor events.
-Before tagging `pets-v1.1.0`, point its `fenix-extension-api` at the tag
-`v1.0.1` instead of the commit it builds against now.
+It builds against Fenix's tag `v1.0.1`.
 
 ## Polish, anytime
 
