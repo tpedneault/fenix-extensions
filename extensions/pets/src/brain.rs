@@ -39,6 +39,10 @@ pub const YARN_ID: u32 = 901;
 const UNTIL_TOLD: u64 = u64::MAX / 4;
 /// Away this long, and they greet you when you're back.
 const AWAY_AFTER: u64 = 90_000;
+/// A build running this long, and its watcher dozes off.
+const BUILD_DOZE_AFTER: u64 = 2 * 60 * 1000;
+/// Tests passed in one run for a party, not just a cheer.
+const PARTY_FROM: u32 = 100;
 /// Moving between files makes one look round this often, at most.
 const LOOK_ROUND_EVERY: u64 = 5000;
 
@@ -210,6 +214,58 @@ pub struct State {
     pub has_yarn: bool,
     /// A Pomodoro work round is on: they keep still and quiet.
     pub working: bool,
+    /// The repository as last seen (`git-state`): what changed tells them
+    /// of a commit, a push, a conflict.
+    pub git: Option<Repo>,
+    /// Files left in conflict: they hide till they're resolved.
+    pub conflicts: u32,
+    /// A task's running: since when, and which pet's watching it.
+    pub building: Option<(u64, u32)>,
+}
+
+/// What they know of the repository.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Repo {
+    pub branch: Option<String>,
+    pub head: Option<String>,
+    pub ahead: u32,
+    pub behind: u32,
+    pub conflicts: u32,
+}
+
+/// What a change in the repository was.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GitChange {
+    Committed,
+    Pushed,
+    Pulled,
+    Conflicted,
+    Resolved,
+    Switched,
+}
+
+impl Repo {
+    /// What happened between `was` and `now`, most telling first.
+    pub fn changes(was: &Repo, now: &Repo) -> Vec<GitChange> {
+        let mut out = Vec::new();
+        if was.conflicts == 0 && now.conflicts > 0 {
+            out.push(GitChange::Conflicted);
+        } else if was.conflicts > 0 && now.conflicts == 0 {
+            out.push(GitChange::Resolved);
+        }
+        if was.branch != now.branch {
+            out.push(GitChange::Switched);
+        } else if was.head != now.head && now.head.is_some() {
+            if now.behind < was.behind && now.ahead <= was.ahead {
+                out.push(GitChange::Pulled);
+            } else if now.conflicts == 0 {
+                out.push(GitChange::Committed);
+            }
+        } else if was.ahead > 0 && now.ahead == 0 && now.behind == 0 {
+            out.push(GitChange::Pushed);
+        }
+        out
+    }
 }
 
 /// The cat's yarn, rolling from one spot to another.
@@ -266,6 +322,9 @@ impl State {
             yarn: None,
             has_yarn: false,
             working: false,
+            git: None,
+            conflicts: 0,
+            building: None,
         }
     }
 
@@ -433,8 +492,14 @@ impl State {
         if posture == Posture::Gone {
             return vec![Step::lasting(Act::Ash, UNTIL_TOLD)];
         }
-        if self.errors > 0 {
+        if self.errors > 0 || self.conflicts > 0 {
             return vec![Step::lasting(Act::Hide, UNTIL_TOLD)];
+        }
+        // Watching a build: sitting, and dozing off if it goes on.
+        if let Some((since, watcher)) = self.building {
+            if self.pets[i].uid == watcher {
+                return if now.saturating_sub(since) > BUILD_DOZE_AFTER { vec![Step::act(Act::LieDown), Step::lasting(Act::Sleep, UNTIL_TOLD)] } else { vec![Step::lasting(Act::Sit, 5000)] };
+            }
         }
         // Debugging: the rubber duck stays by you, listening.
         if self.debugging.is_some() && kind == "duck" && posture != Posture::Lying {
@@ -575,6 +640,27 @@ impl State {
     /// ash. Failed: Ember burns up, the rubber duck comes to listen, the
     /// cat sits it out, Ferris ducks.
     pub fn task_ended(&mut self, ok: bool, now: u64) {
+        self.task_ended_with(ok, None, now);
+    }
+
+    /// A task ended, with its tests' counts when Fenix read them: a big
+    /// pass is a party, confetti from every one of them.
+    pub fn task_ended_with(&mut self, ok: bool, tests: Option<(u32, u32)>, now: u64) {
+        // The watcher wakes for the result.
+        if let Some((_, watcher)) = self.building.take() {
+            if let Some(i) = self.pets.iter().position(|p| p.uid == watcher) {
+                if self.pets[i].posture == Posture::Lying {
+                    self.plan(i, vec![Step::act(Act::Wake)], now, true);
+                }
+            }
+        }
+        if ok && tests.is_some_and(|(passed, failed)| failed == 0 && passed >= PARTY_FROM) {
+            for i in 0..self.pets.len() {
+                if !self.pets[i].gone() {
+                    self.confetti(i, now);
+                }
+            }
+        }
         let home = self.home_floor();
         let caret = self.screen.caret.map(|(c, _)| c as f32);
         for i in 0..self.pets.len() {
@@ -704,6 +790,104 @@ impl State {
         if let Some(i) = nearest {
             self.looked_round_at = now;
             self.plan(i, vec![Step::act(Act::Look)], now, true);
+        }
+    }
+
+    /// A task started: the one nearest the caret sits down to watch it.
+    pub fn task_started(&mut self, now: u64) {
+        let caret = self.screen.caret.map(|(c, _)| c as f32);
+        let near = (0..self.pets.len()).filter(|&i| self.pets[i].free() && !self.pets[i].gone() && self.pets[i].posture != Posture::Lying).min_by(|&a, &b| {
+            let d = |i: usize| caret.map_or(i as f32, |c| (self.pets[i].at(now).x - c).abs());
+            d(a).total_cmp(&d(b))
+        });
+        let Some(i) = near else { return };
+        self.building = Some((now, self.pets[i].uid));
+        self.plan(i, vec![Step::act(Act::Look), Step::lasting(Act::Sit, 4000)], now, true);
+    }
+
+    /// A coding agent's turn ended (`agent-turn-ended`): done, and one
+    /// cheers; an error, and Ember singes and the others look round; a
+    /// refusal or a cancel gets a look.
+    pub fn agent_done(&mut self, stop: &str, now: u64) {
+        let free: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].free() && !self.pets[i].gone() && self.pets[i].posture != Posture::Lying).collect();
+        match stop {
+            "end_turn" => {
+                if let Some(&i) = free.first() {
+                    self.sparkle(i, now);
+                    self.plan(i, vec![Step::lasting(Act::Happy, 1400)], now, true);
+                }
+            }
+            "error" => {
+                for i in free {
+                    if self.pets[i].kind == "ember" {
+                        self.burst(i, now, &fx::SMOKE, 4);
+                        self.plan(i, vec![Step::act(Act::Jump), Step::act(Act::Look)], now, true);
+                    } else {
+                        self.plan(i, vec![Step::act(Act::Look)], now, true);
+                    }
+                }
+            }
+            _ => {
+                if let Some(&i) = free.first() {
+                    self.plan(i, vec![Step::act(Act::Look)], now, true);
+                }
+            }
+        }
+    }
+
+    /// The repository as Fenix read it just now: compared with the last
+    /// look, what changed. A commit: confetti from the one nearest the
+    /// caret. A push: they all hop, seeing it off. A pull, or another
+    /// branch: a look round. A conflict: they hide till it's resolved,
+    /// then cheer.
+    pub fn git(&mut self, repo: Option<Repo>, now: u64) {
+        let Some(repo) = repo else {
+            self.git = None;
+            return;
+        };
+        let was = self.git.replace(repo.clone());
+        self.conflicts = repo.conflicts;
+        let Some(was) = was else { return };
+        let awake: Vec<usize> = (0..self.pets.len()).filter(|&i| !self.pets[i].gone() && self.pets[i].posture != Posture::Lying).collect();
+        for change in Repo::changes(&was, &repo) {
+            match change {
+                GitChange::Committed => {
+                    let caret = self.screen.caret.map(|(c, _)| c as f32);
+                    let near = awake.iter().copied().min_by(|&a, &b| {
+                        let d = |i: usize| caret.map_or(i as f32, |c| (self.pets[i].at(now).x - c).abs());
+                        d(a).total_cmp(&d(b))
+                    });
+                    if let Some(i) = near {
+                        self.confetti(i, now);
+                        self.plan(i, vec![Step::act(Act::Jump), Step::lasting(Act::Happy, 1500)], now, true);
+                        self.learn(i, 1, now);
+                    }
+                }
+                GitChange::Pushed => {
+                    for &i in &awake {
+                        self.plan(i, vec![Step::act(Act::Jump), Step::act(Act::Look)], now, true);
+                    }
+                }
+                GitChange::Pulled | GitChange::Switched => {
+                    for &i in &awake {
+                        if self.pets[i].free() {
+                            self.plan(i, vec![Step::act(Act::Look)], now, true);
+                        }
+                    }
+                }
+                GitChange::Conflicted => {
+                    for &i in &awake {
+                        let head = self.head(i, now);
+                        self.fx.add(now, &[fx::BANG], 0, head, nudge(&head, 0.0, -0.8), 800, Ease::Out, 0.0, 0.6);
+                        self.plan(i, vec![Step::lasting(Act::Hide, UNTIL_TOLD)], now, true);
+                    }
+                }
+                GitChange::Resolved => {
+                    for &i in &awake {
+                        self.plan(i, vec![Step::act(Act::Stretch), Step::lasting(Act::Happy, 1400)], now, true);
+                    }
+                }
+            }
         }
     }
 
@@ -904,6 +1088,11 @@ impl State {
         }
     }
 
+    /// Whether pet `i` is busy watching a build: left to it.
+    fn watching(&self, i: usize) -> bool {
+        self.building.is_some_and(|(_, uid)| self.pets[i].uid == uid)
+    }
+
     /// Whether it's late at night, local time.
     pub fn late(&self) -> bool {
         self.hour >= 22 || self.hour < 6
@@ -924,7 +1113,7 @@ impl State {
         let Some((col, _)) = self.screen.caret else { return };
         let (caret, home) = (col as f32, self.home_floor());
         let near = (0..self.pets.len())
-            .filter(|&i| self.pets[i].free() && !self.pets[i].gone() && self.pets[i].posture == Posture::Standing && !self.pets[i].moving(now) && self.pets[i].at(now).floor == home)
+            .filter(|&i| self.pets[i].free() && !self.watching(i) && !self.pets[i].gone() && self.pets[i].posture == Posture::Standing && !self.pets[i].moving(now) && self.pets[i].at(now).floor == home)
             .min_by(|&a, &b| (self.pets[a].at(now).x - caret).abs().total_cmp(&(self.pets[b].at(now).x - caret).abs()));
         let Some(i) = near else { return };
         let x = self.pets[i].at(now).x;
@@ -996,7 +1185,7 @@ impl State {
     /// Now and then, two of them play: the cat stalks the duck, or one
     /// chases another.
     fn social(&mut self, now: u64) {
-        let free: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].free() && self.pets[i].posture != Posture::Lying && self.pets[i].at(now).floor == self.home_floor()).collect();
+        let free: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].free() && !self.watching(i) && self.pets[i].posture != Posture::Lying && self.pets[i].at(now).floor == self.home_floor()).collect();
         if free.len() < 2 {
             return;
         }
@@ -1111,7 +1300,7 @@ impl State {
     fn visit(&mut self, now: u64) {
         let Some(margin) = self.screen.margin() else { return };
         let home = self.home_floor();
-        let free: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].free() && self.pets[i].posture != Posture::Lying && self.pets[i].at(now).floor == home && self.pets[i].kind != "snail").collect();
+        let free: Vec<usize> = (0..self.pets.len()).filter(|&i| self.pets[i].free() && self.pets[i].posture != Posture::Lying && self.pets[i].at(now).floor == home && self.pets[i].kind != "snail" && !self.watching(i)).collect();
         if free.is_empty() {
             return;
         }
@@ -1497,6 +1686,79 @@ mod tests {
     }
 
     #[test]
+    fn what_changed_in_the_repository() {
+        let repo = |branch: &str, head: &str, ahead: u32, behind: u32, conflicts: u32| Repo { branch: Some(branch.into()), head: Some(head.into()), ahead, behind, conflicts };
+        use GitChange::*;
+        assert_eq!(Repo::changes(&repo("main", "a", 0, 0, 0), &repo("main", "b", 1, 0, 0)), [Committed]);
+        assert_eq!(Repo::changes(&repo("main", "b", 1, 0, 0), &repo("main", "b", 0, 0, 0)), [Pushed]);
+        assert_eq!(Repo::changes(&repo("main", "a", 0, 3, 0), &repo("main", "d", 0, 0, 0)), [Pulled]);
+        assert_eq!(Repo::changes(&repo("main", "a", 0, 0, 0), &repo("dev", "x", 0, 0, 0)), [Switched]);
+        assert_eq!(Repo::changes(&repo("main", "a", 0, 0, 0), &repo("main", "a", 0, 0, 2)), [Conflicted]);
+        assert_eq!(Repo::changes(&repo("main", "a", 0, 0, 2), &repo("main", "m", 1, 0, 0)), [Resolved, Committed]);
+        assert!(Repo::changes(&repo("main", "a", 0, 0, 0), &repo("main", "a", 0, 0, 0)).is_empty());
+    }
+
+    #[test]
+    fn a_commit_gets_confetti_and_a_conflict_sends_them_hiding() {
+        let mut st = state(&["cat", "duck"]);
+        st.tick(0);
+        let repo = |head: &str, conflicts: u32| Some(Repo { branch: Some("main".into()), head: Some(head.into()), ahead: 1, behind: 0, conflicts });
+        st.git(repo("a", 0), 100);
+        assert!(st.fx.list.is_empty(), "the first look is only a look");
+        st.git(repo("b", 0), 2100);
+        assert!(st.fx.list.iter().any(|p| fx::CONFETTI.contains(&p.frames[0])), "confetti for a commit");
+        st.git(repo("b", 2), 4100);
+        for t in (4100..20_000).step_by(250) {
+            st.tick(t);
+        }
+        assert!(st.pets.iter().all(|p| p.act == Act::Hide), "hiding till it's resolved");
+        st.git(repo("c", 0), 20_000);
+        assert!(st.pets.iter().all(|p| p.act != Act::Hide), "out of hiding: {:?}", st.pets.iter().map(|p| p.act).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn one_watches_a_build_dozes_if_it_drags_and_a_big_pass_is_a_party() {
+        let mut st = state(&["cat", "duck"]);
+        st.tick(0);
+        for i in 0..2 {
+            st.pets[i].plan.clear();
+            st.pets[i].act = Act::Idle;
+            st.pets[i].posture = Posture::Standing;
+        }
+        st.task_started(100);
+        let watcher = st.building.unwrap().1;
+        let w = st.pets.iter().position(|p| p.uid == watcher).unwrap();
+        let t = 100 + BUILD_DOZE_AFTER + 20_000;
+        let mut acts = Vec::new();
+        for t in (100..t).step_by(250) {
+            st.last_typed = t;
+            st.tick(t);
+            if acts.last() != Some(&st.pets[w].act) {
+                acts.push(st.pets[w].act);
+            }
+        }
+        assert_eq!(st.pets[w].act, Act::Sleep, "dozed off: {acts:?}");
+        st.task_ended_with(true, Some((240, 0)), t);
+        assert!(st.building.is_none());
+        let confetti = st.fx.list.iter().filter(|p| fx::CONFETTI.contains(&p.frames[0])).count();
+        assert!(confetti >= 24, "a party: {confetti}");
+    }
+
+    #[test]
+    fn an_agents_turn_gets_a_cheer_or_a_singe() {
+        let mut st = state(&["ember", "duck"]);
+        st.tick(0);
+        for i in 0..2 {
+            st.pets[i].plan.clear();
+            st.pets[i].act = Act::Idle;
+            st.pets[i].posture = Posture::Standing;
+        }
+        st.agent_done("error", 100);
+        assert!(st.fx.list.iter().any(|p| p.frames == fx::SMOKE), "Ember singes");
+        assert_eq!(st.pets[1].act, Act::Look);
+    }
+
+    #[test]
     fn the_rubber_duck_listens_while_you_debug() {
         let mut st = state(&["duck", "cat"]);
         st.tick(0);
@@ -1606,7 +1868,7 @@ mod tests {
         }
         assert!(st.pets.iter().all(|p| p.act == Act::Hide), "still hiding");
         st.diagnostics(0, 0, 20_000);
-        assert!(st.pets.iter().all(|p| p.act == Act::Stretch));
+        assert!(st.pets.iter().all(|p| p.act != Act::Hide), "out of hiding: {:?}", st.pets.iter().map(|p| p.act).collect::<Vec<_>>());
     }
 
     #[test]

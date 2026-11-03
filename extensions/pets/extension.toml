@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pets"
 name = "Pets"
-version = "1.0.2"
+version = "1.1.0"
 description = "Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["fun"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.0.1, <2"
+api = "1.1"
 
 # With Fenix: they're there when you start.
 [activation]
@@ -21,7 +21,9 @@ on_startup = true
 draw = "over"
 
 [contributes]
-events = ["saved", "diagnostics", "tasks", "typing", "active", "focus", "debug"]
+# git and agents: a commit, a push, a conflict; an agent done (never
+# what it said: no permissions.agents).
+events = ["saved", "diagnostics", "tasks", "typing", "active", "focus", "debug", "git", "agents"]
 
 [[contributes.commands]]
 id = "pets.adopt"

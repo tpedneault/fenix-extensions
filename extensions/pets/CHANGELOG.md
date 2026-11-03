@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+For Fenix 1.0.1 (extension API 1.1).
+
+- Commits get confetti from the pet nearest the caret. A push and they all hop to see it off; a pull, or another branch, and they look round. A merge conflict sends them into hiding until it's resolved, and then they cheer.
+- A big test run is a party: 100 or more tests passed and none failed, and there's confetti from every one of them.
+- A build or a test run starting gets a watcher: the pet nearest the caret sits down to watch, and dozes off if it drags on past two minutes.
+- A coding agent finishing its turn gets a cheer; an error, and Ember singes and the others look round. They're told only that a turn ended and how, never what was said.
+
 ## 1.0.2
 
 - New friends: an owl that's up when you're up late and turns its head right round to hoot, a fox that creeps up on something in the grass and leaps on it, and a snail in no hurry that hides right inside its shell.

@@ -27,7 +27,7 @@ Everything below needs only extension API 1.0.
 - **Fenix 1.0.1 fix**: model frames are drawn at the rate the extension
   asks for.
 
-## 1.1: reactions that need extension API 1.1 (proposed)
+## 1.1: reactions on extension API 1.1 (done, for Fenix 1.0.1)
 
 **The constraint.** Extension API 1.0 is one WIT world. Fenix's bindings
 (`Extension::new`) need every export the world declares, and the
@@ -64,12 +64,10 @@ only imports, and the pets ask for what's new.
    `task-ended` arrives, so the celebration scales: a small cheer for 1
    test, a party for 500.
 
-Decisions this needs:
-
-- **The Fenix version that ships API 1.1.** By semver that's Fenix
-  1.1.0, not 1.0.x.
-- **Whether git state needs consent.** It's gated by `events` (no
-  prompt), like the other editor events, or by a permission.
+Decided: API 1.1 ships in Fenix 1.0.1, and `git-state` is gated by
+`events = ["git"]`, with no install prompt, like the other editor events.
+Before tagging `pets-v1.1.0`, point its `fenix-extension-api` at the tag
+`v1.0.1` instead of the commit it builds against now.
 
 ## Polish, anytime
 
