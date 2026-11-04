@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pdf"
 name = "PDF reader"
-version = "1.0.0"
+version = "1.0.1"
 description = "PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
