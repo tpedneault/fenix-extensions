@@ -73,7 +73,9 @@ fn every_launch_file_has_lldb_dap_run_the_script_first() {
     // lldb runs what's in backticks in a command; the script is one
     // TOML string, written as JSON writes it.
     assert!(!SCRIPT.contains('`') && SCRIPT.is_ascii());
-    let exec = format!("?script exec({}, globals())", serde_json::to_string(SCRIPT).unwrap());
+    // No `?`, which is lldb-dap's alone: CodeLLDB runs these too, and
+    // refuses the launch over it.
+    let exec = format!("script exec({}, globals())", serde_json::to_string(SCRIPT).unwrap());
     for (file, text) in &launches {
         let l: Launch = toml::from_str(text).unwrap_or_else(|e| panic!("{file}: {e}"));
         assert_eq!(l.languages, ["rust"], "{file}");
@@ -95,6 +97,16 @@ fn script(kind: &str, file: &Path, out: &Path) -> String {
     let code = format!("{SCRIPT}\nprint('->', fenix_cargo({kind:?}, {:?}, {:?}))", file.to_string_lossy(), out.to_string_lossy());
     let run = std::process::Command::new("python3").arg("-c").arg(code).env_remove("CARGO_TARGET_DIR").output().expect("python3");
     assert!(run.status.success(), "{}", String::from_utf8_lossy(&run.stderr));
+    String::from_utf8_lossy(&run.stdout).replace("\r\n", "\n")
+}
+
+/// `out`, run under a name Windows will start, and what it printed.
+fn run_debuggee(out: &Path, args: &[&str]) -> String {
+    let program = out.with_extension(std::env::consts::EXE_EXTENSION);
+    if program != out {
+        std::fs::copy(out, &program).unwrap();
+    }
+    let run = std::process::Command::new(&program).args(args).output().unwrap();
     String::from_utf8_lossy(&run.stdout).into_owned()
 }
 
@@ -114,13 +126,16 @@ fn the_script_builds_what_the_file_says_and_links_it() {
     let said = script("test", &root.join("src/maths.rs"), &out);
     assert!(said.contains("fenix: cargo test --no-run --message-format=json-render-diagnostics -p orbit --lib") && said.ends_with("-> maths::\n"), "{said}");
     assert!(out.is_file());
-    let tests = std::process::Command::new(&out).arg("--list").output().unwrap();
-    assert!(String::from_utf8_lossy(&tests.stdout).contains("maths::tests::doubles: test"), "the lib's tests");
-    assert_eq!(std::fs::read_to_string(root.join("target/fenix-debug/.gitignore")).unwrap(), "*\n");
+    assert!(run_debuggee(&out, &["--list"]).contains("maths::tests::doubles: test"), "the lib's tests");
+    assert_eq!(std::fs::read_to_string(root.join("target/fenix-debug/.gitignore")).unwrap().trim(), "*");
+    if cfg!(all(windows, target_env = "msvc")) {
+        let symbols: Vec<_> = std::fs::read_dir(root.join("target/fenix-debug")).unwrap().flatten().filter(|e| e.path().extension().is_some_and(|x| x == "pdb")).collect();
+        assert_eq!(symbols.len(), 1, "the program's symbols are beside it, or no breakpoint binds");
+    }
 
     let said = script("bin", &root.join("src/maths.rs"), &out);
     assert!(said.contains("--bin orbit"), "a module's crate's own binary: {said}");
-    assert_eq!(String::from_utf8_lossy(&std::process::Command::new(&out).output().unwrap().stdout), "42\n");
+    assert_eq!(run_debuggee(&out, &[]).trim(), "42");
     assert!(script("bin", &root.join("src/bin/probe.rs"), &out).contains("--bin probe"));
     assert!(script("example", &root.join("examples/demo.rs"), &out).contains("--example demo"));
 

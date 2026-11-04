@@ -82,10 +82,29 @@ def fenix_cargo(kind, file, out):
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, '.gitignore'), 'w') as f:
         f.write('*\n')
-    try:
-        os.link(exe, out)
-    except OSError:
-        shutil.copy2(exe, out)
+    def place(source, target):
+        try:
+            os.link(source, target)
+        except OSError:
+            shutil.copy2(source, target)
+    place(exe, out)
+    # MSVC's linker records the name of the .pdb, not its path, so a debugger
+    # looks for it beside the program. Without it a breakpoint finds nothing.
+    # Its name is the program's, or a binary's with - as _.
+    for name in os.listdir(folder):
+        if name.endswith('.pdb'):
+            try:
+                os.remove(os.path.join(folder, name))
+            except OSError:
+                pass
+    beside, name = os.path.split(os.path.splitext(exe)[0])
+    for pdb in (name, name.replace('-', '_')):
+        if os.path.isfile(os.path.join(beside, pdb + '.pdb')):
+            try:
+                place(os.path.join(beside, pdb + '.pdb'), os.path.join(folder, pdb + '.pdb'))
+            except OSError as error:
+                say("couldn't put the program's symbols beside it: " + str(error))
+            break
     say(exe)
     try:
         import lldb
