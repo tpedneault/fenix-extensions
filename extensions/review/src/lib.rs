@@ -11,6 +11,7 @@
 //! pages when it lands. Git runs as `git`, in the repository.
 
 mod client;
+mod drafts;
 mod git_bits;
 mod git_request;
 mod page;
@@ -25,7 +26,7 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
-use fenix_extension_api::{self as api, export, forge, host, run, Event, Extension, Key, Page};
+use fenix_extension_api::{self as api, agents, export, forge, host, run, Event, Extension, Key, Page};
 use fenix_forge::{Forge, MergeRequest, Verdict};
 
 use client::Client;
@@ -45,6 +46,8 @@ pub struct ReviewExtension {
     pages: HashMap<u64, Open>,
     /// What each compose pane is for.
     composing: HashMap<u64, Compose>,
+    /// Your agent's summaries, by project, request and head: asked once.
+    summaries: HashMap<(String, u64, String), String>,
 }
 
 enum Open {
@@ -73,6 +76,10 @@ enum Done {
     Log { page: u64, name: String, result: Result<String, String> },
     Existing { page: u64, result: Result<Option<MergeRequest>, String>, me: Option<String>, template: Option<String> },
     Opened { page: u64, result: Result<(MergeRequest, Option<String>), String> },
+    /// An agent's draft of a new request's title and description.
+    Drafted { page: u64, result: Result<(String, String, String), String> },
+    /// An agent's summary of a request under review, at this head.
+    Summarized { page: u64, head: String, result: Result<String, String> },
     /// Something to say, from a job.
     Say(Result<String, String>),
     OpenInbox { root: String, forge: String, project: String },
@@ -530,6 +537,33 @@ impl ReviewExtension {
                 let label = format!("rerun {}", check.name);
                 self.review_write(id, &label, After::Refresh, move |c| async move { c.retry(&check).await });
             }
+            ReviewAction::AskSummary => {
+                let Some(head) = page.data.as_ref().map(|d| d.request.sha.clone()) else { return };
+                let project = page.project.clone();
+                let cached = self.summaries.get(&(project, number, head.clone())).cloned();
+                let Some(page) = self.review(id) else { return };
+                let Some(data) = &page.data else { return };
+                if page.agent_summary.as_ref().is_some_and(|(_, at)| *at == head) {
+                    page.message = Some(("the summary is of this head already".into(), false));
+                    api::page::refresh(id);
+                    return;
+                }
+                if let Some(text) = cached {
+                    page.agent_summary = Some((text, head));
+                    api::page::refresh(id);
+                    return;
+                }
+                page.message = Some(("your agent is reading the request…".into(), false));
+                api::page::refresh(id);
+                let ask = drafts::summary_ask(data);
+                run::spawn(async move {
+                    let result = match agents::ask_with(ask) {
+                        Ok(handle) => handle.await.map(|answer| answer.text.trim().to_string()),
+                        Err(e) => Err(e),
+                    };
+                    done(Done::Summarized { page: id, head, result });
+                });
+            }
             ReviewAction::LoadSince => {
                 let Some(data) = &page.data else { return };
                 let Some(reviewed) = page.state.reviewed_head.clone() else { return };
@@ -601,6 +635,17 @@ impl ReviewExtension {
                 let (forge, project) = (page.forge.clone(), page.project.clone());
                 self.close(id);
                 self.open_review(root, forge, project, number);
+            }
+            RequestAction::Draft => {
+                api::page::refresh(id);
+                let ask = drafts::description_ask(page);
+                run::spawn(async move {
+                    let result = match agents::ask_with(ask) {
+                        Ok(handle) => handle.await.and_then(|answer| drafts::read_description(&answer.json).map(|(t, b)| (t, b, answer.agent)).ok_or_else(|| "the agent's draft had no title".to_string())),
+                        Err(e) => Err(e),
+                    };
+                    done(Done::Drafted { page: id, result });
+                });
             }
             RequestAction::Open { request, reviewers, push } => {
                 page.busy = true;
@@ -804,6 +849,27 @@ impl ReviewExtension {
                         api::page::refresh(page);
                     }
                 }
+            }
+            Done::Drafted { page, result } => {
+                let Some(r) = self.request(page) else { return };
+                match result {
+                    Ok((title, body, agent)) => r.drafted(title, body, &agent),
+                    Err(err) => r.message = Some((format!("the agent couldn't draft it: {err}"), true)),
+                }
+                api::page::refresh(page);
+            }
+            Done::Summarized { page, head, result } => {
+                let Some(r) = self.review(page) else { return };
+                match result {
+                    Ok(text) => {
+                        r.message = None;
+                        r.agent_summary = Some((text.clone(), head.clone()));
+                        let key = (r.project.clone(), r.number, head);
+                        self.summaries.insert(key, text);
+                    }
+                    Err(err) => r.message = Some((format!("the agent couldn't summarize it: {err}"), true)),
+                }
+                api::page::refresh(page);
             }
             Done::Say(Ok(text)) => api::notify(&text),
             Done::Say(Err(text)) => error(&text),

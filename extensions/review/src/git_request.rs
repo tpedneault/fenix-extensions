@@ -159,6 +159,8 @@ pub enum RequestAction {
     Review(u64),
     /// Every change it brings, file by file, on the Compare page.
     Compare(String),
+    /// Your coding agent drafts the title and description.
+    Draft,
 }
 
 pub struct RequestPage {
@@ -198,7 +200,7 @@ pub struct RequestPage {
     pub busy: bool,
     armed: bool,
     /// The Jira key named in the branch, for the description.
-    jira: Option<String>,
+    pub jira: Option<String>,
     /// What the form said as it was filled in, before you touched it: a
     /// draft is kept only once it says something else.
     pristine: RequestDraft,
@@ -419,6 +421,14 @@ impl RequestPage {
         }
     }
 
+    /// An agent's draft, in place of the title and description: yours to
+    /// edit before you send it.
+    pub fn drafted(&mut self, title: String, body: String, agent: &str) {
+        self.title = title;
+        self.description = body;
+        self.message = Some((format!("drafted by {agent}: e edits the description, S opens it"), false));
+    }
+
     pub fn set_description(&mut self, text: String) {
         self.description = text.trim_end().to_string();
     }
@@ -518,6 +528,10 @@ impl RequestPage {
             Key::Up | Key::Char('k') | Key::BackTab => self.step(-1),
             Key::Char('d') => self.draft = !self.draft,
             Key::Char('e') => return RequestAction::EditDescription,
+            Key::Char('a') if !self.busy => {
+                self.message = Some(("your agent is drafting the title and description…".to_string(), false));
+                return RequestAction::Draft;
+            }
             Key::Enter | Key::Space | Key::Char('i') | Key::Char('c') => match self.field {
                 Field::Draft => self.draft = !self.draft,
                 Field::Description => return RequestAction::EditDescription,

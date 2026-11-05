@@ -74,6 +74,8 @@ pub enum Section {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Row {
     Section(Section),
+    /// A line of the agent's summary.
+    AgentSummary(usize),
     Description(usize),
     File(String),
     Hunk { path: String, hunk: usize },
@@ -98,6 +100,8 @@ pub enum ReviewAction {
     Resolve { thread: String, resolved: bool },
     /// Write the review's summary.
     Summary,
+    /// Your coding agent summarizes the request.
+    AskSummary,
     Submit { verdict: Verdict, body: String },
     Merge(MergeOptions),
     OpenFile { path: String, line: Option<usize> },
@@ -128,6 +132,8 @@ pub struct ReviewPage {
     pub data: Option<ReviewData>,
     pub state: ReviewState,
     pub summary: String,
+    /// What your agent said of the request, and the head it said it of.
+    pub agent_summary: Option<(String, String)>,
     pub cursor: usize,
     pub open: HashSet<String>,
     pub folded: HashSet<Section>,
@@ -153,6 +159,7 @@ impl ReviewPage {
             data: None,
             state,
             summary: String::new(),
+            agent_summary: None,
             cursor: 0,
             open: HashSet::new(),
             folded: [Section::Description].into_iter().collect(),
@@ -227,7 +234,11 @@ impl ReviewPage {
 
     pub fn rows(&self) -> Vec<Row> {
         let Some(data) = &self.data else { return Vec::new() };
-        let mut rows = vec![Row::Section(Section::Description)];
+        let mut rows = Vec::new();
+        if let Some((text, _)) = &self.agent_summary {
+            rows.extend((0..text.lines().count().clamp(1, 30)).map(Row::AgentSummary));
+        }
+        rows.push(Row::Section(Section::Description));
         if !self.folded.contains(&Section::Description) {
             let lines = data.request.description.lines().count().max(1);
             rows.extend((0..lines.min(40)).map(Row::Description));
@@ -418,6 +429,7 @@ impl ReviewPage {
             Key::Char('o') => return ReviewAction::OpenBrowser,
             Key::Char('y') => return ReviewAction::CopyUrl,
             Key::Char('u') => return ReviewAction::Refresh,
+            Key::Char('A') => return ReviewAction::AskSummary,
             Key::Char('q') => return ReviewAction::Close,
             _ => {}
         }
@@ -716,6 +728,12 @@ pub fn layout(page: &ReviewPage, cols: usize) -> Page {
                 if x + 2 < left + width {
                     g.rule(y, x..left + width);
                 }
+            }
+            Row::AgentSummary(n) => {
+                let text = page.agent_summary.as_ref().and_then(|(t, _)| t.lines().nth(*n)).unwrap_or("");
+                let (mark, role) = if *n == 0 { ("◆ ", Role::Muted) } else { ("  ", Role::Muted) };
+                let x = g.put(y, left, mark, role);
+                g.put(y, x, &fit(text, width.saturating_sub(x - left)), Role::Text);
             }
             Row::Description(n) => {
                 let text = r.description.lines().nth(*n).unwrap_or(if r.description.trim().is_empty() { "(no description)" } else { "" });

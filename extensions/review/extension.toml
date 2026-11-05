@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.review"
 name = "Review"
-version = "1.0.0"
+version = "1.1.0"
 description = "Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.1, <2"
+api = "1.2"
 
 # Its commands load it, and so does the Git status page asking about the
 # branch's request.
@@ -31,6 +31,9 @@ settings = ["git", "gitlab"]
 # Where you are (the project's Jira key), files opened at a comment.
 editor = "write"
 filesystem = "project-write"
+# Your coding agent drafts a request's description and summarizes one
+# under review (agents.ask): the branch's diff goes to it, asked first.
+agents = true
 
 [contributes]
 # 1.x's names for SPC g P and SPC g M.

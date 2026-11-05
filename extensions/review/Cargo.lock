@@ -106,8 +106,8 @@ dependencies = [
 
 [[package]]
 name = "fenix-extension-api"
-version = "1.0.0"
-source = "git+https://github.com/tpedneault/fenix?tag=v1.0.0#b4b35673a8feb78f3856982c62dbb7c1b20298ac"
+version = "1.2.0"
+source = "git+https://github.com/tpedneault/fenix?branch=release%2Fv1.1.0#32abf8723472872a68fb41ef2900c4f81cf57bab"
 dependencies = [
  "chrono",
  "lsp-types",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-review"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "fenix-diff",
  "fenix-extension-api",
