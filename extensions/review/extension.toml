@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.review"
 name = "Review"
-version = "1.1.0"
+version = "1.1.1"
 description = "Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
