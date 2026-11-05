@@ -7,8 +7,9 @@ surface in the pane you're in: every page one under the other, fitted to
 the pane's width the first time, and where you left it after that.
 
 The pages are rendered by **`fenix-pdfium`**, a small program that comes
-with Fenix, beside `fenix.exe`, and uses the PDFium library you put there
-(Fenix's docs/BUILDING.md says where). PDFium isn't compiled to
+with Fenix, beside `fenix.exe`, with the PDFium library it uses. If you
+built Fenix yourself, docs/BUILDING.md says where to put it. PDFium isn't
+compiled to
 WebAssembly (docs/adr/0001-wasm-runtime.md), so the extension sends it
 requests over a pipe and draws what comes back: only the parts of pages in
 sight, and only the strip that scrolled into view as you read on.
