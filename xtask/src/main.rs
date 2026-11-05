@@ -303,6 +303,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
                 return Err(format!("{}: a screenshot is at most {} MB", dir.join(&rel).display(), MAX_SCREENSHOT / 1024 / 1024));
             }
         }
+        check_agent_tools(&dir)?;
         let version = semver::Version::parse(&m.extension.version).map_err(|e| e.to_string())?;
         let entry = known.entry(m.extension.id.clone()).or_insert(Known { versions: Vec::new(), dependencies: BTreeMap::new() });
         entry.versions.push(version);
@@ -314,6 +315,80 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
     }
     check_dependencies(&known, &here)?;
     println!("{count} extension(s)");
+    Ok(())
+}
+
+/// The classes an agent tool may say it is.
+const TOOL_CLASSES: &[&str] = &["read", "show", "edit", "run", "external"];
+/// What agents are given of a tool: its description, in characters, and
+/// its input schema, in bytes (Fenix's `MAX_TOOL_DESCRIPTION` and
+/// `MAX_TOOL_SCHEMA`).
+const MAX_TOOL_DESCRIPTION: usize = 300;
+const MAX_TOOL_SCHEMA: usize = 2048;
+const MAX_TOOL_TIMEOUT_MS: i64 = 600_000;
+
+/// `[[contributes.agent_tools]]`, held to Fenix 1.2's rules whatever API
+/// the extension is built for: a name agents can call, one of its
+/// services, a class its permissions fit, and sizes that fit what agents
+/// are given.
+fn check_agent_tools(dir: &Path) -> Result<(), String> {
+    let path = dir.join("extension.toml");
+    let at = path.display();
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("{at}: {e}"))?;
+    let table: toml::Table = toml::from_str(&text).map_err(|e| format!("{at}: {}", e.message()))?;
+    let contributes = table.get("contributes").and_then(|c| c.as_table());
+    let Some(tools) = contributes.and_then(|c| c.get("agent_tools")).and_then(|t| t.as_array()) else { return Ok(()) };
+    let services: Vec<&str> = contributes.and_then(|c| c.get("services")).and_then(|s| s.as_array()).map(|s| s.iter().filter_map(|v| v.as_str()).collect()).unwrap_or_default();
+    let permissions = table.get("permissions").and_then(|p| p.as_table());
+    let permission = |key: &str| permissions.and_then(|p| p.get(key));
+    let listed = |key: &str| permission(key).and_then(|v| v.as_array()).is_some_and(|a| !a.is_empty());
+    let mut names = BTreeSet::new();
+    for tool in tools {
+        let field = |key: &str| tool.get(key).and_then(|v| v.as_str());
+        let name = field("name").unwrap_or_default();
+        if name.is_empty() || !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
+            return Err(format!("{at}: agent tool {name:?} -- lower case letters, digits and _"));
+        }
+        if !names.insert(name.to_string()) {
+            return Err(format!("{at}: agent tool {name:?} is there twice"));
+        }
+        let service = field("service").unwrap_or_default();
+        if !services.contains(&service) {
+            return Err(format!("{at}: agent tool {name:?} -- {service:?} isn't one of its services"));
+        }
+        let description = field("description").unwrap_or_default();
+        if description.trim().is_empty() {
+            return Err(format!("{at}: agent tool {name:?} has no description: it's how an agent decides to call it"));
+        }
+        if description.chars().count() > MAX_TOOL_DESCRIPTION {
+            return Err(format!("{at}: agent tool {name:?} -- its description is {} characters, and agents are given at most {MAX_TOOL_DESCRIPTION}", description.chars().count()));
+        }
+        if let Some(input) = field("input") {
+            if !serde_json::from_str::<serde_json::Value>(input).is_ok_and(|v| v.is_object()) {
+                return Err(format!("{at}: agent tool {name:?} -- input isn't a JSON object"));
+            }
+            if input.len() > MAX_TOOL_SCHEMA {
+                return Err(format!("{at}: agent tool {name:?} -- its input schema is {} bytes, and agents are given at most {MAX_TOOL_SCHEMA}", input.len()));
+            }
+        }
+        if let Some(ms) = tool.get("timeout_ms").and_then(|v| v.as_integer()).filter(|ms| !(1..=MAX_TOOL_TIMEOUT_MS).contains(ms)) {
+            return Err(format!("{at}: agent tool {name:?} -- timeout_ms is {ms}: from 1 to {MAX_TOOL_TIMEOUT_MS} (10 minutes)"));
+        }
+        let writes = tool.get("writes").and_then(|v| v.as_bool()).unwrap_or(false);
+        let class = match field("class") {
+            Some(class) if TOOL_CLASSES.contains(&class) => class,
+            Some(class) => return Err(format!("{at}: agent tool {name:?} -- class {class:?}: one of {}", TOOL_CLASSES.join(", "))),
+            None => return Err(format!("{at}: agent tool {name:?} has no class -- one of {}, so agents' rules can tell what it does", TOOL_CLASSES.join(", "))),
+        };
+        match class {
+            "external" if !listed("network") && !listed("sockets") => return Err(format!("{at}: agent tool {name:?} is external -- it needs network or sockets in its permissions")),
+            "edit" if permission("editor").and_then(|v| v.as_str()) != Some("write") && permission("filesystem").and_then(|v| v.as_str()) != Some("project-write") => {
+                return Err(format!("{at}: agent tool {name:?} edits -- it needs editor = \"write\" or filesystem = \"project-write\" in its permissions"));
+            }
+            "read" | "show" if writes => return Err(format!("{at}: agent tool {name:?} says writes = true and class = {class:?}: one of them is wrong")),
+            _ => {}
+        }
+    }
     Ok(())
 }
 
@@ -477,6 +552,28 @@ mod tests {
         assert!(manifest(&empty).unwrap_err().contains("has none"));
         let code = extension(&t.0, "empty", "1.0.0", "bundle", "api = \"0.8\"\n\n[dependencies]\n\"acme.notes\" = \"^2\"\n");
         assert!(manifest(&code).unwrap_err().contains("runs nothing"));
+    }
+
+    #[test]
+    fn agent_tools_have_a_class_their_permissions_fit_and_sizes_agents_take() {
+        let t = Temp::new("tools");
+        let with = |tool: &str, permissions: &str| {
+            let rest = format!("api = \"1.2\"\n\n[permissions]\n{permissions}\n\n[contributes]\nservices = [\"jira.issue\"]\n\n[[contributes.agent_tools]]\nname = \"issue\"\nservice = \"jira.issue\"\n{tool}\n");
+            let dir = extension(&t.0, "jira", "1.0.0", "wasm", &rest);
+            check_agent_tools(&dir)
+        };
+        with("description = \"An issue\"\nclass = \"read\"", "").unwrap();
+        with("description = \"Moves it\"\nclass = \"external\"\ntimeout_ms = 120000", "network = [\"example.atlassian.net\"]").unwrap();
+        assert!(with("description = \"An issue\"", "").unwrap_err().contains("has no class"));
+        assert!(with("description = \"An issue\"\nclass = \"web\"", "").unwrap_err().contains("one of read, show, edit, run, external"));
+        assert!(with("description = \"Moves it\"\nclass = \"external\"", "").unwrap_err().contains("needs network or sockets"));
+        assert!(with("description = \"Edits\"\nclass = \"edit\"", "editor = \"read\"").unwrap_err().contains("editor = \"write\""));
+        assert!(with("description = \"An issue\"\nclass = \"read\"\nwrites = true", "").unwrap_err().contains("one of them is wrong"));
+        assert!(with(&format!("description = \"{}\"\nclass = \"read\"", "x".repeat(301)), "").unwrap_err().contains("301 characters"));
+        let schema = format!("{{\"type\":\"object\",\"description\":\"{}\"}}", "x".repeat(2100));
+        assert!(with(&format!("description = \"An issue\"\nclass = \"read\"\ninput = '{schema}'"), "").unwrap_err().contains("at most 2048"));
+        assert!(with("description = \"An issue\"\nclass = \"read\"\ntimeout_ms = 0", "").unwrap_err().contains("timeout_ms is 0"));
+        assert!(with("description = \"An issue\"\nclass = \"read\"\nservice = \"jira.other\"", "").is_err(), "a service it hasn't");
     }
 
     #[test]
