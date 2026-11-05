@@ -170,8 +170,6 @@ pub struct HexPage {
     /// The last match: its offset and length.
     pub found: Option<(u64, u64)>,
     pub search: Option<Search>,
-    /// What was typed at the search prompt last.
-    typed: String,
     pub inspector: bool,
     /// `hex.bytesPerRow`: none fits the pane.
     pub per_row: Option<usize>,
@@ -192,7 +190,6 @@ impl HexPage {
             anchor: None,
             found: None,
             search: None,
-            typed: String::new(),
             inspector: true,
             per_row: Some(16),
             pressed: None,
@@ -362,7 +359,7 @@ impl HexPage {
             }
             c.put_fit(0, y, w, &at, Role::Text);
         }
-        let hint = "hjkl move · : go to · / search, n N · v select · y hex, Y text, c code · Tab hex/text · i inspector";
+        let hint = "hjkl move · o go to · / search, n N · v select, x clear · y hex, Y text, c code · Tab hex/text · i inspector";
         c.put_fit(0, keys, w, hint, Role::Muted);
         c
     }
@@ -439,7 +436,7 @@ impl HexPage {
                 self.anchor = if self.anchor.is_some() { None } else { Some(cur) };
                 Action::Redraw
             }
-            Key::Escape if self.anchor.is_some() || self.found.is_some() => {
+            Key::Char('x') => {
                 self.anchor = None;
                 self.found = None;
                 Action::Redraw
@@ -448,13 +445,14 @@ impl HexPage {
                 self.inspector = !self.inspector;
                 Action::Redraw
             }
-            Key::Char(':') => Action::Ask(Ask::GoTo, "Go to offset (0x1f0, 496, 50%, +16)".into(), String::new()),
+            // `o`, not `:`: Fenix keeps `:` for its command line on every page.
+            Key::Char('o') => Action::Ask(Ask::GoTo, "Go to offset (0x1f0, 496, 50%, +16)".into(), String::new()),
             Key::Char('/') => {
                 let label = match self.column {
                     Column::Hex => "Search: hex bytes (de ad ?? ef), or \"text\"",
                     Column::Text => "Search the text",
                 };
-                Action::Ask(Ask::Search, label.into(), self.typed.clone())
+                Action::Ask(Ask::Search, label.into(), String::new())
             }
             Key::Char('n') => self.next(cur + 1, true),
             Key::Char('N') => self.next(cur, false),
@@ -548,7 +546,6 @@ impl HexPage {
             },
             Ask::Search => match inspect::search(typed, self.column == Column::Text) {
                 Ok(s) => {
-                    self.typed = typed.to_string();
                     self.search = Some(s);
                     self.anchor = None;
                     self.next(self.cursor, true)
@@ -727,7 +724,8 @@ mod tests {
         assert_eq!(p.key(Key::Char('y')), Action::Copy("48 65 6c 6c 6f".into(), "Copied 5 bytes as hex".into()));
         assert_eq!(p.key(Key::Char('Y')), Action::Copy("Hello".into(), "Copied 5 bytes as text".into()));
         assert_eq!(p.key(Key::Char('c')), Action::Copy("0x48, 0x65, 0x6c, 0x6c, 0x6f".into(), "Copied 5 bytes as code".into()));
-        p.key(Key::Escape);
+        p.key(Key::Char('x'));
+        assert_eq!(p.key(Key::Char('y')), Action::Copy("6f".into(), "Copied 1 byte as hex".into()), "x clears the selection");
         p.key(Key::Char('G'));
         assert_eq!(p.key(Key::Char('y')), Action::Copy("ef".into(), "Copied 1 byte as hex".into()));
         let Action::Copy(text, said) = p.key(Key::Char('Y')) else { panic!() };
