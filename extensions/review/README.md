@@ -34,6 +34,7 @@ threads), and `o` there reviews it, or opens a new one.
 | `i` | Only what changed since your last review |
 | `s` | Submit: `a` approve, `r` request changes, `c` comment, `e` a summary, `S S` sends it |
 | `m` | Merge: squash, rebase, delete the branch, when the checks pass; `m m` |
+| `A` | Your coding agent summarizes it: what it changes, what's risky, which files to read first |
 | `w`, `o`, `q` | A worktree, the browser, close |
 
 A check's log opens as text; a failed one can run again. Your held
@@ -47,6 +48,12 @@ cleanly, and the title, description (the repository's template, or the
 commits), reviewers and draft: `Enter` edits a field, `e` the
 description, `S S` pushes the branch if it has to and opens it. A branch
 named after a Jira issue puts the key in the title.
+
+`a` has your coding agent draft the title and description, from the
+branch's change against its base and its commits, filling in the
+repository's template heading by heading. It's yours to edit before
+`S S`. The first time, Fenix asks whether the Review extension may send
+the branch's diff to that agent.
 
 ## Settings
 
