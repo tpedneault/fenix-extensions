@@ -39,7 +39,7 @@ a bigger one from its project.
 | `g` `G` | The file's first and last byte |
 | `J` `K`, PageDown PageUp, Ctrl+F Ctrl+B | A screen down, up |
 | Ctrl+D Ctrl+U | Half a screen down, up |
-| `:` | Go to an offset: `0x1f0` or `1f0h` hex (a hex letter makes it hex too), `496` decimal, `50%`, `+16` or `-0x10` from the cursor |
+| `o` | Go to an offset: `0x1f0` or `1f0h` hex (a hex letter makes it hex too), `496` decimal, `50%`, `+16` or `-0x10` from the cursor |
 | `/` | Search: hex bytes (`de ad be ef`, `0xdeadbeef`, `??` for any byte), or `"text"` quoted; with the cursor in the text column, what's typed is text |
 | `n` `N` | The next match, the one before -- round the file's end |
 | `*` | Search for the selected bytes, or the cursor's |
@@ -50,9 +50,9 @@ a bigger one from its project.
 | `Y` | Copy it as text; what isn't UTF-8 as `�` |
 | `c` | Copy it as code: `0xde, 0xad, 0xbe, 0xef` |
 | `i` | Show or hide the inspector |
-| Esc | Clear the selection and the match |
+| `x` | Clear the selection and the match |
 | `R` | Read the file again |
-| `q` | Close it |
+| `q`, Esc | Close it |
 
 With the mouse: a click puts the cursor on a byte (in hex or in the
 text), a drag selects, Shift with a click selects to it, and the wheel
