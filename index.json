@@ -1414,6 +1414,52 @@
               "${setting:rust.codelldb}"
             ]
           }
+        },
+        {
+          "version": "1.0.1",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/rust-v1.0.1/fenix.rust-1.0.1.fenixext",
+          "sha256": "ba75b4b2601adc004364f405d0a11eb53c66c1274fb4527c582f35c50f31ff38",
+          "size": 442039,
+          "dependencies": {
+            "fenix.rust-snippets": "^1"
+          },
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "index.crates.io"
+            ],
+            "process": [
+              "cargo",
+              "rustup",
+              "rustc",
+              "rustfmt",
+              "rust-analyzer",
+              "cargo-audit",
+              "cargo-outdated",
+              "cargo-binstall",
+              "lldb-dap",
+              "lldb-dap-22",
+              "lldb-dap-21",
+              "lldb-dap-20",
+              "lldb-dap-19",
+              "lldb-dap-18",
+              "lldb-vscode",
+              "lldb-vscode-17",
+              "lldb-vscode-16",
+              "lldb-vscode-15",
+              "codelldb",
+              "${setting:rust.codelldb}"
+            ]
+          }
         }
       ],
       "name": "Rust",
