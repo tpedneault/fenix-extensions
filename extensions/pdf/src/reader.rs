@@ -158,6 +158,8 @@ struct Doc {
     view: Option<u64>,
     /// Where it's to open, once it has.
     open_at: Option<OpenAt>,
+    /// The companion said it can't be opened.
+    failed: bool,
     /// Opened only to be searched for Fenix (`pdf.search`): the call, and
     /// what's been found.
     serving: Option<(u64, Vec<Match>)>,
@@ -577,6 +579,10 @@ impl Reader {
                 if let Some(surface) = d.view {
                     self.draw(host, surface);
                 }
+                if let Some(d) = self.docs.get_mut(&doc) {
+                    d.failed = true;
+                }
+                self.show_status(host);
             }
             Reply::Rendered { doc, view, id, page, x, y, w, h, bgra } => self.rendered(host, doc, view, id, Part { page, rect: (x, y, w, h) }, bgra),
             Reply::RenderFailed { doc, id, message } => {
@@ -650,6 +656,7 @@ impl Reader {
                 last_zoom: saved.map(|p| p.zoom).unwrap_or(default_zoom),
                 view: None,
                 open_at: None,
+                failed: false,
                 serving: None,
             },
         );
@@ -857,7 +864,13 @@ impl Reader {
         }
         let title = self.docs[&doc].name.clone();
         match host.surface_open(&title) {
-            Ok(surface) => self.attach(host, doc, surface),
+            Ok(surface) => {
+                self.attach(host, doc, surface);
+                // In a tab behind another, maybe: Fenix says when it's seen.
+                if let Some(view) = self.views.get_mut(&surface) {
+                    view.shown = false;
+                }
+            }
             Err(_) => {
                 self.docs.remove(&doc);
                 return false;
@@ -1276,7 +1289,7 @@ impl Reader {
         if !view.shown {
             return None;
         }
-        let doc = self.docs.get(&view.doc)?;
+        let doc = self.docs.get(&view.doc).filter(|d| !d.failed)?;
         let pending = if self.keys.is_pending() && self.keys_view == Some(surface) { format!("{}  ", self.keys.pending_text()) } else { String::new() };
         let s = &doc.search;
         let search = match (s.highlights, s.current) {

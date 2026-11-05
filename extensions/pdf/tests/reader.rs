@@ -419,6 +419,7 @@ fn without_its_companion_it_says_where_it_comes_from() {
     b.companion.failing = true;
     b.open("C:/refs/spec.pdf");
     assert!(b.host.said("pdfium library not found") && b.host.said("docs/BUILDING.md says where PDFium goes"), "{:?}", b.host.said);
+    assert_eq!(b.host.status, None, "nothing is opening any more");
 }
 
 #[test]
@@ -828,6 +829,22 @@ fn its_state_is_kept_for_the_session_and_put_back() {
     assert_eq!(next.reader.view_zoom(s), Some(Zoom::Percent(100)));
     assert!(!next.reader.page_restore(&mut next.host, "outline", "{}"));
     assert!(!next.reader.page_restore(&mut next.host, "pdf", "not json"));
+}
+
+#[test]
+fn a_put_back_page_is_in_the_modeline_only_once_it_is_seen() {
+    let mut b = Bench::new();
+    let s = b.open("C:/refs/spec.pdf");
+    let state = b.reader.page_state(s).unwrap();
+    let mut next = Bench::new();
+    assert!(next.reader.page_restore(&mut next.host, "pdf", &state));
+    let s = *next.reader.surfaces().last().unwrap();
+    next.size(s, PANE, 1.0);
+    assert_eq!(next.host.status, None, "it may be in a tab behind another");
+    next.reader.shown(&mut next.host, s, true);
+    assert!(next.host.status.as_deref().is_some_and(|t| t.starts_with("PDF p.")), "{:?}", next.host.status);
+    next.reader.shown(&mut next.host, s, false);
+    assert_eq!(next.host.status, None);
 }
 
 #[test]
