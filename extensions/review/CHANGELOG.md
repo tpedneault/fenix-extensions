@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+Built against Fenix v1.1.0's released extension API, rather than the
+branch it was on before the release. Nothing changes in what it does.
+
 ## 1.1.0
 
 For Fenix 1.1 (extension API 1.2):
