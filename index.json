@@ -1044,6 +1044,25 @@
               "fenix-pdfium"
             ]
           }
+        },
+        {
+          "version": "1.0.1",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/pdf-v1.0.1/fenix.pdf-1.0.1.fenixext",
+          "sha256": "3a56c1379d095d3b3f60ce1f5473cc61884689ec530add9288cf450113ef4705",
+          "size": 184368,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "process": [
+              "fenix-pdfium"
+            ]
+          }
         }
       ],
       "name": "PDF reader",
