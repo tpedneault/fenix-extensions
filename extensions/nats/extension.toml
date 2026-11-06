@@ -1,0 +1,206 @@
+[extension]
+id = "fenix.nats"
+name = "NATS"
+version = "1.0.0"
+description = "A NATS client: live subjects with their rates and messages, payloads pretty-printed, filters and highlights, publish and request, JetStream's streams, consumers and key-value buckets -- at any message rate"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools", "data"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.2, <2"
+# Notifications (a highlight rule that notifies), agent tools' classes.
+api = "1.3"
+
+# Its commands load it, and its agent tools.
+[activation]
+commands = ["nats.*"]
+
+[permissions]
+# The servers in nats.servers (nats:// and tls:// URLs); and any on NATS's
+# own port, for one whose port is left out.
+sockets = ["${setting:nats.servers}", "*:4222"]
+# Each server's credentials, in the system's keychain: a user and password,
+# a token, an NKey seed, or which .creds file.
+secrets = ["nats.auth.*"]
+# Exports (JSONL) are written here; .creds files are read from here.
+folders = { exports = "${setting:nats.exports}|data:nats-exports", creds = "${setting:nats.creds_folder}|data:nats-creds" }
+
+[contributes]
+services = ["nats.sample", "nats.subjects", "nats.publish", "nats.request"]
+
+[[contributes.agent_tools]]
+name = "sample"
+description = "Recent messages on a NATS subject (wildcards * and >): subject, time, headers, payload. From what Fenix has stored, else waits up to wait_ms for new ones."
+service = "nats.sample"
+input = '{"type":"object","properties":{"subject":{"type":"string","description":"A subject or pattern, e.g. orders.>"},"count":{"type":"integer","minimum":1,"maximum":50},"wait_ms":{"type":"integer","minimum":0,"maximum":10000},"server":{"type":"string","description":"host:port; the first by default"}}}'
+class = "read"
+timeout_ms = 15000
+default = true
+
+[[contributes.agent_tools]]
+name = "subjects"
+description = "The NATS subjects Fenix sees, busiest first: messages, rate a second, average size, last seen."
+service = "nats.subjects"
+input = '{"type":"object","properties":{"subject":{"type":"string","description":"A pattern, > for all"},"limit":{"type":"integer","maximum":200},"server":{"type":"string"}}}'
+class = "read"
+default = true
+
+[[contributes.agent_tools]]
+name = "publish"
+description = "Publishes a message to a NATS subject: a string payload as it is, any other JSON as JSON, with optional headers."
+service = "nats.publish"
+input = '{"type":"object","properties":{"subject":{"type":"string"},"payload":{},"headers":{"type":"object","additionalProperties":{"type":"string"}},"server":{"type":"string"}},"required":["subject"]}'
+class = "run"
+writes = true
+
+[[contributes.agent_tools]]
+name = "request"
+description = "Sends a NATS request and waits up to 10 s for its reply: the reply's payload, headers and latency."
+service = "nats.request"
+input = '{"type":"object","properties":{"subject":{"type":"string"},"payload":{},"headers":{"type":"object","additionalProperties":{"type":"string"}},"server":{"type":"string"}},"required":["subject"]}'
+class = "run"
+writes = true
+timeout_ms = 15000
+
+[[contributes.commands]]
+id = "nats.open"
+title = "NATS: live subjects, their rates and messages"
+
+[[contributes.commands]]
+id = "nats.jetstream"
+title = "NATS: JetStream -- streams, consumers, key-value buckets"
+
+[[contributes.commands]]
+id = "nats.publish"
+title = "NATS: a message to publish, in a buffer"
+
+[[contributes.commands]]
+id = "nats.send"
+title = "NATS: send the publish buffer"
+
+[[contributes.commands]]
+id = "nats.request"
+title = "NATS: send the publish buffer as a request, and show the reply"
+
+[[contributes.commands]]
+id = "nats.subscribe"
+title = "NATS: subscribe to a subject"
+
+[[contributes.commands]]
+id = "nats.filter"
+title = "NATS: filter the live view"
+
+[[contributes.commands]]
+id = "nats.rules"
+title = "NATS: highlight rules"
+
+[[contributes.commands]]
+id = "nats.export"
+title = "NATS: export the live view's messages as JSONL"
+
+[[contributes.commands]]
+id = "nats.connect"
+title = "NATS: connect to a server, or disconnect"
+
+[[contributes.commands]]
+id = "nats.credentials"
+title = "NATS: a server's credentials (user, token, NKey, .creds), kept in the keychain"
+
+[[contributes.settings]]
+key = "nats.servers"
+kind = "list"
+label = "Servers"
+description = "The servers to connect to, each its own connection: nats://host:port, or tls://host:port for TLS from the start (4222 when the port is left out). Credentials don't go here: SPC o m a keeps them in the keychain"
+default = "nats://localhost:4222"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.subjects"
+kind = "list"
+label = "Subscriptions"
+description = "What the live view subscribes to on each server: subjects, with * for a token and > for the rest. a and d on the page change them"
+default = ">"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.budget_mib"
+kind = "int"
+label = "Memory for messages (MiB)"
+description = "What stored messages may take, every subject of every server together, 4 to 80: the oldest go first. Counts are kept for every message whatever this is"
+default = "64"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.per_subject"
+kind = "int"
+label = "Messages kept a subject"
+description = "The most messages a subject keeps"
+default = "2000"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.per_subject_kib"
+kind = "int"
+label = "KiB kept a subject"
+description = "The most a subject's messages may take"
+default = "4096"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.max_subjects"
+kind = "int"
+label = "Subjects listed"
+description = "Subjects counted one by one on a server; past it, the rest are counted together"
+default = "5000"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.refresh_hz"
+kind = "int"
+label = "Redraws a second"
+description = "How often the live page is drawn again while messages come, 1 to 30"
+default = "10"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.notify"
+kind = "bool"
+label = "Notify"
+description = "A highlight rule marked ! notifies when it matches, once a rule every 30 seconds at most"
+default = "true"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.client_name"
+kind = "text"
+label = "Client name"
+description = "The name the server is given for this connection (nats server report connections shows it)"
+default = "fenix"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.accept_invalid_certs"
+kind = "bool"
+label = "Accept any TLS certificate"
+description = "Take a server's certificate without checking it: a test server's, self-signed"
+default = "false"
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.exports"
+kind = "path"
+label = "Exports folder"
+description = "Where x and X on the live page write JSONL. Empty keeps them in Fenix's data folder"
+default = ""
+section = "NATS"
+
+[[contributes.settings]]
+key = "nats.creds_folder"
+kind = "path"
+label = ".creds folder"
+description = "Where the .creds files SPC o m a offers are (nsc's, nats context's). Empty: a folder in Fenix's data folder"
+default = ""
+section = "NATS"
