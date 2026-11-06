@@ -80,6 +80,19 @@ In a project that's a MIB, the doctor lists:
   standards;
 - its recordings.
 
+## For coding agents
+
+`mib_lookup` (read, Fenix 1.1) gives your coding agents the MIBs here:
+a definition by name -- a telecommand's mnemonic, a TM packet's SPID or
+name, a calibration's id -- or by the words of its description, as `/`
+on the MIB page finds them (`kind` narrows it to one kind). It answers
+what the definition's page shows, as JSON: a telecommand's PUS type,
+APID and arguments, each with its bits, type, default, what it may be
+and its calibration; a parameter's type, unit, calibration, limits and
+the packets that carry it; a packet's parameters by position; a
+calibration's points, texts, ranges or coefficients. When words match
+several, the best is answered in full and the next twenty are listed.
+
 ## What it may do
 
 - Know where you are, and type into the file you're in (the insert form,

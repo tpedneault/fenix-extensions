@@ -10,7 +10,10 @@
 //! again when their files change (`mib.watch`). How they're read against
 //! the mission comes from the CCSDS settings, `ccsds.*`
 //! (`permissions.settings`).
+//!
+//! Coding agents look definitions up with `mib_lookup` (`agent`).
 
+mod agent;
 mod mib_check;
 mod mib_def;
 mod mib_form;
@@ -951,6 +954,7 @@ impl Extension for MibExtension {
     fn serve(&mut self, _call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
         let answer = match name {
             "mib.open" => self.open_by_name(payload),
+            "mib.lookup" => self.lookup(payload),
             other => Err(format!("no service {other}")),
         };
         self.apply();
@@ -966,6 +970,19 @@ impl MibExtension {
         let def = (0..set.roots().len()).find_map(|root| Kind::ALL.iter().find_map(|&k| set.find(k, root, name))).ok_or_else(|| format!("{name} isn't in the MIB"))?;
         self.mib.open_def(def);
         Ok(String::new())
+    }
+
+    /// `mib.lookup {query, kind?}`: a coding agent's `mib_lookup`.
+    fn lookup(&mut self, payload: &str) -> Result<String, String> {
+        let call: serde_json::Value = serde_json::from_str(payload).map_err(|e| format!("the arguments: {e}"))?;
+        let field = |k: &str| call.get(k).and_then(|v| v.as_str()).map(str::trim).filter(|v| !v.is_empty());
+        let query = field("query").or_else(|| field("name")).unwrap_or("");
+        let kinds = match field("kind") {
+            Some(k) => vec![agent::kind(k).ok_or_else(|| format!("{k}: one of telecommand, tc_parameter, tm_packet, tm_parameter, calibration"))?],
+            None => Kind::ALL.to_vec(),
+        };
+        let set = self.mib.set().ok_or(NO_MIB)?;
+        agent::lookup(&set, query, &kinds, apid_hex()).map(|v| v.to_string())
     }
 }
 

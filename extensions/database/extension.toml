@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.database"
 name = "Database browser"
-version = "1.0.0"
+version = "1.1.0"
 description = "SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table's rows paged and changed, history, completion of the schema's names"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,8 @@ categories = ["tools", "data"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+# Agent tools: Fenix 1.1.
+fenix = ">=1.1, <2"
 # Passwords in the system's keychain (secret-set, patterns), the masked
 # prompt, a minute a call, contributes.magic.
 api = "1.0"
@@ -40,6 +41,8 @@ call_ms = 60000
 
 [contributes]
 opens = ["*.sqlite", "*.sqlite3", "*.db", "*.db3"]
+# Coding agents' tools.
+services = ["database.schema", "database.query"]
 # The .sql buffer you're in: its connection on the modeline.
 events = ["focus"]
 
@@ -49,6 +52,24 @@ events = ["focus"]
 "*.sqlite3" = "SQLite format 3"
 "*.db" = "SQLite format 3"
 "*.db3" = "SQLite format 3"
+
+# Agents see them as database_schema and database_query. A connection
+# with a password asks you for it, as the browser does, so they may wait.
+[[contributes.agent_tools]]
+name = "schema"
+description = "A database connection's schema, as the database browser has it: its schemas, tables and views, columns with types and nullability, primary, unique and foreign keys, indexes. The connection named, else the one the .sql buffer you're in runs on."
+service = "database.schema"
+input = '{"type":"object","properties":{"connection":{"type":"string","description":"A name from database.connections, or an open SQLite file"},"table":{"type":"string","description":"Only this table: t or schema.t"}}}'
+class = "read"
+timeout_ms = 120000
+
+[[contributes.agent_tools]]
+name = "query"
+description = "Runs one SELECT (or WITH, VALUES, SHOW, DESCRIBE, EXPLAIN) on a database connection and answers its rows as JSON. Anything that could change data is refused, and it runs on a read-only session of its own."
+service = "database.query"
+input = '{"type":"object","properties":{"sql":{"type":"string"},"connection":{"type":"string","description":"A name from database.connections; else the one the .sql buffer runs on"},"limit":{"type":"integer","description":"Rows answered, default 100, at most 1000"}},"required":["sql"]}'
+class = "read"
+timeout_ms = 120000
 
 [[contributes.language_servers]]
 name = "database"

@@ -31,6 +31,8 @@ pub enum Purpose {
     Count(u64),
     /// A table view's cell changed.
     Update(u64),
+    /// A coding agent's statement (`database_query`), by its call.
+    Agent(u64),
 }
 
 #[derive(Debug, Clone, PartialEq)]

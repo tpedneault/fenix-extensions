@@ -7,10 +7,15 @@
 //! the schema's names in `.sql` buffers. SQLite files open straight into
 //! it.
 //!
+//! Coding agents read the schema and run statements that only read
+//! (`database_schema`, `database_query`: `agent`), the latter on a
+//! session of their own, opened read-only.
+//!
 //! Engines: SQLite (Turso's, in Rust: `lite`), and over Fenix's sockets
 //! PostgreSQL (`pg`), MySQL and MariaDB (`mysql`) and SQL Server (`tds`),
 //! each a client fed what its socket brings, so nothing waits.
 
+pub mod agent;
 pub mod browser;
 pub mod complete;
 pub mod conn;
@@ -209,6 +214,22 @@ enum Asked {
     },
 }
 
+/// A coding agent's call waiting for a connection's schema.
+#[derive(Debug, Clone)]
+struct SchemaWait {
+    call: u64,
+    conn: String,
+    table: Option<String>,
+}
+
+/// A coding agent's statement under way.
+#[derive(Debug, Clone)]
+struct AgentQuery {
+    conn: String,
+    statement: String,
+    limit: usize,
+}
+
 /// A run's parts (SQL Server's statements go a batch each), as they come.
 #[derive(Debug, Default)]
 struct Gathering {
@@ -254,6 +275,11 @@ struct App {
     /// The browser's width as last laid out: where its sidebar ends.
     browser_w: usize,
     servers: Servers,
+    /// Coding agents' sessions, a connection's each, opened read-only.
+    agent_sessions: BTreeMap<String, Session>,
+    /// Their calls waiting for a schema, and their statements under way.
+    schema_waits: Vec<SchemaWait>,
+    agent_queries: HashMap<u64, AgentQuery>,
 }
 
 impl App {
@@ -287,6 +313,12 @@ impl App {
                 s.close(&mut Sockets);
             }
             self.cataloged.remove(&name);
+        }
+        let stale: Vec<String> = self.agent_sessions.keys().filter(|name| !self.files.iter().any(|f| &f.name == *name) && !saved.iter().any(|c| &c.name == *name)).cloned().collect();
+        for name in stale {
+            if let Some(mut s) = self.agent_sessions.remove(&name) {
+                s.close(&mut Sockets);
+            }
         }
         self.saved = saved;
         self.errors = errors;
@@ -439,6 +471,7 @@ impl App {
                 self.tick();
             }
         }
+        self.agents_after();
         self.keep_passwords();
         self.refresh_browser();
         self.update_status();
@@ -523,6 +556,8 @@ impl App {
                 }
                 pages::refresh(page);
             }
+            // Agents' statements run on their own sessions (`agents_after`).
+            Purpose::Agent(_) => {}
         }
     }
 
@@ -886,6 +921,11 @@ impl App {
                         self.runs.remove(&run);
                     }
                 }
+                let (waiting, rest): (Vec<SchemaWait>, Vec<SchemaWait>) = std::mem::take(&mut self.schema_waits).into_iter().partition(|w| w.conn == name);
+                self.schema_waits = rest;
+                for w in waiting {
+                    fenix_extension_api::answer(w.call, Err(format!("{name}'s password wasn't given")));
+                }
             }
             (Asked::Export { text }, Some(path)) => {
                 let rel = path.trim().trim_start_matches(['/', '\\']).trim_start_matches("project/");
@@ -1049,17 +1089,17 @@ impl Extension for App {
     fn handle(&mut self, event: Event) {
         match event {
             Event::SocketConnected((s, r)) => {
-                if let Some(sess) = self.sessions.values_mut().find(|x| x.socket() == Some(s)) {
+                if let Some(sess) = self.session_on(s) {
                     sess.connected(&mut Sockets, r);
                 }
             }
             Event::SocketData((s, bytes)) => {
-                if let Some(sess) = self.sessions.values_mut().find(|x| x.socket() == Some(s)) {
+                if let Some(sess) = self.session_on(s) {
                     sess.data(&mut Sockets, &bytes);
                 }
             }
             Event::SocketClosed((s, why)) => {
-                if let Some(sess) = self.sessions.values_mut().find(|x| x.socket() == Some(s)) {
+                if let Some(sess) = self.session_on(s) {
                     sess.closed(why);
                 }
             }
@@ -1068,6 +1108,9 @@ impl Extension for App {
                 let n = max_rows();
                 for s in self.sessions.values_mut().filter(|s| s.is_lite()) {
                     s.run_lite(n);
+                }
+                for s in self.agent_sessions.values_mut().filter(|s| s.is_lite()) {
+                    s.run_lite(agent::MAX_ROWS);
                 }
             }
             Event::Picked((id, value)) => return self.picked(id, value),
@@ -1203,6 +1246,21 @@ impl Extension for App {
         }
     }
 
+    /// `database.schema` and `database.query`: coding agents' tools.
+    fn serve(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        let args: serde_json::Value = serde_json::from_str(payload).unwrap_or_default();
+        let field = |k: &str| args.get(k).and_then(|v| v.as_str()).map(str::trim).filter(|v| !v.is_empty()).map(str::to_string);
+        let answer = match name {
+            "database.schema" => self.agent_schema(call, field("connection").as_deref(), field("table")),
+            "database.query" => {
+                let limit = args.get("limit").and_then(|v| v.as_u64()).map_or(agent::DEFAULT_ROWS, |n| (n as usize).clamp(1, agent::MAX_ROWS));
+                self.agent_query(call, field("connection").as_deref(), &field("sql").unwrap_or_default(), limit)
+            }
+            other => Some(Err(format!("no service {other}"))),
+        };
+        answer.map(|a| a.map(|v| v.to_string()))
+    }
+
     fn lsp_message(&mut self, server: u64, message: &str) {
         let mut servers = std::mem::take(&mut self.servers);
         servers.handle(server, message, &mut Completer { app: self });
@@ -1211,6 +1269,139 @@ impl Extension for App {
 }
 
 impl App {
+    /// The session, the user's or an agent's, a socket is for.
+    fn session_on(&mut self, socket: u64) -> Option<&mut Session> {
+        self.sessions.values_mut().chain(self.agent_sessions.values_mut()).find(|x| x.socket() == Some(socket))
+    }
+
+    /// The connection an agent means: the one it names, else the one
+    /// the `.sql` buffer you're in runs on, the one you ran on last, or
+    /// the only one there is.
+    fn agent_conn(&self, named: Option<&str>) -> Result<Conn, String> {
+        let names = || self.all_conns().iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", ");
+        if let Some(n) = named {
+            return self.conn(n).ok_or_else(|| format!("no connection called {n} -- there are: {}", names()));
+        }
+        let here = self.focus.as_ref().and_then(|b| self.connection_for(b, &b.text().unwrap_or_default()));
+        let only = match self.all_conns().as_slice() {
+            [one] => Some(one.name.clone()),
+            _ => None,
+        };
+        let name = here.or_else(|| self.last_conn.clone()).or(only);
+        match name.and_then(|n| self.conn(&n)) {
+            Some(c) => Ok(c),
+            None if self.all_conns().is_empty() => Err("no connections: the user adds them in database.connections, or opens a .sqlite file".into()),
+            None => Err(format!("which connection? \"connection\": one of {}", names())),
+        }
+    }
+
+    /// `database_schema`: now if it's been read, else once it is.
+    fn agent_schema(&mut self, call: u64, named: Option<&str>, table: Option<String>) -> Option<Result<serde_json::Value, String>> {
+        let conn = match self.agent_conn(named) {
+            Ok(c) => c,
+            Err(e) => return Some(Err(e)),
+        };
+        if let Some(answer) = self.schema_now(&conn.name, table.as_deref()) {
+            return Some(answer);
+        }
+        self.start(&conn.name);
+        if let Some(answer) = self.schema_now(&conn.name, table.as_deref()) {
+            return Some(answer);
+        }
+        self.schema_waits.push(SchemaWait { call, conn: conn.name, table });
+        None
+    }
+
+    /// A connection's schema for an agent, if it's known -- or why it
+    /// won't be.
+    fn schema_now(&self, name: &str, table: Option<&str>) -> Option<Result<serde_json::Value, String>> {
+        let s = self.sessions.get(name)?;
+        match (&s.state, &s.schema, &s.schema_error) {
+            (_, Some(schema), _) => Some(agent::schema_answer(&s.conn, schema, table)),
+            (_, None, Some(e)) => Some(Err(format!("{name}'s schema couldn't be read: {e}"))),
+            (State::Failed(e), _, _) => Some(Err(format!("{name}: {e}"))),
+            _ => None,
+        }
+    }
+
+    /// `database_query`: one statement that only reads, on the agents'
+    /// read-only session for the connection.
+    fn agent_query(&mut self, call: u64, named: Option<&str>, sql: &str, limit: usize) -> Option<Result<serde_json::Value, String>> {
+        let conn = match self.agent_conn(named) {
+            Ok(c) => c,
+            Err(e) => return Some(Err(e)),
+        };
+        let statement = match agent::read_only_statement(sql, conn.engine.dialect()) {
+            Ok(s) => s,
+            Err(why) => return Some(Err(format!("database_query runs one statement that only reads: {why}"))),
+        };
+        let name = conn.name.clone();
+        let alive = self.agent_sessions.get(&name).is_some_and(|s| !matches!(s.state, State::Failed(_) | State::Closed) && s.conn.database == conn.database);
+        if !alive {
+            if let Some(mut old) = self.agent_sessions.remove(&name) {
+                old.close(&mut Sockets);
+            }
+            let password = match conn.engine {
+                Engine::Sqlite => Some(String::new()),
+                _ if conn.user.is_empty() => Some(String::new()),
+                _ => self.password(&name),
+            };
+            let Some(password) = password else {
+                // Asked for as the browser asks: the agent calls again.
+                self.start(&name);
+                return Some(Err(format!("{name} needs {}'s password: Fenix has asked the user for it -- call again once it's typed", conn.user)));
+            };
+            let mut ro = conn.clone();
+            ro.read_only = true;
+            let mut s = Session::new(ro, &password, agent::MAX_ROWS);
+            s.connect(&mut Sockets);
+            if let State::Failed(e) = &s.state {
+                return Some(Err(format!("{name}: {e}")));
+            }
+            self.agent_sessions.insert(name.clone(), s);
+        }
+        self.next_job += 1;
+        let job = Job { id: self.next_job, sql: statement.clone(), single: true, purpose: Purpose::Agent(call) };
+        self.agent_queries.insert(call, AgentQuery { conn: name.clone(), statement, limit });
+        let lite = match self.agent_sessions.get_mut(&name) {
+            Some(s) => {
+                s.submit(&mut Sockets, job);
+                s.is_lite()
+            }
+            None => false,
+        };
+        if lite {
+            self.tick();
+        }
+        None
+    }
+
+    /// Agents' statements done, and schemas they waited for come (or
+    /// not coming), answered.
+    fn agents_after(&mut self) {
+        let done: Vec<Finished> = self.agent_sessions.values_mut().flat_map(|s| s.take_finished()).collect();
+        for f in done {
+            let Purpose::Agent(call) = f.job.purpose else { continue };
+            let Some(q) = self.agent_queries.remove(&call) else { continue };
+            let Some(conn) = self.conn(&q.conn) else { continue };
+            let answer = agent::query_answer(&conn, &q.statement, &f.outcomes, q.limit, f.millis);
+            let at = fenix_extension_api::chrono::Utc::now().timestamp();
+            let summary = match &answer {
+                Ok(v) => v.get("row_count").map(|n| format!("{n} rows")).or_else(|| v.get("done").and_then(|d| d.as_str()).map(str::to_string)).unwrap_or_default(),
+                Err(e) => e.clone(),
+            };
+            self.history.push(Entry { at, conn: q.conn.clone(), sql: q.statement.clone(), ok: answer.is_ok(), summary: format!("a coding agent's · {summary}"), millis: f.millis });
+            fenix_extension_api::answer(call, answer.map(|v| v.to_string()));
+        }
+        let waits = std::mem::take(&mut self.schema_waits);
+        for w in waits {
+            match self.schema_now(&w.conn, w.table.as_deref()) {
+                Some(answer) => fenix_extension_api::answer(w.call, answer.map(|v| v.to_string())),
+                None => self.schema_waits.push(w),
+            }
+        }
+    }
+
     fn table_ask(&mut self, page: u64, ask: Option<Ask>) {
         match ask {
             Some(Ask::Fetch) => self.fetch(page),

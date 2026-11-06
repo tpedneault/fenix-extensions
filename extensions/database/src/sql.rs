@@ -324,7 +324,7 @@ impl Kind {
 
 /// The words of `text` outside quotes and comments, upper-case, with
 /// their depth in parentheses.
-fn words(text: &str, dialect: Dialect) -> Vec<(String, usize)> {
+pub(crate) fn words(text: &str, dialect: Dialect) -> Vec<(String, usize)> {
     let b = text.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
