@@ -1,0 +1,16 @@
+{
+ "info": {
+  "summary": "Python HTTP for Humans.",
+  "description_content_type": "text/markdown",
+  "description": "# Requests\n\n[![Downloads](https://static.pepy.tech/badge/requests/month)](https://pepy.tech/project/requests)\n[![Supported Versions](https://img.shields.io/pypi/pyversions/requests.svg)](https://pypi.org/project/requests)\n\n**Requests** is a simple, yet elegant, HTTP library.\n\n```python\n>>> import requests\n>>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'pass'))\n>>> r.status_code\n200\n```\n\n## Installing Requests\n\n```console\n$ python -m pip install requests\n```\n",
+  "home_page": "https://requests.readthedocs.io",
+  "project_urls": {
+   "Documentation": "https://requests.readthedocs.io",
+   "Source": "https://github.com/psf/requests"
+  },
+  "requires_python": ">=3.7",
+  "version": "2.31.0",
+  "name": "requests"
+ },
+ "urls": []
+}

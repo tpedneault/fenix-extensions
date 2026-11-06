@@ -1,0 +1,6 @@
+{"path":"proto/orbit/v1/ground.proto","start_line":5,"start_column":9,"end_line":5,"end_column":23,"type":"MESSAGE_PASCAL_CASE","message":"Message name \"ground_station\" should be PascalCase, such as \"GroundStation\"."}
+{"path":"proto/orbit/v1/ground.proto","start_line":6,"start_column":10,"end_line":6,"end_column":14,"type":"FIELD_LOWER_SNAKE_CASE","message":"Field name \"Name\" should be lower_snake_case, such as \"name\"."}
+{"path":"proto/orbit/v1/ground.proto","start_line":10,"start_column":3,"end_line":10,"end_column":4,"type":"ENUM_VALUE_PREFIX","message":"Enum value name \"S\" should be prefixed with \"BAND_\"."}
+{"path":"proto/orbit/v1/ground.proto","start_line":10,"start_column":3,"end_line":10,"end_column":4,"type":"ENUM_ZERO_VALUE_SUFFIX","message":"Enum zero value name \"S\" should be suffixed with \"_UNSPECIFIED\"."}
+{"path":"proto/orbit/v1/ground.proto","start_line":11,"start_column":3,"end_line":11,"end_column":4,"type":"ENUM_VALUE_PREFIX","message":"Enum value name \"X\" should be prefixed with \"BAND_\"."}
+{"path":"proto/orbit/v1/orbit.proto","start_line":12,"start_column":55,"end_line":12,"end_column":59,"type":"RPC_RESPONSE_STANDARD_NAME","message":"RPC response type \"Pass\" should be named \"WatchPassesResponse\" or \"OrbitServiceWatchPassesResponse\"."}

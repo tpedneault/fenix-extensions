@@ -1,0 +1,10 @@
+2024-03-01 12:00:01,100 [main] INFO  com.acme.App - Starting on port 8080
+2024-03-01 12:00:02,250 [http-1] ERROR com.acme.web.Handler - Request failed: /orders/42
+java.lang.IllegalStateException: order 42 is closed
+	at com.acme.orders.Order.update(Order.java:88)
+	at com.acme.web.Handler.handle(Handler.java:31)
+Caused by: java.sql.SQLException: connection reset
+	at org.h2.Driver.run(Driver.java:12)
+	... 12 more
+2024-03-01 12:00:03,000 [pool-2] WARN  com.acme.db.Pool - 9 of 10 connections in use
+2024-03-01 12:00:04,500 [main] DEBUG com.acme.App - Tick

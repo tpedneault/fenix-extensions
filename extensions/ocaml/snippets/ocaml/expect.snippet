@@ -1,0 +1,8 @@
+# name: ppx_expect test
+# key: expect
+# scope: ocaml
+# --
+let%expect_test "${1:prints}" =
+  ${2:print_endline "hello"};
+  [%expect {| ${3:hello} |}]
+$0

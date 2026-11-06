@@ -1,0 +1,50 @@
+# NATS's keys, under SPC o m (messaging). Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC o m"
+group = "nats"
+
+[[leader]]
+keys = "SPC o m m"
+label = "nats: live subjects"
+command = "nats.open"
+
+[[leader]]
+keys = "SPC o m j"
+label = "nats: jetstream and key-value"
+command = "nats.jetstream"
+
+[[leader]]
+keys = "SPC o m p"
+label = "nats: a message to publish"
+command = "nats.publish"
+
+[[leader]]
+keys = "SPC o m s"
+label = "nats: send the publish buffer"
+command = "nats.send"
+
+[[leader]]
+keys = "SPC o m r"
+label = "nats: send it as a request"
+command = "nats.request"
+
+[[leader]]
+keys = "SPC o m a"
+label = "nats: credentials for a server"
+command = "nats.credentials"
+
+[[leader]]
+keys = "SPC o m c"
+label = "nats: connect or disconnect"
+command = "nats.connect"
+
+[[leader]]
+keys = "SPC o m f"
+label = "nats: filter"
+command = "nats.filter"
+
+[[leader]]
+keys = "SPC o m h"
+label = "nats: highlight rules"
+command = "nats.rules"

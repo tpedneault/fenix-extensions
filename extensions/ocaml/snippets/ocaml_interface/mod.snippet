@@ -1,0 +1,10 @@
+# name: Module signature
+# key: mod
+# scope: ocaml_interface
+# --
+module ${1:Registry} : sig
+  type t
+
+  ${2:val empty : t}
+end
+$0

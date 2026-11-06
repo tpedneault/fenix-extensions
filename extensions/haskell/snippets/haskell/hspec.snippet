@@ -1,0 +1,14 @@
+# name: hspec spec module
+# key: hspec
+# scope: haskell
+# --
+module ${1:Orbit}Spec (spec) where
+
+import Test.Hspec
+import $1
+
+spec :: Spec
+spec = do
+  describe "${2:describe}" \$ do
+    it "${3:says the period}" \$ do
+      ${4:True `shouldBe` True}

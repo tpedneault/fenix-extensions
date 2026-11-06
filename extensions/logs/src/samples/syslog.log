@@ -1,0 +1,5 @@
+Mar  1 12:00:01 web01 systemd[1]: Started nginx.service.
+Mar  1 12:00:02 web01 kernel: [ 12.345] usb 1-1: ERROR device not accepting address
+<11>Mar  1 12:00:03 web01 app[42]: disk failure
+<12>1 2024-03-01T12:00:04Z web01 app 42 - - low on disk
+Mar  1 12:00:05 web01 sshd[99]: Accepted publickey for root

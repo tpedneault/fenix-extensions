@@ -1,0 +1,59 @@
+// An order service, to colour.
+syntax = "proto3";
+
+package acme.orders.v1;
+
+import "google/protobuf/timestamp.proto";
+import public "acme/common/v1/money.proto";
+
+option go_package = "example.com/acme/gen/orders/v1;ordersv1";
+option java_multiple_files = true;
+
+message Order {
+  reserved 4, 9 to 11;
+  reserved "legacy_id";
+
+  string id = 1 [json_name = "orderId"];
+  repeated Line lines = 2;
+  optional string note = 3;
+  map<string, int64> totals = 5;
+  google.protobuf.Timestamp placed = 6 [(acme.redact) = true];
+  State state = 7;
+  double weight = 8;
+  float ratio = 12;
+  bool paid = 13;
+  bytes blob = 14;
+
+  oneof payer {
+    string card = 20;
+    string account = 21;
+  }
+
+  message Line {
+    string sku = 1;
+    uint32 quantity = 2;
+  }
+}
+
+enum State {
+  STATE_UNSPECIFIED = 0;
+  STATE_OPEN = 1 [deprecated = true];
+}
+
+service OrderService {
+  rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
+  rpc WatchOrders(WatchOrdersRequest) returns (stream Order) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message PlaceOrderRequest {
+  Order order = 1;
+  string escaped = 2 [default_text = "a\tb"];
+}
+
+message PlaceOrderResponse {}
+
+message WatchOrdersRequest {
+  float limit = 1;
+}

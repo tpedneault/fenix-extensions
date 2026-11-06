@@ -1,0 +1,30 @@
+[package]
+name = "fenix-nats-client"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "A NATS client in Fenix: live subjects with their rates, messages and payloads, filters and highlights, publish and request, JetStream's streams, consumers and key-value buckets -- at any message rate."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# API 1.3: notifications.
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.2.0" }
+fenix-nats = { path = "../../crates/nats" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+# Payload filters; the byte API, so a payload needn't be text.
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+# Subjects looked up for every message: a hash that's cheap on short keys.
+rustc-hash = "2"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

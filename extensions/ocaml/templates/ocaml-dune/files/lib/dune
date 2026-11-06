@@ -1,0 +1,5 @@
+; Unwrapped: its modules are named as they are (Greeting), not under the
+; library's name.
+(library
+ (name {{name_snake}})
+ (wrapped false))

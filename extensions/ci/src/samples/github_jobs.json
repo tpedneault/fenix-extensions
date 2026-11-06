@@ -1,0 +1,96 @@
+{
+  "total_count": 4,
+  "jobs": [
+    {
+      "id": 32897410052,
+      "run_id": 11807430219,
+      "workflow_name": "CI",
+      "head_branch": "feature/telemetry",
+      "run_url": "https://api.github.com/repos/acme/rocket/actions/runs/11807430219",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOKz1N0M8AAAAHqNnYBA",
+      "head_sha": "9f1c2e7d4b8a6f3e2d1c0b9a8f7e6d5c4b3a2f10",
+      "url": "https://api.github.com/repos/acme/rocket/actions/jobs/32897410052",
+      "html_url": "https://github.com/acme/rocket/actions/runs/11807430219/job/32897410052",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-06T09:41:08Z",
+      "started_at": "2026-11-06T09:41:14Z",
+      "completed_at": "2026-11-06T09:43:02Z",
+      "name": "build",
+      "steps": [
+        { "name": "Set up job", "status": "completed", "conclusion": "success", "number": 1, "started_at": "2026-11-06T09:41:14Z", "completed_at": "2026-11-06T09:41:16Z" },
+        { "name": "Run actions/checkout@v4", "status": "completed", "conclusion": "success", "number": 2, "started_at": "2026-11-06T09:41:16Z", "completed_at": "2026-11-06T09:41:18Z" },
+        { "name": "Run cargo build --locked", "status": "completed", "conclusion": "success", "number": 3, "started_at": "2026-11-06T09:41:18Z", "completed_at": "2026-11-06T09:43:00Z" },
+        { "name": "Complete job", "status": "completed", "conclusion": "success", "number": 4, "started_at": "2026-11-06T09:43:00Z", "completed_at": "2026-11-06T09:43:02Z" }
+      ],
+      "check_run_url": "https://api.github.com/repos/acme/rocket/check-runs/32897410052",
+      "labels": ["ubuntu-latest"],
+      "runner_id": 41,
+      "runner_name": "GitHub Actions 41",
+      "runner_group_id": 2,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 32897410321,
+      "run_id": 11807430219,
+      "workflow_name": "CI",
+      "head_branch": "feature/telemetry",
+      "run_attempt": 1,
+      "head_sha": "9f1c2e7d4b8a6f3e2d1c0b9a8f7e6d5c4b3a2f10",
+      "html_url": "https://github.com/acme/rocket/actions/runs/11807430219/job/32897410321",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-06T09:41:08Z",
+      "started_at": "2026-11-06T09:41:15Z",
+      "completed_at": "2026-11-06T09:44:27Z",
+      "name": "test (ubuntu-latest)",
+      "steps": [
+        { "name": "Set up job", "status": "completed", "conclusion": "success", "number": 1, "started_at": "2026-11-06T09:41:15Z", "completed_at": "2026-11-06T09:41:17Z" },
+        { "name": "Run actions/checkout@v4", "status": "completed", "conclusion": "success", "number": 2, "started_at": "2026-11-06T09:41:17Z", "completed_at": "2026-11-06T09:41:19Z" },
+        { "name": "Run cargo test --workspace", "status": "completed", "conclusion": "failure", "number": 3, "started_at": "2026-11-06T09:41:19Z", "completed_at": "2026-11-06T09:44:25Z" },
+        { "name": "Upload the test report", "status": "completed", "conclusion": "skipped", "number": 4, "started_at": "2026-11-06T09:44:25Z", "completed_at": "2026-11-06T09:44:25Z" },
+        { "name": "Complete job", "status": "completed", "conclusion": "success", "number": 5, "started_at": "2026-11-06T09:44:25Z", "completed_at": "2026-11-06T09:44:27Z" }
+      ],
+      "labels": ["ubuntu-latest"]
+    },
+    {
+      "id": 32897410598,
+      "run_id": 11807430219,
+      "workflow_name": "CI",
+      "head_branch": "feature/telemetry",
+      "run_attempt": 1,
+      "head_sha": "9f1c2e7d4b8a6f3e2d1c0b9a8f7e6d5c4b3a2f10",
+      "html_url": "https://github.com/acme/rocket/actions/runs/11807430219/job/32897410598",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-11-06T09:41:08Z",
+      "started_at": "2026-11-06T09:41:40Z",
+      "completed_at": null,
+      "name": "test (windows-latest)",
+      "steps": [
+        { "name": "Set up job", "status": "completed", "conclusion": "success", "number": 1, "started_at": "2026-11-06T09:41:40Z", "completed_at": "2026-11-06T09:41:44Z" },
+        { "name": "Run cargo test --workspace", "status": "in_progress", "conclusion": null, "number": 2, "started_at": "2026-11-06T09:41:44Z", "completed_at": null },
+        { "name": "Complete job", "status": "pending", "conclusion": null, "number": 3, "started_at": null, "completed_at": null }
+      ],
+      "labels": ["windows-latest"]
+    },
+    {
+      "id": 32897410777,
+      "run_id": 11807430219,
+      "workflow_name": "CI",
+      "head_branch": "feature/telemetry",
+      "run_attempt": 1,
+      "head_sha": "9f1c2e7d4b8a6f3e2d1c0b9a8f7e6d5c4b3a2f10",
+      "html_url": "https://github.com/acme/rocket/actions/runs/11807430219/job/32897410777",
+      "status": "queued",
+      "conclusion": null,
+      "created_at": "2026-11-06T09:41:08Z",
+      "started_at": "2026-11-06T09:41:08Z",
+      "completed_at": null,
+      "name": "docs",
+      "steps": [],
+      "labels": ["ubuntu-latest"]
+    }
+  ]
+}

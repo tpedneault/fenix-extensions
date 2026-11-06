@@ -1,0 +1,6 @@
+{"time":"2024-03-01T12:00:01Z","level":"info","msg":"started","port":8080}
+{"time":"2024-03-01T12:00:02Z","level":"error","msg":"request failed","user":{"id":7,"name":"bob"},"status":500}
+{"level":40,"time":1709294403000,"msg":"pino warns","pid":12}
+{"@t":"2024-03-01T12:00:04Z","@l":"Debug","@m":"serilog"}
+{"timestamp":"2024-03-01T12:00:05.500Z","severity":"CRITICAL","message":"gcp fatal"}
+{"ts":1709294406.25,"level":"trace","msg":"zap trace","caller":"main.go:9"}

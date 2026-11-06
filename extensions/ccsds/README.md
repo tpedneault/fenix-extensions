@@ -60,6 +60,17 @@ the MIB extension reads (`mib.roots`).
 | `SPC k ?` | `ccsds.standards` | The standards |
 | `SPC f x` | `ccsds.hex` | The file as hex |
 
+## For coding agents
+
+`ccsds_decode` (read, Fenix 1.1) decodes bytes your coding agent gives
+as hex -- `1BF2C0070009`, `1B F2 C0 07`, `0x1B,0xF2`, a hex dump with
+offsets -- as the packet inspector does (`as` says how to read them;
+left out, by what they look like), through the MIBs `mib.roots` names
+and against the project's mission profile. It answers the inspector's
+tree as JSON: each field's byte (and bit) offset, size, raw value,
+meaning and check, the telecommand or TM packet the MIB identified, the
+checks that fail and those that warn.
+
 ## What it may do
 
 - **Where you are:** know where you are, and type into the file you're in

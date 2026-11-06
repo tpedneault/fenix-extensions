@@ -1,0 +1,32 @@
+<h1><a href="#anyhow_ペ_" id="user-content-anyhow_ペ_" rel="nofollow noopener noreferrer"></a>Anyhow ¯\_(°ペ)_/¯</h1>
+<p><a href="https://github.com/dtolnay/anyhow" rel="nofollow noopener noreferrer"><img alt="github" src="https://img.shields.io/badge/github-dtolnay/anyhow-8da0cb?style=for-the-badge&amp;labelColor=555555&amp;logo=github" height="20"></a>
+<a href="https://crates.io/crates/anyhow" rel="nofollow noopener noreferrer"><img alt="crates.io" src="https://img.shields.io/crates/v/anyhow.svg?style=for-the-badge&amp;color=fc8d62&amp;logo=rust" height="20"></a>
+<a href="https://docs.rs/anyhow" rel="nofollow noopener noreferrer"><img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-anyhow-66c2a5?style=for-the-badge&amp;labelColor=555555&amp;logo=docs.rs" height="20"></a>
+<a href="https://github.com/dtolnay/anyhow/actions?query=branch%3Amaster" rel="nofollow noopener noreferrer"><img alt="build status" src="https://img.shields.io/github/actions/workflow/status/dtolnay/anyhow/ci.yml?branch=master&amp;style=for-the-badge" height="20"></a></p>
+<p>This library provides <a href="https://docs.rs/anyhow/1.0/anyhow/struct.Error.html" rel="nofollow noopener noreferrer"><code>anyhow::Error</code></a>, a trait object based error type
+for easy idiomatic error handling in Rust applications.</p>
+<pre><code class="language-toml">[dependencies]
+anyhow = "1.0"
+</code></pre>
+<p><em>Compiler support: requires rustc 1.39+</em></p>
+<br>
+<h2><a href="#details" id="user-content-details" rel="nofollow noopener noreferrer"></a>Details</h2>
+<ul>
+<li>
+<p>Use <code>Result&lt;T, anyhow::Error&gt;</code>, or equivalently <code>anyhow::Result&lt;T&gt;</code>, as the
+return type of any fallible function.</p>
+<p>Within the function, use <code>?</code> to easily propagate any error that implements the
+<code>std::error::Error</code> trait.</p>
+<pre><code class="language-rust">use anyhow::Result;
+
+fn get_cluster_info() -&gt; Result&lt;ClusterMap&gt; {
+    let config = std::fs::read_to_string("cluster.json")?;
+    let map: ClusterMap = serde_json::from_str(&amp;config)?;
+    Ok(map)
+}
+</code></pre>
+</li>
+<li>
+<p>Attach context to help the person troubleshooting the error understand where
+</li>
+</ul>

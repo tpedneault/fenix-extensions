@@ -1,0 +1,39 @@
+orbit.v1.GetSatelliteRequest is a message:
+message GetSatelliteRequest {
+  string id = 1;
+}
+orbit.v1.WatchPassesRequest is a message:
+message WatchPassesRequest {
+  string satellite_id = 1;
+  .orbit.v1.Station station = 2;
+}
+orbit.v1.Satellite is a message:
+message Satellite {
+  string id = 1;
+  string name = 2;
+  double period_minutes = 3;
+  .orbit.v1.Kind kind = 4;
+  repeated string tags = 5;
+  map<string, string> labels = 6;
+  .google.protobuf.Timestamp launched = 7;
+  oneof owner {
+    string agency = 8;
+    string company = 9;
+  }
+}
+orbit.v1.Station is a message:
+message Station {
+  double lat = 1;
+  double lon = 2;
+}
+orbit.v1.Kind is an enum:
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_WEATHER = 1;
+  KIND_COMMS = 2;
+}
+google.protobuf.Timestamp is a message:
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}

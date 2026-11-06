@@ -152,6 +152,41 @@ type, a table view's pages and changes). TDS 8 hasn't been: the test
 server wouldn't take a strict connection with its self-signed
 certificate.
 
+## For coding agents
+
+Two tools for your coding agents (Fenix 1.1), in the `database`
+toolset:
+
+| Tool | Class | What it answers |
+| --- | --- | --- |
+| `database_schema` | read | A connection's schemas, tables and views, each column's type and whether it's nullable, primary, unique and foreign keys, indexes -- or one table's (`table`) |
+| `database_query` | read | The rows of one statement that only reads (`SELECT`, `WITH`, `VALUES`, `TABLE`, `SHOW`, `DESCRIBE`, `EXPLAIN`), as JSON: at most `limit` (100, up to 1000) |
+
+Both take `connection`, a name from `database.connections` or an open
+SQLite file's; left out, it's the one the `.sql` buffer you're in runs
+on, the one you ran on last, or the only one there is. A connection
+that needs a password asks you for it, as the browser does.
+
+`database_query` refuses whatever it can't tell only reads: more than
+one statement, anything but those above, `SELECT ... INTO`, a `WITH`
+that changes rows, `EXPLAIN ANALYZE`, `FOR UPDATE`, and functions with
+effects (`nextval`, `pg_terminate_backend`, advisory locks, large
+objects, `dblink`, `sleep`, `load_file`, `OPENROWSET`, `xp_` and `sp_`
+procedures). What passes runs on a session of its own, opened
+read-only -- PostgreSQL's `default_transaction_read_only`, MySQL's `SET
+SESSION TRANSACTION READ ONLY`, a SQLite file opened read-only -- so a
+transaction you have open is never touched, and the server refuses a
+write all the same. Each one is in the history, marked as a coding
+agent's.
+
+SQL Server has no read-only session, and it needs no `;` between
+statements, so there the check is the only safeguard and it's stricter:
+every word that starts a statement (`DECLARE`, `SET`, `BEGIN`, `IF`,
+`UPDATETEXT`...) is refused, unless it's a name in `[brackets]`, as are
+a second `SELECT` outside a `UNION`, `EXCEPT` or `INTERSECT`, and `NEXT
+VALUE FOR`. For more certainty, give an agent's connection a login that
+can only read.
+
 ## Limits
 
 - **TLS on SQL Server** is TDS 8's only. TDS 7 carries TLS inside its
@@ -202,5 +237,6 @@ from PostgreSQL 16 and MariaDB 10.11 (`src/testdata`) -- SCRAM-SHA-256
 against RFC 7677's example, the scrambles, TDS's types, the catalog put
 together into a schema and its tree, SQLite files made by SQLite itself
 (Python's `sqlite3`) read and written and their journal put back, the
-UPDATE builder and table pages, completion, history, and the pages'
-keys and layout.
+UPDATE builder and table pages, completion, history, the pages'
+keys and layout, and what agents are given: the read-only guard, the
+schema and rows as JSON.

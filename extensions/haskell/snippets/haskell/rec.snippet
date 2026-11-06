@@ -1,0 +1,10 @@
+# name: Record
+# key: rec
+# scope: haskell
+# --
+data ${1:Orbit} = $1
+  { ${2:name} :: ${3:String}
+  , ${4:period} :: ${5:Double}
+  }
+  deriving (Show, Eq)
+$0

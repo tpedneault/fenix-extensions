@@ -1,0 +1,9 @@
+# name: Enum, its zero value UNSPECIFIED
+# key: enum
+# scope: proto
+# --
+enum ${1:Kind} {
+  ${2:KIND}_UNSPECIFIED = 0;
+  $2_${3:FIRST} = 1;
+  $0
+}

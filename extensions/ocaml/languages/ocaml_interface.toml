@@ -1,0 +1,8 @@
+# OCaml's interfaces (.mli), a language of their own: tree-sitter-ocaml's
+# grammar for interfaces, which exports tree_sitter_ocaml_interface, and
+# its queries from queries/ocaml_interface. ocaml-lsp-server serves them
+# too: it reads an interface by its file's name. No `comment`, as in
+# ocaml.toml.
+language = "ocaml_interface"
+grammar = "grammars/tree-sitter-ocaml_interface.wasm"
+extensions = ["mli"]

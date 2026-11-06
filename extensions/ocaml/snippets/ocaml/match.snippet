@@ -1,0 +1,8 @@
+# name: match ... with
+# key: match
+# scope: ocaml
+# --
+match ${1:value} with
+| ${2:Some x} -> ${3:x}
+| ${4:None} -> ${5:failwith "none"}
+$0

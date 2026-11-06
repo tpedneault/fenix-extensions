@@ -11,6 +11,7 @@
 //! here with the shared crate. Live sources come over its sockets, held
 //! to the addresses `ccsds.sources` lists; it only receives.
 
+mod agent;
 mod decode;
 mod hex_page;
 mod packet_page;
@@ -1326,6 +1327,19 @@ impl Extension for CcsdsExtension {
                 }
                 None => Err("ccsds.decode: {hex} isn't hex".into()),
             },
+            // A coding agent's ccsds_decode: the inspector's tree, as JSON.
+            "ccsds.decode_json" => {
+                let how = field("as").unwrap_or_default();
+                match (field("hex").as_deref().map(agent::bytes_of), agent::reading(&how)) {
+                    (None, _) => Err("ccsds_decode: {\"hex\": \"1BF2C007...\"}".into()),
+                    (Some(Err(e)), _) => Err(e),
+                    (_, None) => Err(format!("as {how:?}: one of auto, packet, frame, cltu, cfdp, clcw, time")),
+                    (Some(Ok(bytes)), Some(reading)) => {
+                        let set = self.ccsds.set();
+                        Ok(agent::decode_answer(&bytes, reading, set.as_deref(), &mission()).to_string())
+                    }
+                }
+            }
             "ccsds.follow" => match field("name") {
                 Some(name) => self.ccsds.follow_on_stream(&name).map(|()| String::new()),
                 None => Err("ccsds.follow: {name}".into()),

@@ -1,0 +1,17 @@
+# Haskell's keys, after SPC m in a Haskell project or file. Your own
+# keybindings.toml wins.
+
+[[local.haskell]]
+keys = "d"
+label = "check the project again"
+command = "haskell.doctor"
+
+[[local.haskell]]
+keys = "r"
+label = "read the project again"
+command = "haskell.reload"
+
+[[local.haskell]]
+keys = "g"
+label = "how to get ghcup (haskell.org)"
+command = "haskell.get-ghcup"

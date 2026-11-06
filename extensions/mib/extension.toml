@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.mib"
 name = "SCOS-2000 MIB"
-version = "1.0.0"
+version = "1.1.0"
 description = "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form, and XTCE, C, Python or a Wireshark dissector generated from them"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,8 @@ categories = ["mission"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+# Agent tools: Fenix 1.1.
+fenix = ">=1.1, <2"
 api = "1.0"
 
 # With Fenix: the project doctor's checks are there from the start, and
@@ -32,8 +33,16 @@ folders = { mib = "${setting:mib.roots}" }
 settings = ["ccsds"]
 
 [contributes]
-# The notebook's mib: links.
-services = ["mib.open"]
+# The notebook's mib: links; coding agents' mib_lookup.
+services = ["mib.open", "mib.lookup"]
+
+# Agents see it as mib_lookup.
+[[contributes.agent_tools]]
+name = "lookup"
+description = "Looks up a SCOS-2000 MIB definition by name (mnemonic, SPID, calibration id) or by words of its description: a telecommand with its arguments, bits, defaults and allowed values; a TC or TM parameter with its type, calibration, limits and packets; a TM packet's layout; a calibration."
+service = "mib.lookup"
+input = '{"type":"object","properties":{"query":{"type":"string","description":"A name, or words of a description: ZTC08101, heater temperature"},"kind":{"type":"string","enum":["telecommand","tc_parameter","tm_packet","tm_parameter","calibration"]}},"required":["query"]}'
+class = "read"
 
 # MIB names in any file (mib.editor_files narrows it).
 [[contributes.language_servers]]

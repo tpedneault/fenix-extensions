@@ -1,0 +1,80 @@
+[extension]
+id = "fenix.agent-context"
+name = "Agent context"
+version = "1.0.0"
+description = "Context for your coding agents: the project's dependencies at the versions its lockfiles hold, and each one's documentation for exactly that version -- crates.io and docs.rs, npm, PyPI, pkg.go.dev -- as tools and resources they call through Fenix"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.1, <2"
+# Agent tools' classes, deadlines and toolsets; resources; service
+# progress.
+api = "1.2"
+
+[activation]
+commands = ["agent-context.*"]
+
+[permissions]
+# Cargo.toml and Cargo.lock, package.json and its lockfile, pyproject.toml,
+# uv.lock and the rest, go.mod and go.sum: read, never written.
+filesystem = "project-read"
+# Where a version's documentation is: crates.io's READMEs (and
+# static.crates.io, where they're kept), docs.rs, the npm registry and
+# jsDelivr (a package's README as published), PyPI, pkg.go.dev and the Go
+# module proxy.
+network = ["crates.io", "static.crates.io", "docs.rs", "registry.npmjs.org", "cdn.jsdelivr.net", "pypi.org", "pkg.go.dev", "proxy.golang.org"]
+
+# Reading the lockfiles of a large project.
+[limits]
+call_ms = 10000
+
+[contributes]
+services = ["agent-context.dependencies", "agent-context.docs"]
+
+# Agents see them as agent_context_dependencies and
+# agent_context_dependency_docs.
+[[contributes.agent_tools]]
+name = "dependencies"
+description = "The project's direct dependencies per ecosystem (Cargo, npm/pnpm/Yarn, Python, Go): what each manifest asks for and the exact version its lockfile holds."
+service = "agent-context.dependencies"
+input = '{"type":"object","properties":{"ecosystem":{"type":"string","enum":["cargo","npm","python","go"]},"include_dev":{"type":"boolean","description":"Dev, build, optional and peer ones too (default true)"}}}'
+class = "read"
+default = true
+
+[[contributes.agent_tools]]
+name = "dependency_docs"
+description = "Documentation of a dependency for the exact version the project locks: its README (crates.io, npm, PyPI, pkg.go.dev), or one item's docs (docs.rs path like sync::Mutex, a Go symbol, a README section). Use it before relying on an API you're unsure of."
+service = "agent-context.docs"
+input = '{"type":"object","properties":{"package":{"type":"string","description":"As the manifest names it: serde, @types/node, requests, github.com/spf13/cobra"},"item":{"type":"string","description":"An item or section: tokio::sync::Mutex, cobra.Command, a heading"},"ecosystem":{"type":"string","enum":["cargo","npm","python","go"]},"version":{"type":"string","description":"Only for a package the project leaves unlocked"},"max_chars":{"type":"integer","description":"Default 20000"}},"required":["package"]}'
+class = "external"
+timeout_ms = 60000
+default = true
+
+[[contributes.agent_resources]]
+uri_template = "fenix://ext/agent_context/dependencies"
+name = "Dependencies"
+description = "The project's direct dependencies and their locked versions"
+service = "agent-context.dependencies"
+mime_type = "application/json"
+
+[[contributes.agent_resources]]
+uri_template = "fenix://ext/agent_context/docs/{package}"
+name = "Dependency documentation"
+description = "A dependency's README for the version the project locks"
+service = "agent-context.docs"
+mime_type = "application/json"
+
+[[contributes.commands]]
+id = "agent-context.clear_cache"
+title = "Agent context: forget the documentation kept, so it's fetched again"
+
+[[contributes.settings]]
+key = "agent-context.max_chars"
+kind = "int"
+label = "Answer size"
+description = "The most characters of documentation an agent is given at once; it can ask for more (max_chars) or for one item"
+default = "20000"

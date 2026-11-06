@@ -1,0 +1,6 @@
+# name: QuickCheck property
+# key: prop
+# scope: haskell
+# --
+prop "${1:reverses twice to itself}" \$ \\${2:xs} ->
+  ${3:reverse (reverse xs) == (xs :: [Int])}

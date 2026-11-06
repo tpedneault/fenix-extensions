@@ -1,0 +1,11 @@
+# CI status's keys, under SPC g. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC g C"
+label = "CI: runs, jobs and logs"
+command = "ci.open"
+
+[[leader]]
+keys = "SPC g F"
+label = "CI: the failed job's log"
+command = "ci.failed_log"

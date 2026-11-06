@@ -1,0 +1,8 @@
+# name: Module type
+# key: modtype
+# scope: ocaml
+# --
+module type ${1:TRACKER} = sig
+  ${2:val track : unit -> unit}
+end
+$0

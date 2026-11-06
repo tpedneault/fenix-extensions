@@ -1,0 +1,141 @@
+[extension]
+id = "fenix.ci"
+name = "CI status"
+version = "1.0.0"
+description = "Your branch's CI on the modeline -- GitHub Actions or GitLab pipelines -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs' logs for your coding agent"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+# Notifications (API 1.3).
+fenix = ">=1.2, <2"
+api = "1.3"
+
+# It starts with Fenix: the modeline shows the branch's CI from the start.
+[activation]
+on_startup = true
+commands = ["ci.*"]
+
+[permissions]
+# `.git/config`, for the remote's URL.
+filesystem = "project-read"
+# `git remote get-url origin` where `.git` is a worktree's file, and the
+# GitHub CLI's token when it's signed in (gh auth token).
+process = ["git", "gh"]
+# GitHub's API and where it sends a job's log; gitlab.com; your GitHub
+# Enterprise Server and your GitLab.
+network = [
+  "api.github.com",
+  "*.actions.githubusercontent.com",
+  "*.blob.core.windows.net",
+  "gitlab.com",
+  "${setting:ci.github_url}",
+  "${setting:ci.gitlab_url}",
+  "${setting:gitlab.base_url}",
+]
+# Fenix's own tokens (SPC , Forges).
+secrets = ["github.token", "gitlab.token"]
+# Fenix's GitLab server (gitlab.base_url), when ci.gitlab_url is empty.
+settings = ["gitlab"]
+
+[contributes]
+services = ["ci.failures"]
+# host::git_state: the branch, HEAD, and a push.
+events = ["git"]
+
+[[contributes.commands]]
+id = "ci.open"
+title = "CI: the branch's runs, jobs and logs"
+
+[[contributes.commands]]
+id = "ci.refresh"
+title = "CI: ask the forge again"
+
+[[contributes.commands]]
+id = "ci.failed_log"
+title = "CI: open the log of the job that failed"
+
+[[contributes.commands]]
+id = "ci.browser"
+title = "CI: open the branch's latest run in the browser"
+
+[[contributes.agent_tools]]
+name = "failures"
+description = "The CI status of the current branch (GitHub Actions or GitLab pipelines): its failing jobs, the steps that failed, the error lines and the end of each failing job's log. Call it to fix a failing CI."
+service = "ci.failures"
+input = '{"type":"object","properties":{"lines":{"type":"integer","description":"Lines of each failing log to give, 10 to 400 (80 by default)"}}}'
+class = "read"
+timeout_ms = 90000
+default = true
+
+[[contributes.settings]]
+key = "ci.provider"
+kind = "choice"
+label = "Provider"
+description = "Where the CI runs: github or gitlab. Empty tells by the remote's host (github.com, gitlab.com, the addresses below; anything else is taken to be a GitLab)."
+default = ""
+choices = ["", "github", "gitlab"]
+project = true
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.github_url"
+kind = "text"
+label = "GitHub Enterprise Server"
+description = "Your GitHub Enterprise Server's address, like https://github.example.com: its API is /api/v3 there. Empty for github.com."
+default = ""
+project = true
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.gitlab_url"
+kind = "text"
+label = "GitLab server"
+description = "Your GitLab's address, like https://gitlab.example.com. Empty uses Fenix's own (Forges: GitLab server), else the remote's host."
+default = ""
+project = true
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.poll_running"
+kind = "int"
+label = "Poll while running"
+description = "Seconds between looks while a run is under way (at least 5)."
+default = "30"
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.poll_idle"
+kind = "int"
+label = "Poll when idle"
+description = "Seconds between looks when nothing runs. A push, a commit or another branch looks at once."
+default = "120"
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.notify_success"
+kind = "bool"
+label = "Notify of a pass"
+description = "A quiet notification when the branch's runs pass."
+default = "true"
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.notify_failure"
+kind = "bool"
+label = "Notify of a failure"
+description = "A notification when the branch's runs fail or are cancelled, with the failed job's log a key away."
+default = "true"
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.failure_urgency"
+kind = "choice"
+label = "A failure's urgency"
+description = "critical shows until you dismiss it; normal goes as other notifications do."
+default = "critical"
+choices = ["critical", "normal"]
+section = "CI status"

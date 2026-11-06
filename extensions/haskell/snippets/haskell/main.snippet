@@ -1,0 +1,9 @@
+# name: Main module with main
+# key: main
+# scope: haskell
+# --
+module Main (main) where
+
+main :: IO ()
+main = do
+  ${1:putStrLn "hello"}$0

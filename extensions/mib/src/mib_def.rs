@@ -183,7 +183,7 @@ fn type_text(ptc: &str, pfc: &str) -> String {
 }
 
 /// `(label, value)` facts for a definition, in the order they're shown.
-fn facts(set: &MibSet, def: DefRef, apid_hex: bool) -> Vec<(&'static str, String)> {
+pub(crate) fn facts(set: &MibSet, def: DefRef, apid_hex: bool) -> Vec<(&'static str, String)> {
     let e = set.get(def);
     let r = &e.row;
     let apid = |raw: &str| {

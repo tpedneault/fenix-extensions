@@ -1,0 +1,8 @@
+# OCaml, which Fenix doesn't highlight itself: tree-sitter-ocaml's
+# grammar for implementations, compiled to WebAssembly (0.8.5), and its
+# queries from queries/ocaml. The server is the extension's to set, once
+# it has found ocaml-lsp-server. OCaml has no line comment -- only
+# (* ... *) -- so there is no `comment`, and gcc does nothing in it.
+language = "ocaml"
+grammar = "grammars/tree-sitter-ocaml.wasm"
+extensions = ["ml"]

@@ -1,0 +1,19 @@
+; The command-line tool, and a bytecode build of it to debug.
+(executable
+ (public_name orbit)
+ (name main)
+ (modes byte exe)
+ (libraries orbit cmdliner))
+
+(executables
+ (names sim replay) ; two at once
+ (libraries orbit))
+
+#;(executable (name old))
+
+(test
+ (name test_orbit)
+ (libraries orbit alcotest))
+
+(rule
+ (with-stdout-to version.ml (echo "let v = \"0.3.0\"")))

@@ -1,0 +1,2 @@
+{"path":"proto/orbit/v1/orbit.proto","start_line":23,"start_column":1,"end_line":35,"end_column":2,"type":"FIELD_NO_DELETE","message":"Previously present field \"2\" with name \"name\" on message \"Satellite\" was deleted."}
+{"path":"proto/orbit/v1/orbit.proto","start_line":26,"start_column":3,"end_line":26,"end_column":8,"type":"FIELD_SAME_TYPE","message":"Field \"3\" with name \"period_minutes\" on message \"Satellite\" changed type from \"double\" to \"float\"."}

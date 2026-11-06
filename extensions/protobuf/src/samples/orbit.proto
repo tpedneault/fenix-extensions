@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package orbit.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Tracks satellites.
+service OrbitService {
+  // One satellite, by its id.
+  rpc GetSatellite(GetSatelliteRequest) returns (GetSatelliteResponse);
+  // Its passes over a station, as they're predicted.
+  rpc WatchPasses(WatchPassesRequest) returns (stream Pass);
+}
+
+message GetSatelliteRequest {
+  string id = 1;
+}
+
+message GetSatelliteResponse {
+  Satellite satellite = 1;
+}
+
+message Satellite {
+  string id = 1;
+  string name = 2;
+  double period_minutes = 3;
+  Kind kind = 4;
+  repeated string tags = 5;
+  map<string, string> labels = 6;
+  google.protobuf.Timestamp launched = 7;
+  oneof owner {
+    string agency = 8;
+    string company = 9;
+  }
+}
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_WEATHER = 1;
+  KIND_COMMS = 2;
+}
+
+message WatchPassesRequest {
+  string satellite_id = 1;
+  Station station = 2;
+}
+
+message Station {
+  double lat = 1;
+  double lon = 2;
+}
+
+message Pass {
+  google.protobuf.Timestamp rise = 1;
+  google.protobuf.Timestamp set = 2;
+  float max_elevation = 3;
+}

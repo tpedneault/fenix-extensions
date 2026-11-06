@@ -1,0 +1,10 @@
+03-01 12:00:01.000  1234  1234 I ActivityManager: Start proc
+03-01 12:00:02.000  1234  1240 E AndroidRuntime: FATAL EXCEPTION: main
+I0301 12:00:03.000000  4242 server.cc:10] glog info
+E0301 12:00:04.000000  4242 server.cc:20] glog error
+info: Microsoft.Hosting.Lifetime[0]
+      Now listening on: http://localhost:5000
+fail: Microsoft.AspNetCore.Server[1]
+      Unhandled exception.
+ERRO[0005] logrus error                                   component=api
+2024-03-01 12:00:06 [notice] 12#0: nginx notice

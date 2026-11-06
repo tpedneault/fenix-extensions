@@ -1,0 +1,8 @@
+# Haskell, which Fenix doesn't highlight itself: tree-sitter-haskell's
+# grammar, compiled to WebAssembly (0.8.5), and its queries from
+# queries/haskell. A `.hs-boot` file is Haskell too. The server is the
+# extension's to set, once it has found the Haskell Language Server.
+language = "haskell"
+grammar = "grammars/tree-sitter-haskell.wasm"
+extensions = ["hs", "hs-boot"]
+comment = "--"

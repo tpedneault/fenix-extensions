@@ -1,0 +1,18 @@
+
+Resolved method descriptor:
+rpc GetSatellite ( .orbit.v1.GetSatelliteRequest ) returns ( .orbit.v1.GetSatelliteResponse );
+
+Request metadata to send:
+(empty)
+
+Response headers received:
+content-type: application/grpc
+grpc-accept-encoding: identity, deflate, gzip
+x-served-by: orbit-1
+
+Response trailers received:
+x-cost: 3
+Sent 1 request and received 0 responses
+ERROR:
+  Code: NotFound
+  Message: no satellite missing

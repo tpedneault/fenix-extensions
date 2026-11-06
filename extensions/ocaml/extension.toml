@@ -1,0 +1,84 @@
+[extension]
+id = "fenix.ocaml"
+name = "OCaml"
+version = "1.0.0"
+description = "OCaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune's tasks with a dune exec for each executable, debugging bytecode with earlybird, the project's checks with fixes that run opam install, snippets, and a dune project"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The grammars and their queries (0.8.5), the debug adapter and the
+# formatter (0.8.3), the launches it works out (0.8.6).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# opam installs and runs the rest in the project's switch (opam exec);
+# OCaml runs a script; dune builds, tests, runs and formats; the server
+# serves; ocamlformat formats; earlybird debugs. Where they're found, or
+# through opam.
+process = ["opam", "ocaml", "dune", "ocamllsp", "ocamlformat", "ocamlearlybird"]
+# dune-project, the dune files, the .opam files, .ocamlformat, the OCaml
+# files at the top and .env, read.
+filesystem = "project-read"
+# The file saved, for what it says of the project.
+editor = "read"
+
+[contributes]
+# dune's files, an .opam file or .ocamlformat saved: read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "ocaml"
+markers = ["dune-project", "dune-workspace", "{folder}.opam"]
+languages = ["ocaml", "ocaml_interface"]
+
+[[contributes.commands]]
+id = "ocaml.doctor"
+title = "OCaml: check the project again (opam, OCaml, dune, ocaml-lsp-server, ocamlformat, earlybird)"
+
+[[contributes.commands]]
+id = "ocaml.reload"
+title = "OCaml: read the project again (dune-project, the dune files)"
+
+[[contributes.commands]]
+id = "ocaml.get-opam"
+title = "OCaml: how to get opam, which installs OCaml and its tools (opam.ocaml.org)"
+
+[[contributes.commands]]
+id = "ocaml.install-dune"
+title = "OCaml: install dune (opam install dune)"
+
+[[contributes.commands]]
+id = "ocaml.install-lsp"
+title = "OCaml: install the language server (opam install ocaml-lsp-server)"
+
+[[contributes.commands]]
+id = "ocaml.install-ocamlformat"
+title = "OCaml: install ocamlformat, the version .ocamlformat pins (opam install)"
+
+[[contributes.commands]]
+id = "ocaml.install-earlybird"
+title = "OCaml: install earlybird, the debugger (opam install earlybird)"
+
+[[contributes.settings]]
+key = "ocaml.ocamlformat"
+kind = "bool"
+label = "Format with ocamlformat"
+description = "ocamlformat as the formatter, for SPC c F and format on save, in a project with an .ocamlformat -- never in one without, as dune fmt does. Off leaves formatting to the language server."
+default = "true"
+
+[[contributes.settings]]
+key = "ocaml.debug"
+kind = "bool"
+label = "Debug with earlybird"
+description = "earlybird as the debug adapter, and a launch for each executable dune builds as bytecode ((modes byte exe)), built first."
+default = "true"

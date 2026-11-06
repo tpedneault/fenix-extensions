@@ -1,0 +1,64 @@
+[extension]
+id = "fenix.logs"
+name = "Log viewer"
+version = "1.0.0"
+description = "Log files read in a pane: each entry's level and time from the formats logs are written in -- JSON lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, Python's logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+[permissions]
+# A log in the project is read where it is, as far as each step needs;
+# one elsewhere Fenix reads whole for it.
+filesystem = "project-read"
+# Which file logs.open shows, and where the project is.
+editor = "read"
+
+[contributes]
+# What's only ever a log opens in it however you open it, which starts
+# it: rotated ones too (app.log.1, app.log.12). A journalctl export
+# (-o export, or -o json saved as .json) only when it starts as one; any
+# other file at all with logs.open.
+opens = ["*.log", "*.log.?", "*.log.??", "*.out", "*.export", "*.json"]
+
+[contributes.magic]
+"*.export" = "__CURSOR="
+"*.json" = "{\"__CURSOR\""
+
+[[contributes.commands]]
+id = "logs.open"
+title = "Logs: open this file as a log"
+
+[[contributes.settings]]
+key = "logs.levels"
+kind = "list"
+label = "Levels shown"
+description = "The levels a log opens with shown: error (with fatal), warn, info, debug, trace and other (a line that says none). All of them when empty."
+default = ""
+
+[[contributes.settings]]
+key = "logs.follow"
+kind = "bool"
+label = "Follow on open"
+description = "Follow a log as it grows from when it opens, as tail -f does: F turns it on and off."
+default = "false"
+
+[[contributes.settings]]
+key = "logs.patterns"
+kind = "map"
+columns = ["Pattern", "Level"]
+label = "Level patterns"
+description = "Lines of formats of your own: a regular expression a line's start matches, and the level it gives (fatal, error, warn, info, debug, trace or other). Checked before the formats it knows; such a line starts an entry."
+
+[[contributes.settings]]
+key = "logs.poll"
+kind = "int"
+label = "Follow every"
+description = "How often a followed log is looked at, in milliseconds: 200 to 60000."
+default = "1000"

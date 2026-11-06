@@ -1,0 +1,30 @@
+name:                orbit
+version:             0.3.0
+license:             MIT
+
+dependencies:
+- base >= 4.18 && < 5
+- containers
+
+library:
+  source-dirs: src
+
+executables:
+  orbit-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    dependencies:
+    - orbit
+  orbit-sim:
+    main:                Sim.hs
+    source-dirs:         app
+
+tests:
+  orbit-test:
+    main:                Spec.hs
+    source-dirs:         test
+    dependencies:
+    - orbit
+    - hspec

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ccsds"
 name = "CCSDS & ECSS"
-version = "1.0.0"
+version = "1.1.0"
 description = "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,8 @@ categories = ["mission"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+# Agent tools: Fenix 1.1.
+fenix = ">=1.1, <2"
 api = "1.0"
 
 # With Fenix: the mission clock is in the modeline from the start, and K
@@ -37,8 +38,16 @@ clipboard = true
 
 [contributes]
 # Fenix, for a binary file; the MIB's insert form (D) and a definition's
-# f.
-services = ["ccsds.hex", "ccsds.decode", "ccsds.follow"]
+# f; coding agents' ccsds_decode.
+services = ["ccsds.hex", "ccsds.decode", "ccsds.follow", "ccsds.decode_json"]
+
+# Agents see it as ccsds_decode.
+[[contributes.agent_tools]]
+name = "decode"
+description = "Decodes bytes given as hex as the packet inspector does: a CCSDS space packet (PUS headers, parameters, telecommand arguments, through the SCOS-2000 MIB), a transfer frame or CLTU with its packets, a CLCW, an on-board time, a CFDP PDU. Answers each field: offset, raw value, meaning, checks."
+service = "ccsds.decode_json"
+input = '{"type":"object","properties":{"hex":{"type":"string","description":"1BF2C0070009, 1B F2 C0 07, 0x1B,0xF2 or a hex dump"},"as":{"type":"string","enum":["auto","packet","frame","cltu","cfdp","clcw","time"],"description":"Default auto: what it looks like"}},"required":["hex"]}'
+class = "read"
 
 # K on hex or an on-board time, in any file.
 [[contributes.language_servers]]

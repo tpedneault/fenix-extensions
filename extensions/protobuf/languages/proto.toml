@@ -1,0 +1,7 @@
+# Protocol Buffers, which Fenix doesn't highlight itself: tree-sitter-proto's
+# grammar, compiled to WebAssembly, and its queries from queries/proto. The
+# server is the extension's to set, once it has found buf.
+language = "proto"
+grammar = "grammars/tree-sitter-proto.wasm"
+extensions = ["proto"]
+comment = "//"

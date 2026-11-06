@@ -1,0 +1,32 @@
+
+Resolved method descriptor:
+rpc WatchPasses ( .orbit.v1.WatchPassesRequest ) returns ( stream .orbit.v1.Pass );
+
+Request metadata to send:
+(empty)
+
+Response headers received:
+content-type: application/grpc
+grpc-accept-encoding: identity, deflate, gzip
+
+Response contents:
+{
+  "rise": "2023-11-14T22:13:20Z",
+  "max_elevation": 10.5
+}
+
+Response contents:
+{
+  "rise": "2023-11-14T23:43:20Z",
+  "max_elevation": 21
+}
+
+Response contents:
+{
+  "rise": "2023-11-15T01:13:20Z",
+  "max_elevation": 31.5
+}
+
+Response trailers received:
+(empty)
+Sent 1 request and received 3 responses
