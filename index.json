@@ -139,6 +139,34 @@
               "${setting:ccsds.sources}"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.1, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.1.0/fenix.ccsds-1.1.0.fenixext",
+          "sha256": "524bc362ecead6ea8b282a06bf98647ad3cf2b7899a74416e95396a4100f1fc6",
+          "size": 454713,
+          "dependencies": {},
+          "categories": [
+            "mission"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "clipboard": true,
+            "editor": "write",
+            "filesystem": "project-write",
+            "folders": {
+              "mib": "${setting:mib.roots}",
+              "standards": "${setting:ccsds.library}"
+            },
+            "settings": [
+              "mib"
+            ],
+            "sockets": [
+              "${setting:ccsds.sources}"
+            ]
+          }
         }
       ],
       "name": "CCSDS & ECSS",
