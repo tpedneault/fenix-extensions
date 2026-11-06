@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # API 1.3: notifications.
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", branch = "release/v1.2" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.2.0" }
 fenix-nats = { path = "../../crates/nats" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }

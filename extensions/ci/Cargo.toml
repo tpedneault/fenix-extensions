@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # API 1.3: notifications.
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", branch = "release/v1.2" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.2.0" }
 # The forges' HTTP seam (`Http`), query strings, and GitLab's project paths.
 fenix-forge = { path = "../../crates/forge" }
 serde_json = "1"
