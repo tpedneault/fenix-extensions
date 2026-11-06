@@ -779,6 +779,50 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.haskell",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/haskell-v1.0.0/fenix.haskell-1.0.0.fenixext",
+          "sha256": "e95f02515de01fe63516131729cccc99c0db4c0ff2cf9bffd8f92f84b817f3e2",
+          "size": 638102,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "ghc",
+              "runghc",
+              "cabal",
+              "stack",
+              "ghcup",
+              "haskell-language-server-wrapper",
+              "haskell-language-server",
+              "hlint",
+              "ormolu",
+              "fourmolu"
+            ]
+          }
+        }
+      ],
+      "name": "Haskell",
+      "description": "Haskell: its grammar, the Haskell Language Server, ormolu or fourmolu, hlint on save with its rewrites as fixes, Cabal's and Stack's tasks for each component, the project's checks with fixes that run ghcup, snippets, and a Cabal project",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.hex",
       "versions": [
         {
