@@ -418,6 +418,34 @@
               "*:1433"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.1, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/database-v1.1.0/fenix.database-1.1.0.fenixext",
+          "sha256": "958096b61f6080be44d064f6c9296940b6e5dce6206c3d46b6278815976d9f88",
+          "size": 3526986,
+          "dependencies": {},
+          "categories": [
+            "tools",
+            "data"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "secrets": [
+              "database.password.*",
+              "database.passwords"
+            ],
+            "sockets": [
+              "${setting:database.connections}",
+              "*:5432",
+              "*:3306",
+              "*:1433"
+            ]
+          }
         }
       ],
       "name": "Database browser",
