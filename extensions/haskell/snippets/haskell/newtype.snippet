@@ -1,0 +1,7 @@
+# name: Newtype
+# key: newtype
+# scope: haskell
+# --
+newtype ${1:Name} = $1 { un$1 :: ${2:String} }
+  deriving (Show, Eq)
+$0

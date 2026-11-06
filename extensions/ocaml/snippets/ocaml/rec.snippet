@@ -1,0 +1,8 @@
+# name: Recursive function over a list
+# key: rec
+# scope: ocaml
+# --
+let rec ${1:count} = function
+  | [] -> ${2:0}
+  | ${3:_} :: rest -> 1 + $1 rest
+$0

@@ -1,0 +1,7 @@
+# name: try ... with
+# key: try
+# scope: ocaml
+# --
+try ${1:f ()} with
+| ${2:Not_found} -> ${3:default}
+$0

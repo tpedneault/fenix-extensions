@@ -1,0 +1,14 @@
+(lang dune 3.16)
+
+(name orbit)
+
+(generate_opam_files true)
+
+(package
+ (name orbit)
+ (synopsis "Orbits, kept by name")
+ (depends
+  (ocaml (>= 4.14))
+  dune
+  cmdliner
+  (alcotest :with-test)))

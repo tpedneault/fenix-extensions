@@ -1,0 +1,105 @@
+[extension]
+id = "fenix.haskell"
+name = "Haskell"
+version = "1.0.0"
+description = "Haskell: its grammar, the Haskell Language Server, ormolu or fourmolu, hlint on save with its rewrites as fixes, Cabal's and Stack's tasks for each component, the project's checks with fixes that run ghcup, snippets, and a Cabal project"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The grammar and its queries (0.8.5), the server given its settings and
+# a linter's problems with their fixes (0.8.6), the language file's
+# `comment` (0.8.7).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# GHC and runghc, Cabal and Stack build, test and run; ghcup installs the
+# toolchain; the server serves; hlint lints; ormolu and fourmolu format.
+# Where ghcup, Cabal, Stack or Nix put them, or on PATH.
+process = [
+    "ghc", "runghc", "cabal", "stack", "ghcup", "haskell-language-server-wrapper", "haskell-language-server",
+    "hlint", "ormolu", "fourmolu",
+]
+# The .cabal files, cabal.project, stack.yaml, package.yaml, fourmolu.yaml,
+# the Haskell files at the top and .env, read.
+filesystem = "project-read"
+# The file saved, for hlint.
+editor = "read"
+
+[contributes]
+# A file saved: linted (by its path, file_saved); the project's files,
+# read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "haskell"
+markers = ["cabal.project", "stack.yaml", "{folder}.cabal", "package.yaml"]
+languages = ["haskell"]
+
+[[contributes.commands]]
+id = "haskell.doctor"
+title = "Haskell: check the project again (GHC, Cabal or Stack, HLS, hlint, the formatter)"
+
+[[contributes.commands]]
+id = "haskell.reload"
+title = "Haskell: read the project again (its .cabal files, cabal.project, stack.yaml)"
+
+[[contributes.commands]]
+id = "haskell.get-ghcup"
+title = "Haskell: how to get ghcup, which installs GHC, Cabal, Stack and HLS (haskell.org)"
+
+[[contributes.commands]]
+id = "haskell.install-ghc"
+title = "Haskell: install GHC (ghcup install ghc --set recommended)"
+
+[[contributes.commands]]
+id = "haskell.install-cabal"
+title = "Haskell: install Cabal (ghcup install cabal recommended)"
+
+[[contributes.commands]]
+id = "haskell.install-stack"
+title = "Haskell: install Stack (ghcup install stack recommended)"
+
+[[contributes.commands]]
+id = "haskell.install-hls"
+title = "Haskell: install the Haskell Language Server (ghcup install hls recommended)"
+
+[[contributes.commands]]
+id = "haskell.install-hlint"
+title = "Haskell: install hlint (cabal install)"
+
+[[contributes.commands]]
+id = "haskell.install-formatter"
+title = "Haskell: install the formatter, ormolu or fourmolu (cabal install)"
+
+[[contributes.settings]]
+key = "haskell.formatter"
+kind = "choice"
+choices = ["auto", "ormolu", "fourmolu", "off"]
+label = "Formatter"
+description = "auto: fourmolu in a project with a fourmolu.yaml, else ormolu (fourmolu when it's the only one installed). off leaves formatting to the language server."
+default = "auto"
+
+[[contributes.settings]]
+key = "haskell.hlint"
+kind = "bool"
+label = "hlint on save"
+description = "Run hlint on a saved Haskell file and show its hints with the server's, each with its rewrite as a fix. The server's own hlint is turned off while this is on."
+default = "true"
+
+[[contributes.settings]]
+key = "haskell.build_tool"
+kind = "choice"
+choices = ["auto", "cabal", "stack"]
+label = "Build tool"
+description = "auto: Stack in a project with a stack.yaml (or only package.yaml files), else Cabal. What the tasks run, and what the doctor checks."
+default = "auto"

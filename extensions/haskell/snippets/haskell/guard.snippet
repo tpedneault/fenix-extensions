@@ -1,0 +1,7 @@
+# name: Guards
+# key: guard
+# scope: haskell
+# --
+${1:name} ${2:x}
+  | ${3:x < 0} = ${4:a}
+  | otherwise = ${5:b}

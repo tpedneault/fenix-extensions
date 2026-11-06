@@ -1,0 +1,6 @@
+; The command-line tool; `byte` too, for earlybird to debug.
+(executable
+ (public_name {{name_kebab}})
+ (name main)
+ (modes byte exe)
+ (libraries {{name_snake}}))

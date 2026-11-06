@@ -1,0 +1,11 @@
+# name: An Alcotest suite
+# key: alcotest
+# scope: ocaml
+# --
+let test_${1:describe} () =
+  Alcotest.(check ${2:string}) "${3:same}" ${4:"expected"} ${5:"got"}
+
+let () =
+  Alcotest.run "${6:orbit}"
+    [ ("$1", [ Alcotest.test_case "$3" `Quick test_$1 ]) ]
+$0

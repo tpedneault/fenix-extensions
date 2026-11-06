@@ -1,0 +1,18 @@
+[template]
+name = "Haskell · Cabal package"
+kind = "other"
+group = "Haskell"
+description = "A Cabal package as cabal init makes one: a library that does the work, an executable over it, and a test suite of its own on base alone, so it builds without Hackage. cabal build, cabal run and cabal test."
+needs = ["cabal", "ghc"]
+open = ["src/{{name_pascal}}.hs", "{{name_kebab}}.cabal"]
+
+[[ask]]
+key = "author"
+label = "Author"
+default = ""
+hint = "for the .cabal file's author field; empty leaves it out"
+
+[[task]]
+name = "run"
+exec = "cabal"
+args = ["run", "exe:{{name_kebab}}", "--", "Ada"]

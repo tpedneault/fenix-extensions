@@ -1,0 +1,18 @@
+[template]
+name = "OCaml · dune project"
+kind = "other"
+group = "OCaml"
+description = "A dune project as dune init project makes one: a library that does the work, an executable over it (bytecode too, for earlybird), a test on the standard library alone, an .ocamlformat, and the .opam file dune writes. dune build, dune exec and dune test."
+needs = ["dune", "ocaml"]
+open = ["lib/greeting.ml", "dune-project"]
+
+[[ask]]
+key = "author"
+label = "Author"
+default = ""
+hint = "for dune-project's authors; empty leaves it out"
+
+[[task]]
+name = "run"
+exec = "dune"
+args = ["exec", "{{name_kebab}}", "--", "Ada"]

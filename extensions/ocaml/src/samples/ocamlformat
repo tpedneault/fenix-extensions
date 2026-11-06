@@ -1,0 +1,4 @@
+# ocamlformat's options for the project
+profile = default
+version = 0.27.0
+margin=90

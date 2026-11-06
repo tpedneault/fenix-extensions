@@ -1,0 +1,17 @@
+# OCaml's keys, after SPC m in an OCaml project or file. Your own
+# keybindings.toml wins.
+
+[[local.ocaml]]
+keys = "d"
+label = "check the project again"
+command = "ocaml.doctor"
+
+[[local.ocaml]]
+keys = "r"
+label = "read the project again"
+command = "ocaml.reload"
+
+[[local.ocaml]]
+keys = "g"
+label = "how to get opam (opam.ocaml.org)"
+command = "ocaml.get-opam"

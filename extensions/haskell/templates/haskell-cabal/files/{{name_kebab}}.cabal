@@ -1,0 +1,35 @@
+cabal-version:      3.0
+name:               {{name_kebab}}
+version:            0.1.0.0
+synopsis:           Greets whoever it's told to
+license:            NONE
+{{#if author}}
+author:             {{author}}
+{{/if}}
+build-type:         Simple
+extra-doc-files:    README.md
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  {{name_pascal}}
+    hs-source-dirs:   src
+    build-depends:    base >=4.18 && <5
+    default-language: GHC2021
+
+executable {{name_kebab}}
+    import:           warnings
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    build-depends:    base, {{name_kebab}}
+    default-language: GHC2021
+
+test-suite {{name_kebab}}-test
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   test
+    build-depends:    base, {{name_kebab}}
+    default-language: GHC2021

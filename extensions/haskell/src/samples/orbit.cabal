@@ -1,0 +1,50 @@
+cabal-version:      3.0
+name:               orbit
+version:            0.3.0
+synopsis:           Orbits, kept by name
+license:            MIT
+build-type:         Simple
+tested-with:        GHC == 9.10.2
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  Orbit
+    hs-source-dirs:   src
+    build-depends:    base >=4.18 && <5, containers
+    default-language: GHC2021
+
+library orbit-internal
+    import:           warnings
+    exposed-modules:  Orbit.Internal
+    hs-source-dirs:   internal
+    build-depends:    base
+
+executable orbit
+    import:           warnings
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    build-depends:    base, orbit
+    if os(windows)
+        ghc-options: -threaded
+
+-- A simulator, built on its own.
+executable orbit-sim
+    main-is:          Sim.hs
+    hs-source-dirs:   app
+    build-depends:    base, orbit
+
+test-suite orbit-test
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    build-depends:    base, orbit, hspec
+
+benchmark orbit-bench
+    type:             exitcode-stdio-1.0
+    main-is:          Bench.hs
+    hs-source-dirs:   bench
+    build-depends:    base, orbit
