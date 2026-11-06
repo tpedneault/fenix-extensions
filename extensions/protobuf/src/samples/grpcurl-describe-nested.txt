@@ -1,0 +1,34 @@
+acme.v1.Order is a message:
+// An order.
+message Order {
+  string id = 1 [json_name = "orderId"];
+  repeated .acme.v1.Order.Line lines = 2;
+  .acme.v1.Order.State state = 3;
+  optional string note = 4;
+  bytes blob = 5;
+  .google.protobuf.Duration ttl = 6;
+  .google.protobuf.StringValue coupon = 7;
+  .google.protobuf.Struct extra = 8;
+  map<string, .acme.v1.Order.Line> by_sku = 9;
+  int64 total_cents = 12 [deprecated = true];
+  bool paid = 13;
+  .acme.v1.Order parent = 14;
+  // Its lines.
+  message Line {
+    string sku = 1;
+    uint32 quantity = 2;
+  }
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_OPEN = 1;
+  }
+  reserved 10, 11;
+}
+acme.v1.Orders is a service:
+service Orders {
+  rpc Chat ( stream .acme.v1.Order ) returns ( stream .acme.v1.Order ) {
+    option deprecated = true;
+  }
+  rpc Place ( .acme.v1.Order ) returns ( .acme.v1.Order );
+  rpc Upload ( stream .acme.v1.Order.Line ) returns ( .acme.v1.Order );
+}

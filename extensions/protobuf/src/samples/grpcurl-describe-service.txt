@@ -1,0 +1,5 @@
+orbit.v1.OrbitService is a service:
+service OrbitService {
+  rpc GetSatellite ( .orbit.v1.GetSatelliteRequest ) returns ( .orbit.v1.GetSatelliteResponse );
+  rpc WatchPasses ( .orbit.v1.WatchPassesRequest ) returns ( stream .orbit.v1.Pass );
+}

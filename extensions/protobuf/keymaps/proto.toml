@@ -1,0 +1,27 @@
+# Protobuf's keys, after SPC m in a buf project or a .proto file. Your own
+# keybindings.toml wins.
+
+[[local.proto]]
+keys = "d"
+label = "check the project again"
+command = "protobuf.doctor"
+
+[[local.proto]]
+keys = "b"
+label = "breaking changes against the default branch"
+command = "protobuf.breaking"
+
+[[local.proto]]
+keys = "g"
+label = "the gRPC client"
+command = "protobuf.client"
+
+[[local.proto]]
+keys = "r"
+label = "invoke the method"
+command = "protobuf.invoke"
+
+[[local.proto]]
+keys = "t"
+label = "pick the server"
+command = "protobuf.target"

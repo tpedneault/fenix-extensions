@@ -1,0 +1,146 @@
+[extension]
+id = "fenix.protobuf"
+name = "Protobuf & gRPC"
+version = "1.0.0"
+description = "Protocol Buffers and gRPC: the grammar, buf's language server, buf format, buf lint on save, buf breaking against the default branch, buf generate and buf build as tasks, the project's checks with fixes that install buf, protoc and grpcurl, snippets, and a gRPC client -- a server's services by reflection or the project's protos, a body made from the method's message, server streams as they come, status, trailers, timing and history"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "web", "tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+# The grammar and its queries (0.8.5), the language file's `comment`
+# (0.8.7), scratch buffers and their changes (0.8.0).
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# buf serves, formats, lints, compares, generates and builds; grpcurl
+# calls; protoc checks a project without buf; protols serves when it's
+# asked for -- where the pack installs them (the tools folder) or where
+# they're found.
+process = ["buf", "grpcurl", "protoc", "protols", "/tools/*"]
+# buf's, grpcurl's and protoc's releases, and where GitHub sends their
+# downloads.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# buf.yaml, buf.work.yaml, the templates, the .proto files, .git's
+# branches and .env, read.
+filesystem = "project-read"
+# The file saved, for buf lint.
+editor = "read"
+
+[contributes]
+# A file saved: linted, compared with the default branch; buf.yaml and the
+# templates, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "proto"
+markers = ["buf.yaml", "buf.work.yaml"]
+languages = ["proto"]
+pages = ["client"]
+
+[[contributes.commands]]
+id = "protobuf.doctor"
+title = "Protobuf: check the project again (buf, protoc, grpcurl, breaking changes)"
+
+[[contributes.commands]]
+id = "protobuf.breaking"
+title = "Protobuf: breaking changes against the default branch (buf breaking)"
+
+[[contributes.commands]]
+id = "protobuf.client"
+title = "Protobuf: the gRPC client -- a server's services, a call, its answer"
+
+[[contributes.commands]]
+id = "protobuf.invoke"
+title = "Protobuf: invoke the gRPC method chosen, with its body"
+
+[[contributes.commands]]
+id = "protobuf.cancel"
+title = "Protobuf: cancel the gRPC call under way"
+
+[[contributes.commands]]
+id = "protobuf.target"
+title = "Protobuf: pick the gRPC server, or add one"
+
+[[contributes.commands]]
+id = "protobuf.install.buf"
+title = "Protobuf: install buf 1.75.0"
+
+[[contributes.commands]]
+id = "protobuf.install.grpcurl"
+title = "Protobuf: install grpcurl 1.9.4, for the gRPC client"
+
+[[contributes.commands]]
+id = "protobuf.install.protoc"
+title = "Protobuf: install protoc 36.2"
+
+[[contributes.settings]]
+key = "protobuf.lint"
+kind = "bool"
+label = "buf lint on save"
+description = "Lint the buf workspace with buf lint when a .proto file is saved, and show its problems with the language server's."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "protobuf.server"
+kind = "choice"
+choices = ["buf", "protols", "none"]
+label = "Language server"
+description = "buf's (buf lsp serve, or buf beta lsp on a buf older than 1.59), or protols; the other when the one chosen isn't installed."
+default = "buf"
+
+[[contributes.settings]]
+key = "protobuf.breaking_against"
+label = "Breaking changes against"
+description = "The branch buf breaking compares with. Empty: the repository's default branch (origin's HEAD, else main or master)."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "protobuf.breaking_check"
+kind = "bool"
+label = "Breaking changes in the doctor"
+description = "Run buf breaking against the branch when the project opens and a .proto file is saved, and say what it found on the project doctor's page."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "protobuf.targets"
+kind = "map"
+columns = ["Server", "TLS"]
+label = "gRPC servers"
+description = "The servers the gRPC client calls: host:port, and on or off for TLS."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "protobuf.insecure"
+kind = "bool"
+label = "Accept bad certificates"
+description = "Call TLS servers whose certificate doesn't check out: your own, self-signed (grpcurl -insecure)."
+default = "false"
+project = true
+
+[[contributes.settings]]
+key = "protobuf.timeout"
+kind = "int"
+label = "Call timeout"
+description = "Seconds a gRPC call may take, a stream included (grpcurl -max-time); 0 for no limit."
+default = "30"
+project = true
+
+[[contributes.settings]]
+key = "protobuf.history"
+kind = "int"
+label = "History"
+description = "How many calls the gRPC client keeps for each method."
+default = "50"

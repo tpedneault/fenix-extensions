@@ -1,0 +1,8 @@
+# name: Service, with its first method
+# key: service
+# scope: proto
+# --
+service ${1:Name}Service {
+  rpc ${2:Get}($2Request) returns ($2Response);
+  $0
+}

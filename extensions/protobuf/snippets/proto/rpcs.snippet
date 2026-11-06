@@ -1,0 +1,5 @@
+# name: RPC method, streamed from the server
+# key: rpcs
+# scope: proto
+# --
+rpc ${1:Watch}($1Request) returns (stream $1Response);
