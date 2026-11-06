@@ -1,0 +1,4 @@
+time=2024-03-01T12:00:01Z level=info msg="server started" addr=:8080
+time=2024-03-01T12:00:02Z level=warn msg="retrying" attempt=2 user=alice
+time=2024-03-01T12:00:03Z level=error msg="gave up" user=bob err="connection refused"
+ts=2024-03-01T12:00:04Z lvl=debug caller=db.go:40 msg=query

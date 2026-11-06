@@ -1,0 +1,11 @@
+2024-03-01 12:00:01,000 - app - INFO - started
+2024-03-01 12:00:02,000 - app.loader - ERROR - could not load plugin
+Traceback (most recent call last):
+  File "loader.py", line 12, in load
+    module = import_module(name)
+  File "importlib.py", line 3, in import_module
+ValueError: no module named 'x'
+2024-03-01 12:00:03,000 - app - WARNING - running without plugins
+WARNING:root:basicConfig's own format
+CRITICAL:app:out of memory
+2024-03-01 12:00:04,000 - app - DEBUG - idle
