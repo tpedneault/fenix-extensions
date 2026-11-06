@@ -146,6 +146,13 @@ A string payload is sent as its text, any other JSON as compact JSON,
 the page) sends it as a request, and the reply opens beside, with how
 long it took -- or says no one answers.
 
+The server can only say no one answers when nothing is subscribed to the
+subject, and a `>` subscription is interested in everything. So with the
+default `nats.subjects`, a request no one answers waits for its timeout,
+and that goes for **every client of the server** while Fenix is connected.
+Fenix says so once on a server that isn't this machine. On a shared
+server, narrow `nats.subjects`, or a filter, to the subjects you want.
+
 On a message: `R` sends it again as it was, `e` opens it in the buffer to
 change first, `y` copies its payload, `Y` copies it as a `nats pub`
 command line, headers and all. `x` writes a subject's stored messages to
@@ -229,7 +236,7 @@ Payloads are cut at 4 KiB, binary ones in base64.
 | Setting | What it is |
 | --- | --- |
 | `nats.servers` | The servers, `nats://host:port` or `tls://host:port` |
-| `nats.subjects` | What's subscribed to (`>`) |
+| `nats.subjects` | What's subscribed to (`>`, which stops the server saying a request has no one to answer it) |
 | `nats.budget_mib` | Memory for stored messages, 4 to 80 MiB (64) |
 | `nats.per_subject`, `nats.per_subject_kib` | What a subject keeps at most (2,000 messages, 4 MiB) |
 | `nats.max_subjects` | Subjects counted one by one on a server (5,000); the rest together |

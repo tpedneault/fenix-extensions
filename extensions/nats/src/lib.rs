@@ -203,6 +203,8 @@ struct Nats {
     core: Core,
     live: LiveView,
     js: JsView,
+    /// Servers told what `>` does to their requests.
+    told_shared: HashSet<String>,
     live_page: Option<u64>,
     js_page: Option<u64>,
     shown: HashSet<u64>,
@@ -225,6 +227,7 @@ impl Default for Nats {
             core: Core::new(Limits::default(), now),
             live: LiveView::default(),
             js: JsView::default(),
+            told_shared: HashSet::new(),
             live_page: None,
             js_page: None,
             shown: HashSet::new(),
@@ -358,8 +361,20 @@ impl Nats {
                 CoreEvent::Up(id) => {
                     if let Some(c) = self.core.conn_index(id).map(|i| &self.core.conns[i]) {
                         info!("{}: connected{}", c.addr.key(), c.info.as_ref().map(|i| format!(", NATS {}", i.version)).unwrap_or_default());
+                        // Interest in everything is interest in every
+                        // request: the server stops saying no one answers.
+                        let key = c.addr.key();
+                        if !c.addr.is_local() && c.wanted_subjects().iter().any(|s| s == ">") && self.told_shared.insert(key.clone()) {
+                            host::notify(Level::Info, &format!("NATS {key}: subscribed to `>`, so a request no one answers now waits for its timeout, for every client of this server. A filter or nats.subjects narrows it."));
+                        }
                     }
                     self.last_status_us = 0;
+                    // The page was restored, or read, before this.
+                    if self.js_page.is_some() && self.js.conn == id && self.js.stale() {
+                        let mut net = net();
+                        self.js.reload(&mut self.core, &mut net, now_us());
+                        self.core.dirty = true;
+                    }
                 }
                 CoreEvent::Down(id, why) => {
                     if let Some(c) = self.core.conn_index(id).map(|i| &self.core.conns[i]) {
@@ -422,6 +437,8 @@ impl Nats {
                     self.live.note = Some((format!("{subject}: answered in {ms:.1} ms, {}", payload::bytes(m.payload.len() as f64)), Role::Good));
                 }
                 Err(e) => {
+                    let everything = self.core.conn_index(r.conn).is_some_and(|i| self.core.conns[i].wanted_subjects().iter().any(|s| s == ">"));
+                    let e = if everything { format!("{e} (subscribed to `>`, so the server can't say no one answers)") } else { e };
                     host::notify(Level::Warn, &format!("NATS {subject}: {e}"));
                     self.live.note = Some((format!("{subject}: {e}"), Role::Bad));
                 }

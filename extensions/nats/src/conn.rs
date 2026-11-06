@@ -35,6 +35,11 @@ pub struct Addr {
 }
 
 impl Addr {
+    /// Whether it's this machine: a server no one else is on, most likely.
+    pub fn is_local(&self) -> bool {
+        matches!(self.host.to_ascii_lowercase().as_str(), "localhost" | "127.0.0.1" | "::1" | "[::1]")
+    }
+
     /// `nats://host:4222`, `tls://host:4443`, `host`, `host:port`.
     pub fn parse(url: &str) -> Result<Addr, String> {
         let url = url.trim();

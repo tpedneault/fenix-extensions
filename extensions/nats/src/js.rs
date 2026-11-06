@@ -24,7 +24,7 @@ pub enum Want {
     Stream(String),
     Consumers(String),
     /// A page of a stream's messages, one at a time: this many more.
-    Browse { stream: String, left: usize },
+    Browse { stream: String, left: usize, read: u64 },
     Purge(String),
     Delete { stream: String, seq: u64 },
     Keys(String),
@@ -88,6 +88,9 @@ pub struct JsView {
     browse: Vec<StoredMsg>,
     browse_next: u64,
     browsing: bool,
+    /// Which read a page's replies belong to: one started over a read
+    /// still going leaves that one's replies to fall on the floor.
+    read: u64,
     open_msg: Option<u64>,
     pub open_bucket: Option<String>,
     keys: Vec<(String, u64)>,
@@ -124,12 +127,20 @@ impl JsView {
         self.tab.unwrap_or(Tab::Streams)
     }
 
+    /// Whether it failed to load, so that a connection coming up should
+    /// load it again.
+    pub fn stale(&self) -> bool {
+        !self.loaded || self.error.is_some()
+    }
+
     /// Loads what it shows, from the start.
     pub fn reload(&mut self, core: &mut Core, net: &mut dyn Net, now: u64) {
         let Some(i) = core.conn_index(self.conn) else {
             self.error = Some("no connection".into());
             return;
         };
+        self.error = None;
+        self.note = None;
         if core.conns[i].info.as_ref().is_some_and(|info| !info.jetstream) {
             self.error = Some("this server has JetStream off".into());
         }
@@ -174,11 +185,13 @@ impl JsView {
         self.open_msg = None;
         self.browse_next = seq;
         self.browsing = true;
+        self.read += 1;
         self.next_message(core, net, stream, seq, PAGE, now);
     }
 
     fn next_message(&mut self, core: &mut Core, net: &mut dyn Net, stream: &str, seq: u64, left: usize, now: u64) {
-        self.with_conn(core, |core, i, a| ask(core, net, i, &a.msg_get(stream), &jetstream::body(&MsgGetRequest::next(">", seq.max(1))), Want::Browse { stream: stream.into(), left }, now));
+        let read = self.read;
+        self.with_conn(core, |core, i, a| ask(core, net, i, &a.msg_get(stream), &jetstream::body(&MsgGetRequest::next(">", seq.max(1))), Want::Browse { stream: stream.into(), left, read }, now));
     }
 
     /// Reads a page of `stream` from the first message at or after a time
@@ -187,7 +200,9 @@ impl JsView {
         self.browse.clear();
         self.open_msg = None;
         self.browsing = true;
-        self.with_conn(core, |core, i, a| ask(core, net, i, &a.msg_get(stream), &jetstream::body(&MsgGetRequest::at_time(time)), Want::Browse { stream: stream.into(), left: PAGE }, now));
+        self.read += 1;
+        let read = self.read;
+        self.with_conn(core, |core, i, a| ask(core, net, i, &a.msg_get(stream), &jetstream::body(&MsgGetRequest::at_time(time)), Want::Browse { stream: stream.into(), left: PAGE, read }, now));
     }
 
     pub fn purge(&mut self, core: &mut Core, net: &mut dyn Net, stream: &str, now: u64) {
@@ -279,8 +294,8 @@ impl JsView {
                 Ok(_) => {}
                 Err(e) => self.note = Some((e, Role::Bad)),
             },
-            Want::Browse { stream, left } => {
-                if self.open_stream.as_deref() != Some(&stream) {
+            Want::Browse { stream, left, read } => {
+                if read != self.read || self.open_stream.as_deref() != Some(&stream) {
                     return;
                 }
                 match body.and_then(jetstream::parse_stored) {
@@ -296,7 +311,7 @@ impl JsView {
                     }
                     Err(e) => {
                         self.browsing = false;
-                        if !e.contains("not found") {
+                        if !e.contains("not found") && !e.contains("no message found") {
                             self.note = Some((e, Role::Bad));
                         } else if self.browse.is_empty() {
                             self.note = Some(("no messages there".into(), Role::Muted));
@@ -699,7 +714,7 @@ impl JsView {
                 }
             }
             Key::Char('n') => {
-                if let Some(s) = self.open_stream.clone() {
+                if let Some(s) = self.open_stream.clone().filter(|_| !self.browsing) {
                     let next = self.browse_next;
                     self.browse_from(core, net, &s, next, now);
                 }
@@ -848,6 +863,49 @@ mod tests {
         js.on_reply(&mut core, &mut net, want, r.result, 1_000_100_000);
         assert!(!js.browsing);
         assert_eq!(js.browse_next, 5);
+    }
+
+    #[test]
+    fn a_page_read_over_is_read_once() {
+        let (mut core, mut net, s) = up(&[]);
+        let mut js = JsView { open_stream: Some("ORDERS".into()), ..JsView::default() };
+        let stored = |seq: u64| format!(r#"{{"message":{{"subject":"o.1","seq":{seq},"time":"2026-01-01T00:00:00Z"}}}}"#);
+        js.browse_from(&mut core, &mut net, "ORDERS", 1, 0);
+        // `n` while it reads does nothing: no second read.
+        net.written.clear();
+        js.key(&mut core, &mut net, Key::Char('n'), 0);
+        assert!(net.text().is_empty(), "{}", net.text());
+        // A read started over one going: only the new one's replies count.
+        js.browse_from(&mut core, &mut net, "ORDERS", 1, 0);
+        reply(&mut core, &mut net, s, 1, &stored(1));
+        reply(&mut core, &mut net, s, 2, &stored(1));
+        for r in std::mem::take(&mut core.replies) {
+            let Pending::Js { want, .. } = r.what else { panic!() };
+            js.on_reply(&mut core, &mut net, want, r.result, 1);
+        }
+        assert_eq!(js.browse.iter().map(|m| m.seq).collect::<Vec<_>>(), [1], "not #1 #1");
+    }
+
+    #[test]
+    fn the_end_of_a_stream_is_no_error() {
+        let (mut core, mut net, s) = up(&[]);
+        let mut js = JsView { open_stream: Some("ORDERS".into()), ..JsView::default() };
+        js.browse_from(&mut core, &mut net, "ORDERS", 9, 0);
+        reply(&mut core, &mut net, s, 1, r#"{"error":{"code":404,"err_code":10037,"description":"no message found"}}"#);
+        let r = core.replies.pop().unwrap();
+        let Pending::Js { want, .. } = r.what else { panic!() };
+        js.on_reply(&mut core, &mut net, want, r.result, 1);
+        assert_eq!(js.note, Some(("no messages there".to_string(), Role::Muted)));
+    }
+
+    #[test]
+    fn a_page_that_failed_loads_again() {
+        let (mut core, mut net, _) = up(&[]);
+        let mut js = JsView { error: Some("localhost:4222 isn't connected".into()), note: Some(("old".into(), Role::Bad)), ..JsView::default() };
+        assert!(js.stale());
+        js.reload(&mut core, &mut net, 0);
+        assert!(js.error.is_none() && js.note.is_none(), "the old complaint goes");
+        assert!(net.text().contains("STREAM.LIST"), "{}", net.text());
     }
 
     #[test]
