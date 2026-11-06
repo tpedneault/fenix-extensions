@@ -1,0 +1,16 @@
+[0KRunning with gitlab-runner 17.5.2 (c3a2b1f0)
+[0K  on shared-runner-3 Xy12AbCd, system ID: s_0e1f2a3b4c5d
+section_start:1793957581:prepare_executor[0K[0K[36;1mPreparing the "docker" executor[0;m
+[0KUsing Docker executor with image rust:1.83 ...
+section_end:1793957590:prepare_executor[0Ksection_start:1793957590:step_script[0K[0K[36;1mExecuting "step_script" stage of the job script[0;m
+[32;1m$ cargo test --workspace[0;m
+Downloading crates ... 10%Downloading crates ... 100%
+running 42 tests
+test mib::tests::pcf_table ... FAILED
+failures:
+---- mib::tests::pcf_table stdout ----
+thread 'mib::tests::pcf_table' panicked at mib/src/pcf.rs:88:5:
+PCF row 12 has 9 fields, 11 expected
+test result: FAILED. 41 passed; 1 failed; 0 ignored
+section_end:1793957994:step_script[0K[31;1mERROR: Job failed: exit code 101
+[0;m

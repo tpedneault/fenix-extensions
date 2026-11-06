@@ -1,0 +1,19 @@
+2026-11-06T09:41:19.0821044Z ##[group]Run cargo test --workspace
+2026-11-06T09:41:19.0822101Z [36;1mcargo test --workspace[0m
+2026-11-06T09:41:19.0841553Z shell: /usr/bin/bash -e {0}
+2026-11-06T09:41:19.0842010Z ##[endgroup]
+2026-11-06T09:43:58.1180001Z [1m[92m   Compiling[0m rocket-telemetry v0.4.0 (/home/runner/work/rocket/rocket/telemetry)
+2026-11-06T09:44:20.5000000Z running 42 tests
+2026-11-06T09:44:21.0000000Z test pus::tests::service_17_reply ... FAILED
+2026-11-06T09:44:21.0100000Z test pus::tests::service_1_ack ... ok
+2026-11-06T09:44:21.5000000Z 
+2026-11-06T09:44:21.5100000Z failures:
+2026-11-06T09:44:21.5200000Z 
+2026-11-06T09:44:21.5300000Z ---- pus::tests::service_17_reply stdout ----
+2026-11-06T09:44:21.5400000Z thread 'pus::tests::service_17_reply' panicked at telemetry/src/pus.rs:212:9:
+2026-11-06T09:44:21.5500000Z assertion `left == right` failed
+2026-11-06T09:44:21.5600000Z   left: Unknown(17)
+2026-11-06T09:44:21.5700000Z  right: AreYouAlive
+2026-11-06T09:44:21.6000000Z test result: FAILED. 41 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
+2026-11-06T09:44:21.6100000Z error: test failed, to rerun pass `-p rocket-telemetry --lib`
+2026-11-06T09:44:25.0000000Z ##[error]Process completed with exit code 101.
