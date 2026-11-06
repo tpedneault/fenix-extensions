@@ -1245,6 +1245,46 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.ocaml",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ocaml-v1.0.0/fenix.ocaml-1.0.0.fenixext",
+          "sha256": "f456259b75d0d311a54dc82da7a93e170726909361a59c6ae66d9ee82e685ffc",
+          "size": 1380316,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "opam",
+              "ocaml",
+              "dune",
+              "ocamllsp",
+              "ocamlformat",
+              "ocamlearlybird"
+            ]
+          }
+        }
+      ],
+      "name": "OCaml",
+      "description": "OCaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune's tasks with a dune exec for each executable, debugging bytecode with earlybird, the project's checks with fixes that run opam install, snippets, and a dune project",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.original-light-themes",
       "versions": [
         {
