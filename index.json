@@ -73,6 +73,43 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.agent-context",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.1, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/agent-context-v1.0.0/fenix.agent-context-1.0.0.fenixext",
+          "sha256": "7b5b655517d6da31c090330be39c2a13a7dee09814098539380eb3a884dd1d96",
+          "size": 243849,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.2",
+          "permissions": {
+            "filesystem": "project-read",
+            "network": [
+              "crates.io",
+              "static.crates.io",
+              "docs.rs",
+              "registry.npmjs.org",
+              "cdn.jsdelivr.net",
+              "pypi.org",
+              "pkg.go.dev",
+              "proxy.golang.org"
+            ]
+          }
+        }
+      ],
+      "name": "Agent context",
+      "description": "Context for your coding agents: the project's dependencies at the versions its lockfiles hold, and each one's documentation for exactly that version -- crates.io and docs.rs, npm, PyPI, pkg.go.dev -- as tools and resources they call through Fenix",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.arduino",
       "versions": [
         {
