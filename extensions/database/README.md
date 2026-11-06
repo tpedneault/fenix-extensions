@@ -179,6 +179,14 @@ transaction you have open is never touched, and the server refuses a
 write all the same. Each one is in the history, marked as a coding
 agent's.
 
+SQL Server has no read-only session, and it needs no `;` between
+statements, so there the check is the only safeguard and it's stricter:
+every word that starts a statement (`DECLARE`, `SET`, `BEGIN`, `IF`,
+`UPDATETEXT`...) is refused, unless it's a name in `[brackets]`, as are
+a second `SELECT` outside a `UNION`, `EXCEPT` or `INTERSECT`, and `NEXT
+VALUE FOR`. For more certainty, give an agent's connection a login that
+can only read.
+
 ## Limits
 
 - **TLS on SQL Server** is TDS 8's only. TDS 7 carries TLS inside its

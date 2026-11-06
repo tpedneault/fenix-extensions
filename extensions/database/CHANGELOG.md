@@ -14,6 +14,9 @@ For Fenix 1.1: tools for your coding agents.
   ANALYZE`, `FOR UPDATE`, functions with effects -- and it runs on a
   session of its own, opened read-only, so the server refuses a write
   too and your own transaction is left alone. It's kept in the history.
+  SQL Server has no read-only session and needs no `;` between
+  statements, so there the check refuses every word that starts another
+  statement, a second `SELECT` outside a `UNION`, and `NEXT VALUE FOR`.
 
 ## 1.0.0
 

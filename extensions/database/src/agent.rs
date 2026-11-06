@@ -3,7 +3,9 @@
 //! reads -- held to that here, before it's sent, and by the server too:
 //! an agent's statements run on a session of their own, opened read-only
 //! (PostgreSQL's `default_transaction_read_only`, MySQL's `SET SESSION
-//! TRANSACTION READ ONLY`, a SQLite file opened read-only).
+//! TRANSACTION READ ONLY`, a SQLite file opened read-only). SQL Server
+//! has no such session, so there the check here is all there is, and it
+//! is stricter (`mssql_one_statement`).
 
 use serde_json::{json, Value};
 
@@ -40,6 +42,42 @@ const REFUSED_FUNCTIONS: &[&str] = &[
 /// `dblink_exec`, `pg_read_file`, `xp_cmdshell`, `sp_executesql`.
 const REFUSED_PREFIXES: &[&str] = &["PG_ADVISORY", "PG_TRY_ADVISORY", "LO_", "DBLINK", "PG_READ_", "PG_LS_", "PG_STAT_RESET", "PG_FILE", "PG_LOGICAL", "PG_REPLICATION", "XP_", "SP_"];
 
+/// T-SQL's words that begin a statement and have no place in a `SELECT`.
+/// T-SQL needs no `;` between statements, so `sql::split` sees one
+/// statement where the server runs several. `SHOW`, the first word, and
+/// `REFUSED` already cover the rest of the language; `FETCH` isn't here
+/// because `OFFSET ... FETCH NEXT` is a read, and a cursor needs `DECLARE`.
+const MSSQL_STATEMENTS: &[&str] = &[
+    "ADD", "BEGIN", "BREAK", "BULK", "CHECKPOINT", "CLOSE", "COMMIT", "CONTINUE", "CONVERSATION", "DEALLOCATE", "DECLARE", "DISABLE", "DUMP", "ENABLE", "GET", "GOTO", "IF", "LINENO", "MOVE", "OPEN",
+    "PRINT", "RAISERROR", "READTEXT", "RECEIVE", "RECONFIGURE", "RETURN", "REVERT", "ROLLBACK", "SAVE", "SEND", "SET", "SETUSER", "THROW", "TRAN", "TRANSACTION", "TRY", "UPDATETEXT", "USE", "WHILE",
+    "WRITETEXT",
+];
+
+/// What keeps a SQL Server statement one statement that only reads: none
+/// of the words that start another, a second `SELECT` only as part of a
+/// `UNION`, `EXCEPT` or `INTERSECT` (or in parentheses), and no `NEXT
+/// VALUE FOR`, which moves a sequence on.
+fn mssql_one_statement(words: &[(String, usize)]) -> Result<(), String> {
+    if let Some((w, _)) = words.iter().find(|(w, _)| MSSQL_STATEMENTS.contains(&w.as_str())) {
+        return Err(format!("{w} starts a statement of its own, and SQL Server needs no `;` between them. A name that's the same word goes in [brackets]"));
+    }
+    if words.windows(2).any(|pair| pair[0].0 == "NEXT" && pair[1].0 == "VALUE") {
+        return Err("NEXT VALUE FOR moves a sequence on".into());
+    }
+    let mut seen = false;
+    for (i, (w, depth)) in words.iter().enumerate() {
+        if w != "SELECT" || *depth != 0 {
+            continue;
+        }
+        let joined = i > 0 && matches!(words[i - 1].0.as_str(), "UNION" | "ALL" | "EXCEPT" | "INTERSECT");
+        if seen && !joined {
+            return Err("one statement at a time, and SQL Server needs no `;` between them: this has a second SELECT".into());
+        }
+        seen = true;
+    }
+    Ok(())
+}
+
 /// `text` as one statement an agent may run, without its `;` -- or why
 /// not. Conservative: what can't be told to only read is refused.
 pub fn read_only_statement(text: &str, dialect: Dialect) -> Result<String, String> {
@@ -67,6 +105,9 @@ pub fn read_only_statement(text: &str, dialect: Dialect) -> Result<String, Strin
         if named && called(&upper, w) {
             return Err(format!("{} has effects, or only waits", w.to_ascii_lowercase()));
         }
+    }
+    if dialect == Dialect::Mssql {
+        mssql_one_statement(&words)?;
     }
     Ok(statement)
 }
@@ -249,6 +290,50 @@ mod tests {
         // A name that only contains one of the words is fine.
         ok("select nextval_count, sleeping, lo_x_col from t");
         ok("select x.sleep from t as x");
+    }
+
+    #[test]
+    fn sql_server_runs_one_statement_even_with_no_semicolon() {
+        let ms = Dialect::Mssql;
+        let fine = |sql: &str| read_only_statement(sql, ms).unwrap_or_else(|e| panic!("{sql}: {e}"));
+        fine("SELECT TOP 5 * FROM dbo.t WITH (NOLOCK) ORDER BY id");
+        fine("select a from t order by a offset 10 rows fetch next 5 rows only");
+        fine("with r as (select 1 as n union all select n + 1 from r where n < 3) select n from r");
+        fine("select 1 union select 2 union all select 3 except select 4 intersect select 5");
+        fine("select (select max(a) from t) as m, case when a = 1 then 'x' else 'y' end from t where a in (select a from u)");
+        fine("(select 1) union (select 2)");
+        fine("select [set], [open], [get] from [begin] where [use] = 'set x = 1; declare'");
+        fine("select try_cast(a as int), iif(a = 1, 2, 3), @@version from t -- begin");
+
+        // This one wrote to a row on a real SQL Server 2022 before.
+        let write = "SELECT 1 AS x DECLARE @p varbinary(16) SELECT @p=TEXTPTR(c) FROM t UPDATETEXT t.c @p 0 NULL 'WRITTEN-BY-A-SELECT'";
+        assert!(refused(write, ms).contains("DECLARE"));
+        for (sql, word) in [
+            ("select 1 reconfigure", "RECONFIGURE"),
+            ("select 1 checkpoint", "CHECKPOINT"),
+            ("select 1 begin transaction", "BEGIN"),
+            ("select 1 commit", "COMMIT"),
+            ("select 1 rollback", "ROLLBACK"),
+            ("select 1 writetext t.c @p 'x'", "WRITETEXT"),
+            ("select 1 updatetext t.c @p 0 null 'x'", "UPDATETEXT"),
+            ("select 1 set nocount on", "SET"),
+            ("select 1 use master", "USE"),
+            ("select 1 disable trigger x on t", "DISABLE"),
+            ("select 1 if 1 = 1 select 2", "IF"),
+            ("select 1 while 1 = 1 select 2", "WHILE"),
+            ("select 1 throw 50000, 'x', 1", "THROW"),
+            ("select 1 send on conversation @h", "SEND"),
+        ] {
+            assert!(refused(sql, ms).contains(word), "{sql}");
+        }
+        assert!(refused("select 1 select 2", ms).contains("second SELECT"));
+        assert!(refused("select a from t select b from u", ms).contains("second SELECT"));
+        assert!(refused("with x as (select 1 as a) select a from x select 2", ms).contains("second SELECT"));
+        assert!(refused("select next value for dbo.seq", ms).contains("NEXT VALUE"));
+
+        // Only SQL Server's rule: the others say where a statement ends,
+        // and their servers refuse writes as well.
+        assert!(read_only_statement("select open, close, get from t", Dialect::Postgres).is_ok());
     }
 
     fn shop() -> (Conn, Schema) {
