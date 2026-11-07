@@ -159,8 +159,6 @@ pub enum RequestAction {
     Review(u64),
     /// Every change it brings, file by file, on the Compare page.
     Compare(String),
-    /// Your coding agent drafts the title and description.
-    Draft,
 }
 
 pub struct RequestPage {
@@ -421,12 +419,10 @@ impl RequestPage {
         }
     }
 
-    /// An agent's draft, in place of the title and description: yours to
-    /// edit before you send it.
-    pub fn drafted(&mut self, title: String, body: String, agent: &str) {
-        self.title = title;
-        self.description = body;
-        self.message = Some((format!("drafted by {agent}: e edits the description, S opens it"), false));
+    /// Whether the description is still only what it was filled in with,
+    /// the first time or from a template: nothing of yours to lose.
+    pub fn description_untouched(&self) -> bool {
+        self.description == self.pristine.description || self.templates.iter().any(|t| t.text.trim_end() == self.description.trim_end())
     }
 
     pub fn set_description(&mut self, text: String) {
@@ -528,10 +524,6 @@ impl RequestPage {
             Key::Up | Key::Char('k') | Key::BackTab => self.step(-1),
             Key::Char('d') => self.draft = !self.draft,
             Key::Char('e') => return RequestAction::EditDescription,
-            Key::Char('a') if !self.busy => {
-                self.message = Some(("your agent is drafting the title and description…".to_string(), false));
-                return RequestAction::Draft;
-            }
             Key::Enter | Key::Space | Key::Char('i') | Key::Char('c') => match self.field {
                 Field::Draft => self.draft = !self.draft,
                 Field::Description => return RequestAction::EditDescription,
