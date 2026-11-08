@@ -247,9 +247,9 @@ impl Layout {
         }
         let mut problems = Vec::new();
         let nodes = build(&elements, 0, elements.len(), &mut problems);
-        for i in 0..elements.len() {
-            elements[i].offered = offered(set, &elements[i]);
-            elements[i].fixed_count = fixed_count(&elements[i]);
+        for el in elements.iter_mut() {
+            el.offered = offered(set, el);
+            el.fixed_count = fixed_count(el);
         }
         for el in &elements {
             if el.kind != ElementKind::Area && el.name.is_empty() {
