@@ -5,8 +5,11 @@
 //! argument, a value outside its range or status texts. A call built at
 //! run time (a variable mnemonic) isn't guessed at.
 
-use fenix_mib::telecommand;
 use std::collections::HashMap;
+
+use fenix_ccsds::pus::Profile;
+use fenix_mib::commanding;
+use fenix_mib::layout::{self, Layout};
 
 use fenix_mib::{DefRef, Kind, MibSet};
 
@@ -70,7 +73,7 @@ pub fn check(text: &str, set: &MibSet, t: &Templates) -> Vec<Finding> {
     let mut out = Vec::new();
     // A script calls the same few telecommands over and over, and each
     // one's parameters are a scan of the whole `cdf` table: once each.
-    let mut known: HashMap<DefRef, (Vec<(telecommand::TcParameter, telecommand::ParamDomain)>, bool)> = HashMap::new();
+    let mut known: HashMap<DefRef, (Layout, Vec<String>)> = HashMap::new();
     let mut unknown: HashMap<String, Vec<String>> = HashMap::new();
     for (ln, line) in text.lines().enumerate() {
         let trimmed = line.trim_start();
@@ -95,36 +98,61 @@ pub fn check(text: &str, set: &MibSet, t: &Templates) -> Vec<Finding> {
         if e.row.clean("CCF_CRITICAL") == "Y" {
             out.push(Finding { line: ln, cols: cols.clone(), severity: Severity::Info, message: format!("{word} is a critical telecommand") });
         }
-        let (params, grouped) = known.entry(tc).or_insert_with(|| {
-            let params: Vec<_> = telecommand::tc_parameters(set.index(), &e.row)
-                .into_iter()
-                .filter(|p| !p.fixed && !p.name.is_empty())
-                .map(|p| {
-                    let domain = telecommand::parameter_domain(set.index(), &p);
-                    (p, domain)
-                })
-                .collect();
-            let grouped = params.iter().any(|(p, _)| fenix_mib::types::parse_int(p.cdf.clean("CDF_GRPSIZE")).unwrap_or(0) > 0);
-            (params, grouped)
-        });
-        let names: Vec<String> = params.iter().map(|(p, _)| p.name.clone()).collect();
+        let (layout, pre) = known.entry(tc).or_insert_with(|| (Layout::of(set, tc), commanding::preconditions(set, tc).iter().map(ToString::to_string).collect()));
+        if !pre.is_empty() {
+            out.push(Finding { line: ln, cols: cols.clone(), severity: Severity::Info, message: format!("{word} is sent only while {}", pre.join(" and ")) });
+        }
+        let mut names: Vec<String> = layout.asked().map(|el| el.name.clone()).collect();
+        names.dedup();
         let args = read_arguments(line, &word, &names, t);
-        for (p, domain) in params.iter() {
-            let found: Vec<&(String, String)> = args.iter().filter(|(n, _)| n == &p.name).collect();
-            if found.is_empty() {
-                if !*grouped {
-                    out.push(Finding { line: ln, cols: cols.clone(), severity: Severity::Warning, message: format!("{} is missing", p.name) });
+        // Each field takes the next value given for its parameter; a
+        // counter's value says how many repetitions follow.
+        let used = std::cell::RefCell::new(vec![false; args.len()]);
+        let take = |name: &str| -> Option<usize> {
+            let mut used = used.borrow_mut();
+            let i = (0..args.len()).find(|&i| !used[i] && args[i].0 == name)?;
+            used[i] = true;
+            Some(i)
+        };
+        let mut given: HashMap<layout::Field, usize> = HashMap::new();
+        let fields = layout.fields_by(|f| {
+            let el = &layout.elements[f.element];
+            match take(&el.name) {
+                Some(i) => {
+                    given.insert(f.clone(), i);
+                    layout::count_of(el, &args[i].1)
                 }
+                None => 0,
+            }
+        });
+        let value_at = |name: &str, value: &str| -> std::ops::Range<usize> {
+            let name_at = line.find(name).unwrap_or(start);
+            let vat = line[name_at..].find(value).map(|i| name_at + i).unwrap_or(name_at);
+            char_col(line, vat)..char_col(line, vat + value.len().max(1))
+        };
+        for f in &fields {
+            let el = &layout.elements[f.element];
+            let at = match given.get(f) {
+                Some(&i) => Some(i),
+                None if el.is_repeater() => None,
+                None => take(&el.name),
+            };
+            let Some(i) = at else {
+                out.push(Finding { line: ln, cols: cols.clone(), severity: Severity::Warning, message: format!("{} is missing", f.label(layout)) });
+                continue;
+            };
+            let value = &args[i].1;
+            if let Some(w) = el.domain.as_ref().map(|d| d.check(value, &Profile::default())).and_then(|w| w.into_iter().next()) {
+                out.push(Finding { line: ln, cols: value_at(&el.name, value), severity: Severity::Warning, message: w });
+            }
+        }
+        for (i, (name, value)) in args.iter().enumerate() {
+            if used.borrow()[i] {
                 continue;
             }
-            for (_, value) in found {
-                let warnings = telecommand::validate_argument(p, value, domain);
-                if let Some(w) = warnings.first() {
-                    let name_at = line.find(&p.name).unwrap_or(start);
-                    let vat = line[name_at..].find(value.as_str()).map(|i| name_at + i).unwrap_or(name_at);
-                    out.push(Finding { line: ln, cols: char_col(line, vat)..char_col(line, vat + value.len().max(1)), severity: Severity::Warning, message: w.clone() });
-                }
-            }
+            let repeated = layout.asked().any(|el| &el.name == name && !layout.enclosing(layout.elements.iter().position(|e| std::ptr::eq(e, el)).unwrap_or(0)).is_empty());
+            let message = if repeated { format!("one more {name} than its counter says") } else { format!("{name} is given more than once") };
+            out.push(Finding { line: ln, cols: value_at(name, value), severity: Severity::Warning, message });
         }
     }
     out
@@ -165,6 +193,24 @@ mod tests {
         let msgs: Vec<(usize, &str)> = found.iter().map(|f| (f.line, f.message.as_str())).collect();
         assert!(found.iter().any(|f| f.line == 0 && f.message.contains("'9' is outside")), "{msgs:?}");
         assert!(found.iter().any(|f| f.line == 1 && f.message == "PTH00102 is missing"), "{msgs:?}");
+        std::fs::remove_dir_all(&root.path).ok();
+    }
+
+    #[test]
+    fn grouped_calls_are_checked_against_their_counters() {
+        let root = crate::mib_page::tests::fixture();
+        std::fs::write(root.path.join("ccf.dat"), "ZTC11004\tInsert\t\t\tN\t\t11\t4\t1008\n").unwrap();
+        std::fs::write(root.path.join("cdf.dat"), "ZTC11004\tE\tCount\t8\t0\t1\tPN\t\t\t\nZTC11004\tE\tTime\t8\t8\t0\tPT\t\t\t\nZTC11004\tE\tAfter\t8\t16\t0\tPA\t\t\t\n").unwrap();
+        std::fs::write(root.path.join("cpc.dat"), "PN\tCount\t3\t4\nPT\tTime\t3\t4\nPA\tAfter\t3\t4\n").unwrap();
+        std::fs::write(root.path.join("ptv.dat"), "ZTC11004\tNMODE\tE\tNOMINAL\n").unwrap();
+        let set = MibSet::load(vec![root.clone()], None);
+        let text = "tc::send ZTC11004 -PN 2, -PT 1, -PA 3\ntc::send ZTC11004 -PN 1, -PT 1, -PT 2, -PA 3\ntc::send ZTC11004 -PN 1, -PT 1, -PA 3\n";
+        let found = check(text, &set, &templates());
+        let msgs: Vec<(usize, &str)> = found.iter().map(|f| (f.line, f.message.as_str())).collect();
+        assert!(found.iter().any(|f| f.line == 0 && f.message == "PT[2] is missing"), "{msgs:?}");
+        assert!(found.iter().any(|f| f.line == 1 && f.message == "one more PT than its counter says"), "{msgs:?}");
+        assert!(!found.iter().any(|f| f.line == 2 && f.severity == Severity::Warning), "{msgs:?}");
+        assert!(found.iter().any(|f| f.line == 2 && f.severity == Severity::Info && f.message.contains("NMODE = NOMINAL")), "{msgs:?}");
         std::fs::remove_dir_all(&root.path).ok();
     }
 }

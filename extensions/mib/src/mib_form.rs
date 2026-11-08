@@ -10,7 +10,9 @@
 
 use std::collections::HashMap;
 
-use fenix_mib::telecommand::{self, ParamDomain, TcParameter};
+use fenix_ccsds::pus::Profile;
+use fenix_mib::commanding;
+use fenix_mib::layout::{self, Field, Layout};
 use fenix_mib::{DefRef, MibSet, Row};
 
 use crate::mib_page::{kind_role, MibKey};
@@ -22,21 +24,6 @@ pub struct Templates {
     pub command: String,
     pub argument: String,
     pub separator: String,
-}
-
-struct Param {
-    tc: TcParameter,
-    domain: ParamDomain,
-    /// How many parameters after it repeat (`CDF_GRPSIZE`).
-    group: usize,
-}
-
-/// One field of the form: a parameter, in a repetition of each group
-/// around it (`path`, 1-based, outermost first).
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct Slot {
-    param: usize,
-    path: Vec<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,6 +40,14 @@ pub enum Action {
     DecodeBytes,
 }
 
+/// A named set of values the telecommand may be sent with.
+#[derive(Debug, Clone)]
+struct ValueSet {
+    name: String,
+    description: String,
+    values: Vec<(String, String)>,
+}
+
 pub struct InsertForm {
     pub key: MibKey,
     pub tc: DefRef,
@@ -62,9 +57,14 @@ pub struct InsertForm {
     description: String,
     pus: String,
     apid: String,
-    params: Vec<Param>,
+    layout: Layout,
     fixed: usize,
     values: HashMap<String, String>,
+    value_sets: Vec<ValueSet>,
+    /// The value set filling what hasn't been typed.
+    value_set: Option<usize>,
+    /// What the TM must show before it's sent (`PTV`).
+    preconditions: Vec<String>,
     focus: usize,
     editing: bool,
     /// The texts menu, and its row.
@@ -80,49 +80,35 @@ pub struct InsertForm {
     pub seq: u16,
 }
 
+/// What the Bytes section shows: the packet, where each value went in
+/// it, and where it disagrees with the MIB's header for it.
+#[derive(Debug, Clone, Default)]
+pub struct Built {
+    pub bytes: Vec<u8>,
+    /// (field, bit from the packet's start, bits).
+    pub fields: Vec<(String, usize, usize)>,
+    pub header: Vec<String>,
+}
+
 /// The most fields a form lays out: counters nested in counters multiply,
 /// and every key and frame goes through them all.
 const MAX_SLOTS: usize = 1000;
 
-/// How many parameters `slots` slots after `start` take up: a nested
-/// counter is one slot, plus everything its own group holds.
-fn span(params: &[Param], start: usize, slots: usize) -> usize {
-    let mut i = start;
-    for _ in 0..slots {
-        if i >= params.len() {
-            break;
-        }
-        let g = params[i].group;
-        i += 1;
-        if g > 0 {
-            i += span(params, i, g);
-        }
-    }
-    i - start
-}
-
-fn key(params: &[Param], slot: &Slot) -> String {
-    let path: Vec<String> = slot.path.iter().map(|n| n.to_string()).collect();
-    format!("{}@{}", params[slot.param].tc.name, path.join("."))
-}
+/// The most a counter is set to from the form.
+const MAX_COUNT: i64 = 999;
 
 impl InsertForm {
     /// The form for `tc`, its values from `remembered` (a previous insert
-    /// of the same telecommand) where there are some, else the MIB's
-    /// defaults.
+    /// of the same telecommand) where there are some, else its default
+    /// value set's, else the MIB's defaults.
     pub fn new(set: &MibSet, key: MibKey, tc: DefRef, templates: Templates, remembered: Option<&HashMap<String, String>>, apid_hex: bool) -> Self {
         let e = set.get(tc);
-        let all = telecommand::tc_parameters(set.index(), &e.row);
-        let fixed = all.iter().filter(|p| p.fixed).count();
-        let params: Vec<Param> = all
-            .into_iter()
-            .filter(|p| !p.fixed && !p.name.is_empty())
-            .map(|p| {
-                let domain = telecommand::parameter_domain(set.index(), &p);
-                let group = fenix_mib::types::parse_int(p.cdf.clean("CDF_GRPSIZE")).unwrap_or(0).max(0) as usize;
-                Param { tc: p, domain, group }
-            })
-            .collect();
+        let layout = Layout::of(set, tc);
+        let fixed = layout.elements.iter().filter(|el| !el.asked() && !(el.kind == layout::ElementKind::Area && el.value.is_empty())).count();
+        let sets = commanding::value_sets(set, tc);
+        let value_set = sets.iter().position(|v| v.default);
+        let value_sets = sets.iter().map(|v| ValueSet { name: v.name.clone(), description: v.description.clone(), values: v.engineering(set, tc) }).collect();
+        let preconditions = commanding::preconditions(set, tc).iter().map(ToString::to_string).collect();
         let mut form = InsertForm {
             key,
             tc,
@@ -132,9 +118,12 @@ impl InsertForm {
             description: e.description.clone(),
             pus: format!("{},{}", e.row.clean("CCF_TYPE"), e.row.clean("CCF_STYPE")),
             apid: fenix_mib::types::apid(e.row.clean("CCF_APID"), apid_hex),
-            params,
+            layout,
             fixed,
             values: HashMap::new(),
+            value_sets,
+            value_set,
+            preconditions,
             focus: 0,
             editing: false,
             menu: None,
@@ -164,11 +153,17 @@ impl InsertForm {
         self.editing
     }
 
+    /// Its layout: what's asked, in what order.
+    pub fn layout(&self) -> &Layout {
+        &self.layout
+    }
+
     pub fn paste(&mut self, text: &str) {
         if self.editing {
-            let k = self.focus_key();
-            if let Some(k) = k {
-                self.values.entry(k).or_default().extend(text.chars().filter(|c| !c.is_control()));
+            if let Some(f) = self.slots().get(self.focus).cloned() {
+                let mut v = self.value(&f);
+                v.extend(text.chars().filter(|c| !c.is_control()));
+                self.set_value(&f, v);
             }
         }
     }
@@ -183,11 +178,11 @@ impl InsertForm {
             let slots = self.slots();
             let mut changed = false;
             for slot in &slots {
-                let k = key(&self.params, slot);
+                let k = slot.key(&self.layout);
                 if self.values.contains_key(&k) {
                     continue;
                 }
-                let name = &self.params[slot.param].tc.name;
+                let name = &self.layout.elements[slot.element].name;
                 if let Some(i) = (0..args.len()).find(|&i| !used[i] && &args[i].0 == name) {
                     used[i] = true;
                     self.values.insert(k, args[i].1.clone());
@@ -202,67 +197,64 @@ impl InsertForm {
     }
 
     /// Every field, as the counters' values expand the groups.
-    fn slots(&self) -> Vec<Slot> {
-        let mut out = Vec::new();
-        self.expand(0, self.params.len(), Vec::new(), &mut out);
-        out
+    fn slots(&self) -> Vec<Field> {
+        let mut all = self.layout.fields_by(|f| layout::count_of(&self.layout.elements[f.element], &self.value(f)));
+        all.truncate(MAX_SLOTS);
+        all
     }
 
-    fn expand(&self, start: usize, end: usize, path: Vec<usize>, out: &mut Vec<Slot>) {
-        let mut i = start;
-        while i < end && out.len() < MAX_SLOTS {
-            let slot = Slot { param: i, path: path.clone() };
-            let g = self.params[i].group;
-            let count = if g > 0 { fenix_mib::types::parse_int(&self.value(&slot)).unwrap_or(0).clamp(0, 99) as usize } else { 0 };
-            out.push(slot);
-            if g > 0 {
-                let s = span(&self.params, i + 1, g);
-                for rep in 1..=count {
-                    let mut p = path.clone();
-                    p.push(rep);
-                    self.expand(i + 1, (i + 1 + s).min(end), p, out);
-                }
-                i += 1 + s;
-            } else {
-                i += 1;
+    /// What a field holds: what was typed, else its value set's, else its
+    /// default.
+    fn value(&self, f: &Field) -> String {
+        if let Some(v) = self.values.get(&f.key(&self.layout)) {
+            return v.clone();
+        }
+        let el = &self.layout.elements[f.element];
+        if let Some(vs) = self.value_set.and_then(|i| self.value_sets.get(i)) {
+            if let Some((_, v)) = vs.values.iter().find(|(p, _)| *p == el.name) {
+                return v.clone();
             }
         }
+        el.offered.clone()
     }
 
-    fn value(&self, slot: &Slot) -> String {
-        self.values.get(&key(&self.params, slot)).cloned().unwrap_or_else(|| self.params[slot.param].domain.default.clone())
-    }
-
-    fn focus_key(&self) -> Option<String> {
-        self.slots().get(self.focus).map(|s| key(&self.params, s))
+    fn set_value(&mut self, f: &Field, v: String) {
+        self.values.insert(f.key(&self.layout), v);
     }
 
     /// Each field's `(name, value)`, in order: what the command takes.
     pub fn arguments(&self) -> Vec<(String, String)> {
-        self.slots().iter().map(|s| (self.params[s.param].tc.name.clone(), self.value(s))).collect()
+        self.slots().iter().map(|s| (self.layout.elements[s.element].name.clone(), self.value(s))).collect()
     }
 
     /// The values as typed, to open with next time.
     pub fn values(&self) -> HashMap<String, String> {
         let mut out = HashMap::new();
         for s in self.slots() {
-            out.insert(key(&self.params, &s), self.value(&s));
+            out.insert(s.key(&self.layout), self.value(&s));
         }
         out
     }
 
     pub fn rendered(&self) -> String {
         let t = &self.templates;
-        telecommand::render_telecommand(&t.command, &t.argument, &t.separator, &self.ccf, &self.root_label, &self.arguments())
+        fenix_mib::telecommand::render_telecommand(&t.command, &t.argument, &t.separator, &self.ccf, &self.root_label, &self.arguments())
     }
 
-    fn warnings_for(&self, slot: &Slot) -> Vec<String> {
-        let p = &self.params[slot.param];
+    fn warnings_for(&self, slot: &Field) -> Vec<String> {
+        let el = &self.layout.elements[slot.element];
         let v = self.value(slot);
+        let label = slot.label(&self.layout);
         if v.trim().is_empty() {
-            return vec![format!("{}: no value", p.tc.name)];
+            return vec![match self.layout.dynamic_default(slot.element) {
+                Some(tm) => format!("{label}: no value -- SCOS takes it from {tm} when it's sent"),
+                None => format!("{label}: no value"),
+            }];
         }
-        telecommand::validate_argument(&p.tc, &v, &p.domain)
+        match &el.domain {
+            Some(d) => d.check(&v, &Profile::default()),
+            None => vec![format!("{label}: {} has no CPC definition", el.name)],
+        }
     }
 
     pub fn warnings(&self) -> usize {
@@ -270,28 +262,83 @@ impl InsertForm {
     }
 
     fn set_focused(&mut self, value: String) {
-        if let Some(k) = self.focus_key() {
-            self.values.insert(k, value);
+        if let Some(f) = self.slots().get(self.focus).cloned() {
+            self.set_value(&f, value);
+        }
+    }
+
+    /// The counter of the group the focused field repeats in -- the field
+    /// itself when it's a counter.
+    fn counter_here(&self) -> Option<Field> {
+        let f = self.slots().get(self.focus)?.clone();
+        if self.layout.elements[f.element].is_repeater() && self.layout.elements[f.element].asked() {
+            return Some(f);
+        }
+        let repeater = *self.layout.enclosing(f.element).first()?;
+        if !self.layout.elements[repeater].asked() {
+            return None;
+        }
+        let mut path = f.path.clone();
+        path.pop();
+        Some(Field { element: repeater, path })
+    }
+
+    /// One more or one fewer repetition of the group here.
+    fn repeat(&mut self, by: i64) {
+        let Some(c) = self.counter_here() else {
+            self.note = Some(("+ - change a counter: this field isn't in a repeated group".into(), false));
+            return;
+        };
+        let n = layout::count_of(&self.layout.elements[c.element], &self.value(&c)) as i64;
+        let next = (n + by).clamp(0, MAX_COUNT);
+        self.set_value(&c, next.to_string());
+        let slots = self.slots();
+        // Stay on the field; when it went away with its repetition, on the counter.
+        if self.focus >= slots.len() {
+            self.focus = slots.iter().position(|s| *s == c).unwrap_or(slots.len().saturating_sub(1));
         }
     }
 
     fn cycle(&mut self, by: isize) {
         let slots = self.slots();
         let Some(slot) = slots.get(self.focus) else { return };
-        let p = &self.params[slot.param];
-        if p.group > 0 {
-            let n = fenix_mib::types::parse_int(&self.value(slot)).unwrap_or(0);
-            self.set_focused((n + by as i64).clamp(0, 99).to_string());
-            return;
-        }
-        let aliases = &p.domain.aliases;
+        let el = &self.layout.elements[slot.element];
+        let aliases = el.domain.as_ref().map(|d| d.aliases()).unwrap_or_default();
         if aliases.is_empty() {
+            if el.is_repeater() {
+                return self.repeat(by as i64);
+            }
             self.note = Some(("h l change a status value or a count; Enter types this one".into(), false));
             return;
         }
         let at = aliases.iter().position(|a| *a == self.value(slot)).map(|i| i as isize).unwrap_or(-1);
         let next = (at + by).rem_euclid(aliases.len() as isize) as usize;
         self.set_focused(aliases[next].clone());
+    }
+
+    fn aliases_here(&self) -> Vec<String> {
+        self.slots().get(self.focus).and_then(|s| self.layout.elements[s.element].domain.as_ref()).map(|d| d.aliases()).unwrap_or_default()
+    }
+
+    /// The next value set, or none.
+    fn next_value_set(&mut self) {
+        if self.value_sets.is_empty() {
+            self.note = Some(("the MIB has no value sets for this telecommand".into(), false));
+            return;
+        }
+        self.value_set = match self.value_set {
+            None => Some(0),
+            Some(i) if i + 1 < self.value_sets.len() => Some(i + 1),
+            Some(_) => None,
+        };
+        // What it gives shows: what was typed over it goes.
+        self.values.clear();
+        let note = match self.value_set.and_then(|i| self.value_sets.get(i)) {
+            Some(v) if v.description.is_empty() => format!("value set {}", v.name),
+            Some(v) => format!("value set {} · {}", v.name, v.description),
+            None => "no value set: the MIB's defaults".into(),
+        };
+        self.note = Some((note, false));
     }
 
     pub fn key(&mut self, key: Key) -> Action {
@@ -302,7 +349,7 @@ impl InsertForm {
         }
         let n = self.slots().len();
         if let Some(at) = self.menu {
-            let aliases = self.slots().get(self.focus).map(|s| self.params[s.param].domain.aliases.clone()).unwrap_or_default();
+            let aliases = self.aliases_here();
             match key {
                 Key::Escape | Key::Char('q') => self.menu = None,
                 Key::Down | Key::Char('j') => self.menu = Some((at + 1).min(aliases.len().saturating_sub(1))),
@@ -335,26 +382,23 @@ impl InsertForm {
                     self.focus = self.focus.saturating_sub(1);
                 }
                 Key::Backspace => {
-                    let slots = self.slots();
-                    if let Some(s) = slots.get(self.focus) {
-                        let mut v = self.value(s);
+                    if let Some(s) = self.slots().get(self.focus).cloned() {
+                        let mut v = self.value(&s);
                         v.pop();
-                        self.set_focused(v);
+                        self.set_value(&s, v);
                     }
                 }
                 Key::Char(c) => {
-                    let slots = self.slots();
-                    if let Some(s) = slots.get(self.focus) {
-                        let mut v = self.value(s);
+                    if let Some(s) = self.slots().get(self.focus).cloned() {
+                        let mut v = self.value(&s);
                         v.push(c);
-                        self.set_focused(v);
+                        self.set_value(&s, v);
                     }
                 }
                 Key::Space => {
-                    let slots = self.slots();
-                    if let Some(s) = slots.get(self.focus) {
-                        let v = self.value(s) + " ";
-                        self.set_focused(v);
+                    if let Some(s) = self.slots().get(self.focus).cloned() {
+                        let v = self.value(&s) + " ";
+                        self.set_value(&s, v);
                     }
                 }
                 _ => {}
@@ -368,16 +412,18 @@ impl InsertForm {
             Key::Up | Key::Char('k') | Key::BackTab => self.focus = self.focus.saturating_sub(1),
             Key::Char('g') => self.focus = 0,
             Key::Char('G') => self.focus = n.saturating_sub(1),
-            Key::Left | Key::Char('h') | Key::Char('-') => self.cycle(-1),
-            Key::Right | Key::Char('l') | Key::Char('+') => self.cycle(1),
+            Key::Left | Key::Char('h') => self.cycle(-1),
+            Key::Right | Key::Char('l') => self.cycle(1),
+            Key::Char('-') => self.repeat(-1),
+            Key::Char('+') | Key::Char('=') => self.repeat(1),
+            Key::Char('v') => self.next_value_set(),
             Key::Enter => {
-                let slots = self.slots();
-                if let Some(s) = slots.get(self.focus) {
-                    let aliases = &self.params[s.param].domain.aliases;
+                if let Some(s) = self.slots().get(self.focus).cloned() {
+                    let aliases = self.aliases_here();
                     if aliases.is_empty() {
                         self.editing = true;
                     } else {
-                        self.menu = Some(aliases.iter().position(|a| *a == self.value(s)).unwrap_or(0));
+                        self.menu = Some(aliases.iter().position(|a| *a == self.value(&s)).unwrap_or(0));
                     }
                 }
             }
@@ -390,6 +436,7 @@ impl InsertForm {
             }
             Key::Char('R') => {
                 self.values.clear();
+                self.value_set = None;
                 self.note = Some(("back to the MIB's defaults".into(), false));
             }
             Key::Char('d') => return Action::Open(self.tc),
@@ -414,7 +461,7 @@ pub fn title(form: &InsertForm) -> String {
 
 /// The form, with its packet's bytes when the Bytes section is shown
 /// (the host builds them from the MIB).
-pub fn layout(form: &InsertForm, bytes: Option<&Result<Vec<u8>, String>>, cols: usize) -> Page {
+pub fn layout(form: &InsertForm, bytes: Option<&Result<Built, String>>, cols: usize) -> Page {
     let (left, width) = frame(cols, 150);
     let mut g = Grid::new();
     g.put(1, left, if form.replacing { "Edit a telecommand call" } else { "Insert a telecommand" }, Role::Muted);
@@ -428,28 +475,53 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Vec<u8>, String>>, cols: 
         g.put(y, left, &fit(text, width), if *bad { Role::Bad } else { Role::Good });
         y += 1;
     }
+    for p in &form.preconditions {
+        g.put(y, left, &fit(&format!("Sent only while {p} (pre-transmission validation)"), width), Role::Warn);
+        y += 1;
+    }
+    if let Some(v) = form.value_set.and_then(|i| form.value_sets.get(i)) {
+        g.put(y, left, &fit(&format!("Values from value set {} -- v another, R none", v.name), width), Role::Muted);
+        y += 1;
+    } else if !form.value_sets.is_empty() {
+        g.put(y, left, &fit(&format!("{} value set{} -- v fills the form from one", form.value_sets.len(), if form.value_sets.len() == 1 { "" } else { "s" }), width), Role::Muted);
+        y += 1;
+    }
     y += 1;
     let slots = form.slots();
     let hidden = if form.fixed > 0 { format!("{} fixed, not asked", form.fixed) } else { String::new() };
     g.heading(y, left, width, &if hidden.is_empty() { format!("Arguments · {}", slots.len()) } else { format!("Arguments · {} · {hidden}", slots.len()) });
     y += 1;
-    let (xn, xd, xv, xt, xc) = (left + 1, left + 22, left + 50, left + 74, left + 96);
+    let (xn, xd, xv, xt, xc) = (left + 1, left + 24, left + 50, left + 74, left + 96);
     if slots.is_empty() {
         g.put(y, xn, "Nothing to fill: this telecommand takes no arguments.", Role::Muted);
         y += 1;
     }
     let mut anchor = y;
+    let mut last_path: Vec<usize> = Vec::new();
     for (i, slot) in slots.iter().enumerate() {
-        let p = &form.params[slot.param];
+        let el = &form.layout.elements[slot.element];
+        // A line where each repetition starts.
+        let outer = form.layout.enclosing(slot.element);
+        for k in 1..=slot.path.len() {
+            if last_path.len() >= k && last_path[..k] == slot.path[..k] {
+                continue;
+            }
+            let Some(&r) = outer.get(slot.path.len() - k) else { continue };
+            let counter = Field { element: r, path: slot.path[..k - 1].to_vec() };
+            let total = layout::count_of(&form.layout.elements[r], &form.value(&counter));
+            g.put(y, xn + (k - 1) * 2, &fit(&format!("{} · {} of {total}", counter.label(&form.layout), slot.path[k - 1]), xv - xn), Role::Accent);
+            y += 1;
+        }
+        last_path = slot.path.clone();
         let indent = slot.path.len() * 2;
-        let path = if slot.path.is_empty() { String::new() } else { format!("{} ", slot.path.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(".")) };
-        g.put(y, xn + indent, &fit(&format!("{path}{}", p.tc.name), xd - xn - indent - 1), Role::Title);
-        g.put(y, xd, &fit(&p.domain.description, xv - xd - 2), Role::Muted);
+        g.put(y, xn + indent, &fit(&slot.label(&form.layout), xd - xn - indent - 1), Role::Title);
+        g.put(y, xd, &fit(&el.description, xv - xd - 2), Role::Muted);
         let value = form.value(slot);
+        let aliases = el.domain.as_ref().map(|d| d.aliases()).unwrap_or_default();
         let on = i == form.focus;
         let shown = if on && form.editing {
             format!("{value}▏")
-        } else if !p.domain.aliases.is_empty() || p.group > 0 {
+        } else if !aliases.is_empty() || el.is_repeater() {
             format!("‹ {value} ›")
         } else if value.is_empty() {
             "—".to_string()
@@ -460,24 +532,17 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Vec<u8>, String>>, cols: 
         if on && form.editing {
             g.panels.push((y, xv..end.max(xv + 12)));
         }
-        let mut t = fenix_mib::types::decode(&p.domain.ptc, &p.domain.pfc).name;
-        if !p.domain.unit.is_empty() {
-            t = format!("{t} {}", p.domain.unit);
+        let mut t = el.ty.as_ref().map(|t| t.type_name()).unwrap_or_default();
+        if let Some(u) = el.ty.as_ref().map(|t| t.unit.as_str()).filter(|u| !u.is_empty()) {
+            t = format!("{t} {u}");
         }
-        if p.group > 0 {
-            t = format!("repeats next {}", p.group);
+        if el.is_repeater() {
+            t = format!("repeats next {}", el.group);
         }
         g.put(y, xt, &fit(&t, xc - xt - 2), Role::Muted);
         let warnings = form.warnings_for(slot);
         let (mark, role) = match warnings.first() {
-            None => {
-                let allowed = if !p.domain.ranges.is_empty() {
-                    p.domain.ranges.iter().map(|(a, b)| format!("{a}..{b}")).collect::<Vec<_>>().join(", ")
-                } else {
-                    String::new()
-                };
-                (format!("✓ {allowed}"), Role::Good)
-            }
+            None => (format!("✓ {}", el.domain.as_ref().filter(|d| d.aliases().is_empty()).map(|d| d.allowed_text()).unwrap_or_default()), Role::Good),
             Some(w) => (format!("⚠ {}", w.split_once(": ").map(|(_, r)| r).unwrap_or(w)), Role::Warn),
         };
         g.put(y, xc, &fit(&mark, (left + width).saturating_sub(xc)), role);
@@ -504,12 +569,25 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Vec<u8>, String>>, cols: 
         y += 1;
         match bytes {
             Some(Ok(b)) => {
-                g.heading(y, left, width, &format!("Bytes · {} · sequence count {} · s next, S back to 0", b.len(), form.seq));
+                g.heading(y, left, width, &format!("Bytes · {} · sequence count {} · s next, S back to 0", b.bytes.len(), form.seq));
                 y += 1;
-                for (i, chunk) in b.chunks(16).enumerate() {
+                for (i, chunk) in b.bytes.chunks(16).enumerate() {
                     g.put(y, left + 2, &format!("{:04X}", i * 16), Role::Muted);
                     g.put(y, left + 8, &fenix_ccsds::field::hex(chunk), Role::Title);
                     y += 1;
+                }
+                for w in &b.header {
+                    g.put(y, left + 2, &fit(&format!("⚠ {w}"), width - 2), Role::Warn);
+                    y += 1;
+                }
+                if !b.fields.is_empty() {
+                    y += 1;
+                    for (name, bit, bits) in &b.fields {
+                        let at = if bit % 8 == 0 { format!("octet {}", bit / 8) } else { format!("octet {} bit {}", bit / 8, bit % 8) };
+                        g.put(y, left + 2, &fit(name, 22), Role::Text);
+                        g.put(y, left + 26, &format!("{at} · {bits} bits"), Role::Muted);
+                        y += 1;
+                    }
                 }
             }
             Some(Err(e)) => {
@@ -526,9 +604,9 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Vec<u8>, String>>, cols: 
 
     if let Some(at) = form.menu {
         if let Some(slot) = slots.get(form.focus) {
-            let p = &form.params[slot.param];
-            let mut rows = vec![vec![(format!("{} · {}", p.tc.name, p.domain.description), Role::Title)], Vec::new()];
-            for (i, a) in p.domain.aliases.iter().enumerate() {
+            let el = &form.layout.elements[slot.element];
+            let mut rows = vec![vec![(format!("{} · {}", slot.label(&form.layout), el.description), Role::Title)], Vec::new()];
+            for (i, a) in el.domain.as_ref().map(|d| d.aliases()).unwrap_or_default().iter().enumerate() {
                 let n = if i < 9 { format!("{} ", i + 1) } else { "  ".into() };
                 let on = i == at;
                 rows.push(vec![(n, Role::Accent), (format!("{}{a}", if on { "› " } else { "  " }), if on { Role::Title } else { Role::Text })]);
@@ -542,8 +620,9 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Vec<u8>, String>>, cols: 
             ("j k Tab", "move between arguments"),
             ("Enter", "type a value, or pick a status text"),
             ("i c", "type, clear and type"),
-            ("h l", "the previous, next status text"),
-            ("+ -", "one more, one fewer repetition"),
+            ("h l", "the previous, next status text (or count)"),
+            ("+ -", "one more, one fewer repetition of the group here"),
+            ("v", "fill the form from the next value set"),
             ("R", "the MIB's defaults again"),
             ("d", "the telecommand's page"),
             ("b s S", "the packet's bytes, next sequence count, back to 0"),
@@ -563,10 +642,28 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Vec<u8>, String>>, cols: 
     } else if form.menu.is_some() {
         &[("Enter", "pick"), ("Esc", "leave it")]
     } else {
-        &[("Enter", "edit"), ("h l", "change"), ("+ -", "repeat"), ("I", "insert"), ("b", "bytes"), ("y", "copy bytes"), ("D", "decode them"), ("R", "defaults"), ("d", "definition"), ("?", "all keys"), ("q", "cancel")]
+        &[("Enter", "edit"), ("h l", "change"), ("+ -", "repeat"), ("v", "value set"), ("I", "insert"), ("b", "bytes"), ("y", "copy bytes"), ("D", "decode them"), ("R", "defaults"), ("d", "definition"), ("?", "all keys"), ("q", "cancel")]
     };
     g.keys(left, width, keys);
     g.finish()
+}
+
+/// The form's packet, built: its bytes, where each value went, and where
+/// it disagrees with the MIB's header for it.
+pub fn build(set: &MibSet, form: &InsertForm, profile: &Profile) -> Result<Built, String> {
+    let args = form.arguments();
+    let pkt = fenix_mib::packets::encode_tc(set, form.tc, &args, profile, form.seq)?;
+    let (_, placed) = form.layout.encode(set, &args, profile)?;
+    let head = (6 + fenix_ccsds::pus::tc_header_len(profile)) * 8;
+    let fields = placed
+        .iter()
+        .map(|p| (Field { element: p.element, path: p.path.clone() }.label(&form.layout), head + p.bit, p.bits))
+        .collect();
+    let header = commanding::header_mismatches(set, form.tc, &pkt.bytes)
+        .into_iter()
+        .map(|(f, want, have)| format!("the MIB's header for it fixes {f} at {want}; the mission profile's built {have}"))
+        .collect();
+    Ok(Built { bytes: pkt.bytes, fields, header })
 }
 
 /// A call `line` renders, read back into `(name, value)` arguments.
@@ -740,9 +837,32 @@ mod tests {
         f.key(Key::Char('+'));
         let names: Vec<String> = f.arguments().into_iter().map(|a| a.0).collect();
         assert_eq!(names, vec!["PN", "PT", "PW", "PT", "PW", "PA"]);
-        assert!(layout(&f, None, 160).text.contains("2 PW"), "the repetition is numbered");
+        let text = layout(&f, None, 160).text;
+        assert!(text.contains("PW[2]") && text.contains("PN · 2 of 2"), "the repetitions are numbered: {text}");
         f.fill(&[("PN".into(), "1".into()), ("PT".into(), "100".into()), ("PW".into(), "7".into()), ("PA".into(), "5".into())]);
         assert_eq!(f.arguments(), vec![("PN".into(), "1".into()), ("PT".into(), "100".into()), ("PW".into(), "7".into()), ("PA".into(), "5".into())]);
+        std::fs::remove_dir_all(&root.path).ok();
+    }
+
+    #[test]
+    fn a_group_holds_its_fixed_elements_and_plus_works_from_inside_it() {
+        // PN repeats PT, a spare and PF (fixed): three elements, not the
+        // next three asked. PD's default is in CDF_VALUE.
+        let (mut f, set, root) = form_with(
+            "ZTC11005\tGroups\t\t\tN\t\t11\t5\t1008\n",
+            "ZTC11005\tE\tCount\t8\t0\t3\tPN\t\t1\t\nZTC11005\tE\tTime\t8\t8\t0\tPT\t\t\t\nZTC11005\tA\tSpare\t8\t16\t0\t\t\t0\t\nZTC11005\tF\tFix\t8\t24\t0\tPF\tR\t7\t\nZTC11005\tE\tAfter\t8\t32\t0\tPD\tE\t5\t\n",
+            "PN\tCount\t3\t4\nPT\tTime\t3\t4\nPF\tFix\t3\t4\nPD\tAfter\t3\t4\n",
+        );
+        assert_eq!(f.arguments(), vec![("PN".into(), "1".into()), ("PT".into(), "".into()), ("PD".into(), "5".into())]);
+        f.key(Key::Char('j'));
+        f.key(Key::Char('+'));
+        let names: Vec<String> = f.arguments().into_iter().map(|a| a.0).collect();
+        assert_eq!(names, vec!["PN", "PT", "PT", "PD"]);
+        f.fill(&[("PN".into(), "2".into()), ("PT".into(), "1".into()), ("PT".into(), "2".into()), ("PD".into(), "9".into())]);
+        let built = build(&set, &f, &Profile::default()).unwrap();
+        let app = &built.bytes[11..built.bytes.len() - 2];
+        assert_eq!(app, &[2, 1, 0, 7, 2, 0, 7, 9]);
+        assert!(built.fields.iter().any(|(n, bit, _)| n == "PT[2]" && *bit == 11 * 8 + 32), "{:?}", built.fields);
         std::fs::remove_dir_all(&root.path).ok();
     }
 

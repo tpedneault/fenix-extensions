@@ -666,13 +666,13 @@ impl Mib {
                 let ext = origin.path.as_deref().and_then(|p| Path::new(p).extension()).map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
                 match form_bytes(self.set_ready().as_deref(), f) {
                     // The CCSDS extension's packet inspector.
-                    Ok(bytes) if action == mib_form::Action::DecodeBytes => {
+                    Ok(mib_form::Built { bytes, .. }) if action == mib_form::Action::DecodeBytes => {
                         let hex: String = bytes.iter().map(|b| format!("{b:02X}")).collect();
                         let payload = serde_json::json!({ "hex": hex, "source": format!("{name} from the form") }).to_string();
                         let call = api::call_service("ccsds.decode", &payload);
                         self.calls.insert(call, "decoding a packet needs the CCSDS extension");
                     }
-                    Ok(bytes) => copy_literal(&bytes, &ext, &name),
+                    Ok(built) => copy_literal(&built.bytes, &ext, &name),
                     Err(e) => error(&format!("can't build {name}'s packet: {e}")),
                 }
             }
@@ -828,9 +828,9 @@ fn mission_checks(set: &MibSet) -> Vec<(String, Health, String)> {
 }
 
 /// The form's telecommand as a packet, from its arguments.
-fn form_bytes(set: Option<&MibSet>, f: &InsertForm) -> Result<Vec<u8>, String> {
+fn form_bytes(set: Option<&MibSet>, f: &InsertForm) -> Result<mib_form::Built, String> {
     let set = set.ok_or("the MIB isn't read yet")?;
-    fenix_mib::packets::encode_tc(set, f.tc, &f.arguments(), &mission().profile, f.seq).map(|p| p.bytes)
+    mib_form::build(set, f, &mission().profile)
 }
 
 impl MibExtension {
