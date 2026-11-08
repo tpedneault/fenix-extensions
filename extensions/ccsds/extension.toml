@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ccsds"
 name = "CCSDS & ECSS"
-version = "1.1.0"
+version = "1.2.0"
 description = "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -254,7 +254,7 @@ project = true
 key = "ccsds.checks_off"
 kind = "list"
 label = "Checks turned off"
-description = "Standards checks not to run on the MIB: apid, size, overlap, width, identification, pus, checksum, calibration, time."
+description = "Standards checks not to run on the MIB: apid, size, overlap, width, identification, pus, checksum, calibration, time, layout."
 project = true
 
 [[contributes.settings]]

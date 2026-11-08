@@ -16,9 +16,9 @@ pub struct TcParameter {
     pub name: String,
     pub cdf: Row,
     pub cpc: Option<Row>,
-    /// Whether `CDF_VALUE` is non-empty -- a fixed parameter has its
-    /// value baked into the telecommand definition itself and is never
-    /// prompted for or included in `{arguments}`.
+    /// Whether it's a fixed parameter or area (`CDF_ELTYPE` `F`/`A`) --
+    /// its value is the definition's, never asked for nor written in
+    /// `{arguments}`. An editable one's `CDF_VALUE` is its default.
     pub fixed: bool,
 }
 
@@ -53,13 +53,15 @@ pub const DEFAULT_ARGUMENT_SEPARATOR: &str = ", ";
 pub fn tc_parameters(index: &MibIndex, ccf: &Row) -> Vec<TcParameter> {
     let root = Some(ccf.source.root_index);
     let name = ccf.clean("CCF_CNAME");
-    index
-        .rows_by_field("cdf", "CDF_CNAME", name, root)
-        .into_iter()
+    let mut rows = index.rows_by_field("cdf", "CDF_CNAME", name, root);
+    if rows.iter().all(|r| crate::types::parse_int(r.clean("CDF_BIT")).is_some()) {
+        rows.sort_by_key(|r| crate::types::parse_int(r.clean("CDF_BIT")));
+    }
+    rows.into_iter()
         .map(|cdf| {
             let pname = cdf.clean("CDF_PNAME").to_string();
             let cpc = index.first_row_by_field("cpc", "CPC_NAME", &pname, root).cloned();
-            let fixed = !cdf.clean("CDF_VALUE").is_empty();
+            let fixed = crate::layout::ElementKind::of(cdf.clean("CDF_ELTYPE"), !pname.is_empty()) != crate::layout::ElementKind::Editable;
             TcParameter { name: pname, cdf: cdf.clone(), cpc, fixed }
         })
         .collect()
@@ -79,7 +81,10 @@ pub fn parameter_domain(index: &MibIndex, param: &TcParameter) -> ParamDomain {
     ParamDomain {
         description,
         unit: param.cpc.as_ref().map(|c| c.clean("CPC_UNIT").to_string()).unwrap_or_default(),
-        default: param.cpc.as_ref().map(|c| c.clean("CPC_DEFVAL").to_string()).unwrap_or_default(),
+        default: match param.cdf.clean("CDF_VALUE") {
+            "" => param.cpc.as_ref().map(|c| c.clean("CPC_DEFVAL").to_string()).unwrap_or_default(),
+            v => v.to_string(),
+        },
         ptc: param.cpc.as_ref().map(|c| c.clean("CPC_PTC").to_string()).unwrap_or_default(),
         pfc: param.cpc.as_ref().map(|c| c.clean("CPC_PFC").to_string()).unwrap_or_default(),
         aliases: param.cpc.as_ref().map(|c| alias_values(index, c)).unwrap_or_default(),
@@ -124,7 +129,7 @@ fn range_pairs(index: &MibIndex, cpc: &Row) -> Vec<(f64, f64)> {
 }
 
 fn numeric_cpc(cpc: &Row) -> bool {
-    matches!(cpc.clean("CPC_PTC"), "1" | "2" | "3" | "4")
+    matches!(cpc.clean("CPC_PTC"), "1" | "2" | "3" | "4" | "5")
 }
 
 /// Direct calibration/reference rows for `cpc` -- `CCA`/`CAF`/`CCS` via
@@ -160,6 +165,9 @@ pub fn calibration_rows(index: &MibIndex, cpc: &Row) -> Vec<Row> {
 /// `[+-]?[0-9]+(?:\.[0-9]+)?` pattern.
 fn number_string(value: &str) -> bool {
     let v = value.trim();
+    if crate::values::parse_raw_int(v, crate::values::Radix::Decimal).is_some() {
+        return true;
+    }
     let v = v.strip_prefix(['+', '-']).unwrap_or(v);
     let (int_part, frac_part) = match v.split_once('.') {
         Some((i, f)) => (i, Some(f)),
@@ -283,7 +291,7 @@ mod tests {
         write(
             root,
             "cdf",
-            "AAA001\tA\tsubtype\t8\t0\t0\tSTYPE\t\t1\t\nAAA001\tA\tmode\t8\t8\t0\tMODE\t\t\t\nAAA001\tA\tgain\t16\t16\t0\tGAIN\t\t\t\n",
+            "AAA001\tF\tsubtype\t8\t0\t0\tSTYPE\t\t1\t\nAAA001\tE\tmode\t8\t8\t0\tMODE\t\t\t\nAAA001\tE\tgain\t16\t16\t0\tGAIN\t\t\t\n",
         );
         write(
             root,

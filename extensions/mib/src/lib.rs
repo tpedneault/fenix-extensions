@@ -94,6 +94,10 @@ enum Asked {
     Insert,
     /// Something to generate.
     Generate,
+    /// A command sequence, to insert as its telecommands.
+    Sequence,
+    /// Two MIBs, to compare.
+    Diff,
 }
 
 /// Everything it keeps between calls.
@@ -207,11 +211,11 @@ fn project_lists_roots() -> bool {
 pub(crate) fn key_here() -> (MibKey, String) {
     let mut roots: Vec<MibRoot> = map("mib.roots")
         .into_iter()
-        .map(|(label, _)| {
-            let path = PathBuf::from(format!("{FOLDERS}/{label}"));
-            MibRoot { label, path }
+        .filter_map(|(label, value)| {
+            // A folder, or an XTCE file in the project.
+            let path = fenix_mib::root_path(&label, &value, Path::new(FOLDERS), Path::new(PROJECT))?;
+            Some(MibRoot { label, path })
         })
-        .filter(|root| root.path.is_dir())
         .collect();
     let listed = !roots.is_empty();
     if roots.is_empty() {
@@ -403,6 +407,8 @@ impl Mib {
             "mib.settings" => open_settings(true),
             "mib.copy_bytes" => self.cmd_copy_bytes(),
             "mib.generate" => self.cmd_generate(),
+            "mib.insert_sequence" => self.cmd_insert_sequence(),
+            "mib.diff" => self.cmd_diff(),
             other => return Err(format!("no command {other}")),
         }
         Ok(())
@@ -465,7 +471,7 @@ impl Mib {
             error("no telecommand from this project's MIBs on this line");
             return None;
         };
-        let names: Vec<String> = fenix_mib::telecommand::tc_parameters(set.index(), &set.get(tc).row).into_iter().filter(|p| !p.fixed).map(|p| p.name).collect();
+        let names: Vec<String> = fenix_mib::telecommand::tc_parameters(set.index(), &set.get(tc).row).into_iter().filter(|p| !p.fixed && !p.name.is_empty()).map(|p| p.name).collect();
         let args = mib_form::read_arguments(&line, &set.get(tc).name, &names, &templates());
         Some(Call { set, tc, here, args })
     }
@@ -494,21 +500,115 @@ impl Mib {
         }
     }
 
-    /// `SPC k g`: something to generate from the MIBs.
+    /// `SPC k g`: something to generate from the MIBs -- from one of
+    /// them when there are several, since each defines its own names.
     fn cmd_generate(&mut self) {
-        if key_here().0.roots.is_empty() {
+        let (key, _) = key_here();
+        if key.roots.is_empty() {
             return error(NO_MIB);
         }
-        let items: Vec<PickerItem> = fenix_mib::generate::KINDS.iter().enumerate().map(|(i, (_, file, what))| PickerItem::new(format!("{file:<18} {what}"), i.to_string())).collect();
+        let mut items = Vec::new();
+        for (i, (_, file, what)) in fenix_mib::generate::KINDS.iter().enumerate() {
+            if key.roots.len() == 1 {
+                items.push(PickerItem::new(format!("{file:<18} {what}"), i.to_string()));
+                continue;
+            }
+            for (r, root) in key.roots.iter().enumerate() {
+                items.push(PickerItem::new(format!("{:<24} {what} · {}", generated_name(file, Some(&root.label)), root.label), format!("{i}:{r}")));
+            }
+        }
         let id = api::pick("Generate from the MIB", &items);
         self.asked.insert(id, Asked::Generate);
     }
 
-    /// Writes generated file `kind` into the project's `generated/` and
-    /// opens it.
-    fn generate(&mut self, kind: usize) {
+    /// `SPC k q`: a command sequence, inserted as the telecommands it
+    /// sends -- each through the project's templates, with its formal
+    /// parameters' defaults, its timing and comments as comment lines.
+    fn cmd_insert_sequence(&mut self) {
         let Some(set) = self.set_here() else { return };
+        let all = fenix_mib::sequence::sequences(&set);
+        if all.is_empty() {
+            return api::notify("no command sequences in this project's MIBs");
+        }
+        let items: Vec<PickerItem> = all.iter().map(|(root, name, descr)| PickerItem::new(format!("{name:<12} {descr} · {}", set.root_label(*root)), format!("{root}:{name}"))).collect();
+        let id = api::pick("Insert a command sequence", &items);
+        self.asked.insert(id, Asked::Sequence);
+    }
+
+    fn insert_sequence(&mut self, value: &str) {
+        let Some(set) = self.set_ready() else { return };
+        let Some((root, name)) = value.split_once(':') else { return };
+        let Some(seq) = root.parse().ok().and_then(|root| fenix_mib::sequence::sequence(&set, root, name)) else { return };
+        let Some(here) = api::here().filter(|h| h.path.is_some()) else {
+            return error("open the file the sequence goes in first -- it's inserted where the cursor is");
+        };
+        let comment = comment_prefix(&here.language);
+        let t = templates();
+        let expanded = fenix_mib::sequence::expand(&set, &seq, &std::collections::HashMap::new());
+        let mut lines = vec![format!("{comment} {} · {}", seq.name, seq.description)];
+        for f in &seq.formals {
+            lines.push(format!("{comment}   formal {} = {}", f.name, f.default));
+        }
+        lines.extend(fenix_mib::sequence::render(&set, &expanded, &t.command, &t.argument, &t.separator, comment));
+        let problems: usize = expanded.iter().map(|e| e.problems.len()).sum();
+        let _ = api::buffer::insert(&(lines.join("\n") + "\n"));
+        api::notify(&if problems == 0 { format!("inserted {}'s {} steps", seq.name, expanded.len()) } else { format!("inserted {} -- {problems} problem(s), marked ! in its comments", seq.name) });
+    }
+
+    /// `SPC k D`: two of the project's MIBs compared, definition by
+    /// definition, into generated/.
+    fn cmd_diff(&mut self) {
+        let (key, _) = key_here();
+        if key.roots.len() < 2 {
+            return error("comparing needs two MIBs in mib.roots -- add the other version as a second MIB");
+        }
+        let mut items = Vec::new();
+        for (i, a) in key.roots.iter().enumerate() {
+            for (j, b) in key.roots.iter().enumerate() {
+                if i != j {
+                    items.push(PickerItem::new(format!("{} → {}", a.label, b.label), format!("{i}:{j}")));
+                }
+            }
+        }
+        let id = api::pick("Compare MIBs: from the old one to the new one", &items);
+        self.asked.insert(id, Asked::Diff);
+    }
+
+    fn diff(&mut self, value: &str) {
+        let (key, _) = key_here();
+        let Some((i, j)) = value.split_once(':').and_then(|(a, b)| Some((a.parse::<usize>().ok()?, b.parse::<usize>().ok()?))) else { return };
+        let (Some(old), Some(new)) = (key.roots.get(i), key.roots.get(j)) else { return };
+        if !Path::new(PROJECT).is_dir() {
+            return error("open a file of the project first -- the comparison goes in its generated/ folder");
+        }
+        let a = MibSet::load_with(vec![old.clone()], None, key.options.clone());
+        let b = MibSet::load_with(vec![new.clone()], None, key.options.clone());
+        let changes = fenix_mib::diff::compare(&a, &b);
+        let text = fenix_mib::diff::report(&changes, &old.label, &new.label);
+        let safe = |s: &str| s.chars().map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect::<String>();
+        let file = format!("mib-diff-{}-{}.md", safe(&old.label), safe(&new.label));
+        let dir = Path::new(PROJECT).join("generated");
+        let path = dir.join(&file);
+        match std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&path, text)) {
+            Ok(()) => {
+                host::open_file(&path.to_string_lossy(), None);
+                api::notify(&format!("{} changes from {} to {} -- generated/{file}", changes.len(), old.label, new.label));
+            }
+            Err(e) => error(&format!("couldn't write generated/{file}: {e}")),
+        }
+    }
+
+    /// Writes generated file `kind` into the project's `generated/` and
+    /// opens it: from the MIB `root` when the project has several.
+    fn generate(&mut self, kind: usize, root: Option<usize>) {
+        let Some(all) = self.set_here() else { return };
         let Some((name, file, _)) = fenix_mib::generate::KINDS.get(kind) else { return };
+        let (key, _) = key_here();
+        let (set, file) = match root.and_then(|r| key.roots.get(r)).filter(|_| key.roots.len() > 1) {
+            Some(r) => (Arc::new(MibSet::load_with(vec![r.clone()], None, key.options.clone())), generated_name(file, Some(&r.label))),
+            None => (all, file.to_string()),
+        };
+        let file = file.as_str();
         if !Path::new(PROJECT).is_dir() {
             return error("open a file of the project first -- what's generated goes in its generated/ folder");
         }
@@ -666,13 +766,13 @@ impl Mib {
                 let ext = origin.path.as_deref().and_then(|p| Path::new(p).extension()).map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
                 match form_bytes(self.set_ready().as_deref(), f) {
                     // The CCSDS extension's packet inspector.
-                    Ok(bytes) if action == mib_form::Action::DecodeBytes => {
+                    Ok(mib_form::Built { bytes, .. }) if action == mib_form::Action::DecodeBytes => {
                         let hex: String = bytes.iter().map(|b| format!("{b:02X}")).collect();
                         let payload = serde_json::json!({ "hex": hex, "source": format!("{name} from the form") }).to_string();
                         let call = api::call_service("ccsds.decode", &payload);
                         self.calls.insert(call, "decoding a packet needs the CCSDS extension");
                     }
-                    Ok(bytes) => copy_literal(&bytes, &ext, &name),
+                    Ok(built) => copy_literal(&built.bytes, &ext, &name),
                     Err(e) => error(&format!("can't build {name}'s packet: {e}")),
                 }
             }
@@ -725,10 +825,13 @@ impl Mib {
                 }
             }
             Asked::Generate => {
-                if let Ok(kind) = value.parse() {
-                    self.generate(kind);
+                let (kind, root) = value.split_once(':').map_or((value.as_str(), None), |(k, r)| (k, r.parse().ok()));
+                if let Ok(kind) = kind.parse() {
+                    self.generate(kind, root);
                 }
             }
+            Asked::Sequence => self.insert_sequence(&value),
+            Asked::Diff => self.diff(&value),
         }
     }
 
@@ -827,10 +930,31 @@ fn mission_checks(set: &MibSet) -> Vec<(String, Health, String)> {
     out
 }
 
+/// A generated file's name: `file`, or with several MIBs the MIB's
+/// label before its extension (`xtce-OPS.xml`, `mib-OPS.h`).
+fn generated_name(file: &str, label: Option<&str>) -> String {
+    let Some(label) = label else { return file.to_string() };
+    let safe: String = label.chars().map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect();
+    match file.rsplit_once('.') {
+        Some((stem, ext)) => format!("{stem}-{safe}.{ext}"),
+        None => format!("{file}-{safe}"),
+    }
+}
+
+/// What starts a comment in a file of `language` (its name or extension).
+fn comment_prefix(language: &str) -> &'static str {
+    match language.to_ascii_lowercase().as_str() {
+        "tcl" | "python" | "py" | "sh" | "bash" | "shell" | "ruby" | "rb" | "perl" | "pl" | "yaml" | "toml" | "r" => "#",
+        "lua" | "sql" | "ada" | "adb" | "ads" | "haskell" | "hs" => "--",
+        "" | "text" | "plain" => "#",
+        _ => "//",
+    }
+}
+
 /// The form's telecommand as a packet, from its arguments.
-fn form_bytes(set: Option<&MibSet>, f: &InsertForm) -> Result<Vec<u8>, String> {
+fn form_bytes(set: Option<&MibSet>, f: &InsertForm) -> Result<mib_form::Built, String> {
     let set = set.ok_or("the MIB isn't read yet")?;
-    fenix_mib::packets::encode_tc(set, f.tc, &f.arguments(), &mission().profile, f.seq).map(|p| p.bytes)
+    mib_form::build(set, f, &mission().profile)
 }
 
 impl MibExtension {
@@ -996,6 +1120,15 @@ mod tests {
     fn ops() -> MibSet {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../crates/mib/tests/fixtures/ops");
         MibSet::load(vec![MibRoot { label: "OPS".into(), path }], None)
+    }
+
+    #[test]
+    fn each_mib_generates_into_its_own_file() {
+        // Two MIBs define the same names: one file each, or XTCE gets
+        // every MetaCommand twice in one SpaceSystem.
+        assert_eq!(generated_name("xtce.xml", None), "xtce.xml");
+        assert_eq!(generated_name("xtce.xml", Some("OPS")), "xtce-OPS.xml");
+        assert_eq!(generated_name("mib_dissector.lua", Some("OPS 2.1")), "mib_dissector-OPS_2_1.lua");
     }
 
     #[test]

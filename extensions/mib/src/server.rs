@@ -44,14 +44,22 @@ pub(crate) fn hover_text(set: &MibSet, def: DefRef, apid_hex: bool) -> String {
     match def.kind {
         Kind::Telecommand => {
             lines.push(format!("PUS {},{} · APID {} · {}", r.clean("CCF_TYPE"), r.clean("CCF_STYPE"), fenix_mib::types::apid(r.clean("CCF_APID"), apid_hex), r.clean("CCF_SUBSYS")));
-            let els: Vec<_> = fenix_mib::detail::tc_elements(set, def).into_iter().filter(|el| el.fixed.is_none() && !el.name.is_empty()).collect();
+            let els: Vec<_> = fenix_mib::detail::tc_elements(set, def).into_iter().filter(|el| el.kind == fenix_mib::layout::ElementKind::Editable && !el.name.is_empty()).collect();
             if !els.is_empty() {
                 lines.push(String::new());
                 lines.push("Arguments".to_string());
                 for el in els {
-                    let what = [el.description.as_str(), el.allowed.as_str()].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" · ");
-                    lines.push(format!("  {:<10} {what}", el.name));
+                    let repeats = if el.group > 0 { format!("repeats the next {}", el.group) } else { String::new() };
+                    let default = if el.default.is_empty() { String::new() } else { format!("default {}", el.default) };
+                    let what = [el.description.as_str(), el.allowed.as_str(), default.as_str(), repeats.as_str()].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" · ");
+                    let indent = "  ".repeat(1 + el.within.len());
+                    lines.push(format!("{indent}{:<10} {what}", el.name));
                 }
+            }
+            let pre = fenix_mib::commanding::preconditions(set, def);
+            if !pre.is_empty() {
+                lines.push(String::new());
+                lines.push(format!("Sent only while {}", pre.iter().map(ToString::to_string).collect::<Vec<_>>().join(" and ")));
             }
             lines.push(String::new());
             lines.push("gd opens it · SPC k e edits this call".to_string());

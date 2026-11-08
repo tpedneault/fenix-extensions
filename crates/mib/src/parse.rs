@@ -23,23 +23,35 @@ pub fn parse_table_file(root_index: usize, root_label: &str, table: &str, file: 
     let Some(columns) = crate::schema::columns(table) else { return (Vec::new(), Vec::new()) };
     let columns: Vec<String> = columns.iter().map(|c| c.to_string()).collect();
     match read_table_file(root_index, file) {
-        Ok(Some(text)) => parse_table_text(root_index, root_label, table, file, &columns, &format!("ICD {}", crate::schema::Icd::LATEST), &text),
+        Ok(Some((text, warning))) => {
+            let (rows, mut problems) = parse_table_text(root_index, root_label, table, file, &columns, &format!("ICD {}", crate::schema::Icd::LATEST), &text);
+            problems.extend(warning);
+            (rows, problems)
+        }
         Ok(None) => (Vec::new(), Vec::new()),
         Err(problem) => (Vec::new(), vec![problem]),
     }
 }
 
 /// A table file's text: `None` when there's no such file, a problem
-/// when it can't be read or isn't UTF-8.
-pub fn read_table_file(root_index: usize, file: &Path) -> Result<Option<String>, Problem> {
-    let problem = |message: String| Problem { root: root_index, file: file.to_path_buf(), line: None, message };
+/// when it can't be read. A file that isn't UTF-8 is read as Latin-1
+/// (ISO 8859-1, what MIB exports often are: a degree sign or a micro in
+/// a description), with a problem saying so and where.
+pub fn read_table_file(root_index: usize, file: &Path) -> Result<Option<(String, Option<Problem>)>, Problem> {
+    let problem = |line: Option<usize>, message: String| Problem { root: root_index, file: file.to_path_buf(), line, message };
     match std::fs::read(file) {
         Ok(bytes) => match String::from_utf8(bytes) {
-            Ok(text) => Ok(Some(text)),
-            Err(_) => Err(problem("isn't UTF-8 text -- no rows read".to_string())),
+            Ok(text) => Ok(Some((text, None))),
+            Err(err) => {
+                let bytes = err.into_bytes();
+                let first = bytes.iter().position(|b| *b >= 0x80).unwrap_or(0);
+                let line = bytes[..first].iter().filter(|b| **b == b'\n').count() + 1;
+                let text: String = bytes.iter().map(|&b| b as char).collect();
+                Ok(Some((text, Some(problem(Some(line), "isn't UTF-8 text -- read as Latin-1 (ISO 8859-1)".to_string())))))
+            }
         },
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(err) => Err(problem(format!("couldn't be read ({err})"))),
+        Err(err) => Err(problem(None, format!("couldn't be read ({err})"))),
     }
 }
 
@@ -172,16 +184,17 @@ mod tests {
     }
 
     #[test]
-    fn a_file_that_exists_but_is_not_valid_utf8_yields_no_rows_not_a_panic() {
-        // No rows, and a problem that says why -- otherwise it reads
-        // the same as "this root has no rows in this table".
+    fn a_latin1_file_is_read_with_a_problem_saying_so() {
+        // A whole table lost to one degree sign read the same as "this
+        // root has no rows in this table".
         let dir = temp_dir("bad-utf8");
         let file = dir.join("prv.dat");
-        std::fs::write(&file, [0xff, 0xfe, 0x00, 0x01]).unwrap();
+        std::fs::write(&file, b"1\t0\t100\n2\t-10\t10 \xb0C\n").unwrap();
         let (rows, problems) = parse_table_file(0, "TEST", "prv", &file);
-        assert!(rows.is_empty());
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[1].get("PRV_MAXVAL"), Some("10 \u{b0}C"));
         assert_eq!(problems.len(), 1);
-        assert!(problems[0].message.contains("UTF-8"));
+        assert!(problems[0].message.contains("Latin-1") && problems[0].line == Some(2), "{problems:?}");
         std::fs::remove_dir_all(&dir).ok();
     }
 

@@ -1,8 +1,8 @@
 [extension]
 id = "fenix.mib"
 name = "SCOS-2000 MIB"
-version = "1.1.0"
-description = "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form, and XTCE, C, Python or a Wireshark dissector generated from them"
+version = "1.2.0"
+description = "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tpedneault/fenix-extensions"
@@ -93,6 +93,15 @@ id = "mib.edit_call"
 title = "MIB: edit the telecommand call on this line in the insert form"
 
 [[contributes.commands]]
+id = "mib.insert_sequence"
+title = "MIB: insert a command sequence as the telecommands it sends"
+
+[[contributes.commands]]
+id = "mib.diff"
+title = "MIB: compare two of the project's MIBs, definition by definition"
+external = true
+
+[[contributes.commands]]
 id = "mib.reload"
 title = "MIB: read the project's MIBs again"
 
@@ -114,7 +123,7 @@ key = "mib.roots"
 kind = "map"
 columns = ["Name", "Folder"]
 label = "MIBs"
-description = "The MIB folders: their .dat tables. A project's own list takes the place of yours in that project; a folder in a project can be relative to it."
+description = "The MIB folders: their .dat tables -- or, in a project, an XTCE file relative to it. A project's own list takes the place of yours in that project; a folder in a project can be relative to it."
 project = true
 
 [[contributes.settings]]
@@ -212,6 +221,6 @@ default = "true"
 key = "mib.check_scripts"
 kind = "bool"
 label = "Check scripts"
-description = "Underline telecommand calls in scripts that the MIB disagrees with: unknown mnemonics, missing or out-of-range arguments."
+description = "Underline telecommand calls in scripts that the MIB disagrees with: unknown mnemonics, missing or out-of-range arguments, repetitions that don't match their counter."
 default = "true"
 project = true

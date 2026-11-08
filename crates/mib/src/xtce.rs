@@ -146,8 +146,14 @@ struct Ty {
     /// An array's element type, and how many elements when fixed.
     element: Option<String>,
     count: usize,
+    /// An array whose length an argument or parameter gives: its name.
+    dyn_count: Option<String>,
     /// An aggregate's members: (name, type).
     members: Vec<(String, String)>,
+    /// What a type exported from a MIB keeps of it that XTCE can't say:
+    /// its `CPC_CATEG` and `CPC_RADIX` (its own ancillary data).
+    categ: String,
+    radix: String,
 }
 
 fn pfc_for_int(bits: usize) -> u32 {
@@ -277,6 +283,10 @@ fn read_type(n: Node) -> Ty {
                 })
                 .collect();
             t.count = if dims.is_empty() { 0 } else { dims.iter().product() };
+            t.dyn_count = descendants(n, "EndingIndex")
+                .filter_map(|e| descendants(e, "ArgumentInstanceRef").chain(descendants(e, "ParameterInstanceRef")).next())
+                .find_map(|r| r.attribute("argumentRef").or_else(|| r.attribute("parameterRef")))
+                .map(|r| base(r).to_string());
         }
         "aggregate" => {
             for m in descendants(n, "Member") {
@@ -333,6 +343,15 @@ fn read_type(n: Node) -> Ty {
             t.alarms.push((level, lo.to_string(), hi.to_string()));
         }
     }
+    // A MIB's own codes, when the file was written from one: they say
+    // exactly what XTCE's types only come near (a deduced value, times,
+    // variable-length octets and strings).
+    let anc = |key: &str| child(n, "AncillaryDataSet").and_then(|s| children(s, "AncillaryData").find(|a| a.attribute("name") == Some(key))).and_then(|a| a.text()).map(|t| t.trim().to_string());
+    if let (Some(ptc), Some(pfc)) = (anc("SCOS_PTC").and_then(|v| v.parse().ok()), anc("SCOS_PFC").and_then(|v| v.parse().ok())) {
+        (t.ptc, t.pfc, t.sized) = (ptc, pfc, true);
+    }
+    t.categ = anc("SCOS_CATEG").unwrap_or_default();
+    t.radix = anc("SCOS_RADIX").unwrap_or_default();
     t
 }
 
@@ -356,6 +375,7 @@ fn inherit(mut t: Ty, b: &Ty) -> Ty {
     if t.count == 0 {
         t.count = b.count;
     }
+    t.dyn_count = t.dyn_count.or_else(|| b.dyn_count.clone());
     t
 }
 
@@ -479,6 +499,243 @@ fn version_of(namespace: Option<&str>) -> Option<&'static str> {
     }
 }
 
+/// A `CDF` row being built: its group size is known only once its
+/// group has been read.
+struct CdfRow {
+    values: Vec<(&'static str, String)>,
+    line: usize,
+}
+
+impl CdfRow {
+    fn get(&self, key: &str) -> &str {
+        self.values.iter().find(|(k, _)| *k == key).map(|(_, v)| v.as_str()).unwrap_or("")
+    }
+
+    fn set(&mut self, key: &'static str, value: String) {
+        match self.values.iter_mut().find(|(k, _)| *k == key) {
+            Some(slot) => slot.1 = value,
+            None => self.values.push((key, value)),
+        }
+    }
+}
+
+/// What reading a command's containers needs.
+struct CmdEnv<'e, 'a, 'i, 'b> {
+    b: &'e mut Builder<'b>,
+    types: &'e mut Types<'a, 'i>,
+    cal: &'e mut usize,
+    cpc_done: &'e mut HashSet<String>,
+    /// (name, type, initial value, description).
+    args: &'e [(String, String, Option<String>, String)],
+    assigned: &'e [(String, String)],
+    containers: &'e HashMap<&'a str, Node<'a, 'i>>,
+    problems: &'e mut Vec<Problem>,
+    line_of: &'e dyn Fn(Node) -> usize,
+    name: &'e str,
+    root: usize,
+    file: &'e Path,
+}
+
+impl CmdEnv<'_, '_, '_, '_> {
+    fn next_cal(&mut self) -> usize {
+        *self.cal += 1;
+        *self.cal
+    }
+
+    fn problem(&mut self, n: Node, message: String) {
+        self.problems.push(Problem { root: self.root, file: self.file.to_path_buf(), line: Some((self.line_of)(n)), message });
+    }
+
+    /// An argument's `CPC`, with its calibrations and range, once.
+    fn arg_cpc(&mut self, arg: &str, t: &Ty, initial: &Option<String>, descr: &str, line: usize) {
+        if !self.cpc_done.insert(arg.to_string()) {
+            return;
+        }
+        let mut refs: Vec<(&str, String)> = Vec::new();
+        if !t.enums.is_empty() {
+            let id = format!("PAF{:05}", self.next_cal());
+            self.b.push("paf", &[("PAF_NUMBR", id.clone()), ("PAF_DESCR", arg.to_string()), ("PAF_RAWFMT", "U".into()), ("PAF_NALIAS", t.enums.len().to_string())], line);
+            for (lo, _, text) in &t.enums {
+                // In the radix the parameter says its raw values are in.
+                let raw = match t.radix.as_str() {
+                    "H" => format!("{lo:X}"),
+                    "O" => format!("{lo:o}"),
+                    _ => lo.to_string(),
+                };
+                self.b.push("pas", &[("PAS_NUMBR", id.clone()), ("PAS_ALTXT", text.clone()), ("PAS_ALVAL", raw)], line);
+            }
+            refs.push(("CPC_PAFREF", id));
+        } else if !t.points.is_empty() {
+            let id = format!("CCA{:05}", self.next_cal());
+            self.b.push("cca", &[("CCA_NUMBR", id.clone()), ("CCA_DESCR", arg.to_string()), ("CCA_ENGFMT", "R".into()), ("CCA_RAWFMT", "U".into()), ("CCA_UNIT", t.unit.clone()), ("CCA_NCURVE", t.points.len().to_string())], line);
+            // A TC curve goes engineering to raw.
+            for (r, c) in &t.points {
+                self.b.push("ccs", &[("CCS_NUMBR", id.clone()), ("CCS_XVALS", c.clone()), ("CCS_YVALS", r.clone())], line);
+            }
+            refs.push(("CPC_CCAREF", id));
+        }
+        if let Some((lo, hi)) = &t.range {
+            let id = format!("PRF{:05}", self.next_cal());
+            let inter = if t.points.is_empty() { "R" } else { "E" };
+            self.b.push("prf", &[("PRF_NUMBR", id.clone()), ("PRF_DESCR", arg.to_string()), ("PRF_INTER", inter.into()), ("PRF_DSPFMT", if t.ptc == 5 { "R".into() } else { "I".into() }), ("PRF_NRANGE", "1".into()), ("PRF_UNIT", t.unit.clone())], line);
+            self.b.push("prv", &[("PRV_NUMBR", id.clone()), ("PRV_MINVAL", lo.clone()), ("PRV_MAXVAL", hi.clone())], line);
+            refs.push(("CPC_PRFREF", id));
+        }
+        let mut v = vec![
+            ("CPC_NAME", arg.to_string()),
+            ("CPC_DESCR", if descr.is_empty() { arg.to_string() } else { descr.to_string() }),
+            ("CPC_PTC", t.ptc.to_string()),
+            ("CPC_PFC", t.pfc.to_string()),
+            ("CPC_UNIT", t.unit.clone()),
+            ("CPC_DEFVAL", initial.clone().unwrap_or_default()),
+            // An initialValue is the value as someone gives it -- through
+            // the calibration, in decimal -- not raw in CPC_RADIX's radix.
+            ("CPC_INTER", if initial.is_some() { "E".into() } else { String::new() }),
+            ("CPC_ENDIAN", if t.little_endian { "L".into() } else { String::new() }),
+            ("CPC_CATEG", t.categ.clone()),
+            ("CPC_RADIX", t.radix.clone()),
+        ];
+        v.extend(refs);
+        self.b.push("cpc", &v, line);
+    }
+
+    /// A plain unsigned `CPC`, once: a fixed value's or a fixed count's.
+    fn uint_cpc(&mut self, pname: &str, bits: usize, line: usize) {
+        if self.cpc_done.insert(pname.to_string()) {
+            self.b.push("cpc", &[("CPC_NAME", pname.to_string()), ("CPC_DESCR", pname.to_string()), ("CPC_PTC", "3".into()), ("CPC_PFC", pfc_for_int(bits.max(4)).to_string())], line);
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn element(&self, eltype: &str, descr: &str, bits: usize, bit: usize, pname: &str, value: String, line: usize) -> CdfRow {
+        CdfRow {
+            values: vec![
+                ("CDF_CNAME", self.name.to_string()),
+                ("CDF_ELTYPE", eltype.to_string()),
+                ("CDF_DESCR", descr.to_string()),
+                ("CDF_ELLEN", bits.to_string()),
+                ("CDF_BIT", bit.to_string()),
+                ("CDF_GRPSIZE", "0".into()),
+                ("CDF_PNAME", pname.to_string()),
+                ("CDF_VALUE", value),
+            ],
+            line,
+        }
+    }
+
+    /// The row that repeats what follows `count` times when the count is
+    /// fixed: the fixed value just before, when it says the same, else
+    /// a fixed counter of no width.
+    fn fixed_repeater(&mut self, out: &mut Vec<CdfRow>, count: i64, label: &str, bit: usize, line: usize) -> usize {
+        if let Some(last) = out.last() {
+            if last.get("CDF_ELTYPE") == "F" && last.get("CDF_GRPSIZE") == "0" && last.get("CDF_VALUE") == count.to_string() {
+                return out.len() - 1;
+            }
+        }
+        let pname = format!("{label}_N");
+        self.uint_cpc(&pname, 8, line);
+        out.push(self.element("F", &format!("{label}: repeated {count} times"), 0, bit, &pname, count.to_string(), line));
+        out.len() - 1
+    }
+
+    /// The row of the counter `counter`, when it's the one right before
+    /// what it repeats -- the only place the ICD's groups have it.
+    fn counter_row(&mut self, out: &[CdfRow], counter: &str, at: Node, what: &str) -> Option<usize> {
+        match out.last() {
+            Some(last) if last.get("CDF_PNAME") == counter && last.get("CDF_GRPSIZE") == "0" => Some(out.len() - 1),
+            _ => {
+                self.problem(at, format!("{}: {what} repeats as {counter} says, but {counter} isn't right before it -- read as there once", self.name));
+                None
+            }
+        }
+    }
+}
+
+/// Where an entry sits in a container that starts at bit `origin`.
+fn location_in(entry: Node, at: usize, origin: usize) -> usize {
+    let Some(loc) = child(entry, "LocationInContainerInBits") else { return at };
+    let Some(v) = fixed_value(loc) else { return at };
+    match loc.attribute("referenceLocation").unwrap_or("previousEntry") {
+        "containerStart" => (origin as i64 + v).max(0) as usize,
+        _ => (at as i64 + v).max(0) as usize,
+    }
+}
+
+/// A command container's entries from bit `origin`, as `CDF` rows into
+/// `out`, every group there once; `at` ends where they do. A container
+/// it includes with a repeat becomes a group of its repeater.
+fn command_entries<'a, 'i>(cc: Node<'a, 'i>, origin: usize, at: &mut usize, depth: usize, env: &mut CmdEnv<'_, 'a, 'i, '_>, out: &mut Vec<CdfRow>) {
+    for e in child(cc, "EntryList").into_iter().flat_map(|l| l.children().filter(Node::is_element)) {
+        let line = (env.line_of)(e);
+        match e.tag_name().name() {
+            "ArgumentRefEntry" | "ArrayArgumentRefEntry" => {
+                let Some(arg) = e.attribute("argumentRef").map(base) else { continue };
+                let Some((_, tref, initial, descr)) = env.args.iter().find(|(a, ..)| a == arg).cloned() else { continue };
+                let t = env.types.get(true, &tref).unwrap_or_default();
+                let bit = location_in(e, *at, origin);
+                let fixed = env.assigned.iter().find(|(a, _)| a == arg).map(|(_, v)| v.clone());
+                let eltype = if fixed.is_some() { "F" } else { "E" };
+                if t.kind == "array" {
+                    // One element, repeated: by the argument giving its
+                    // length, else as often as its dimensions say.
+                    let et = t.element.as_deref().and_then(|el| env.types.get(true, el)).unwrap_or_default();
+                    match &t.dyn_count {
+                        Some(counter) => {
+                            if let Some(r) = env.counter_row(out, counter, e, arg) {
+                                out[r].set("CDF_GRPSIZE", "1".into());
+                            }
+                        }
+                        None if t.count > 1 => {
+                            let r = env.fixed_repeater(out, t.count as i64, arg, bit, line);
+                            out[r].set("CDF_GRPSIZE", "1".into());
+                        }
+                        None => {}
+                    }
+                    out.push(env.element(eltype, &descr, et.bits, bit, arg, fixed.unwrap_or_default(), line));
+                    env.arg_cpc(arg, &et, &initial, &descr, line);
+                    *at = bit + et.bits;
+                } else {
+                    out.push(env.element(eltype, &descr, t.bits, bit, arg, fixed.unwrap_or_default(), line));
+                    env.arg_cpc(arg, &t, &initial, &descr, line);
+                    *at = bit + t.bits;
+                }
+            }
+            "FixedValueEntry" => {
+                let bits: usize = e.attribute("sizeInBits").and_then(|s| s.parse().ok()).unwrap_or(0);
+                let value = e.attribute("binaryValue").and_then(|v| i64::from_str_radix(v, 16).ok()).unwrap_or(0);
+                let bit = location_in(e, *at, origin);
+                *at = bit + bits;
+                let ename = e.attribute("name").unwrap_or("");
+                let pname = if ename == "spare" { String::new() } else { ename.to_string() };
+                out.push(env.element(if pname.is_empty() { "A" } else { "F" }, "", bits, bit, &pname, value.to_string(), line));
+                if !pname.is_empty() {
+                    env.uint_cpc(&pname, bits, line);
+                }
+            }
+            "ContainerRefEntry" if depth < 8 => {
+                let Some((cref, c)) = e.attribute("containerRef").map(base).and_then(|r| Some((r, *env.containers.get(r)?))) else { continue };
+                let start = location_in(e, *at, origin);
+                let count = child(e, "RepeatEntry").and_then(|r| child(r, "Count"));
+                let dynamic = count.and_then(|c| descendants(c, "ArgumentInstanceRef").next()).and_then(|r| r.attribute("argumentRef")).map(base);
+                let repeater = match (dynamic, count.and_then(fixed_value)) {
+                    (Some(counter), _) => env.counter_row(out, counter, e, cref),
+                    (None, Some(n)) if n != 1 => Some(env.fixed_repeater(out, n.max(0), cref, start, line)),
+                    _ => None,
+                };
+                let before = out.len();
+                let mut inner = start;
+                command_entries(c, start, &mut inner, depth + 1, env, out);
+                if let Some(r) = repeater {
+                    let size = out.len() - before;
+                    out[r].set("CDF_GRPSIZE", size.to_string());
+                }
+                *at = inner;
+            }
+            _ => {}
+        }
+    }
+}
+
 /// The rows an XTCE file makes, by table, what couldn't be read, and the
 /// XTCE version its namespace says.
 pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (HashMap<String, Vec<Row>>, Vec<Problem>, Option<&'static str>) {
@@ -506,7 +763,7 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
             types.nodes.entry((is_arg_type(n), name.to_string())).or_insert(n);
         }
     }
-    let mut cal_id = 0;
+    let mut cal_id = 0usize;
     let mut next_cal = || {
         cal_id += 1;
         cal_id
@@ -604,6 +861,8 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
                     ("PCF_NATUR", natur.into()),
                     ("PCF_CURTX", curtx),
                     ("PCF_ENDIAN", if t.little_endian { "L".into() } else { String::new() }),
+                    // Its on-board id, when the file was written from a MIB.
+                    ("PCF_PID", child(n, "AncillaryDataSet").and_then(|s| children(s, "AncillaryData").find(|a| a.attribute("name") == Some("SCOS_PID"))).and_then(|a| a.text()).unwrap_or("").trim().to_string()),
                 ],
                 line_of(n),
             );
@@ -670,6 +929,8 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
         chain.reverse();
         let mut id: HashMap<&'static str, String> = HashMap::new();
         let mut pi_params: [Option<String>; 2] = [None, None];
+        // Comparisons on parameters no name says the role of.
+        let mut unnamed: Vec<(String, String)> = Vec::new();
         for c in &chain {
             let Some(criteria) = child(*c, "BaseContainer").and_then(|b| child(b, "RestrictionCriteria")) else { continue };
             for (p, v) in comparisons(criteria) {
@@ -685,7 +946,10 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
                         pi_params[1] = Some(p);
                         id.insert("pi2", v)
                     }
-                    None => None,
+                    None => {
+                        unnamed.push((p, v));
+                        None
+                    }
                 };
             }
         }
@@ -702,7 +966,21 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
         }
         let mut own = Vec::new();
         lay_out(n, at, 0, &containers, &layouts, &mut own);
-        let anc = |key: &str| descendants(n, "AncillaryData").find(|a| a.attribute("name").is_some_and(|x| x.eq_ignore_ascii_case(key))).and_then(|a| a.text()).map(|t| t.trim().to_string());
+        // A comparison on one of the packet's own parameters tells it from
+        // the others with its APID, type and subtype: PI1, then PI2 --
+        // unless the settings name them.
+        if options.pi1.is_empty() && options.pi2.is_empty() {
+            for (p, v) in unnamed.into_iter().filter(|(p, _)| own.iter().any(|s| s.name == *p)) {
+                let k = match pi_params {
+                    [None, _] => 0,
+                    [_, None] => 1,
+                    _ => break,
+                };
+                id.insert(if k == 0 { "pi1" } else { "pi2" }, v);
+                pi_params[k] = Some(p);
+            }
+        }
+        let anc =|key: &str| descendants(n, "AncillaryData").find(|a| a.attribute("name").is_some_and(|x| x.eq_ignore_ascii_case(key))).and_then(|a| a.text()).map(|t| t.trim().to_string());
         let spid = n.attribute("shortDescription").and_then(|d| d.strip_prefix("SPID ")).map(|s| s.trim().to_string()).or_else(|| anc("SPID")).unwrap_or_else(|| {
             spid_counter += 1;
             format!("{}", 900_000 + spid_counter)
@@ -778,87 +1056,16 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
             chain.iter().find_map(|c| child(*c, "AncillaryDataSet").and_then(|s| children(s, "AncillaryData").find(|a| a.attribute("name").is_some_and(|x| x.eq_ignore_ascii_case(key)))).and_then(|a| a.text()).map(|t| t.trim().to_string()))
         };
         let by_role = |role: Role| assigned.iter().find(|(a, _)| options.role(a) == Some(role)).map(|(_, v)| v.clone());
-        let mut elements = 0;
+        let command_containers: HashMap<&str, Node> = descendants(top, "CommandContainer").filter_map(|c| Some((c.attribute("name")?, c))).collect();
+        let mut rows: Vec<CdfRow> = Vec::new();
         if let Some(cc) = child(n, "CommandContainer") {
+            let mut env = CmdEnv { b: &mut b, types: &mut types, cal: &mut cal_id, cpc_done: &mut cpc_done, args: &args, assigned: &assigned, containers: &command_containers, problems: &mut problems, line_of: &line_of, name, root, file };
             let mut at = 0;
-            for e in child(cc, "EntryList").into_iter().flat_map(|l| l.children().filter(Node::is_element)) {
-                match e.tag_name().name() {
-                    "ArgumentRefEntry" | "ArrayArgumentRefEntry" => {
-                        let Some(arg) = e.attribute("argumentRef").map(base) else { continue };
-                        let Some((_, tref, initial, descr)) = args.iter().find(|(a, ..)| a == arg) else { continue };
-                        let t = types.get(true, tref).unwrap_or_default();
-                        let bit = location(e, at);
-                        at = bit + t.bits;
-                        let fixed = assigned.iter().find(|(a, _)| a == arg).map(|(_, v)| v.clone());
-                        b.push(
-                            "cdf",
-                            &[
-                                ("CDF_CNAME", name.to_string()),
-                                ("CDF_ELTYPE", if fixed.is_some() { "F".into() } else { "E".into() }),
-                                ("CDF_DESCR", descr.clone()),
-                                ("CDF_ELLEN", t.bits.to_string()),
-                                ("CDF_BIT", bit.to_string()),
-                                ("CDF_GRPSIZE", "0".into()),
-                                ("CDF_PNAME", arg.to_string()),
-                                ("CDF_VALUE", fixed.unwrap_or_default()),
-                            ],
-                            line_of(e),
-                        );
-                        elements += 1;
-                        if cpc_done.insert(arg.to_string()) {
-                            let mut refs: Vec<(&str, String)> = Vec::new();
-                            if !t.enums.is_empty() {
-                                let id = format!("PAF{:05}", next_cal());
-                                b.push("paf", &[("PAF_NUMBR", id.clone()), ("PAF_DESCR", arg.to_string()), ("PAF_RAWFMT", "U".into()), ("PAF_NALIAS", t.enums.len().to_string())], line_of(e));
-                                for (lo, _, text) in &t.enums {
-                                    b.push("pas", &[("PAS_NUMBR", id.clone()), ("PAS_ALTXT", text.clone()), ("PAS_ALVAL", lo.to_string())], line_of(e));
-                                }
-                                refs.push(("CPC_PAFREF", id));
-                            } else if !t.points.is_empty() {
-                                let id = format!("CCA{:05}", next_cal());
-                                b.push("cca", &[("CCA_NUMBR", id.clone()), ("CCA_DESCR", arg.to_string()), ("CCA_ENGFMT", "R".into()), ("CCA_RAWFMT", "U".into()), ("CCA_UNIT", t.unit.clone()), ("CCA_NCURVE", t.points.len().to_string())], line_of(e));
-                                // A TC curve goes engineering to raw.
-                                for (r, c) in &t.points {
-                                    b.push("ccs", &[("CCS_NUMBR", id.clone()), ("CCS_XVALS", c.clone()), ("CCS_YVALS", r.clone())], line_of(e));
-                                }
-                                refs.push(("CPC_CCAREF", id));
-                            }
-                            if let Some((lo, hi)) = &t.range {
-                                let id = format!("PRF{:05}", next_cal());
-                                let inter = if t.points.is_empty() { "R" } else { "E" };
-                                b.push("prf", &[("PRF_NUMBR", id.clone()), ("PRF_DESCR", arg.to_string()), ("PRF_INTER", inter.into()), ("PRF_DSPFMT", if t.ptc == 5 { "R".into() } else { "I".into() }), ("PRF_NRANGE", "1".into()), ("PRF_UNIT", t.unit.clone())], line_of(e));
-                                b.push("prv", &[("PRV_NUMBR", id.clone()), ("PRV_MINVAL", lo.clone()), ("PRV_MAXVAL", hi.clone())], line_of(e));
-                                refs.push(("CPC_PRFREF", id));
-                            }
-                            let mut v = vec![
-                                ("CPC_NAME", arg.to_string()),
-                                ("CPC_DESCR", if descr.is_empty() { arg.to_string() } else { descr.clone() }),
-                                ("CPC_PTC", t.ptc.to_string()),
-                                ("CPC_PFC", t.pfc.to_string()),
-                                ("CPC_UNIT", t.unit.clone()),
-                                ("CPC_DEFVAL", initial.clone().unwrap_or_default()),
-                                ("CPC_ENDIAN", if t.little_endian { "L".into() } else { String::new() }),
-                            ];
-                            v.extend(refs);
-                            b.push("cpc", &v, line_of(e));
-                        }
-                    }
-                    "FixedValueEntry" => {
-                        let bits: usize = e.attribute("sizeInBits").and_then(|s| s.parse().ok()).unwrap_or(0);
-                        let value = e.attribute("binaryValue").and_then(|v| i64::from_str_radix(v, 16).ok()).unwrap_or(0);
-                        let bit = location(e, at);
-                        at = bit + bits;
-                        let ename = e.attribute("name").unwrap_or("");
-                        let pname = if ename == "spare" { String::new() } else { ename.to_string() };
-                        b.push("cdf", &[("CDF_CNAME", name.to_string()), ("CDF_ELTYPE", if pname.is_empty() { "A".into() } else { "F".into() }), ("CDF_ELLEN", bits.to_string()), ("CDF_BIT", bit.to_string()), ("CDF_GRPSIZE", "0".into()), ("CDF_PNAME", pname.clone()), ("CDF_VALUE", value.to_string())], line_of(e));
-                        if !pname.is_empty() && cpc_done.insert(pname.clone()) {
-                            b.push("cpc", &[("CPC_NAME", pname.clone()), ("CPC_DESCR", pname.clone()), ("CPC_PTC", "3".into()), ("CPC_PFC", pfc_for_int(bits).to_string())], line_of(e));
-                        }
-                        elements += 1;
-                    }
-                    _ => {}
-                }
-            }
+            command_entries(cc, 0, &mut at, 0, &mut env, &mut rows);
+        }
+        let elements = rows.iter().filter(|r| !r.get("CDF_PNAME").is_empty()).count();
+        for r in rows {
+            b.push("cdf", &r.values, r.line);
         }
         let critical = chain.iter().find_map(|c| child(*c, "DefaultSignificance")).and_then(|s| s.attribute("consequenceLevel")).is_some_and(|l| matches!(l, "vital" | "critical" | "forbidden"));
         b.push(
@@ -946,6 +1153,53 @@ mod tests {
         assert!(slots.iter().any(|s| s.name == "NTH00123"));
         assert_eq!(back.root_info(0).format.as_deref(), Some("XTCE 1.2"));
         std::fs::remove_dir_all(&root.path).ok();
+        std::fs::remove_dir_all(&dir.path).ok();
+    }
+
+    /// Arrays of arguments: one whose length an earlier argument gives,
+    /// one of a fixed length -- and a repeated container of arguments.
+    const ARRAYS: &str = r#"<?xml version="1.0"?>
+<SpaceSystem xmlns="http://www.omg.org/spec/XTCE/20180204" name="SC">
+  <CommandMetaData>
+    <ArgumentTypeSet>
+      <IntegerArgumentType name="u8" signed="false"><IntegerDataEncoding sizeInBits="8"/></IntegerArgumentType>
+      <IntegerArgumentType name="u16" signed="false"><IntegerDataEncoding sizeInBits="16"/></IntegerArgumentType>
+      <ArrayArgumentType name="ids_t" arrayTypeRef="u16"><DimensionList><Dimension><StartingIndex><FixedValue>0</FixedValue></StartingIndex><EndingIndex><DynamicValue><ArgumentInstanceRef argumentRef="N"/><LinearAdjustment intercept="-1"/></DynamicValue></EndingIndex></Dimension></DimensionList></ArrayArgumentType>
+      <ArrayArgumentType name="pair_t" arrayTypeRef="u8"><DimensionList><Dimension><StartingIndex><FixedValue>0</FixedValue></StartingIndex><EndingIndex><FixedValue>1</FixedValue></EndingIndex></Dimension></DimensionList></ArrayArgumentType>
+    </ArgumentTypeSet>
+    <MetaCommandSet>
+      <MetaCommand name="ENABLE">
+        <AncillaryDataSet><AncillaryData name="APID">100</AncillaryData><AncillaryData name="TYPE">3</AncillaryData><AncillaryData name="SUBTYPE">5</AncillaryData></AncillaryDataSet>
+        <ArgumentList><Argument name="N" argumentTypeRef="u8"/><Argument name="IDS" argumentTypeRef="ids_t"/><Argument name="PAIR" argumentTypeRef="pair_t"/><Argument name="K" argumentTypeRef="u8"/><Argument name="X" argumentTypeRef="u8"/><Argument name="Y" argumentTypeRef="u16"/></ArgumentList>
+        <CommandContainer name="ENABLE_cc"><EntryList>
+          <ArgumentRefEntry argumentRef="N"/><ArgumentRefEntry argumentRef="IDS"/><ArgumentRefEntry argumentRef="PAIR"/>
+          <ArgumentRefEntry argumentRef="K"/>
+          <ContainerRefEntry containerRef="XY"><RepeatEntry><Count><DynamicValue><ArgumentInstanceRef argumentRef="K"/></DynamicValue></Count></RepeatEntry></ContainerRefEntry>
+        </EntryList></CommandContainer>
+      </MetaCommand>
+    </MetaCommandSet>
+    <CommandContainerSet>
+      <CommandContainer name="XY"><EntryList><ArgumentRefEntry argumentRef="X"/><ArgumentRefEntry argumentRef="Y"/></EntryList></CommandContainer>
+    </CommandContainerSet>
+  </CommandMetaData>
+</SpaceSystem>
+"#;
+
+    #[test]
+    fn argument_arrays_and_repeated_containers_are_groups() {
+        let dir = temp_root("xtce-arrays");
+        let file = dir.path.join("arrays.xml");
+        std::fs::write(&file, ARRAYS).unwrap();
+        let set = MibSet::load(vec![MibRoot { label: "X".into(), path: file }], None);
+        assert!(set.problems().is_empty(), "{:?}", set.problems());
+        let tc = set.find(Kind::Telecommand, 0, "ENABLE").unwrap();
+        let l = crate::layout::Layout::of(&set, tc);
+        use crate::layout::Node::{Group, Leaf};
+        assert_eq!(l.nodes, vec![Group { repeater: 0, body: vec![Leaf(1)] }, Group { repeater: 2, body: vec![Leaf(3)] }, Group { repeater: 4, body: vec![Leaf(5), Leaf(6)] }]);
+        assert!(l.problems.is_empty(), "{:?}", l.problems);
+        let a: Vec<(String, String)> = [("N", "2"), ("IDS", "1"), ("IDS", "2"), ("PAIR", "3"), ("PAIR", "4"), ("K", "1"), ("X", "5"), ("Y", "6")].iter().map(|(n, v)| (n.to_string(), v.to_string())).collect();
+        let (bytes, _) = l.encode(&set, &a, &fenix_ccsds::Profile::default()).unwrap();
+        assert_eq!(bytes, vec![2, 0, 1, 0, 2, 3, 4, 1, 5, 0, 6]);
         std::fs::remove_dir_all(&dir.path).ok();
     }
 

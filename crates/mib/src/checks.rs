@@ -10,6 +10,8 @@ use fenix_ccsds::pus::{self, Profile};
 use fenix_ccsds::time::TimeFormat;
 
 use crate::detail::{self, CalBody};
+use crate::layout::{ElementKind, Layout};
+use crate::values;
 use crate::packets::OffsetBase;
 use crate::parse::Problem;
 use crate::row::Row;
@@ -17,7 +19,7 @@ use crate::set::{CalKind, DefRef, Kind, MibSet};
 use crate::types::{self, parse_int};
 
 /// Every check, by the name `ccsds.checks` turns it off with.
-pub const ALL: &[&str] = &["apid", "size", "overlap", "width", "identification", "pus", "checksum", "calibration", "time"];
+pub const ALL: &[&str] = &["apid", "size", "overlap", "width", "identification", "pus", "checksum", "calibration", "time", "layout"];
 
 pub struct Options<'a> {
     pub disabled: &'a [String],
@@ -70,6 +72,10 @@ pub fn run(set: &MibSet, o: &Options) -> Vec<Problem> {
                 }
             }
             let Some(bits) = t.bits.map(|b| b as usize) else { continue };
+            // A variable packet's entries after a group have no fixed place.
+            if s.byte.is_none() {
+                continue;
+            }
             let start = (head + s.byte.unwrap_or(0).max(0) as usize) * 8 + s.bit.unwrap_or(0).max(0) as usize;
             let occ = parse_int(&s.occurrences).filter(|n| *n > 1).unwrap_or(1) as usize;
             let plf = set.index().rows_by_field("plf", "PLF_NAME", &s.name, Some(e.root)).into_iter().find(|r| r.clean("PLF_SPID") == e.name);
@@ -101,18 +107,55 @@ pub fn run(set: &MibSet, o: &Options) -> Vec<Problem> {
         }
     }
 
-    if on("overlap") || on("size") {
-        for (i, e) in tcs.iter().enumerate() {
-            let tc = DefRef { kind: Kind::Telecommand, index: i };
-            let els = detail::tc_elements(set, tc);
-            if els.iter().any(|el| el.group > 0) {
-                continue;
-            }
-            let mut spans: Vec<(i64, i64, String)> = els.iter().filter_map(|el| Some((el.bit?, el.bit? + el.bits?, if el.name.is_empty() { "spare".into() } else { el.name.clone() }))).collect();
-            spans.sort();
+    for (i, e) in tcs.iter().enumerate() {
+        let tc = DefRef { kind: Kind::Telecommand, index: i };
+        let layout = Layout::of(set, tc);
+        if on("overlap") {
+            // Every group once, as CDF_BIT places them.
+            let mut spans: Vec<(usize, usize, &str, &Row)> = layout.elements.iter().filter_map(|el| Some((el.bit?, el.bit? + el.bits, el.label(), &el.cdf))).collect();
+            spans.sort_by_key(|s| (s.0, s.1));
             for w in spans.windows(2) {
-                if on("overlap") && w[1].0 < w[0].1 {
-                    out.push(at(&e.row, format!("{}: {} overlaps {} by {} bits", e.name, w[1].2, w[0].2, w[0].1 - w[1].0)));
+                if w[1].0 < w[0].1 {
+                    out.push(at(w[1].3, format!("{}: {} overlaps {} by {} bits", e.name, w[1].2, w[0].2, w[0].1 - w[1].0)));
+                }
+            }
+        }
+        if on("layout") {
+            for p in &layout.problems {
+                out.push(at(&e.row, format!("{}: {p}", e.name)));
+            }
+            let pars = layout.elements.iter().filter(|el| el.kind != ElementKind::Area).count();
+            if let Some(n) = parse_int(e.row.clean("CCF_NPARS")) {
+                if n as usize != pars {
+                    out.push(at(&e.row, format!("{}: CCF_NPARS says {n} parameters, cdf.dat has {pars}", e.name)));
+                }
+            }
+            for (k, el) in layout.elements.iter().enumerate() {
+                let Some(t) = &el.ty else { continue };
+                match el.kind {
+                    ElementKind::Editable => {
+                        let default = layout.default(set, k);
+                        if !default.is_empty() {
+                            for w in values::check(set, t, &default, o.profile) {
+                                out.push(at(&el.cdf, format!("{}: default of {w}", e.name)));
+                            }
+                        }
+                    }
+                    _ => {
+                        if let Err(w) = values::mib_value_to_raw(set, t, &el.value, &el.inter, o.profile) {
+                            out.push(at(&el.cdf, format!("{}: fixed value of {w}", e.name)));
+                        }
+                    }
+                }
+            }
+        }
+        if on("width") {
+            for el in &layout.elements {
+                let Some(t) = &el.ty else { continue };
+                if let Some(bits) = t.bits() {
+                    if el.bits != bits && !t.variable_length() {
+                        out.push(at(&el.cdf, format!("{}: {} is {} bits in cdf.dat, its type {} is {bits}", e.name, el.name, el.bits, t.type_name())));
+                    }
                 }
             }
         }
@@ -215,7 +258,7 @@ pub fn run(set: &MibSet, o: &Options) -> Vec<Problem> {
                 }
                 CalBody::Ranges(r) => {
                     for (lo, hi) in r {
-                        if let (Ok(a), Ok(b)) = (lo.trim().parse::<f64>(), hi.trim().parse::<f64>()) {
+                        if let (Some(a), Some(b)) = (values::parse_number(&lo), values::parse_number(&hi)) {
                             if a > b {
                                 out.push(at(&e.row, format!("{}: range {lo}..{hi} has its minimum over its maximum", e.name)));
                             }
@@ -227,14 +270,14 @@ pub fn run(set: &MibSet, o: &Options) -> Vec<Problem> {
         }
         for (i, e) in set.entries(Kind::TcParam).iter().enumerate() {
             let def = e.row.clean("CPC_DEFVAL");
-            let Ok(v) = def.parse::<f64>() else { continue };
-            for cal in detail::tc_param_calibrations(set, DefRef { kind: Kind::TcParam, index: i }) {
-                if let CalBody::Ranges(r) = detail::calibration(set, cal) {
-                    let inside = r.iter().any(|(lo, hi)| lo.trim().parse::<f64>().is_ok_and(|a| a <= v) && hi.trim().parse::<f64>().is_ok_and(|b| v <= b));
-                    if !r.is_empty() && !inside {
-                        out.push(at(&e.row, format!("{}: default {def} is outside its own range", e.name)));
-                    }
-                }
+            if def.is_empty() {
+                continue;
+            }
+            let t = values::ParamType::of(set, DefRef { kind: Kind::TcParam, index: i });
+            let eng = values::mib_value_as_engineering(set, &t, def, &values::Interp::of(e.row.clean("CPC_INTER")));
+            let ranges = values::allowed(set, &t);
+            if !ranges.is_empty() && values::check(set, &t, &eng, o.profile).iter().any(|w| w.contains("outside")) {
+                out.push(at(&e.row, format!("{}: default {def} is outside its own range", e.name)));
             }
         }
     }
@@ -261,7 +304,7 @@ mod tests {
     #[test]
     fn the_standards_checks_find_what_they_say() {
         let r = temp_root("checks");
-        write(&r, "ccf", &[line(&["ZTC1", "a", "", "", "N", "", "8", "1", "2047", "", "", "", "", "", "", "", "", "", "", "1"], 21), line(&["ZTC2", "b", "", "", "N", "", "17", "1", "5000"], 21)].join("\n"));
+        write(&r, "ccf", &[line(&["ZTC1", "a", "", "", "N", "", "8", "1", "2047", "1", "", "", "", "", "", "", "", "", "", "1"], 21), line(&["ZTC2", "b", "", "", "N", "", "17", "1", "5000"], 21)].join("\n"));
         write(&r, "cdf", &[line(&["ZTC1", "E", "a", "16", "0", "0", "P1"], 10), line(&["ZTC1", "E", "b", "8", "8", "0", "P2"], 10)].join("\n"));
         write(&r, "cpc", &[line(&["P1", "a", "3", "12", "", "", "", "", "PRF1", "", "", "", "99"], 17), line(&["P2", "b", "3", "4"], 17)].join("\n"));
         write(&r, "prf", &line(&["PRF1", "r"], 7));
@@ -291,6 +334,7 @@ mod tests {
         assert!(has("minimum over its maximum"));
         assert!(has("default 99 is outside"));
         assert!(has("PID_TIME says a time"));
+        assert!(has("ZTC1: CCF_NPARS says 1 parameters, cdf.dat has 2"), "{got:#?}");
         let quiet = run(&set, &Options { disabled: &ALL.iter().map(|s| s.to_string()).collect::<Vec<_>>(), base: OffsetBase::AfterHeaders, profile: &profile });
         assert!(quiet.is_empty());
     }

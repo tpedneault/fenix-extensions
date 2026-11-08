@@ -86,7 +86,9 @@ pub fn detail(set: &MibSet, def: DefRef, apid_hex: bool) -> Value {
     let names = |defs: &[DefRef]| defs.iter().map(|&d| set.get(d).name.clone()).collect::<Vec<_>>();
     match def.kind {
         Kind::Telecommand => {
-            let args: Vec<Value> = detail::tc_elements(set, def)
+            let els = detail::tc_elements(set, def);
+            let els_names: Vec<String> = els.iter().map(|e| e.name.clone()).collect();
+            let args: Vec<Value> = els
                 .into_iter()
                 .map(|el| {
                     let mut a = json!({ "name": el.name, "description": el.description, "bit": el.bit, "bits": el.bits, "type": el.type_name });
@@ -101,8 +103,19 @@ pub fn detail(set: &MibSet, def: DefRef, apid_hex: bool) -> Value {
                     if el.name.is_empty() {
                         a["spare"] = json!(true);
                     }
+                    a["element"] = json!(match el.kind {
+                        fenix_mib::layout::ElementKind::Area => "area",
+                        fenix_mib::layout::ElementKind::Fixed => "fixed",
+                        fenix_mib::layout::ElementKind::Editable => "editable",
+                    });
                     if el.group > 0 {
                         a["repeats_next"] = json!(el.group);
+                    }
+                    if !el.within.is_empty() {
+                        a["in_group_of"] = json!(el.within.iter().map(|&i| els_names[i].clone()).collect::<Vec<_>>());
+                    }
+                    if let Some(tm) = &el.dynamic {
+                        a["default_from_tm"] = json!(tm);
                     }
                     if let Some(c) = el.cal {
                         a["calibration"] = calibration_json(set, c);
@@ -111,6 +124,24 @@ pub fn detail(set: &MibSet, def: DefRef, apid_hex: bool) -> Value {
                 })
                 .collect();
             out["arguments"] = json!(args);
+            let sets: Vec<Value> = fenix_mib::commanding::value_sets(set, def)
+                .iter()
+                .map(|v| json!({ "name": v.name, "description": v.description, "default": v.default, "values": v.engineering(set, def).into_iter().map(|(p, x)| json!({ "parameter": p, "value": x })).collect::<Vec<_>>() }))
+                .collect();
+            if !sets.is_empty() {
+                out["value_sets"] = json!(sets);
+            }
+            let pre: Vec<String> = fenix_mib::commanding::preconditions(set, def).iter().map(ToString::to_string).collect();
+            if !pre.is_empty() {
+                out["sent_only_while"] = json!(pre);
+            }
+            let stages: Vec<Value> = fenix_mib::commanding::verification(set, def)
+                .into_iter()
+                .map(|s| json!({ "stage": s.kind, "source": s.source, "start": s.start, "interval": s.interval, "report_spid": s.spid, "checks": s.checks.iter().map(|c| json!({ "parameter": c.param, "value": c.value, "tolerance": c.tolerance })).collect::<Vec<_>>() }))
+                .collect();
+            if !stages.is_empty() {
+                out["verification"] = json!(stages);
+            }
             let sequences: Vec<String> = set.sequences_using(def).into_iter().map(|(name, _, _)| name).collect();
             if !sequences.is_empty() {
                 out["sequences"] = json!(sequences);

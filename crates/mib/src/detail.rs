@@ -3,26 +3,32 @@
 //! parameters by position, a calibration's points or texts, a TM
 //! parameter's limits and the packets carrying it.
 
+use crate::layout::{ElementKind, Layout};
 use crate::row::Row;
 use crate::set::{CalKind, DefRef, Kind, MibSet};
 use crate::types::{self, parse_int};
 
-/// One of a telecommand's `CDF` elements.
+/// One of a telecommand's `CDF` elements, in packet order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TcElement {
     /// Its parameter's name; empty for a spare area.
     pub name: String,
     pub description: String,
+    /// `CDF_ELTYPE`.
+    pub kind: ElementKind,
     pub bit: Option<i64>,
     pub bits: Option<i64>,
-    /// The value it's fixed to, when it is.
+    /// The value it's fixed to, when it is (a fixed parameter or area).
     pub fixed: Option<String>,
     /// Its `CPC` definition.
     pub param: Option<DefRef>,
     /// The parameter's type, decoded.
     pub type_name: String,
     pub unit: String,
+    /// What someone is offered: `CDF_VALUE`, else `CPC_DEFVAL`.
     pub default: String,
+    /// The TM parameter a dynamic default comes from (`CDF_TMID`).
+    pub dynamic: Option<String>,
     /// What it may be: "1..8", "OFF ON AUTO".
     pub allowed: String,
     /// The calibration giving `allowed`.
@@ -30,37 +36,42 @@ pub struct TcElement {
     /// Its `CDF_GRPSIZE`: how many elements after it repeat, as often as
     /// its value says.
     pub group: usize,
+    /// The repeaters of the groups it's in, innermost first, as indexes
+    /// into the list.
+    pub within: Vec<usize>,
 }
 
 pub fn tc_elements(set: &MibSet, tc: DefRef) -> Vec<TcElement> {
     let e = set.get(tc);
-    let index = set.index();
-    index
-        .rows_by_field("cdf", "CDF_CNAME", &e.name, Some(e.root))
-        .into_iter()
-        .map(|cdf| {
-            let name = cdf.clean("CDF_PNAME").to_string();
-            let param = (!name.is_empty()).then(|| set.find(Kind::TcParam, e.root, &name)).flatten();
-            let cpc = param.map(|p| &set.get(p).row);
+    let layout = Layout::of(set, tc);
+    layout
+        .elements
+        .iter()
+        .enumerate()
+        .map(|(i, el)| {
+            let cpc = el.param.map(|p| &set.get(p).row);
             let (allowed, cal) = cpc.map(|c| param_allowed(set, e.root, c)).unwrap_or_default();
-            let description = match cdf.clean("CDF_DESCR") {
-                "" => cpc.map(|c| c.clean("CPC_DESCR").to_string()).unwrap_or_default(),
-                d => d.to_string(),
+            let fixed = match el.kind {
+                ElementKind::Editable => None,
+                ElementKind::Area if el.value.is_empty() => None,
+                _ => Some(el.value.clone()),
             };
-            let fixed = cdf.clean("CDF_VALUE");
             TcElement {
-                description,
-                bit: parse_int(cdf.clean("CDF_BIT")),
-                bits: parse_int(cdf.clean("CDF_ELLEN")),
-                fixed: (!fixed.is_empty()).then(|| fixed.to_string()),
-                param,
+                description: el.description.clone(),
+                kind: el.kind,
+                bit: el.bit.map(|b| b as i64),
+                bits: Some(el.bits as i64),
+                fixed,
+                param: el.param,
                 type_name: cpc.map(|c| types::decode(c.clean("CPC_PTC"), c.clean("CPC_PFC")).name).unwrap_or_default(),
                 unit: cpc.map(|c| c.clean("CPC_UNIT").to_string()).unwrap_or_default(),
-                default: cpc.map(|c| c.clean("CPC_DEFVAL").to_string()).unwrap_or_default(),
+                default: if el.kind == ElementKind::Editable { layout.default(set, i) } else { String::new() },
+                dynamic: layout.dynamic_default(i).map(str::to_string),
                 allowed,
                 cal,
-                group: parse_int(cdf.clean("CDF_GRPSIZE")).unwrap_or(0).max(0) as usize,
-                name,
+                group: if el.is_repeater() { el.group } else { 0 },
+                within: layout.enclosing(i),
+                name: el.name.clone(),
             }
         })
         .collect()
@@ -83,16 +94,114 @@ fn param_allowed(set: &MibSet, root: usize, cpc: &Row) -> (String, Option<DefRef
 pub struct PacketSlot {
     pub name: String,
     pub description: String,
+    /// `PLF_OFFBY`/`PLF_OFFBI`; for a variable packet, where it is when
+    /// nothing before it varies (no group, no embedded packet), else
+    /// `None`.
     pub byte: Option<i64>,
     pub bit: Option<i64>,
     pub bits: Option<u32>,
     /// How often it repeats in the packet, when it does.
     pub occurrences: String,
     pub param: Option<DefRef>,
+    /// A variable packet's (`VPD`) entry: its `VPD_POS`.
+    pub position: Option<i64>,
+    /// `VPD_GRPSIZE`: the entries after it it repeats, as often as its
+    /// value says.
+    pub group: usize,
+    /// `VPD_FIXREP`: a group repeated this many times whatever the
+    /// packet says -- its counter isn't in the packet; on an entry with
+    /// no group, the entry itself repeated.
+    pub repeat: usize,
+    /// `VPD_OFFSET`: bits skipped before it.
+    pub gap: i64,
+    /// `VPD_CHOICE`: its value names the parameter a deduced one (PTC 11)
+    /// after it is.
+    pub choice: bool,
+    /// `VPD_PIDREF`: its value identifies a packet carried inside this
+    /// one, right after it.
+    pub pidref: bool,
+    /// The groups it repeats in, innermost first: indexes into the list.
+    pub within: Vec<usize>,
+}
+
+/// A variable packet's structure id (`PID_TPSD`), when it has one and
+/// `VPD` describes it.
+pub fn tpsd(set: &MibSet, packet: DefRef) -> Option<String> {
+    let e = set.get(packet);
+    let t = e.row.clean("PID_TPSD");
+    if parse_int(t)? <= 0 {
+        return None;
+    }
+    (!set.index().rows_by_field("vpd", "VPD_TPSD", t, Some(e.root)).is_empty()).then(|| t.to_string())
+}
+
+fn yes(flag: &str) -> bool {
+    matches!(flag.trim(), "Y" | "y")
+}
+
+/// The `VPD` entries of structure `tpsd` in MIB `root`, in `VPD_POS`
+/// order.
+pub fn vpd_slots(set: &MibSet, root: usize, tpsd: &str) -> Vec<PacketSlot> {
+    let mut rows = set.index().rows_by_field("vpd", "VPD_TPSD", tpsd, Some(root));
+    rows.sort_by_key(|r| parse_int(r.clean("VPD_POS")).unwrap_or(i64::MAX));
+    let mut slots: Vec<PacketSlot> = rows
+        .into_iter()
+        .map(|v| {
+            let name = v.clean("VPD_NAME").to_string();
+            let param = set.find(Kind::TmParam, root, &name);
+            let pcf = param.map(|p| &set.get(p).row);
+            PacketSlot {
+                description: match v.clean("VPD_DISDESC") {
+                    "" => pcf.map(|p| p.clean("PCF_DESCR").to_string()).unwrap_or_default(),
+                    d => d.to_string(),
+                },
+                byte: None,
+                bit: None,
+                bits: pcf.and_then(|p| types::decode(p.clean("PCF_PTC"), p.clean("PCF_PFC")).bits.or_else(|| parse_int(p.clean("PCF_WIDTH")).filter(|w| *w > 0).map(|w| w as u32))),
+                occurrences: String::new(),
+                param,
+                position: parse_int(v.clean("VPD_POS")),
+                group: parse_int(v.clean("VPD_GRPSIZE")).unwrap_or(0).max(0) as usize,
+                repeat: parse_int(v.clean("VPD_FIXREP")).unwrap_or(0).max(0) as usize,
+                gap: parse_int(v.clean("VPD_OFFSET")).unwrap_or(0),
+                choice: yes(v.clean("VPD_CHOICE")),
+                pidref: yes(v.clean("VPD_PIDREF")),
+                within: Vec::new(),
+                name,
+            }
+        })
+        .collect();
+    // The groups each is in, and where the ones whose place is certain are.
+    let mut open: Vec<(usize, usize)> = Vec::new(); // (repeater, entries left)
+    let mut at: Option<i64> = Some(0);
+    for (i, slot) in slots.iter_mut().enumerate() {
+        open.retain(|(_, left)| *left > 0);
+        slot.within = open.iter().rev().map(|(r, _)| *r).collect();
+        for o in open.iter_mut() {
+            o.1 -= 1;
+        }
+        if let Some(a) = at {
+            let a = a + slot.gap;
+            slot.byte = Some(a.div_euclid(8));
+            slot.bit = Some(a.rem_euclid(8));
+            at = slot.bits.map(|b| a + b as i64);
+        }
+        if slot.group > 0 {
+            open.push((i, slot.group));
+            at = None;
+        }
+        if slot.pidref || (slot.group == 0 && slot.repeat > 1) {
+            at = None;
+        }
+    }
+    slots
 }
 
 pub fn packet_slots(set: &MibSet, packet: DefRef) -> Vec<PacketSlot> {
     let e = set.get(packet);
+    if let Some(t) = tpsd(set, packet) {
+        return vpd_slots(set, e.root, &t);
+    }
     let mut slots: Vec<PacketSlot> = set
         .index()
         .rows_by_field("plf", "PLF_SPID", &e.name, Some(e.root))
@@ -108,6 +217,13 @@ pub fn packet_slots(set: &MibSet, packet: DefRef) -> Vec<PacketSlot> {
                 bits: pcf.and_then(|p| types::decode(p.clean("PCF_PTC"), p.clean("PCF_PFC")).bits),
                 occurrences: plf.clean("PLF_NBOCC").to_string(),
                 param,
+                position: None,
+                group: 0,
+                repeat: 0,
+                gap: 0,
+                choice: false,
+                pidref: false,
+                within: Vec::new(),
                 name,
             }
         })
@@ -116,10 +232,31 @@ pub fn packet_slots(set: &MibSet, packet: DefRef) -> Vec<PacketSlot> {
     slots
 }
 
+/// The variable packets whose `VPD` entries carry `param`.
+fn vpd_carriers(set: &MibSet, param: DefRef) -> Vec<DefRef> {
+    let e = set.get(param);
+    let structures: Vec<i64> = set.index().rows_by_field("vpd", "VPD_NAME", &e.name, Some(e.root)).into_iter().filter_map(|r| parse_int(r.clean("VPD_TPSD"))).collect();
+    if structures.is_empty() {
+        return Vec::new();
+    }
+    set.entries(Kind::TmPacket)
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| p.root == e.root && parse_int(p.row.clean("PID_TPSD")).is_some_and(|t| structures.contains(&t)))
+        .map(|(index, _)| DefRef { kind: Kind::TmPacket, index })
+        .collect()
+}
+
 /// Where a TM parameter sits in each packet carrying it.
 pub fn carried_by(set: &MibSet, param: DefRef) -> Vec<(DefRef, PacketSlot)> {
     let mut out = Vec::new();
-    for &packet in set.used_by(param) {
+    let mut packets: Vec<DefRef> = set.used_by(param).iter().copied().filter(|d| d.kind == Kind::TmPacket).collect();
+    for p in vpd_carriers(set, param) {
+        if !packets.contains(&p) {
+            packets.push(p);
+        }
+    }
+    for packet in packets {
         for slot in packet_slots(set, packet) {
             if slot.param == Some(param) {
                 out.push((packet, slot));

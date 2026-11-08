@@ -352,7 +352,14 @@ impl MibSet {
                     }
                     CalKind::Range => {
                         let r = rows_of(&prv, root, id);
-                        let text = r.iter().map(|r| format!("{}..{}", r.clean("PRV_MINVAL"), r.clean("PRV_MAXVAL"))).collect::<Vec<_>>().join(", ");
+                        let text = r
+                            .iter()
+                            .map(|r| match r.clean("PRV_MAXVAL") {
+                                "" => r.clean("PRV_MINVAL").to_string(),
+                                max => format!("{}..{max}", r.clean("PRV_MINVAL")),
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ");
                         (text, Vec::new())
                     }
                     CalKind::Polynomial | CalKind::Logarithmic => {
@@ -417,7 +424,7 @@ impl MibSet {
             e.cols = vec![
                 format!("{},{}", row.clean("CCF_TYPE"), row.clean("CCF_STYPE")),
                 row.clean("CCF_APID").to_string(),
-                params.iter().filter(|p| p.clean("CDF_VALUE").is_empty() && !p.clean("CDF_PNAME").is_empty()).count().to_string(),
+                params.iter().filter(|p| crate::layout::ElementKind::of(p.clean("CDF_ELTYPE"), !p.clean("CDF_PNAME").is_empty()) == crate::layout::ElementKind::Editable && !p.clean("CDF_PNAME").is_empty()).count().to_string(),
             ];
             for (what, field) in [("subsystem", "CCF_SUBSYS"), ("description", "CCF_DESCR2")] {
                 if !row.clean(field).is_empty() {
@@ -493,6 +500,22 @@ impl MibSet {
                 (Some(param), Some(packet)) => push_unique(self.used_by.entry(param).or_default(), packet),
                 (None, _) => self.problem(row, format!("{spid} -> {name} has no PCF row")),
                 (_, None) => self.problem(row, format!("{name} is placed in SPID {spid}, which isn't in pid.dat")),
+            }
+        }
+        // Variable packets: the parameters their structure (VPD) carries.
+        let mut by_tpsd: HashMap<(usize, String), Vec<DefRef>> = HashMap::new();
+        for (index, e) in self.entries(Kind::TmPacket).iter().enumerate() {
+            by_tpsd.entry((e.root, e.row.clean("PID_TPSD").to_string())).or_default().push(DefRef { kind: Kind::TmPacket, index });
+        }
+        for row in index.rows("vpd") {
+            let root = row.source.root_index;
+            let (tpsd, name) = (row.clean("VPD_TPSD"), row.clean("VPD_NAME"));
+            let Some(param) = self.find(Kind::TmParam, root, name) else {
+                self.problem(row, format!("structure {tpsd} -> {name} has no PCF row"));
+                continue;
+            };
+            for &packet in by_tpsd.get(&(root, tpsd.to_string())).map(Vec::as_slice).unwrap_or(&[]) {
+                push_unique(self.used_by.entry(param).or_default(), packet);
             }
         }
         for row in index.rows("css") {

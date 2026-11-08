@@ -340,7 +340,7 @@ fn build(set: &MibSet, def: DefRef, raw: bool) -> Doc {
         Kind::Telecommand => {
             let els = detail::tc_elements(set, def);
             let total: i64 = els.iter().filter_map(|el| Some(el.bit? + el.bits?)).max().unwrap_or(0);
-            let fixed = els.iter().filter(|el| el.fixed.is_some() || el.name.is_empty()).count();
+            let fixed = els.iter().filter(|el| el.kind != fenix_mib::layout::ElementKind::Editable || el.name.is_empty()).count();
             doc.heading("Application data", format!("{total} bits"));
             if total > 0 {
                 let mut segs = Vec::new();
@@ -361,10 +361,12 @@ fn build(set: &MibSet, def: DefRef, raw: bool) -> Doc {
             doc.row(vec![c(2, "NAME", Role::Muted), c(14, "BITS", Role::Muted), c(23, "TYPE", Role::Muted), c(38, "VALUE", Role::Muted), c(66, "DESCRIPTION", Role::Muted)]);
             for el in &els {
                 doc.element_rows.push(doc.lines.len());
+                // A group's elements under its counter.
+                let x = 2 + 2 * el.within.len();
                 let name = match (el.param, el.name.is_empty()) {
-                    (_, true) => c(2, "spare", Role::Muted),
-                    (Some(p), false) => link(2, &el.name, p),
-                    (None, false) => missing(2, &el.name),
+                    (_, true) => c(x, "spare", Role::Muted),
+                    (Some(p), false) => link(x, &el.name, p),
+                    (None, false) => missing(x, &el.name),
                 };
                 let bits = match (el.bit, el.bits) {
                     (Some(b), Some(n)) => format!("{b}+{n}"),
@@ -389,8 +391,58 @@ fn build(set: &MibSet, def: DefRef, raw: bool) -> Doc {
                 if el.group > 0 {
                     desc = format!("{desc} -- the next {} repeat this many times", el.group);
                 }
+                if let Some(tm) = &el.dynamic {
+                    desc = format!("{desc} -- its default is {tm}'s value when it's sent");
+                }
                 cells.push(c(66, desc, Role::Text));
                 doc.row(cells);
+            }
+            let pre = fenix_mib::commanding::preconditions(set, def);
+            if !pre.is_empty() {
+                doc.heading("Sent only while", pre.len().to_string());
+                for p in &pre {
+                    doc.row(vec![c(2, &p.param, Role::Title), c(16, format!("= {}", p.value), Role::Text), c(36, if p.inter == fenix_mib::values::Interp::Raw { "raw" } else { "engineering" }, Role::Muted)]);
+                }
+            }
+            let sets = fenix_mib::commanding::value_sets(set, def);
+            if !sets.is_empty() {
+                doc.heading("Value sets", format!("{} · v in the insert form", sets.len()));
+                for v in &sets {
+                    let values = v.engineering(set, def).into_iter().map(|(p, x)| format!("{p}={x}")).collect::<Vec<_>>().join(" ");
+                    doc.row(vec![c(2, &v.name, Role::Title), c(16, if v.default { "default" } else { "" }, Role::Good), c(26, &v.description, Role::Text)]);
+                    doc.row(vec![c(4, values, Role::Muted)]);
+                }
+            }
+            let stages = fenix_mib::commanding::verification(set, def);
+            doc.heading("Verification", if stages.is_empty() { "by its acknowledgement flags".to_string() } else { stages.len().to_string() });
+            if stages.is_empty() {
+                let reports = fenix_ccsds::pus::verification_reports(fenix_mib::types::parse_int(e.row.clean("CCF_ACK")).unwrap_or(0) as u8);
+                let text = reports.iter().map(|(sub, what)| format!("TM(1,{sub}) {what}")).collect::<Vec<_>>().join(" · ");
+                doc.para(if text.is_empty() { "No verification reports asked for." } else { &text }, Role::Muted);
+            }
+            for st in &stages {
+                let window = format!("from {}s for {}s", if st.start.is_empty() { "0" } else { &st.start }, if st.interval.is_empty() { "?" } else { &st.interval });
+                let source = if st.spid.is_empty() { st.source.clone() } else { format!("{} SPID {}", st.source, st.spid) };
+                doc.row(vec![c(2, &st.kind, Role::Title), c(16, source, Role::Text), c(36, window, Role::Muted)]);
+                for ch in &st.checks {
+                    let tol = if ch.tolerance.is_empty() { String::new() } else { format!(" ± {}", ch.tolerance) };
+                    doc.row(vec![c(4, format!("{} = {}{tol}", ch.param, ch.value), Role::Muted)]);
+                }
+            }
+            if let Some((id, descr, fields)) = fenix_mib::commanding::header(set, def) {
+                doc.heading("Packet header", format!("{id} · {descr}"));
+                for f in &fields {
+                    let bits = match (f.bit, f.bits) {
+                        (Some(b), Some(n)) => format!("{b}+{n}"),
+                        _ => String::new(),
+                    };
+                    let value = match f.value {
+                        Some(v) => format!("fixed {v}"),
+                        None if f.code.is_empty() => String::new(),
+                        None => format!("filled: {}", f.code),
+                    };
+                    doc.row(vec![c(2, &f.name, Role::Title), c(16, bits, Role::Muted), c(26, value, Role::Text), c(46, &f.description, Role::Muted)]);
+                }
             }
             let seqs = set.sequences_using(def);
             doc.heading("Sent by sequences", seqs.len().to_string());

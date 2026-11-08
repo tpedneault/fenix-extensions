@@ -7,6 +7,8 @@
 use fenix_ccsds::pus::Profile;
 
 use crate::detail::{self, CalBody};
+use crate::layout::{Layout, Node};
+use crate::values;
 use crate::packets::{self, OffsetBase};
 use crate::set::{CalKind, DefRef, Kind, MibSet};
 use crate::types::{self, parse_int};
@@ -59,12 +61,14 @@ fn placed(set: &MibSet, spid: DefRef, profile: &Profile, base: OffsetBase) -> Ve
         .filter_map(|s| {
             let p = set.get(s.param?);
             let t = types::decode(p.row.clean("PCF_PTC"), p.row.clean("PCF_PFC"));
-            Some(Placed { name: s.name, bit: (head + s.byte.unwrap_or(0).max(0) as usize) * 8 + s.bit.unwrap_or(0).max(0) as usize, bits: t.bits? as usize, ptc: p.row.clean("PCF_PTC").to_string() })
+            // A variable packet's entry after a group has no fixed place.
+            let byte = s.byte?;
+            Some(Placed { name: s.name, bit: (head + byte.max(0) as usize) * 8 + s.bit.unwrap_or(0).max(0) as usize, bits: t.bits? as usize, ptc: p.row.clean("PCF_PTC").to_string() })
         })
         .collect()
 }
 
-fn xtce_type(ptc: &str, pfc: &str, name: &str, unit: &str, cal: Option<(DefRef, &MibSet)>, arg: bool) -> String {
+fn xtce_type(ptc: &str, pfc: &str, name: &str, unit: &str, cal: Option<(DefRef, &MibSet)>, arg: bool, radix: crate::values::Radix) -> String {
     let t = types::decode(ptc, pfc);
     let bits = t.bits.unwrap_or(8);
     let kind = if arg { "Argument" } else { "Parameter" };
@@ -77,13 +81,15 @@ fn xtce_type(ptc: &str, pfc: &str, name: &str, unit: &str, cal: Option<(DefRef, 
                     .iter()
                     .filter_map(|(raw, text)| {
                         let (lo, hi) = raw.split_once("..").unwrap_or((raw, raw));
-                        let (lo, hi) = (parse_int(lo)?, parse_int(hi)?);
+                        // A TC status's raw values are in its parameter's radix.
+                        let read = |v: &str| crate::values::parse_raw_int(v, radix).map(|n| n as i64).or_else(|| parse_int(v));
+                        let (lo, hi) = (read(lo)?, read(hi)?);
                         Some(if lo == hi { format!("<xtce:Enumeration value=\"{lo}\" label=\"{}\"/>", xml(text)) } else { format!("<xtce:Enumeration value=\"{lo}\" maxValue=\"{hi}\" label=\"{}\"/>", xml(text)) })
                     })
                     .collect();
                 return format!("<xtce:Enumerated{kind}Type name=\"{name}\">{units}{}<xtce:EnumerationList>{list}</xtce:EnumerationList></xtce:Enumerated{kind}Type>", enc_int(false));
             }
-            CalBody::Points(points) if !arg => {
+            CalBody::Points(points) => {
                 let pts: String = points.iter().map(|(r, e)| format!("<xtce:SplinePoint raw=\"{}\" calibrated=\"{}\"/>", xml(r), xml(e))).collect();
                 return format!(
                     "<xtce:Float{kind}Type name=\"{name}\">{units}{}<xtce:DefaultCalibrator><xtce:SplineCalibrator>{pts}</xtce:SplineCalibrator></xtce:DefaultCalibrator></xtce:IntegerDataEncoding></xtce:Float{kind}Type>",
@@ -158,14 +164,18 @@ pub fn xtce_as(set: &MibSet, profile: &Profile, base: OffsetBase, version: XtceV
     for (i, e) in set.entries(Kind::TmParam).iter().enumerate() {
         let def = DefRef { kind: Kind::TmParam, index: i };
         let cal = detail::tm_calibration(set, def).map(|c| (c, set));
-        out.push_str(&format!("      {}\n", xtce_type(e.row.clean("PCF_PTC"), e.row.clean("PCF_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("PCF_UNIT"), cal, false)));
+        out.push_str(&format!("      {}\n", xtce_type(e.row.clean("PCF_PTC"), e.row.clean("PCF_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("PCF_UNIT"), cal, false, crate::values::Radix::Decimal)));
     }
     out.push_str("    </xtce:ParameterTypeSet>\n    <xtce:ParameterSet>\n");
     for h in ["CCSDS_APID", "PUS_SERVICE", "PUS_SUBTYPE"] {
         out.push_str(&format!("      <xtce:Parameter name=\"{h}\" parameterTypeRef=\"{h}_type\"/>\n"));
     }
     for e in set.entries(Kind::TmParam) {
-        out.push_str(&format!("      <xtce:Parameter name=\"{}\" parameterTypeRef=\"{}_type\"><xtce:LongDescription>{}</xtce:LongDescription></xtce:Parameter>\n", xml(&e.name), xml(&e.name), xml(&e.description)));
+        let pid = match e.row.clean("PCF_PID") {
+            "" => String::new(),
+            pid => format!("<xtce:AncillaryDataSet><xtce:AncillaryData name=\"SCOS_PID\">{}</xtce:AncillaryData></xtce:AncillaryDataSet>", xml(pid)),
+        };
+        out.push_str(&format!("      <xtce:Parameter name=\"{}\" parameterTypeRef=\"{}_type\"><xtce:LongDescription>{}</xtce:LongDescription>{pid}</xtce:Parameter>\n", xml(&e.name), xml(&e.name), xml(&e.description)));
     }
     out.push_str("    </xtce:ParameterSet>\n    <xtce:ContainerSet>\n");
     out.push_str("      <xtce:SequenceContainer name=\"CCSDS_Packet\" abstract=\"true\"><xtce:EntryList>");
@@ -178,15 +188,21 @@ pub fn xtce_as(set: &MibSet, profile: &Profile, base: OffsetBase, version: XtceV
         let r = &e.row;
         let name = if e.alias.is_empty() { format!("SPID_{}", e.name) } else { ident(&e.alias) };
         out.push_str(&format!("      <xtce:SequenceContainer name=\"{}\" shortDescription=\"SPID {}\"><xtce:LongDescription>{}</xtce:LongDescription><xtce:EntryList>", xml(&name), xml(&e.name), xml(&e.description)));
-        for p in placed(set, spid, profile, base) {
+        let params = placed(set, spid, profile, base);
+        for p in &params {
             out.push_str(&format!(
                 "<xtce:ParameterRefEntry parameterRef=\"{}\"><xtce:LocationInContainerInBits referenceLocation=\"containerStart\"><xtce:FixedValue>{}</xtce:FixedValue></xtce:LocationInContainerInBits></xtce:ParameterRefEntry>",
                 xml(&p.name),
                 p.bit
             ));
         }
+        // PI1 and PI2 (PIC): a raw comparison on the parameter where each is.
+        let pis: String = pi_checks(set, r)
+            .into_iter()
+            .filter_map(|(bit, _, value)| params.iter().find(|p| p.bit as i64 == bit).map(|p| format!("<xtce:Comparison parameterRef=\"{}\" value=\"{value}\" useCalibratedValue=\"false\"/>", xml(&p.name))))
+            .collect();
         out.push_str(&format!(
-            "</xtce:EntryList><xtce:BaseContainer containerRef=\"CCSDS_Packet\"><xtce:RestrictionCriteria><xtce:ComparisonList><xtce:Comparison parameterRef=\"CCSDS_APID\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SERVICE\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SUBTYPE\" value=\"{}\"/></xtce:ComparisonList></xtce:RestrictionCriteria></xtce:BaseContainer></xtce:SequenceContainer>\n",
+            "</xtce:EntryList><xtce:BaseContainer containerRef=\"CCSDS_Packet\"><xtce:RestrictionCriteria><xtce:ComparisonList><xtce:Comparison parameterRef=\"CCSDS_APID\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SERVICE\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SUBTYPE\" value=\"{}\"/>{pis}</xtce:ComparisonList></xtce:RestrictionCriteria></xtce:BaseContainer></xtce:SequenceContainer>\n",
             parse_int(r.clean("PID_APID")).unwrap_or(0),
             parse_int(r.clean("PID_TYPE")).unwrap_or(0),
             parse_int(r.clean("PID_STYPE")).unwrap_or(0)
@@ -197,10 +213,25 @@ pub fn xtce_as(set: &MibSet, profile: &Profile, base: OffsetBase, version: XtceV
     out.push_str("  <xtce:CommandMetaData>\n    <xtce:ArgumentTypeSet>\n");
     for (i, e) in set.entries(Kind::TcParam).iter().enumerate() {
         let def = DefRef { kind: Kind::TcParam, index: i };
-        let cal = detail::tc_param_calibrations(set, def).into_iter().find(|c| set.get(*c).cal == Some(CalKind::Status)).map(|c| (c, set));
-        out.push_str(&format!("      {}\n", xtce_type(e.row.clean("CPC_PTC"), e.row.clean("CPC_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("CPC_UNIT"), cal, true)));
+        let cals = detail::tc_param_calibrations(set, def);
+        let pick = |k: CalKind| cals.iter().copied().find(|c| set.get(*c).cal == Some(k));
+        let cal = pick(CalKind::Status).or_else(|| pick(CalKind::TcNumeric)).map(|c| (c, set));
+        let mut ty = xtce_type(e.row.clean("CPC_PTC"), e.row.clean("CPC_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("CPC_UNIT"), cal, true, crate::values::Radix::of(e.row.clean("CPC_RADIX")));
+        // The MIB's own codes, for a reader that knows them (Fenix's):
+        // XTCE has no deduced type, nor SCOS's times and lengths exactly.
+        let mut anc = format!("<xtce:AncillaryData name=\"SCOS_PTC\">{}</xtce:AncillaryData><xtce:AncillaryData name=\"SCOS_PFC\">{}</xtce:AncillaryData>", xml(e.row.clean("CPC_PTC")), xml(e.row.clean("CPC_PFC")));
+        for (key, field) in [("SCOS_CATEG", "CPC_CATEG"), ("SCOS_RADIX", "CPC_RADIX")] {
+            if !e.row.clean(field).is_empty() {
+                anc.push_str(&format!("<xtce:AncillaryData name=\"{key}\">{}</xtce:AncillaryData>", xml(e.row.clean(field))));
+            }
+        }
+        if let Some(at) = ty.find('>') {
+            ty.insert_str(at + 1, &format!("<xtce:AncillaryDataSet>{anc}</xtce:AncillaryDataSet>"));
+        }
+        out.push_str(&format!("      {ty}\n"));
     }
     out.push_str("    </xtce:ArgumentTypeSet>\n    <xtce:MetaCommandSet>\n");
+    let mut group_containers: Vec<String> = Vec::new();
     for (i, e) in set.entries(Kind::Telecommand).iter().enumerate() {
         let tc = DefRef { kind: Kind::Telecommand, index: i };
         let r = &e.row;
@@ -214,25 +245,100 @@ pub fn xtce_as(set: &MibSet, profile: &Profile, base: OffsetBase, version: XtceV
             r.clean("CCF_STYPE"),
             r.clean("CCF_ACK")
         ));
-        let els = detail::tc_elements(set, tc);
-        for el in els.iter().filter(|el| el.fixed.is_none() && !el.name.is_empty()) {
-            let initial = if el.default.is_empty() { String::new() } else { format!(" initialValue=\"{}\"", xml(&el.default)) };
-            out.push_str(&format!("<xtce:Argument name=\"{}\" argumentTypeRef=\"{}_type\"{initial}/>", xml(&el.name), xml(&el.name)));
-        }
-        out.push_str(&format!("</xtce:ArgumentList><xtce:CommandContainer name=\"{}_container\"><xtce:EntryList>", xml(&e.name)));
-        for el in &els {
-            let (Some(bit), Some(bits)) = (el.bit, el.bits) else { continue };
-            let loc = format!("<xtce:LocationInContainerInBits referenceLocation=\"containerStart\"><xtce:FixedValue>{bit}</xtce:FixedValue></xtce:LocationInContainerInBits>");
-            match &el.fixed {
-                Some(v) => out.push_str(&format!("<xtce:FixedValueEntry name=\"{}\" binaryValue=\"{:0w$X}\" sizeInBits=\"{bits}\">{loc}</xtce:FixedValueEntry>", xml(if el.name.is_empty() { "spare" } else { &el.name }), parse_int(v).unwrap_or(0), w = (bits as usize).div_ceil(4).max(1))),
-                None if el.name.is_empty() => out.push_str(&format!("<xtce:FixedValueEntry name=\"spare\" binaryValue=\"0\" sizeInBits=\"{bits}\">{loc}</xtce:FixedValueEntry>")),
-                None => out.push_str(&format!("<xtce:ArgumentRefEntry argumentRef=\"{}\">{loc}</xtce:ArgumentRefEntry>", xml(&el.name))),
+        let layout = Layout::of(set, tc);
+        let mut asked = std::collections::HashSet::new();
+        for (i, el) in layout.elements.iter().enumerate() {
+            if el.asked() && asked.insert(el.name.clone()) {
+                let default = layout.default(set, i);
+                let initial = if default.is_empty() { String::new() } else { format!(" initialValue=\"{}\"", xml(&default)) };
+                out.push_str(&format!("<xtce:Argument name=\"{}\" argumentTypeRef=\"{}_type\"{initial}/>", xml(&el.name), xml(&el.name)));
             }
         }
+        out.push_str(&format!("</xtce:ArgumentList><xtce:CommandContainer name=\"{}_container\"><xtce:EntryList>", xml(&e.name)));
+        let mut w = EntryWriter { set, layout: &layout, tc: &e.name, groups: Vec::new(), next: 0 };
+        let mut prev_end = 0;
+        let mut relative = false;
+        let entries = w.entries(&layout.nodes, &mut prev_end, &mut relative);
+        out.push_str(&entries);
+        group_containers.extend(w.groups);
         out.push_str("</xtce:EntryList></xtce:CommandContainer></xtce:MetaCommand>\n");
     }
-    out.push_str("    </xtce:MetaCommandSet>\n  </xtce:CommandMetaData>\n</xtce:SpaceSystem>\n");
+    out.push_str("    </xtce:MetaCommandSet>\n");
+    if !group_containers.is_empty() {
+        out.push_str("    <xtce:CommandContainerSet>\n");
+        for c in &group_containers {
+            out.push_str(&format!("      {c}\n"));
+        }
+        out.push_str("    </xtce:CommandContainerSet>\n");
+    }
+    out.push_str("  </xtce:CommandMetaData>\n</xtce:SpaceSystem>\n");
     out
+}
+
+/// A telecommand's container entries, its groups each a container of
+/// their own repeated by their repeater's value.
+struct EntryWriter<'a> {
+    set: &'a MibSet,
+    layout: &'a Layout,
+    tc: &'a str,
+    /// The groups' containers, written as they're met.
+    groups: Vec<String>,
+    next: usize,
+}
+
+impl EntryWriter<'_> {
+    /// Where an entry goes: from the container's start while nothing
+    /// before it moves, else after the previous entry by the gap the
+    /// definition leaves.
+    fn location(bit: Option<usize>, prev_end: &mut usize, relative: bool, bits: usize) -> String {
+        let Some(bit) = bit else { return String::new() };
+        let loc = if relative {
+            format!("<xtce:LocationInContainerInBits referenceLocation=\"previousEntry\"><xtce:FixedValue>{}</xtce:FixedValue></xtce:LocationInContainerInBits>", bit.saturating_sub(*prev_end))
+        } else {
+            format!("<xtce:LocationInContainerInBits referenceLocation=\"containerStart\"><xtce:FixedValue>{bit}</xtce:FixedValue></xtce:LocationInContainerInBits>")
+        };
+        *prev_end = bit + bits;
+        loc
+    }
+
+    fn leaf(&self, i: usize, prev_end: &mut usize, relative: bool) -> String {
+        let el = &self.layout.elements[i];
+        let loc = Self::location(el.bit, prev_end, relative, el.bits);
+        if el.asked() {
+            return format!("<xtce:ArgumentRefEntry argumentRef=\"{}\">{loc}</xtce:ArgumentRefEntry>", xml(&el.name));
+        }
+        let value = self.layout.fixed_raw_value(self.set, i).unwrap_or(0);
+        format!("<xtce:FixedValueEntry name=\"{}\" binaryValue=\"{:0w$X}\" sizeInBits=\"{}\">{loc}</xtce:FixedValueEntry>", xml(el.label()), value, el.bits, w = el.bits.div_ceil(4).max(1))
+    }
+
+    fn entries(&mut self, nodes: &[Node], prev_end: &mut usize, relative: &mut bool) -> String {
+        let mut out = String::new();
+        for n in nodes {
+            match n {
+                Node::Leaf(i) => out.push_str(&self.leaf(*i, prev_end, *relative)),
+                Node::Group { repeater, body } => {
+                    out.push_str(&self.leaf(*repeater, prev_end, *relative));
+                    self.next += 1;
+                    let name = format!("{}_group_{}", self.tc, self.next);
+                    let (start, end) = self.layout.static_extent(body).unwrap_or((*prev_end, *prev_end));
+                    let (mut inner_end, mut inner_rel) = (start, true);
+                    let inner = self.entries(body, &mut inner_end, &mut inner_rel);
+                    self.groups.push(format!("<xtce:CommandContainer name=\"{}\"><xtce:EntryList>{inner}</xtce:EntryList></xtce:CommandContainer>", xml(&name)));
+                    let rep = &self.layout.elements[*repeater];
+                    let count = if rep.asked() {
+                        format!("<xtce:DynamicValue><xtce:ArgumentInstanceRef argumentRef=\"{}\"/></xtce:DynamicValue>", xml(&rep.name))
+                    } else {
+                        format!("<xtce:FixedValue>{}</xtce:FixedValue>", self.layout.fixed_raw_value(self.set, *repeater).unwrap_or(0))
+                    };
+                    let loc = format!("<xtce:LocationInContainerInBits referenceLocation=\"previousEntry\"><xtce:FixedValue>{}</xtce:FixedValue></xtce:LocationInContainerInBits>", start.saturating_sub(*prev_end));
+                    out.push_str(&format!("<xtce:ContainerRefEntry containerRef=\"{}\">{loc}<xtce:RepeatEntry><xtce:Count>{count}</xtce:Count></xtce:RepeatEntry></xtce:ContainerRefEntry>", xml(&name)));
+                    *prev_end = end;
+                    *relative = true;
+                }
+            }
+        }
+        out
+    }
 }
 
 /// The PIC checks that tell TM packet `row` from others with its APID,
@@ -262,7 +368,7 @@ pub fn wireshark(set: &MibSet, profile: &Profile, base: OffsetBase) -> String {
     let mut out = stamp(set, "--");
     out.push_str("-- Load with: wireshark -X lua_script:mib_dissector.lua ; packets on UDP port 10015 (Decode As... for others).\n");
     out.push_str("local p = Proto(\"mib\", \"CCSDS packet (MIB)\")\nlocal f = p.fields\n");
-    out.push_str("f.apid = ProtoField.uint16(\"mib.apid\", \"APID\", base.HEX, nil, 0x07FF)\nf.type = ProtoField.uint8(\"mib.type\", \"Packet type\", base.DEC, {[0]=\"TM\",[1]=\"TC\"})\nf.seq = ProtoField.uint16(\"mib.seq\", \"Sequence count\", base.DEC, nil, 0x3FFF)\nf.len = ProtoField.uint16(\"mib.length\", \"Data length\")\nf.svc = ProtoField.uint8(\"mib.service\", \"Service\")\nf.sub = ProtoField.uint8(\"mib.subtype\", \"Subtype\")\nf.spid = ProtoField.string(\"mib.spid\", \"SPID\")\n");
+    out.push_str("f.apid = ProtoField.uint16(\"mib.apid\", \"APID\", base.HEX, nil, 0x07FF)\nf.type = ProtoField.uint8(\"mib.type\", \"Packet type\", base.DEC, {[0]=\"TM\",[1]=\"TC\"})\nf.seq = ProtoField.uint16(\"mib.seq\", \"Sequence count\", base.DEC, nil, 0x3FFF)\nf.len = ProtoField.uint16(\"mib.length\", \"Data length\")\nf.svc = ProtoField.uint8(\"mib.service\", \"Service\")\nf.sub = ProtoField.uint8(\"mib.subtype\", \"Subtype\")\nf.spid = ProtoField.string(\"mib.spid\", \"SPID\")\nf.tc = ProtoField.string(\"mib.tc\", \"Telecommand\")\nf.arg = ProtoField.string(\"mib.tc.arg\", \"Argument\")\n");
     out.push_str("local params = {}\n");
     let mut seen = std::collections::HashSet::new();
     for e in set.entries(Kind::TmParam) {
@@ -288,6 +394,22 @@ pub fn wireshark(set: &MibSet, profile: &Profile, base: OffsetBase) -> String {
         ));
     }
     out.push_str("}\n");
+    out.push_str("-- { apid, service, subtype, name, { {argument, bit, bits}, or a group's repeater {argument, bit, bits, span, { ... }} } }\nlocal telecommands = {\n");
+    for (i, e) in set.entries(Kind::Telecommand).iter().enumerate() {
+        let tc = DefRef { kind: Kind::Telecommand, index: i };
+        let r = &e.row;
+        let layout = Layout::of(set, tc);
+        out.push_str(&format!(
+            "  {{ {}, {}, {}, \"{}\", {{ {} }} }},\n",
+            parse_int(r.clean("CCF_APID")).unwrap_or(0),
+            parse_int(r.clean("CCF_TYPE")).unwrap_or(0),
+            parse_int(r.clean("CCF_STYPE")).unwrap_or(0),
+            e.name.replace('"', "'"),
+            lua_elements(&layout, &layout.nodes).join(", ")
+        ));
+    }
+    out.push_str("}\n");
+    out.push_str(&format!("local tc_data = {}\n", (6 + fenix_ccsds::pus::tc_header_len(profile)) * 8));
     out.push_str(
         r#"local function bits(tvb, at, n)
   local v = UInt64(0)
@@ -297,6 +419,28 @@ pub fn wireshark(set: &MibSet, profile: &Profile, base: OffsetBase) -> String {
     v = v * 2 + b
   end
   return v
+end
+
+-- A telecommand's elements from bit `shift` past where the MIB puts them:
+-- a repeater's value repeats its group, and what follows moves with it.
+local function walk(tvb, t, els, shift)
+  for _, e in ipairs(els) do
+    local at = tc_data + e[2] + shift
+    local v = nil
+    if e[3] > 0 and (at + e[3]) <= tvb:len() * 8 then
+      v = bits(tvb, at, e[3])
+      t:add(f.arg, tvb(math.floor(at / 8), math.ceil(((at % 8) + e[3]) / 8)), e[1] .. " = " .. tostring(v))
+    end
+    if e[5] ~= nil then
+      local n = math.min(v and tonumber(v) or 0, 4096)
+      if n == 0 then shift = shift - e[4] end
+      for k = 1, n do
+        local after = walk(tvb, t, e[5], shift)
+        if k < n then shift = after + e[4] else shift = after end
+      end
+    end
+  end
+  return shift
 end
 
 function p.dissector(tvb, pinfo, tree)
@@ -314,6 +458,17 @@ function p.dissector(tvb, pinfo, tree)
   local svc, sub = tvb(7, 1):uint(), tvb(8, 1):uint()
   t:add(f.svc, tvb(7, 1))
   t:add(f.sub, tvb(8, 1))
+  if is_tc == 1 then
+    for _, d in ipairs(telecommands) do
+      if d[1] == apid and d[2] == svc and d[3] == sub then
+        t:add(f.tc, d[4])
+        pinfo.cols.info = d[4]
+        walk(tvb, t, d[5], 0)
+        return
+      end
+    end
+    return
+  end
   local def = nil
   for _, d in ipairs(packets) do
     if def == nil and d[1] == apid and d[2] == svc and d[3] == sub then
@@ -351,6 +506,20 @@ pub fn c_header(set: &MibSet, profile: &Profile, base: OffsetBase) -> String {
         let n = ident(&e.name).to_uppercase();
         out.push_str(&format!("#define TC_{n}_APID {}\n#define TC_{n}_TYPE {}\n#define TC_{n}_SUBTYPE {}\n", r.clean("CCF_APID"), r.clean("CCF_TYPE"), r.clean("CCF_STYPE")));
     }
+    out.push_str("\n/* Telecommand elements: bit offset in the application data and width in bits,\n   as the MIB places them with every repeated group there once. A group's\n   repetition k (from 0) of an element is at BIT + k * GROUP_SPAN_BITS, and\n   what follows a group repeated n times moves by (n - 1) * GROUP_SPAN_BITS. */\n");
+    for (i, e) in set.entries(Kind::Telecommand).iter().enumerate() {
+        let layout = Layout::of(set, DefRef { kind: Kind::Telecommand, index: i });
+        let n = ident(&e.name).to_uppercase();
+        for el in &layout.elements {
+            let Some(bit) = el.bit else { continue };
+            if el.name.is_empty() {
+                continue;
+            }
+            let p = ident(&el.name).to_uppercase();
+            out.push_str(&format!("#define TC_{n}_{p}_BIT {bit}\n#define TC_{n}_{p}_BITS {}\n", el.bits));
+        }
+        c_groups(&layout, &layout.nodes, &n, &mut out);
+    }
     out.push_str("\n/* TM packets: SPID. */\n");
     for e in set.entries(Kind::TmPacket) {
         let n = if e.alias.is_empty() { format!("SPID_{}", e.name) } else { ident(&e.alias).to_uppercase() };
@@ -378,6 +547,19 @@ pub fn c_header(set: &MibSet, profile: &Profile, base: OffsetBase) -> String {
     }
     out.push_str("\n#endif /* FENIX_MIB_H */\n");
     out
+}
+
+/// A C header's defines for each repeated group of a telecommand: its
+/// repeater, how many elements it repeats and its span once.
+fn c_groups(layout: &Layout, nodes: &[Node], tc: &str, out: &mut String) {
+    for n in nodes {
+        if let Node::Group { repeater, body } = n {
+            let rep = ident(layout.elements[*repeater].label()).to_uppercase();
+            let span = layout.static_extent(body).map(|(a, b)| b - a).unwrap_or(0);
+            out.push_str(&format!("#define TC_{tc}_{rep}_GROUP_ELEMENTS {}\n#define TC_{tc}_{rep}_GROUP_SPAN_BITS {span}\n", layout.elements[*repeater].group));
+            c_groups(layout, body, tc, out);
+        }
+    }
 }
 
 /// A Python module: telecommands encoded to packets (with the project's
@@ -418,7 +600,9 @@ def _get(data, at, n):
     return v
 
 
-# name -> (apid, service, subtype, ack, [(argument or None, bit, bits, fixed value, {{text: raw}})])
+# name -> (apid, service, subtype, ack, elements): an element is
+# (argument or None, bit, bits, fixed value, {{text: raw}}); a repeated group is
+# {{"name": its repeater, "repeater": that element, "span": its bits once, "body": [elements]}}.
 TELECOMMANDS = {{
 "#,
         if pus_c { "True" } else { "False" },
@@ -427,18 +611,8 @@ TELECOMMANDS = {{
     for (i, e) in set.entries(Kind::Telecommand).iter().enumerate() {
         let tc = DefRef { kind: Kind::Telecommand, index: i };
         let r = &e.row;
-        let els: Vec<String> = detail::tc_elements(set, tc)
-            .into_iter()
-            .filter_map(|el| {
-                let (bit, bits) = (el.bit?, el.bits?);
-                let texts = match el.cal.map(|c| detail::calibration(set, c)) {
-                    Some(CalBody::Texts(t)) => t.iter().filter_map(|(raw, text)| Some(format!("{:?}: {}", text, parse_int(raw)?))).collect::<Vec<_>>().join(", "),
-                    _ => String::new(),
-                };
-                let name = if el.fixed.is_some() || el.name.is_empty() { "None".to_string() } else { format!("{:?}", el.name) };
-                Some(format!("({name}, {bit}, {bits}, {}, {{{texts}}})", el.fixed.as_deref().and_then(parse_int).unwrap_or(0)))
-            })
-            .collect();
+        let layout = Layout::of(set, tc);
+        let els = python_elements(set, &layout, &layout.nodes);
         out.push_str(&format!(
             "    {:?}: ({}, {}, {}, {}, [{}]),\n",
             e.name,
@@ -469,14 +643,44 @@ TELECOMMANDS = {{
         r#"]
 
 
+def _value(element, args):
+    arg, bit, bits, fixed, texts = element
+    value = fixed if arg is None else args[arg]
+    if isinstance(value, str):
+        value = texts[value] if value in texts else int(value, 0)
+    return int(value)
+
+
+def _write(app, elements, args, shift):
+    # Positions are the MIB's, every group there once: what follows a
+    # group moves by its other repetitions, or back by it when it's not there.
+    for el in elements:
+        if isinstance(el, dict):
+            leaf, span, body = el["repeater"], el["span"], el["body"]
+            if leaf[0] is None:
+                count = leaf[3]
+                reps = args.get(el["name"]) or [{}] * count
+            else:
+                reps = args.get(leaf[0]) or []
+                count = len(reps)
+            if len(reps) != count:
+                raise ValueError("%s repeats %d times, not %d" % (el["name"], count, len(reps)))
+            _put(app, leaf[1] + shift, leaf[2], count)
+            if count == 0:
+                shift -= span
+            for k, rep in enumerate(reps):
+                after = _write(app, body, rep, shift)
+                shift = after + span if k < count - 1 else after
+        else:
+            _put(app, el[1] + shift, el[2], _value(el, args))
+    return shift
+
+
 def encode(name, seq=0, **args):
+    """A group's repeater takes a list of dicts, one per repetition, with that repetition's arguments."""
     apid, service, subtype, ack, elements = TELECOMMANDS[name]
     app = bytearray()
-    for arg, bit, bits, fixed, texts in elements:
-        value = fixed if arg is None else args[arg]
-        if isinstance(value, str):
-            value = texts[value] if value in texts else int(value, 0)
-        _put(app, bit, bits, int(value))
+    _write(app, elements, args, 0)
     if PUS_C:
         head = bytes([0x20 | (ack & 0xF), service, subtype, SOURCE_ID >> 8, SOURCE_ID & 0xFF])
     else:
@@ -502,6 +706,60 @@ def decode(packet):
     out
 }
 
+/// The status texts of a TC parameter with their raw values, as a
+/// Python dict's body.
+fn python_texts(set: &MibSet, el: &crate::layout::Element) -> String {
+    let Some(t) = &el.ty else { return String::new() };
+    match t.status.map(|c| detail::calibration(set, c)) {
+        Some(CalBody::Texts(texts)) => texts.iter().filter_map(|(raw, text)| Some(format!("{:?}: {}", text, values::parse_raw_int(raw, t.radix)?))).collect::<Vec<_>>().join(", "),
+        _ => String::new(),
+    }
+}
+
+/// `nodes` as the Python module's elements: a tuple each, a dict for a
+/// repeated group.
+fn python_elements(set: &MibSet, layout: &Layout, nodes: &[Node]) -> Vec<String> {
+    let leaf = |i: usize| -> Option<String> {
+        let el = &layout.elements[i];
+        let bit = el.bit?;
+        let name = if el.asked() { format!("{:?}", el.name) } else { "None".to_string() };
+        Some(format!("({name}, {bit}, {}, {}, {{{}}})", el.bits, layout.fixed_raw_value(set, i).unwrap_or(0), python_texts(set, el)))
+    };
+    nodes
+        .iter()
+        .filter_map(|n| match n {
+            Node::Leaf(i) => leaf(*i),
+            Node::Group { repeater, body } => {
+                let span = layout.static_extent(body).map(|(a, b)| b - a).unwrap_or(0);
+                Some(format!("{{\"name\": {:?}, \"repeater\": {}, \"span\": {span}, \"body\": [{}]}}", layout.elements[*repeater].label(), leaf(*repeater)?, python_elements(set, layout, body).join(", ")))
+            }
+        })
+        .collect()
+}
+
+/// `nodes` as the Lua dissector's elements: `{name, bit, bits}`, and a
+/// group's repeater `{name, bit, bits, span, {body}}`.
+fn lua_elements(layout: &Layout, nodes: &[Node]) -> Vec<String> {
+    nodes
+        .iter()
+        .filter_map(|n| {
+            let (i, body) = match n {
+                Node::Leaf(i) => (*i, None),
+                Node::Group { repeater, body } => (*repeater, Some(body)),
+            };
+            let el = &layout.elements[i];
+            let bit = el.bit?;
+            Some(match body {
+                None => format!("{{\"{}\", {bit}, {}}}", ident(el.label()), el.bits.min(64)),
+                Some(body) => {
+                    let span = layout.static_extent(body).map(|(a, b)| b - a).unwrap_or(0);
+                    format!("{{\"{}\", {bit}, {}, {span}, {{ {} }}}}", ident(el.label()), el.bits.min(64), lua_elements(layout, body).join(", "))
+                }
+            })
+        })
+        .collect()
+}
+
 /// An ICD in Markdown: every telecommand with its parameters, every
 /// packet with its layout.
 pub fn icd(set: &MibSet, profile: &Profile, base: OffsetBase) -> String {
@@ -521,7 +779,10 @@ pub fn icd(set: &MibSet, profile: &Profile, base: OffsetBase) -> String {
                 Some(v) => format!("fixed {v}"),
                 None => el.allowed.clone(),
             };
-            out.push_str(&format!("| {} | {bits} | {} | {} | {} |\n", if el.name.is_empty() { "spare" } else { &el.name }, el.type_name, value.replace('|', "/"), el.description.replace('|', "/")));
+            let value = if el.group > 0 { format!("{value} · repeats the next {}", el.group) } else { value };
+            let value = if el.fixed.is_none() && !el.default.is_empty() && el.group == 0 { format!("{value} (default {})", el.default).trim().to_string() } else { value };
+            let name = format!("{}{}", "↳ ".repeat(el.within.len()), if el.name.is_empty() { "spare" } else { &el.name });
+            out.push_str(&format!("| {name} | {bits} | {} | {} | {} |\n", el.type_name, value.replace('|', "/"), el.description.replace('|', "/")));
         }
     }
     out.push_str("\n## Telemetry packets\n");
@@ -545,15 +806,36 @@ pub fn vectors(set: &MibSet, profile: &Profile) -> String {
     let mut out = stamp(set, "#");
     for (i, e) in set.entries(Kind::Telecommand).iter().enumerate() {
         let tc = DefRef { kind: Kind::Telecommand, index: i };
-        let args: Vec<(String, String)> = crate::telecommand::tc_parameters(set.index(), &e.row)
-            .into_iter()
-            .filter(|p| !p.fixed && !p.name.is_empty())
-            .map(|p| {
-                let d = crate::telecommand::parameter_domain(set.index(), &p);
-                let v = if !d.default.is_empty() { d.default } else if let Some(a) = d.aliases.first() { a.clone() } else if let Some((lo, _)) = d.ranges.first() { format!("{lo}") } else { "0".into() };
-                (p.name, v)
-            })
-            .collect();
+        let layout = Layout::of(set, tc);
+        // Each value its default, else its first status text or allowed
+        // value; a group once.
+        let value = |i: usize| -> String {
+            let el = &layout.elements[i];
+            let d = layout.default(set, i);
+            if !d.is_empty() {
+                return d;
+            }
+            let Some(t) = &el.ty else { return "0".into() };
+            if let Some(a) = t.aliases(set).first() {
+                return a.clone();
+            }
+            if el.is_repeater() {
+                return "1".into();
+            }
+            if t.ptc == 7 {
+                // Octets: as many zeros as the element is wide.
+                return "00".repeat(el.bits / 8);
+            }
+            if t.names_a_parameter() {
+                // A parameter id: the MIB's first, so what's deduced from it builds.
+                if let Some(pid) = set.entries(Kind::TmParam).iter().filter(|p| p.root == e.root).find_map(|p| parse_int(p.row.clean("PCF_PID"))) {
+                    return pid.to_string();
+                }
+            }
+            values::allowed(set, t).first().map(|a| a.min.to_string()).unwrap_or_else(|| "0".into())
+        };
+        let fields = layout.fields(set, |f| values::parse_number(&value(f.element)).unwrap_or(0.0).max(0.0) as usize);
+        let args: Vec<(String, String)> = fields.iter().map(|f| (layout.elements[f.element].name.clone(), value(f.element))).collect();
         match packets::encode_tc(set, tc, &args, profile, 0) {
             Ok(p) => out.push_str(&format!("{:<12} {}\n", e.name, fenix_ccsds::field::hex(&p.bytes))),
             Err(why) => out.push_str(&format!("{:<12} # {why}\n", e.name)),
@@ -602,7 +884,7 @@ mod tests {
         assert!(py.contains("\"ZTC08101\": (1010, 8, 1,") && py.contains("def encode(name, seq=0, **args):") && py.contains("PUS_C = True\n"));
         run_python(&generate("python", &crate::packets::tests::mission(), &p, b).unwrap());
         let icd = generate("icd", &set, &p, b).unwrap();
-        assert!(icd.contains("### ZTC08101 -- Set heater control mode") && icd.contains("| PTH00102 | 16+8 | enum8 | OFF ON AUTO |"), "{icd}");
+        assert!(icd.contains("### ZTC08101 -- Set heater control mode") && icd.contains("| PTH00102 | 16+8 | enum8 | OFF ON AUTO (default AUTO) |"), "{icd}");
         let v = generate("vectors", &set, &p, b).unwrap();
         assert!(v.lines().any(|l| l.starts_with("ZTC08101")), "{v}");
         assert!(generate("nope", &set, &p, b).is_none());
@@ -628,6 +910,82 @@ mod tests {
         let text = String::from_utf8_lossy(&out.stdout);
         assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
         assert_eq!(text.lines().collect::<Vec<_>>(), ["1bf2c007000929080100000c03023fa3", "30211 3000 2600", "None"]);
+    }
+
+    fn args(a: &[(&str, &str)]) -> Vec<(String, String)> {
+        a.iter().map(|(n, v)| (n.to_string(), v.to_string())).collect()
+    }
+
+    /// The arguments `fields` asks for, with the counts in `counts` and
+    /// every other value `value`.
+    fn labels(set: &MibSet, l: &Layout, counts: &[(&str, usize)]) -> Vec<String> {
+        l.fields(set, |f| counts.iter().find(|(k, _)| *k == f.key(l)).map(|(_, n)| *n).unwrap_or(0)).iter().map(|f| f.label(l)).collect()
+    }
+
+    #[test]
+    fn repeated_groups_go_to_xtce_and_come_back_the_same() {
+        let set = crate::layout::tests::groups();
+        let p = Profile::default();
+        let x = xtce(&set, &p, OffsetBase::AfterHeaders);
+        assert!(roxmltree::Document::parse(&x).is_ok(), "well-formed XML");
+        assert!(x.contains("<xtce:CommandContainerSet>") && x.contains("<xtce:ArgumentInstanceRef argumentRef=\"N\"/>"), "{x}");
+        let dir = crate::set::tests::temp_root("xtce-groups");
+        let file = dir.path.join("groups.xml");
+        std::fs::write(&file, &x).unwrap();
+        let back = MibSet::load(vec![crate::MibRoot { label: "X".into(), path: file }], None);
+        assert!(back.problems().is_empty(), "{:?}", back.problems());
+        type Case<'a> = (&'a str, Vec<(&'a str, &'a str)>, Vec<(&'a str, usize)>);
+        let cases: [Case; 3] = [
+            ("TC1", vec![("N", "2"), ("A", "1"), ("A", "2"), ("C", "9")], vec![("N@", 2)]),
+            ("TC2", vec![("A", "5"), ("M", "OFF")], vec![]),
+            ("TC3", vec![("N", "2"), ("N2", "1"), ("A", "5"), ("N2", "2"), ("A", "6"), ("A", "7"), ("C", "1")], vec![("N@", 2), ("N2@1", 1), ("N2@2", 2)]),
+        ];
+        for (name, a, counts) in cases {
+            let ours = Layout::of(&set, set.find(Kind::Telecommand, 0, name).unwrap());
+            let theirs = Layout::of(&back, back.find(Kind::Telecommand, 0, name).unwrap());
+            assert_eq!(theirs.nodes, ours.nodes, "{name}");
+            assert!(theirs.problems.is_empty(), "{name}: {:?}", theirs.problems);
+            assert_eq!(labels(&back, &theirs, &counts), labels(&set, &ours, &counts), "{name}");
+            let a = args(&a);
+            assert_eq!(theirs.encode(&back, &a, &p).unwrap().0, ours.encode(&set, &a, &p).unwrap().0, "{name}");
+        }
+        std::fs::remove_dir_all(&dir.path).ok();
+    }
+
+    #[test]
+    fn generators_repeat_groups() {
+        let set = crate::layout::tests::groups();
+        let p = Profile::default();
+        let b = OffsetBase::AfterHeaders;
+        let lua = generate("wireshark", &set, &p, b).unwrap();
+        assert!(lua.contains("{\"N\", 0, 8, 24, { {\"A\", 8, 8}, {\"spare\", 16, 8}, {\"B\", 24, 8} }}") && lua.contains("for k = 1, n do"), "{lua}");
+        let c = generate("c", &set, &p, b).unwrap();
+        assert!(c.contains("#define TC_TC1_N_GROUP_ELEMENTS 3") && c.contains("#define TC_TC1_N_GROUP_SPAN_BITS 24") && c.contains("#define TC_TC1_C_BIT 32"), "{c}");
+        let icd = generate("icd", &set, &p, b).unwrap();
+        assert!(icd.contains("repeats the next 3") && icd.contains("| ↳ A |"), "{icd}");
+        let v = generate("vectors", &set, &p, b).unwrap();
+        assert!(!v.contains('#') || v.lines().skip(1).all(|l| !l.contains('#')), "every TC builds: {v}");
+        let py = generate("python", &set, &p, b).unwrap();
+        assert!(py.contains("\"repeater\":") && py.contains("for k, rep in enumerate(reps):"));
+        // The module builds what encode_tc does.
+        let dir = std::env::temp_dir().join(format!("fenix-mib-python-groups-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("mib.py"), &py).unwrap();
+        let script = "import mib\n\
+            print(mib.encode('TC1', N=[{'A': 1}, {'A': 2}], C=9).hex())\n\
+            print(mib.encode('TC1', N=[], C=9).hex())\n\
+            print(mib.encode('TC3', N=[{'N2': [{'A': 5}]}, {'N2': [{'A': 6}, {'A': 7}]}], C=1).hex())\n";
+        let Ok(out) = std::process::Command::new("python").arg("-c").arg(script).current_dir(&dir).output() else { return };
+        if !out.status.success() && String::from_utf8_lossy(&out.stderr).contains("not found") {
+            return;
+        }
+        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        let want: Vec<String> = [("TC1", vec![("N", "2"), ("A", "1"), ("A", "2"), ("C", "9")]), ("TC1", vec![("N", "0"), ("C", "9")]), ("TC3", vec![("N", "2"), ("N2", "1"), ("A", "5"), ("N2", "2"), ("A", "6"), ("A", "7"), ("C", "1")])]
+            .into_iter()
+            .map(|(name, a)| fenix_ccsds::field::hex(&packets::encode_tc(&set, set.find(Kind::Telecommand, 0, name).unwrap(), &args(&a), &p, 0).unwrap().bytes).replace(' ', "").to_lowercase())
+            .collect();
+        assert_eq!(String::from_utf8_lossy(&out.stdout).lines().map(str::to_string).collect::<Vec<_>>(), want);
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
