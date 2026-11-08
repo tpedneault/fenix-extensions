@@ -17,26 +17,56 @@ you wrote, and generate code from it.
 - **A definition's page.** Every name on it is a link: `Enter` follows
   it, and `H`/`L` (or Backspace) go back and forward.
 - **The insert form** (`SPC k i`, or `i` on a telecommand).
-  - Every argument at once, each with its default, type, unit and what
-    it may be.
+  - Every argument at once (`CDF_ELTYPE` `E`), each with its default
+    (`CDF_VALUE`, else `CPC_DEFVAL`), type, unit and what it may be.
+  - A counter (`CDF_GRPSIZE`) repeats the elements after it as often as
+    its value says, each repetition numbered (`PT[2]`); `+`/`-` change
+    the counter of the group the cursor is in.
+  - `v` fills the form from the MIB's value sets, its default set
+    first; a telecommand sent only while the TM shows something
+    (`PTV`) says so.
   - The command is written with the project's templates, and a value
     outside what the MIB allows is flagged beside it.
   - `I` inserts it where your cursor was. `SPC k e` reads the call on
     the cursor's line back into the form, and inserting puts it back in
     its place.
-  - `b` shows the packet's bytes, `y` copies them and `D` decodes them
-    (with the CCSDS extension).
+  - `b` shows the packet's bytes and where each value went, `y` copies
+    them and `D` decodes them (with the CCSDS extension).
 - **In your scripts**, through a language server:
   - `K` on a MIB name shows its card, and `gd` opens its page.
   - Completion offers telecommands and parameters.
   - Telecommand calls the MIB disagrees with are underlined: unknown
-    mnemonics, and missing or out-of-range arguments
-    (`mib.check_scripts`).
+    mnemonics, missing or out-of-range arguments, and repetitions that
+    don't match their counter (`mib.check_scripts`).
   - `mib.editor_files` narrows which files; none listed means every
     file.
+- **Command sequences** (`SPC k q`): a sequence inserted as the
+  telecommands it sends, with its formal parameters' defaults, its
+  timing and comments as comments.
+- **Two MIBs compared** (`SPC k D`): what was added, removed and changed
+  between two of the project's MIBs, as Markdown in `generated/`.
 - **Generated from the MIB** (`SPC k g`): XTCE, a Wireshark dissector, C,
   Python, an ICD, or TC test vectors, written to the project's
-  `generated/`.
+  `generated/` -- repeated groups included.
+
+## How telecommands are read
+
+As the SCOS-2000 Database Import ICD lays them out:
+
+- `CDF_ELTYPE` says what's asked: `E` elements are, `F` (a fixed
+  parameter) and `A` (a fixed area) aren't. An `E` element's
+  `CDF_VALUE` is its default, read raw or engineering as `CDF_INTER`
+  says; `D`/`T` take it from the TM parameter `CDF_TMID` when it's sent.
+- A counter's `CDF_GRPSIZE` counts every element after it in its group
+  -- fixed and spare ones, and a nested group's elements too.
+- `CDF_BIT` places each element as if every group were there once:
+  with more repetitions, what follows moves by them; with none, back by
+  the group's length. A variable-length value moves what follows by how
+  much longer it is than `CDF_ELLEN`.
+- Raw values are in `CPC_RADIX`'s radix; ranges in raw or engineering
+  units as `PRF_INTER` says; a `PRV` row with no maximum allows one
+  value. A deduced parameter (`PTC 11`) takes the type of the TM
+  parameter an earlier argument (`CPC_CATEG` `P`) names.
 
 ## Which MIBs
 
@@ -63,10 +93,12 @@ keeps those; the MIB reads them.
 | `SPC k e` | `mib.edit_call` | The call on this line, in the insert form |
 | `SPC k b` | `mib.copy_bytes` | The call on this line, as its packet's bytes |
 | `SPC k g` | `mib.generate` | Generate from the MIB |
+| `SPC k q` | `mib.insert_sequence` | A command sequence, as the telecommands it sends |
+| `SPC k D` | `mib.diff` | Two of the project's MIBs, compared |
 | `SPC k r` | `mib.reload` | Read the MIBs again |
 | `SPC k ,` | `mib.settings` | This project's settings |
 
-In a Tcl file, `SPC m` has `i`, `e`, `t`, `k`, `p`, `c`, `m` and `r`,
+In a Tcl file, `SPC m` has `i`, `e`, `q`, `t`, `k`, `p`, `c`, `m` and `r`,
 beside the Tcl extension's keys.
 
 ## The project doctor
@@ -87,8 +119,10 @@ a definition by name -- a telecommand's mnemonic, a TM packet's SPID or
 name, a calibration's id -- or by the words of its description, as `/`
 on the MIB page finds them (`kind` narrows it to one kind). It answers
 what the definition's page shows, as JSON: a telecommand's PUS type,
-APID and arguments, each with its bits, type, default, what it may be
-and its calibration; a parameter's type, unit, calibration, limits and
+APID and arguments, each with its kind (editable, fixed, area), bits,
+type, default, what it may be, its calibration and the groups it
+repeats in, and its value sets, pre-transmission validation and
+verification stages; a parameter's type, unit, calibration, limits and
 the packets that carry it; a packet's parameters by position; a
 calibration's points, texts, ranges or coefficients. When words match
 several, the best is answered in full and the next twenty are listed.
