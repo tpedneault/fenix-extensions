@@ -26,6 +26,7 @@ mod parse;
 pub mod query;
 mod row;
 pub mod schema;
+pub mod sequence;
 mod set;
 pub mod telecommand;
 pub mod types;
