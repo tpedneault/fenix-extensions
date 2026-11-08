@@ -378,6 +378,11 @@ fn raw_of(d: &Domain, text: &str, profile: &Profile) -> Result<Raw, String> {
             };
             let bits = t.bits().unwrap_or(64);
             match t.ptc {
+                // Deduced: its type is only known from the argument naming
+                // a parameter; any number for now.
+                11 if number.fract() != 0.0 => Ok(Raw::Real(number)),
+                11 if number < 0.0 => Ok(Raw::Signed(number as i64)),
+                11 => Ok(Raw::Unsigned(number as u64)),
                 5 => Ok(Raw::Real(number)),
                 4 => {
                     let n = number.round() as i64;

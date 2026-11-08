@@ -68,7 +68,7 @@ fn placed(set: &MibSet, spid: DefRef, profile: &Profile, base: OffsetBase) -> Ve
         .collect()
 }
 
-fn xtce_type(ptc: &str, pfc: &str, name: &str, unit: &str, cal: Option<(DefRef, &MibSet)>, arg: bool) -> String {
+fn xtce_type(ptc: &str, pfc: &str, name: &str, unit: &str, cal: Option<(DefRef, &MibSet)>, arg: bool, radix: crate::values::Radix) -> String {
     let t = types::decode(ptc, pfc);
     let bits = t.bits.unwrap_or(8);
     let kind = if arg { "Argument" } else { "Parameter" };
@@ -81,13 +81,15 @@ fn xtce_type(ptc: &str, pfc: &str, name: &str, unit: &str, cal: Option<(DefRef, 
                     .iter()
                     .filter_map(|(raw, text)| {
                         let (lo, hi) = raw.split_once("..").unwrap_or((raw, raw));
-                        let (lo, hi) = (parse_int(lo)?, parse_int(hi)?);
+                        // A TC status's raw values are in its parameter's radix.
+                        let read = |v: &str| crate::values::parse_raw_int(v, radix).map(|n| n as i64).or_else(|| parse_int(v));
+                        let (lo, hi) = (read(lo)?, read(hi)?);
                         Some(if lo == hi { format!("<xtce:Enumeration value=\"{lo}\" label=\"{}\"/>", xml(text)) } else { format!("<xtce:Enumeration value=\"{lo}\" maxValue=\"{hi}\" label=\"{}\"/>", xml(text)) })
                     })
                     .collect();
                 return format!("<xtce:Enumerated{kind}Type name=\"{name}\">{units}{}<xtce:EnumerationList>{list}</xtce:EnumerationList></xtce:Enumerated{kind}Type>", enc_int(false));
             }
-            CalBody::Points(points) if !arg => {
+            CalBody::Points(points) => {
                 let pts: String = points.iter().map(|(r, e)| format!("<xtce:SplinePoint raw=\"{}\" calibrated=\"{}\"/>", xml(r), xml(e))).collect();
                 return format!(
                     "<xtce:Float{kind}Type name=\"{name}\">{units}{}<xtce:DefaultCalibrator><xtce:SplineCalibrator>{pts}</xtce:SplineCalibrator></xtce:DefaultCalibrator></xtce:IntegerDataEncoding></xtce:Float{kind}Type>",
@@ -162,14 +164,18 @@ pub fn xtce_as(set: &MibSet, profile: &Profile, base: OffsetBase, version: XtceV
     for (i, e) in set.entries(Kind::TmParam).iter().enumerate() {
         let def = DefRef { kind: Kind::TmParam, index: i };
         let cal = detail::tm_calibration(set, def).map(|c| (c, set));
-        out.push_str(&format!("      {}\n", xtce_type(e.row.clean("PCF_PTC"), e.row.clean("PCF_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("PCF_UNIT"), cal, false)));
+        out.push_str(&format!("      {}\n", xtce_type(e.row.clean("PCF_PTC"), e.row.clean("PCF_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("PCF_UNIT"), cal, false, crate::values::Radix::Decimal)));
     }
     out.push_str("    </xtce:ParameterTypeSet>\n    <xtce:ParameterSet>\n");
     for h in ["CCSDS_APID", "PUS_SERVICE", "PUS_SUBTYPE"] {
         out.push_str(&format!("      <xtce:Parameter name=\"{h}\" parameterTypeRef=\"{h}_type\"/>\n"));
     }
     for e in set.entries(Kind::TmParam) {
-        out.push_str(&format!("      <xtce:Parameter name=\"{}\" parameterTypeRef=\"{}_type\"><xtce:LongDescription>{}</xtce:LongDescription></xtce:Parameter>\n", xml(&e.name), xml(&e.name), xml(&e.description)));
+        let pid = match e.row.clean("PCF_PID") {
+            "" => String::new(),
+            pid => format!("<xtce:AncillaryDataSet><xtce:AncillaryData name=\"SCOS_PID\">{}</xtce:AncillaryData></xtce:AncillaryDataSet>", xml(pid)),
+        };
+        out.push_str(&format!("      <xtce:Parameter name=\"{}\" parameterTypeRef=\"{}_type\"><xtce:LongDescription>{}</xtce:LongDescription>{pid}</xtce:Parameter>\n", xml(&e.name), xml(&e.name), xml(&e.description)));
     }
     out.push_str("    </xtce:ParameterSet>\n    <xtce:ContainerSet>\n");
     out.push_str("      <xtce:SequenceContainer name=\"CCSDS_Packet\" abstract=\"true\"><xtce:EntryList>");
@@ -201,8 +207,22 @@ pub fn xtce_as(set: &MibSet, profile: &Profile, base: OffsetBase, version: XtceV
     out.push_str("  <xtce:CommandMetaData>\n    <xtce:ArgumentTypeSet>\n");
     for (i, e) in set.entries(Kind::TcParam).iter().enumerate() {
         let def = DefRef { kind: Kind::TcParam, index: i };
-        let cal = detail::tc_param_calibrations(set, def).into_iter().find(|c| set.get(*c).cal == Some(CalKind::Status)).map(|c| (c, set));
-        out.push_str(&format!("      {}\n", xtce_type(e.row.clean("CPC_PTC"), e.row.clean("CPC_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("CPC_UNIT"), cal, true)));
+        let cals = detail::tc_param_calibrations(set, def);
+        let pick = |k: CalKind| cals.iter().copied().find(|c| set.get(*c).cal == Some(k));
+        let cal = pick(CalKind::Status).or_else(|| pick(CalKind::TcNumeric)).map(|c| (c, set));
+        let mut ty = xtce_type(e.row.clean("CPC_PTC"), e.row.clean("CPC_PFC"), &format!("{}_type", xml(&e.name)), e.row.clean("CPC_UNIT"), cal, true, crate::values::Radix::of(e.row.clean("CPC_RADIX")));
+        // The MIB's own codes, for a reader that knows them (Fenix's):
+        // XTCE has no deduced type, nor SCOS's times and lengths exactly.
+        let mut anc = format!("<xtce:AncillaryData name=\"SCOS_PTC\">{}</xtce:AncillaryData><xtce:AncillaryData name=\"SCOS_PFC\">{}</xtce:AncillaryData>", xml(e.row.clean("CPC_PTC")), xml(e.row.clean("CPC_PFC")));
+        for (key, field) in [("SCOS_CATEG", "CPC_CATEG"), ("SCOS_RADIX", "CPC_RADIX")] {
+            if !e.row.clean(field).is_empty() {
+                anc.push_str(&format!("<xtce:AncillaryData name=\"{key}\">{}</xtce:AncillaryData>", xml(e.row.clean(field))));
+            }
+        }
+        if let Some(at) = ty.find('>') {
+            ty.insert_str(at + 1, &format!("<xtce:AncillaryDataSet>{anc}</xtce:AncillaryDataSet>"));
+        }
+        out.push_str(&format!("      {ty}\n"));
     }
     out.push_str("    </xtce:ArgumentTypeSet>\n    <xtce:MetaCommandSet>\n");
     let mut group_containers: Vec<String> = Vec::new();

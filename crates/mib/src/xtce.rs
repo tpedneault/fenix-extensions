@@ -150,6 +150,10 @@ struct Ty {
     dyn_count: Option<String>,
     /// An aggregate's members: (name, type).
     members: Vec<(String, String)>,
+    /// What a type exported from a MIB keeps of it that XTCE can't say:
+    /// its `CPC_CATEG` and `CPC_RADIX` (its own ancillary data).
+    categ: String,
+    radix: String,
 }
 
 fn pfc_for_int(bits: usize) -> u32 {
@@ -339,6 +343,15 @@ fn read_type(n: Node) -> Ty {
             t.alarms.push((level, lo.to_string(), hi.to_string()));
         }
     }
+    // A MIB's own codes, when the file was written from one: they say
+    // exactly what XTCE's types only come near (a deduced value, times,
+    // variable-length octets and strings).
+    let anc = |key: &str| child(n, "AncillaryDataSet").and_then(|s| children(s, "AncillaryData").find(|a| a.attribute("name") == Some(key))).and_then(|a| a.text()).map(|t| t.trim().to_string());
+    if let (Some(ptc), Some(pfc)) = (anc("SCOS_PTC").and_then(|v| v.parse().ok()), anc("SCOS_PFC").and_then(|v| v.parse().ok())) {
+        (t.ptc, t.pfc, t.sized) = (ptc, pfc, true);
+    }
+    t.categ = anc("SCOS_CATEG").unwrap_or_default();
+    t.radix = anc("SCOS_RADIX").unwrap_or_default();
     t
 }
 
@@ -543,7 +556,13 @@ impl CmdEnv<'_, '_, '_, '_> {
             let id = format!("PAF{:05}", self.next_cal());
             self.b.push("paf", &[("PAF_NUMBR", id.clone()), ("PAF_DESCR", arg.to_string()), ("PAF_RAWFMT", "U".into()), ("PAF_NALIAS", t.enums.len().to_string())], line);
             for (lo, _, text) in &t.enums {
-                self.b.push("pas", &[("PAS_NUMBR", id.clone()), ("PAS_ALTXT", text.clone()), ("PAS_ALVAL", lo.to_string())], line);
+                // In the radix the parameter says its raw values are in.
+                let raw = match t.radix.as_str() {
+                    "H" => format!("{lo:X}"),
+                    "O" => format!("{lo:o}"),
+                    _ => lo.to_string(),
+                };
+                self.b.push("pas", &[("PAS_NUMBR", id.clone()), ("PAS_ALTXT", text.clone()), ("PAS_ALVAL", raw)], line);
             }
             refs.push(("CPC_PAFREF", id));
         } else if !t.points.is_empty() {
@@ -570,6 +589,8 @@ impl CmdEnv<'_, '_, '_, '_> {
             ("CPC_UNIT", t.unit.clone()),
             ("CPC_DEFVAL", initial.clone().unwrap_or_default()),
             ("CPC_ENDIAN", if t.little_endian { "L".into() } else { String::new() }),
+            ("CPC_CATEG", t.categ.clone()),
+            ("CPC_RADIX", t.radix.clone()),
         ];
         v.extend(refs);
         self.b.push("cpc", &v, line);
@@ -837,6 +858,8 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
                     ("PCF_NATUR", natur.into()),
                     ("PCF_CURTX", curtx),
                     ("PCF_ENDIAN", if t.little_endian { "L".into() } else { String::new() }),
+                    // Its on-board id, when the file was written from a MIB.
+                    ("PCF_PID", child(n, "AncillaryDataSet").and_then(|s| children(s, "AncillaryData").find(|a| a.attribute("name") == Some("SCOS_PID"))).and_then(|a| a.text()).unwrap_or("").trim().to_string()),
                 ],
                 line_of(n),
             );

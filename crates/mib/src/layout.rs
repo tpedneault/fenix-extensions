@@ -439,13 +439,18 @@ impl Layout {
 
     fn write_element(&self, st: &mut Writer, i: usize, path: &[usize], shift: i64) -> Result<(i64, Raw), String> {
         let el = &self.elements[i];
+        let mut deduced_bits = None;
         let raw = if el.asked() {
             let (name, value) = st.args.get(st.next).ok_or_else(|| format!("no value for {}", Field { element: i, path: path.to_vec() }.label(self)))?;
             if name != &el.name {
                 return Err(format!("expected {}, got {name}", Field { element: i, path: path.to_vec() }.label(self)));
             }
             st.next += 1;
-            self.domain_for(st, el)?.to_raw(value, st.profile)?
+            let d = self.domain_for(st, el)?;
+            if d.ty.deduced() || el.ty.as_ref().is_some_and(ParamType::deduced) {
+                deduced_bits = d.ty.bits();
+            }
+            d.to_raw(value, st.profile)?
         } else {
             self.fixed_raw(st.set, el, st.profile)?
         };
@@ -481,7 +486,8 @@ impl Layout {
                 el.bits.max(len * 8)
             }
             (None, _) => {
-                let width = el.bits;
+                // A deduced value is as wide as the type it takes.
+                let width = deduced_bits.unwrap_or(el.bits);
                 let v = match raw {
                     Raw::Unsigned(v) => v,
                     Raw::Signed(v) => v as u64,
@@ -576,7 +582,7 @@ impl Layout {
                 (if t.ptc == 8 { Raw::Text(String::from_utf8_lossy(&b).trim_end_matches('\0').to_string()) } else { Raw::Bytes(b) }, el.bits)
             }
             _ => {
-                let width = el.bits;
+                let width = if el.ty.as_ref().is_some_and(ParamType::deduced) { t.as_ref().and_then(ParamType::bits).unwrap_or(el.bits) } else { el.bits };
                 let Some(v) = bits::get(st.app, at, width.min(64)) else { return fail(st, "past the end of the packet") };
                 let raw = match t.as_ref().map(|t| t.ptc) {
                     Some(4) => Raw::Signed(bits::signed(v, width)),
