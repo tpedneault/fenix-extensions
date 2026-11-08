@@ -18,6 +18,7 @@
 pub mod checks;
 pub mod commanding;
 pub mod detail;
+pub mod diff;
 pub mod generate;
 pub mod layout;
 pub mod mission;
