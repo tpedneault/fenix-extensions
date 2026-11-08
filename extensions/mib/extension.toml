@@ -93,6 +93,15 @@ id = "mib.edit_call"
 title = "MIB: edit the telecommand call on this line in the insert form"
 
 [[contributes.commands]]
+id = "mib.insert_sequence"
+title = "MIB: insert a command sequence as the telecommands it sends"
+
+[[contributes.commands]]
+id = "mib.diff"
+title = "MIB: compare two of the project's MIBs, definition by definition"
+external = true
+
+[[contributes.commands]]
 id = "mib.reload"
 title = "MIB: read the project's MIBs again"
 

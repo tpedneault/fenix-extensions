@@ -94,6 +94,10 @@ enum Asked {
     Insert,
     /// Something to generate.
     Generate,
+    /// A command sequence, to insert as its telecommands.
+    Sequence,
+    /// Two MIBs, to compare.
+    Diff,
 }
 
 /// Everything it keeps between calls.
@@ -403,6 +407,8 @@ impl Mib {
             "mib.settings" => open_settings(true),
             "mib.copy_bytes" => self.cmd_copy_bytes(),
             "mib.generate" => self.cmd_generate(),
+            "mib.insert_sequence" => self.cmd_insert_sequence(),
+            "mib.diff" => self.cmd_diff(),
             other => return Err(format!("no command {other}")),
         }
         Ok(())
@@ -465,7 +471,7 @@ impl Mib {
             error("no telecommand from this project's MIBs on this line");
             return None;
         };
-        let names: Vec<String> = fenix_mib::telecommand::tc_parameters(set.index(), &set.get(tc).row).into_iter().filter(|p| !p.fixed).map(|p| p.name).collect();
+        let names: Vec<String> = fenix_mib::telecommand::tc_parameters(set.index(), &set.get(tc).row).into_iter().filter(|p| !p.fixed && !p.name.is_empty()).map(|p| p.name).collect();
         let args = mib_form::read_arguments(&line, &set.get(tc).name, &names, &templates());
         Some(Call { set, tc, here, args })
     }
@@ -502,6 +508,83 @@ impl Mib {
         let items: Vec<PickerItem> = fenix_mib::generate::KINDS.iter().enumerate().map(|(i, (_, file, what))| PickerItem::new(format!("{file:<18} {what}"), i.to_string())).collect();
         let id = api::pick("Generate from the MIB", &items);
         self.asked.insert(id, Asked::Generate);
+    }
+
+    /// `SPC k q`: a command sequence, inserted as the telecommands it
+    /// sends -- each through the project's templates, with its formal
+    /// parameters' defaults, its timing and comments as comment lines.
+    fn cmd_insert_sequence(&mut self) {
+        let Some(set) = self.set_here() else { return };
+        let all = fenix_mib::sequence::sequences(&set);
+        if all.is_empty() {
+            return api::notify("no command sequences in this project's MIBs");
+        }
+        let items: Vec<PickerItem> = all.iter().map(|(root, name, descr)| PickerItem::new(format!("{name:<12} {descr} · {}", set.root_label(*root)), format!("{root}:{name}"))).collect();
+        let id = api::pick("Insert a command sequence", &items);
+        self.asked.insert(id, Asked::Sequence);
+    }
+
+    fn insert_sequence(&mut self, value: &str) {
+        let Some(set) = self.set_ready() else { return };
+        let Some((root, name)) = value.split_once(':') else { return };
+        let Some(seq) = root.parse().ok().and_then(|root| fenix_mib::sequence::sequence(&set, root, name)) else { return };
+        let Some(here) = api::here().filter(|h| h.path.is_some()) else {
+            return error("open the file the sequence goes in first -- it's inserted where the cursor is");
+        };
+        let comment = comment_prefix(&here.language);
+        let t = templates();
+        let expanded = fenix_mib::sequence::expand(&set, &seq, &std::collections::HashMap::new());
+        let mut lines = vec![format!("{comment} {} · {}", seq.name, seq.description)];
+        for f in &seq.formals {
+            lines.push(format!("{comment}   formal {} = {}", f.name, f.default));
+        }
+        lines.extend(fenix_mib::sequence::render(&set, &expanded, &t.command, &t.argument, &t.separator, comment));
+        let problems: usize = expanded.iter().map(|e| e.problems.len()).sum();
+        let _ = api::buffer::insert(&(lines.join("\n") + "\n"));
+        api::notify(&if problems == 0 { format!("inserted {}'s {} steps", seq.name, expanded.len()) } else { format!("inserted {} -- {problems} problem(s), marked ! in its comments", seq.name) });
+    }
+
+    /// `SPC k D`: two of the project's MIBs compared, definition by
+    /// definition, into generated/.
+    fn cmd_diff(&mut self) {
+        let (key, _) = key_here();
+        if key.roots.len() < 2 {
+            return error("comparing needs two MIBs in mib.roots -- add the other version as a second MIB");
+        }
+        let mut items = Vec::new();
+        for (i, a) in key.roots.iter().enumerate() {
+            for (j, b) in key.roots.iter().enumerate() {
+                if i != j {
+                    items.push(PickerItem::new(format!("{} → {}", a.label, b.label), format!("{i}:{j}")));
+                }
+            }
+        }
+        let id = api::pick("Compare MIBs: from the old one to the new one", &items);
+        self.asked.insert(id, Asked::Diff);
+    }
+
+    fn diff(&mut self, value: &str) {
+        let (key, _) = key_here();
+        let Some((i, j)) = value.split_once(':').and_then(|(a, b)| Some((a.parse::<usize>().ok()?, b.parse::<usize>().ok()?))) else { return };
+        let (Some(old), Some(new)) = (key.roots.get(i), key.roots.get(j)) else { return };
+        if !Path::new(PROJECT).is_dir() {
+            return error("open a file of the project first -- the comparison goes in its generated/ folder");
+        }
+        let a = MibSet::load_with(vec![old.clone()], None, key.options.clone());
+        let b = MibSet::load_with(vec![new.clone()], None, key.options.clone());
+        let changes = fenix_mib::diff::compare(&a, &b);
+        let text = fenix_mib::diff::report(&changes, &old.label, &new.label);
+        let safe = |s: &str| s.chars().map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect::<String>();
+        let file = format!("mib-diff-{}-{}.md", safe(&old.label), safe(&new.label));
+        let dir = Path::new(PROJECT).join("generated");
+        let path = dir.join(&file);
+        match std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&path, text)) {
+            Ok(()) => {
+                host::open_file(&path.to_string_lossy(), None);
+                api::notify(&format!("{} changes from {} to {} -- generated/{file}", changes.len(), old.label, new.label));
+            }
+            Err(e) => error(&format!("couldn't write generated/{file}: {e}")),
+        }
     }
 
     /// Writes generated file `kind` into the project's `generated/` and
@@ -729,6 +812,8 @@ impl Mib {
                     self.generate(kind);
                 }
             }
+            Asked::Sequence => self.insert_sequence(&value),
+            Asked::Diff => self.diff(&value),
         }
     }
 
@@ -825,6 +910,16 @@ fn mission_checks(set: &MibSet) -> Vec<(String, Health, String)> {
         out.push(("recordings".to_string(), Health::Info, "no recordings/ folder for dumps and captures".to_string()));
     }
     out
+}
+
+/// What starts a comment in a file of `language` (its name or extension).
+fn comment_prefix(language: &str) -> &'static str {
+    match language.to_ascii_lowercase().as_str() {
+        "tcl" | "python" | "py" | "sh" | "bash" | "shell" | "ruby" | "rb" | "perl" | "pl" | "yaml" | "toml" | "r" => "#",
+        "lua" | "sql" | "ada" | "adb" | "ads" | "haskell" | "hs" => "--",
+        "" | "text" | "plain" => "#",
+        _ => "//",
+    }
 }
 
 /// The form's telecommand as a packet, from its arguments.

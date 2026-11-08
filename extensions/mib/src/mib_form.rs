@@ -1,8 +1,11 @@
-//! `SPC k i`, or `i` on a telecommand: the insert form. Every variable
-//! argument at once, each with its default filled in, its type, unit and
-//! what it may be; a status parameter cycles through its texts with `h`/
-//! `l`; a counter (`CDF_GRPSIZE`) repeats the arguments after it as many
-//! times as its value says, `+`/`-` changing it. The command, rendered
+//! `SPC k i`, or `i` on a telecommand: the insert form. Every editable
+//! argument at once (`CDF_ELTYPE` `E`), each with its default filled in
+//! (`CDF_VALUE`, else `CPC_DEFVAL`, or the MIB's default value set), its
+//! type, unit and what it may be; a status parameter cycles through its
+//! texts with `h`/`l`; a counter (`CDF_GRPSIZE`) repeats the elements
+//! after it -- fixed ones included, as the ICD counts them -- as many
+//! times as its value says, `+`/`-` changing it from anywhere in its
+//! group; `v` fills the form from a value set. The command, rendered
 //! from the project's templates, updates under the form as values change,
 //! with a warning beside any value outside what the MIB allows -- a
 //! warning never stops the insert. `I` inserts it
@@ -151,11 +154,6 @@ impl InsertForm {
 
     pub fn claims_space(&self) -> bool {
         self.editing
-    }
-
-    /// Its layout: what's asked, in what order.
-    pub fn layout(&self) -> &Layout {
-        &self.layout
     }
 
     pub fn paste(&mut self, text: &str) {

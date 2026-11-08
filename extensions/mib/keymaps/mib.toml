@@ -71,6 +71,21 @@ keys = "SPC k g"
 label = "generate from the MIB"
 command = "mib.generate"
 
+[[leader]]
+keys = "SPC k q"
+label = "insert a command sequence"
+command = "mib.insert_sequence"
+
+[[leader]]
+keys = "SPC k D"
+label = "compare two MIBs"
+command = "mib.diff"
+
+[[local.tcl]]
+keys = "q"
+label = "insert a command sequence"
+command = "mib.insert_sequence"
+
 [[local.tcl]]
 keys = "i"
 label = "insert a telecommand"
