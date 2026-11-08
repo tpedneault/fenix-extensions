@@ -19,9 +19,9 @@ released, the two extensions read the same MIB differently.
 ## Checked
 
 - **Unit and integration tests:**
-  - `crates/mib`: 104 tests, plus `tests/realistic.rs`.
+  - `crates/mib`: 106 tests, plus `tests/realistic.rs`.
   - `crates/ccsds`: 34 tests.
-  - `extensions/mib`: 29 tests.
+  - `extensions/mib`: 32 tests.
   - `extensions/ccsds`: 21 tests.
   - `xtask`: 6 tests.
 - **Clippy:** `-D warnings` is clean on every crate touched.
@@ -41,10 +41,20 @@ released, the two extensions read the same MIB differently.
   - XTCE generated into `generated/`.
 
   Not covered there: the language server's diagnostics and `K` (the harness doesn't drive LSP; `mib_check` and `hover_text` have unit tests). Packages are rebuilt by `release.yml` from the tag, so a local `extension.wasm` doesn't matter. Repack before any manual install.
+- **Live in Fenix 1.1.0 on Windows** (2026-11-08): both packs installed from disk into a clean profile, driven by keyboard, with a test MIB written for it (two ICD 7.x roots, OPS and a changed copy OPS2, 8 telecommands, 2 TM packets) and a Tcl script. Passed:
+  - `SPC k k`, `!`: only the expected problems (the Latin-1 `cdf.dat` with its line, and the broken TC's `layout` findings, in both MIBs).
+  - `SPC k i`: every `E` element with its default -- `CDF_VALUE` before `CPC_DEFVAL`, raw, hex (`CPC_RADIX` H), engineering through a curve, a status text, `CPC_DEFVAL` alone. Range checks: raw `PRF` behind a curve, one-value `PRV` with a second range, engineering range, float range.
+  - Groups: E/A/F in a group with an element after it, numbering (`PN · 2 of 3`, `PPAR[1.2]`), `+`/`-` from inside, `h`/`l`, zero repetitions (what follows moves back by the group), nested PUS 3,1, a fixed-count repeater, PUS 20,3 deduced values (16-bit then 8-bit from `PCF_PID`). Bytes hand-checked against the CDF for each.
+  - Float, CUC time, relative time, variable string (length octet, what follows moved), octets. `v` value sets (`CCF_DEFSET` first), `R`, the PTV note, no false `PCDF` mismatch.
+  - `I`, `SPC k e` (nested call read back), `SPC k b` + `SPC k d`, `D`: identified with the typed values. Definition page sections. `SPC k q` (formal's default, timing comments). `SPC k D` (only the two changes). VPD packet and `CUR` calibration selection on hand-built TM.
+  - Script checks: missing repetition, one too many, out of range (int, float), fixed-count repetition missing, defaulted argument missing, PTV info, `K` with nested arguments.
+  - The XTCE export read back as a MIB root: no problems of its own, and the same bytes from the form (defaults, groups).
+
+  It found and fixed (commit "Fixes from the live test of 1.2.0"): a fixed-count group's headings (`1 of 0`); `-` dropping out of the group it was shrinking; deduced values not checked (`300` for an 8-bit parameter built silently as `0x2C`); TC time arguments decoded as octets; several MIBs generated into one file (every XTCE name twice); test vectors failing on octets and PUS 20 with no default; an XTCE file never accepted as a MIB root (the host mounts folders only); the XTCE round trip losing PI1/PI2 (two HK packets no longer told apart) and reading `initialValue` in the MIB's radix (`ABCD` came back as `0x43981`); `SPC k d` on a `tc_vectors.txt` line taking the mnemonic's digits for hex.
 
 ## Still to check before tagging
 
-1. **One of your real mission MIBs**, in the GUI. The ICD text wasn't available while this was built. These readings come from the field names and the ICD's change notes, and should be confirmed against your copy of the ICD (EGOS-MCS-S2K-ICD-0001) or a MIB SCOS accepts:
+1. **One of your real mission MIBs**, in the GUI. The ICD text wasn't available while this was built, nor for the live test. These readings come from the field names and the ICD's change notes, and should be confirmed against your copy of the ICD (EGOS-MCS-S2K-ICD-0001) or a MIB SCOS accepts. The live test exercised flat nested-group counting, positions after a group, value-set links, a sequence with a formal parameter, variable-length strings and `VPD` groups, and found them consistent end to end (form, checks, packet, decoder, XTCE) -- which shows Fenix agrees with itself, not that it agrees with the ICD. Not exercised: `CDF_INTER` `D`/`T`, `SDF_REPPOS`, `VPD_CHOICE`/`VPD_PIDREF`. Also confirm `CCF_NPARS` counts `E` and `F` elements but not `A` ones, as the `layout` check does.
    - **Nested groups:** `CDF_GRPSIZE` counts a nested group's elements in the outer group's size (flat counting). `VPD_GRPSIZE` is read the same way.
    - **Positions after a group:** offsets are computed as if the group were repeated once. This one the ICD does say.
    - **`CDF_INTER` `D`/`T`:** a dynamic default, taken from `CDF_TMID`.
@@ -89,6 +99,13 @@ released, the two extensions read the same MIB differently.
 6. If something breaks after release, ship 1.2.1 for both from a fix branch. The index takes the newer version. Pulling a release out of the index is a manual edit of the `registry` branch, re-signed with the registry key.
 
 ## Afterwards
+
+From the live test (2026-11-08), not fixed:
+- XTCE export writes no argument ranges (`ValidRange`), and import keeps one range: a MIB read back from its XTCE builds the same bytes but checks no ranges. Older than 1.2.
+- A hex-radix default is offered and inserted in decimal (`ABCD` as `43981`). Correct, but a mission used to hex may want `0xABCD`.
+- Completion isn't call-aware: after `-P` in a call it lists every TC parameter, not that telecommand's.
+- The `layout` problems point at the `ccf.dat` row, not the `cdf.dat` row that's wrong.
+- Fenix (host): project settings aren't re-read when `.fenix/settings.toml` changes (`SPC k r` reads the old `mib.roots`); 1.1.0 stalled once on its splash screen at start.
 
 - Building packets from a `PCDF` header (instead of the profile's), behind a setting. This is for missions whose TC header isn't PUS.
 - A form for a sequence's formal parameters (today: their defaults, as comments).
