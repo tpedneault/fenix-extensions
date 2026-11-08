@@ -306,7 +306,17 @@ impl Schema {
 /// A list of column names as the settings write them: separated by
 /// commas, spaces or tabs.
 pub fn parse_columns(text: &str) -> Vec<String> {
-    text.split([',', ' ', '\t', ';']).map(str::trim).filter(|c| !c.is_empty()).map(str::to_ascii_uppercase).collect()
+    text.split([',', ' ', '\t', ';']).map(str::trim).filter(|c| !c.is_empty()).map(|c| canonical(&c.to_ascii_uppercase()).to_string()).collect()
+}
+
+/// A column by the name Fenix reads it as: the ICD writes the TC
+/// parameter's name column `CPC_PNAME`, Fenix (and the reference
+/// implementation it ports) `CPC_NAME`.
+pub fn canonical(column: &str) -> &str {
+    match column {
+        "CPC_PNAME" => "CPC_NAME",
+        other => other,
+    }
 }
 
 #[cfg(test)]
@@ -450,5 +460,6 @@ mod tests {
     #[test]
     fn column_lists_parse_from_settings_text() {
         assert_eq!(parse_columns("a, b c;d"), vec!["A", "B", "C", "D"]);
+        assert_eq!(parse_columns("cpc_pname cpc_descr"), vec!["CPC_NAME", "CPC_DESCR"], "the ICD's name for it");
     }
 }

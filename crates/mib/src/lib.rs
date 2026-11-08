@@ -16,6 +16,7 @@
 //! `GrepMatch`.
 
 pub mod checks;
+pub mod commanding;
 pub mod detail;
 pub mod generate;
 pub mod layout;
@@ -166,7 +167,10 @@ impl MibIndex {
             for table in schema.tables() {
                 let file = root.path.join(format!("{table}.dat"));
                 match parse::read_table_file(root_index, &file) {
-                    Ok(Some(text)) => texts.push((table, file, text)),
+                    Ok(Some((text, warning))) => {
+                        self.problems.extend(warning);
+                        texts.push((table, file, text));
+                    }
                     Ok(None) => {}
                     Err(problem) => self.problems.push(problem),
                 }

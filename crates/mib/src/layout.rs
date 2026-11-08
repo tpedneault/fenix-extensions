@@ -147,6 +147,10 @@ impl Field {
     }
 }
 
+/// A value read from a packet, or why it couldn't be: (element, path,
+/// reason).
+pub type Read = Result<Placed, (usize, Vec<usize>, String)>;
+
 /// A value where a packet has it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Placed {
@@ -513,7 +517,7 @@ impl Layout {
 
     /// The values of the application data `app`, as `encode` would have
     /// placed them; a repeater's count is read from the packet.
-    pub fn decode(&self, set: &MibSet, app: &[u8], profile: &Profile) -> Vec<Result<Placed, (usize, Vec<usize>, String)>> {
+    pub fn decode(&self, set: &MibSet, app: &[u8], profile: &Profile) -> Vec<Read> {
         let _ = profile;
         let mut st = Reader { set, app, out: Vec::new(), cursor: 0, referenced: None };
         self.read(&mut st, &self.nodes, &[], 0);
@@ -684,7 +688,7 @@ struct Writer<'a> {
 struct Reader<'a> {
     set: &'a MibSet,
     app: &'a [u8],
-    out: Vec<Result<Placed, (usize, Vec<usize>, String)>>,
+    out: Vec<Read>,
     cursor: usize,
     referenced: Option<Raw>,
 }

@@ -247,7 +247,7 @@ pub fn to_raw(set: &MibSet, t: &ParamType, text: &str, profile: &Profile) -> Res
     match t.ptc {
         7 => {
             let hex: String = v.trim_start_matches("0x").trim_start_matches("0X").chars().filter(|c| !c.is_whitespace() && *c != ':' && *c != '-').collect();
-            if hex.len() % 2 != 0 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            if !hex.len().is_multiple_of(2) || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
                 return Err(format!("{name} takes octets in hex, not {v}"));
             }
             let bytes = (0..hex.len()).step_by(2).map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap()).collect();
@@ -281,7 +281,7 @@ pub fn to_raw(set: &MibSet, t: &ParamType, text: &str, profile: &Profile) -> Res
             })?;
             let curve = t.curve(set);
             // The curve's points are (raw, engineering): back the other way.
-            let number = if curve.len() >= 1 {
+            let number = if !curve.is_empty() {
                 let back: Vec<(f64, f64)> = curve.iter().map(|(r, e)| (*e, *r)).collect();
                 interpolate(&back, number).unwrap_or(number)
             } else {
