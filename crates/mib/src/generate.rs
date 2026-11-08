@@ -61,7 +61,9 @@ fn placed(set: &MibSet, spid: DefRef, profile: &Profile, base: OffsetBase) -> Ve
         .filter_map(|s| {
             let p = set.get(s.param?);
             let t = types::decode(p.row.clean("PCF_PTC"), p.row.clean("PCF_PFC"));
-            Some(Placed { name: s.name, bit: (head + s.byte.unwrap_or(0).max(0) as usize) * 8 + s.bit.unwrap_or(0).max(0) as usize, bits: t.bits? as usize, ptc: p.row.clean("PCF_PTC").to_string() })
+            // A variable packet's entry after a group has no fixed place.
+            let byte = s.byte?;
+            Some(Placed { name: s.name, bit: (head + byte.max(0) as usize) * 8 + s.bit.unwrap_or(0).max(0) as usize, bits: t.bits? as usize, ptc: p.row.clean("PCF_PTC").to_string() })
         })
         .collect()
 }
