@@ -185,17 +185,190 @@ fn trim_float(y: f64) -> String {
     if s.contains('.') { s } else { format!("{s}.0") }
 }
 
-/// The parameters of TM packet `spid` in `pkt`, read, calibrated and
-/// checked.
-pub fn decode_tm(set: &MibSet, spid: DefRef, pkt: &Packet, profile: &Profile, base: OffsetBase) -> Field {
+/// One value a TM packet was read for, before calibration.
+enum TmRead {
+    /// A parameter the packet places that the MIB doesn't define.
+    Missing(String),
+    /// Past the end of the packet.
+    Short { name: String, at: usize, param: String },
+    Value { name: String, at: usize, width: usize, raw: Raw, param: DefRef },
+}
+
+/// How deep packets carried in packets (`VPD_PIDREF`) are followed.
+const MAX_EMBEDDED: usize = 4;
+
+/// Reads a variable packet's `VPD` entries one after another.
+struct VpdReader<'a> {
+    set: &'a MibSet,
+    root: usize,
+    bytes: &'a [u8],
+    cursor: usize,
+    reads: Vec<TmRead>,
+    /// The last value of an entry whose value names a parameter (`VPD_CHOICE`).
+    choice: Option<Raw>,
+    failed: bool,
+    depth: usize,
+}
+
+fn indexed(name: &str, path: &[usize]) -> String {
+    if path.is_empty() {
+        name.to_string()
+    } else {
+        format!("{name}[{}]", path.iter().map(|n| n.to_string()).collect::<Vec<_>>().join("."))
+    }
+}
+
+/// A deduced (PTC 11) parameter's type: the TM parameter's that `named`
+/// names, by name or `PCF_PID`.
+fn deduced_tm_type(set: &MibSet, root: usize, named: &Raw) -> Option<(String, String)> {
+    let index = set.index();
+    let row = match named {
+        Raw::Text(name) => index.first_row_by_field("pcf", "PCF_NAME", name.trim(), Some(root)),
+        Raw::Unsigned(n) => index.first_row_by_field("pcf", "PCF_PID", &n.to_string(), Some(root)).or_else(|| index.first_row_by_field("pcf", "PCF_NAME", &n.to_string(), Some(root))),
+        _ => None,
+    }?;
+    Some((row.clean("PCF_PTC").to_string(), row.clean("PCF_PFC").to_string()))
+}
+
+impl VpdReader<'_> {
+    fn read(&mut self, slots: &[detail::PacketSlot], start: usize, end: usize, path: &[usize]) {
+        let mut i = start;
+        while i < end && !self.failed {
+            let s = &slots[i];
+            if s.group > 0 {
+                let body_end = (i + 1 + s.group).min(end);
+                let times = if s.repeat > 0 {
+                    // A fixed repetition: the counter isn't in the packet,
+                    // but the gap before it is.
+                    self.cursor = (self.cursor as i64 + s.gap).max(0) as usize;
+                    s.repeat
+                } else {
+                    match self.entry(s, path) {
+                        Some(raw) => raw.as_f64().unwrap_or(0.0).max(0.0) as usize,
+                        None => return,
+                    }
+                };
+                for rep in 1..=times.min(layout::MAX_REPEAT) {
+                    let mut p = path.to_vec();
+                    p.push(rep);
+                    self.read(slots, i + 1, body_end, &p);
+                    if self.failed {
+                        return;
+                    }
+                }
+                i = body_end;
+            } else {
+                if s.repeat > 1 {
+                    for rep in 1..=s.repeat.min(layout::MAX_REPEAT) {
+                        let mut p = path.to_vec();
+                        p.push(rep);
+                        if self.entry(s, &p).is_none() {
+                            return;
+                        }
+                    }
+                } else if self.entry(s, path).is_none() {
+                    return;
+                }
+                i += 1;
+            }
+        }
+    }
+
+    /// Reads one entry at the cursor; `None` when it can't be.
+    fn entry(&mut self, s: &detail::PacketSlot, path: &[usize]) -> Option<Raw> {
+        let name = indexed(&s.name, path);
+        let Some(param) = s.param else {
+            self.reads.push(TmRead::Missing(name));
+            // Its width is unknown: nothing after it can be placed.
+            self.failed = true;
+            return None;
+        };
+        let pcf = &self.set.get(param).row;
+        self.cursor = (self.cursor as i64 + s.gap).max(0) as usize;
+        let at = self.cursor;
+        let (mut ptc, mut pfc) = (pcf.clean("PCF_PTC").to_string(), pcf.clean("PCF_PFC").to_string());
+        if ptc == "11" {
+            if let Some((p, f)) = self.choice.as_ref().and_then(|c| deduced_tm_type(self.set, self.root, c)) {
+                (ptc, pfc) = (p, f);
+            }
+        }
+        let hint = parse_int(pcf.clean("PCF_WIDTH")).filter(|w| *w > 0).map(|w| w as usize);
+        let read = if matches!(ptc.as_str(), "7" | "8") && pfc == "0" && hint.is_none() {
+            // Variable length: a length octet, then the octets.
+            bits::get(self.bytes, at, 8).and_then(|n| {
+                let n = n as usize;
+                let b = self.bytes.get((at + 8) / 8..(at + 8) / 8 + n).filter(|_| at.is_multiple_of(8))?.to_vec();
+                Some((if ptc == "8" { Raw::Text(String::from_utf8_lossy(&b).to_string()) } else { Raw::Bytes(b) }, 8 + n * 8))
+            })
+        } else {
+            read_raw(self.bytes, at, &ptc, &pfc, hint)
+        };
+        let Some((raw, width)) = read else {
+            self.reads.push(TmRead::Short { name, at, param: s.name.clone() });
+            self.failed = true;
+            return None;
+        };
+        self.cursor = at + width;
+        if s.choice {
+            self.choice = Some(raw.clone());
+        }
+        self.reads.push(TmRead::Value { name, at, width, raw: raw.clone(), param });
+        if s.pidref {
+            self.embedded(&raw);
+        }
+        Some(raw)
+    }
+
+    /// The packet `value` identifies, read where the cursor is: a
+    /// variable one by its `VPD` entries, a fixed one by its `PLF`
+    /// positions from here.
+    fn embedded(&mut self, value: &Raw) {
+        if self.depth >= MAX_EMBEDDED {
+            return;
+        }
+        let Some(id) = value.as_f64().map(|v| v as i64) else { return };
+        let set = self.set;
+        let found = set.entries(Kind::TmPacket).iter().enumerate().find(|(_, p)| p.root == self.root && parse_int(&p.name) == Some(id)).or_else(|| {
+            set.entries(Kind::TmPacket).iter().enumerate().find(|(_, p)| p.root == self.root && parse_int(p.row.clean("PID_TPSD")) == Some(id))
+        });
+        let Some((index, _)) = found else { return };
+        let def = DefRef { kind: Kind::TmPacket, index };
+        let slots = detail::packet_slots(set, def);
+        self.depth += 1;
+        if detail::tpsd(set, def).is_some() {
+            self.read(&slots, 0, slots.len(), &[]);
+        } else {
+            let base = self.cursor;
+            let mut end = base;
+            for s in &slots {
+                let Some(param) = s.param else {
+                    self.reads.push(TmRead::Missing(s.name.clone()));
+                    continue;
+                };
+                let pcf = &set.get(param).row;
+                let at = base + s.byte.unwrap_or(0).max(0) as usize * 8 + s.bit.unwrap_or(0).max(0) as usize;
+                let hint = parse_int(pcf.clean("PCF_WIDTH")).filter(|w| *w > 0).map(|w| w as usize);
+                match read_raw(self.bytes, at, pcf.clean("PCF_PTC"), pcf.clean("PCF_PFC"), hint) {
+                    Some((raw, width)) => {
+                        end = end.max(at + width);
+                        self.reads.push(TmRead::Value { name: s.name.clone(), at, width, raw, param });
+                    }
+                    None => self.reads.push(TmRead::Short { name: s.name.clone(), at, param: s.name.clone() }),
+                }
+            }
+            self.cursor = end;
+        }
+        self.depth -= 1;
+    }
+}
+
+/// A fixed packet's values, at their `PLF` positions.
+fn read_fixed(set: &MibSet, spid: DefRef, bytes: &[u8], start: usize) -> Vec<TmRead> {
     let e = set.get(spid);
-    let start = params_start(set, spid, profile, base);
-    let mut children = Vec::new();
-    // (field, parameter, engineering value) of each limit to check.
-    let mut checks = Vec::new();
+    let mut reads = Vec::new();
     for slot in detail::packet_slots(set, spid) {
         let Some(param) = slot.param else {
-            children.push(Field::new(&slot.name, 0, 0, "", "not in the MIB").checked(Check::Warn("no PCF row".into())));
+            reads.push(TmRead::Missing(slot.name.clone()));
             continue;
         };
         let pcf = &set.get(param).row;
@@ -205,20 +378,97 @@ pub fn decode_tm(set: &MibSet, spid: DefRef, pkt: &Packet, profile: &Profile, ba
             let at = (start + slot.byte.unwrap_or(0).max(0) as usize) * 8 + slot.bit.unwrap_or(0).max(0) as usize + occ * spacing;
             let width_hint = parse_int(pcf.clean("PCF_WIDTH")).filter(|w| *w > 0).map(|w| w as usize);
             let name = if occurrences > 1 { format!("{} [{}]", slot.name, occ + 1) } else { slot.name.clone() };
-            let Some((raw, width)) = read_raw(&pkt.bytes, at, pcf.clean("PCF_PTC"), pcf.clean("PCF_PFC"), width_hint) else {
-                children.push(Field::new(name, at, 0, "", "past the end of the packet").checked(Check::Bad("packet too short".into())).linked(Link::Parameter(slot.name.clone())));
-                continue;
-            };
-            let unit = pcf.clean("PCF_UNIT");
-            let (value, eng) = match detail::tm_calibration(set, param).and_then(|c| calibrate(set, c, &raw)) {
-                Some((text, n)) => (text, n),
-                None => (raw.display(), raw.as_f64()),
-            };
-            let shown = if unit.is_empty() || eng.is_none() { value } else { format!("{value} {unit}") };
-            if let Some(y) = eng {
-                checks.push((children.len(), param, y));
+            match read_raw(bytes, at, pcf.clean("PCF_PTC"), pcf.clean("PCF_PFC"), width_hint) {
+                Some((raw, width)) => reads.push(TmRead::Value { name, at, width, raw, param }),
+                None => reads.push(TmRead::Short { name, at, param: slot.name.clone() }),
             }
-            children.push(Field::new(name, at, width, raw.display(), shown).linked(Link::Parameter(slot.name.clone())));
+        }
+    }
+    reads
+}
+
+/// The raw value of parameter `name` in a packet's values: its own, or
+/// its first occurrence's.
+fn raw_of<'a>(reads: &'a [TmRead], name: &str) -> Option<&'a Raw> {
+    let first = |exact: bool| {
+        reads.iter().find_map(|r| match r {
+            TmRead::Value { name: n, raw, .. } if (exact && n == name) || (!exact && (n.starts_with(&format!("{name}[")) || n.starts_with(&format!("{name} [")))) => Some(raw),
+            _ => None,
+        })
+    };
+    first(true).or_else(|| first(false))
+}
+
+/// The calibration `CUR` selects for `param` from the packet's other
+/// values: the first row, by `CUR_POS`, whose `CUR_RLCHK` parameter has
+/// the raw value `CUR_VALPAR`. `None`: no row applies -- `PCF_CURTX` does.
+pub(crate) fn conditional_calibration(set: &MibSet, param: DefRef, value_of: impl Fn(&str) -> Option<Raw>) -> Option<DefRef> {
+    let e = set.get(param);
+    let mut rows = set.index().rows_by_field("cur", "CUR_PNAME", &e.name, Some(e.root));
+    if rows.is_empty() {
+        return None;
+    }
+    rows.sort_by_key(|r| parse_int(r.clean("CUR_POS")).unwrap_or(i64::MAX));
+    let text = e.row.clean("PCF_CATEG") == "S";
+    for r in rows {
+        let Some(raw) = value_of(r.clean("CUR_RLCHK")) else { continue };
+        let want = r.clean("CUR_VALPAR");
+        let matches = match (raw.as_f64(), values::parse_number(want)) {
+            (Some(have), Some(want)) => have == want,
+            _ => raw.display().trim_matches('"') == want,
+        };
+        if !matches {
+            continue;
+        }
+        let id = r.clean("CUR_SELECT");
+        let kinds: &[CalKind] = if text { &[CalKind::Text, CalKind::Numeric, CalKind::Polynomial, CalKind::Logarithmic] } else { &[CalKind::Numeric, CalKind::Polynomial, CalKind::Logarithmic, CalKind::Text] };
+        if let Some(c) = kinds.iter().find_map(|k| set.find_cal(e.root, *k, id)) {
+            return Some(c);
+        }
+    }
+    None
+}
+
+/// The parameters of TM packet `spid` in `pkt`, read, calibrated and
+/// checked. A variable packet (`PID_TPSD`, `VPD`) is read entry by entry,
+/// its groups repeated as their counters say; a parameter with `CUR`
+/// rows is calibrated as the packet's other values select.
+pub fn decode_tm(set: &MibSet, spid: DefRef, pkt: &Packet, profile: &Profile, base: OffsetBase) -> Field {
+    let e = set.get(spid);
+    let start = params_start(set, spid, profile, base);
+    let reads = match detail::tpsd(set, spid) {
+        Some(_) => {
+            let slots = detail::packet_slots(set, spid);
+            let mut r = VpdReader { set, root: e.root, bytes: &pkt.bytes, cursor: start * 8, reads: Vec::new(), choice: None, failed: false, depth: 0 };
+            r.read(&slots, 0, slots.len(), &[]);
+            r.reads
+        }
+        None => read_fixed(set, spid, &pkt.bytes, start),
+    };
+    let mut children = Vec::new();
+    // (field, parameter, engineering value) of each limit to check.
+    let mut checks = Vec::new();
+    for read in &reads {
+        match read {
+            TmRead::Missing(name) => children.push(Field::new(name, 0, 0, "", "not in the MIB").checked(Check::Warn("no PCF row".into()))),
+            TmRead::Short { name, at, param } => {
+                children.push(Field::new(name, *at, 0, "", "past the end of the packet").checked(Check::Bad("packet too short".into())).linked(Link::Parameter(param.clone())));
+            }
+            TmRead::Value { name, at, width, raw, param } => {
+                let pcf = &set.get(*param).row;
+                let pname = pcf.clean("PCF_NAME").to_string();
+                let unit = pcf.clean("PCF_UNIT");
+                let cal = conditional_calibration(set, *param, |n| raw_of(&reads, n).cloned()).or_else(|| detail::tm_calibration(set, *param));
+                let (value, eng) = match cal.and_then(|c| calibrate(set, c, raw)) {
+                    Some((text, n)) => (text, n),
+                    None => (raw.display(), raw.as_f64()),
+                };
+                let shown = if unit.is_empty() || eng.is_none() { value } else { format!("{value} {unit}") };
+                if let Some(y) = eng {
+                    checks.push((children.len(), *param, y));
+                }
+                children.push(Field::new(name, *at, *width, raw.display(), shown).linked(Link::Parameter(pname)));
+            }
         }
     }
     // Limits, once every parameter is read: one that applies only while
@@ -566,6 +816,79 @@ pub(crate) mod tests {
         let back = Layout::of(&set, tc).decode(&set, &app, &p);
         let raws: Vec<String> = back.into_iter().map(|r| r.unwrap().raw.display()).collect();
         assert_eq!(raws, vec!["\"AB\"", "CA FE", "7", "-2"]);
+    }
+
+    /// SPID 500: a variable packet (structure 7) whose counter N repeats
+    /// A, a nested counter M and the B it repeats, then C, calibrated as
+    /// N selects (`CUR`). SPID 501 (structure 8): a group repeated a
+    /// fixed twice, its counter not in the packet.
+    fn variable() -> MibSet {
+        let r = temp_root("packets-vpd");
+        write(&r, "pid", &[line(&["3", "25", "100", "0", "0", "500", "Variable", "", "7"], 16), line(&["3", "26", "100", "0", "0", "501", "Fixed repeat", "", "8"], 16)].join("\n"));
+        write(
+            &r,
+            "vpd",
+            &[
+                line(&["7", "1", "N", "3", "0", "N", "N", "", "", "", "", "", "", "48"], 14),
+                line(&["7", "2", "A"], 14),
+                line(&["7", "3", "M", "1"], 14),
+                line(&["7", "4", "B"], 14),
+                line(&["7", "5", "C"], 14),
+                line(&["8", "1", "D", "1", "2", "", "", "", "", "", "", "", "", "48"], 14),
+                line(&["8", "2", "A"], 14),
+            ]
+            .join("\n"),
+        );
+        let u8p = |n: &str| line(&[n, n, "", "", "3", "4"], 24);
+        write(&r, "pcf", &[u8p("N"), u8p("A"), u8p("M"), u8p("B"), u8p("D"), line(&["C", "c", "", "V", "3", "12", "", "", "", "N", "R", "CAF1"], 24)].join("\n"));
+        write(&r, "caf", &[line(&["CAF1", "one", "R", "U", "D", "", "2"], 8), line(&["CAF2", "two", "R", "U", "D", "", "2"], 8)].join("\n"));
+        write(&r, "cap", "CAF1\t0\t0\nCAF1\t100\t100\nCAF2\t0\t0\nCAF2\t100\t200\n");
+        write(&r, "cur", "C\t2\tN\t1\tCAF1\nC\t1\tN\t2\tCAF2\n");
+        MibSet::load(vec![r], None)
+    }
+
+    fn decoded(set: &MibSet, spid: &str, data: &[u8]) -> Field {
+        let mut bytes = vec![0x08, 0x64, 0xC0, 0x00, 0x00, 0x00];
+        bytes.extend_from_slice(data);
+        let len = (bytes.len() - 7) as u16;
+        bytes[4..6].copy_from_slice(&len.to_be_bytes());
+        let (pkt, _) = Packet::parse(&bytes).unwrap();
+        decode_tm(set, set.find(Kind::TmPacket, 0, spid).unwrap(), &pkt, &Profile::default(), OffsetBase::PacketStart)
+    }
+
+    #[test]
+    fn a_variable_packet_is_read_entry_by_entry_its_groups_repeated() {
+        let set = variable();
+        let f = decoded(&set, "500", &[2, 10, 1, 20, 11, 2, 21, 22, 0, 100]);
+        let got: Vec<String> = f.children.iter().map(|c| format!("{}={}", c.name, c.raw)).collect();
+        assert_eq!(got, vec!["N=2", "A[1]=10", "M[1]=1", "B[1.1]=20", "A[2]=11", "M[2]=2", "B[2.1]=21", "B[2.2]=22", "C=100"]);
+        assert_eq!(f.find("C").unwrap().bit, 8 * 8 + 48, "after the six octets VPD_OFFSET skips and the groups");
+        let fixed = decoded(&set, "501", &[1, 2]);
+        assert_eq!(fixed.children.iter().map(|c| format!("{}={}", c.name, c.raw)).collect::<Vec<_>>(), vec!["A[1]=1", "A[2]=2"]);
+        let short = decoded(&set, "500", &[3, 1]);
+        assert!(short.children.iter().any(|c| c.check == Some(Check::Bad("packet too short".into()))));
+        // Its entries, as the packet's page lists them.
+        let slots = detail::packet_slots(&set, set.find(Kind::TmPacket, 0, "500").unwrap());
+        assert_eq!(slots.iter().map(|s| (s.name.as_str(), s.group, s.within.clone())).collect::<Vec<_>>(), vec![("N", 3, vec![]), ("A", 0, vec![0]), ("M", 1, vec![0]), ("B", 0, vec![2, 0]), ("C", 0, vec![])]);
+        assert_eq!((slots[0].byte, slots[1].byte), (Some(6), None), "only what comes before a group has a certain place");
+        let a = set.find(Kind::TmParam, 0, "A").unwrap();
+        assert_eq!(detail::carried_by(&set, a).len(), 2, "both variable packets carry A");
+    }
+
+    #[test]
+    fn cur_selects_the_calibration_from_the_packets_values() {
+        let set = variable();
+        let c = |n: u8| {
+            let mut data = vec![n];
+            for _ in 0..n {
+                data.extend([0, 0]);
+            }
+            data.extend([0, 50]);
+            decoded(&set, "500", &data).find("C").unwrap().value.clone()
+        };
+        assert_eq!(c(2), "100.0 V", "N = 2: CAF2 doubles");
+        assert_eq!(c(1), "50.0 V", "N = 1: CAF1");
+        assert_eq!(c(0), "50.0 V", "no CUR row applies: PCF_CURTX");
     }
 
     #[test]
