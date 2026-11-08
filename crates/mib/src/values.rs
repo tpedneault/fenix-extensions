@@ -193,6 +193,90 @@ impl ParamType {
     }
 }
 
+/// A TC parameter's type with its calibrations read out: all that's
+/// needed to turn a typed value into raw and back, and to check it,
+/// without the set.
+#[derive(Debug, Clone)]
+pub struct Domain {
+    pub ty: ParamType,
+    /// (raw, text) of its status calibration.
+    pub texts: Vec<(String, String)>,
+    /// (raw, engineering) points of its numeric curve.
+    pub curve: Vec<(f64, f64)>,
+    pub allowed: Vec<Allowed>,
+}
+
+impl Domain {
+    pub fn of(set: &MibSet, ty: &ParamType) -> Domain {
+        Domain { texts: ty.texts(set), curve: ty.curve(set), allowed: allowed(set, ty), ty: ty.clone() }
+    }
+
+    /// A type with no calibration.
+    pub fn plain(ty: ParamType) -> Domain {
+        Domain { ty, texts: Vec::new(), curve: Vec::new(), allowed: Vec::new() }
+    }
+
+    pub fn param(set: &MibSet, param: DefRef) -> Domain {
+        Domain::of(set, &ParamType::of(set, param))
+    }
+
+    pub fn aliases(&self) -> Vec<String> {
+        self.texts.iter().map(|(_, t)| t.clone()).filter(|t| !t.is_empty()).collect()
+    }
+
+    pub fn to_raw(&self, text: &str, profile: &Profile) -> Result<Raw, String> {
+        raw_of(self, text, profile)
+    }
+
+    pub fn to_engineering(&self, raw: &Raw) -> String {
+        engineering_of(self, raw)
+    }
+
+    pub fn check(&self, value: &str, profile: &Profile) -> Vec<String> {
+        check_of(self, value, profile)
+    }
+
+    /// What it may be, for a person: its texts, else its ranges.
+    pub fn allowed_text(&self) -> String {
+        let aliases = self.aliases();
+        if !aliases.is_empty() {
+            return aliases.join(" ");
+        }
+        self.allowed.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+    }
+
+    /// A value the MIB gives, as someone types it (see
+    /// `mib_value_as_engineering`).
+    pub fn mib_value(&self, value: &str, inter: &Interp) -> String {
+        let t = &self.ty;
+        let v = value.trim();
+        if v.is_empty() || *inter != Interp::Raw || !t.is_numeric() {
+            return v.to_string();
+        }
+        match parse_raw_int(v, t.radix) {
+            Some(n) if self.texts.is_empty() && self.curve.is_empty() => n.to_string(),
+            Some(n) => self.to_engineering(&if n < 0 { Raw::Signed(n as i64) } else { Raw::Unsigned(n as u64) }),
+            None => v.to_string(),
+        }
+    }
+
+    /// A value the MIB gives, as raw.
+    pub fn mib_raw(&self, value: &str, inter: &Interp, profile: &Profile) -> Result<Raw, String> {
+        let t = &self.ty;
+        if *inter == Interp::Raw && t.is_numeric() {
+            if let Some(n) = parse_raw_int(value, t.radix) {
+                return Ok(if n < 0 { Raw::Signed(n as i64) } else { Raw::Unsigned(n as u64) });
+            }
+            if t.ptc == 5 {
+                if let Some(f) = parse_number(value) {
+                    return Ok(Raw::Real(f));
+                }
+            }
+        }
+        self.to_raw(value, profile)
+    }
+}
+
 /// Linear interpolation through `points` (x, y), extrapolating the end
 /// segments.
 pub fn interpolate(points: &[(f64, f64)], x: f64) -> Option<f64> {
@@ -237,10 +321,15 @@ pub fn time_format(ptc: u32, pfc: u32, profile: &Profile) -> Option<TimeFormat> 
 /// An engineering value typed for `t`, as the raw value the packet
 /// carries -- `bits` wide when the element fixes it.
 pub fn to_raw(set: &MibSet, t: &ParamType, text: &str, profile: &Profile) -> Result<Raw, String> {
+    Domain::of(set, t).to_raw(text, profile)
+}
+
+fn raw_of(d: &Domain, text: &str, profile: &Profile) -> Result<Raw, String> {
+    let t = &d.ty;
     let v = text.trim();
     let name = &t.name;
     // A status text.
-    if let Some((raw, _)) = t.texts(set).into_iter().find(|(_, s)| s == v) {
+    if let Some((raw, _)) = d.texts.iter().find(|(_, s)| s == v).cloned() {
         let n = parse_raw_int(&raw, t.radix).ok_or_else(|| format!("{name}: {v}'s raw value {raw} isn't a number"))?;
         return Ok(if n < 0 { Raw::Signed(n as i64) } else { Raw::Unsigned(n as u64) });
     }
@@ -272,14 +361,14 @@ pub fn to_raw(set: &MibSet, t: &ParamType, text: &str, profile: &Profile) -> Res
         }
         _ => {
             let number = parse_number(v).ok_or_else(|| {
-                let aliases = t.aliases(set);
+                let aliases = d.aliases();
                 if aliases.is_empty() {
                     format!("{name} takes a number, not {v}")
                 } else {
                     format!("{name}: {v} isn't one of {}", aliases.join(", "))
                 }
             })?;
-            let curve = t.curve(set);
+            let curve = &d.curve;
             // The curve's points are (raw, engineering): back the other way.
             let number = if !curve.is_empty() {
                 let back: Vec<(f64, f64)> = curve.iter().map(|(r, e)| (*e, *r)).collect();
@@ -316,13 +405,17 @@ pub fn to_raw(set: &MibSet, t: &ParamType, text: &str, profile: &Profile) -> Res
 /// `raw` for `t` as a person reads it: its status text, its engineering
 /// value through the numeric curve, else the raw value.
 pub fn to_engineering(set: &MibSet, t: &ParamType, raw: &Raw) -> String {
+    Domain::of(set, t).to_engineering(raw)
+}
+
+fn engineering_of(d: &Domain, raw: &Raw) -> String {
+    let t = &d.ty;
     if let Some(x) = raw.as_f64() {
-        if let Some((_, text)) = t.texts(set).into_iter().find(|(r, _)| parse_raw_int(r, t.radix).map(|n| n as f64) == Some(x)) {
-            return text;
+        if let Some((_, text)) = d.texts.iter().find(|(r, _)| parse_raw_int(r, t.radix).map(|n| n as f64) == Some(x)) {
+            return text.clone();
         }
-        let curve = t.curve(set);
-        if !curve.is_empty() {
-            if let Some(y) = interpolate(&curve, x) {
+        if !d.curve.is_empty() {
+            if let Some(y) = interpolate(&d.curve, x) {
                 return trim_float(y);
             }
         }
@@ -340,36 +433,12 @@ fn trim_float(y: f64) -> String {
 /// someone types it: read as raw (`inter`) when it's a raw number, else
 /// as the engineering value it already is.
 pub fn mib_value_as_engineering(set: &MibSet, t: &ParamType, value: &str, inter: &Interp) -> String {
-    let v = value.trim();
-    if v.is_empty() || *inter != Interp::Raw || !t.is_numeric() {
-        return v.to_string();
-    }
-    if t.status.is_none() && t.numeric.is_none() {
-        // Raw is engineering: just the number in decimal.
-        return match parse_raw_int(v, t.radix) {
-            Some(n) => n.to_string(),
-            None => v.to_string(),
-        };
-    }
-    match parse_raw_int(v, t.radix) {
-        Some(n) => to_engineering(set, t, &if n < 0 { Raw::Signed(n as i64) } else { Raw::Unsigned(n as u64) }),
-        None => v.to_string(),
-    }
+    Domain::of(set, t).mib_value(value, inter)
 }
 
 /// A value the MIB gives, as raw.
 pub fn mib_value_to_raw(set: &MibSet, t: &ParamType, value: &str, inter: &Interp, profile: &Profile) -> Result<Raw, String> {
-    if *inter == Interp::Raw && t.is_numeric() {
-        if let Some(n) = parse_raw_int(value, t.radix) {
-            return Ok(if n < 0 { Raw::Signed(n as i64) } else { Raw::Unsigned(n as u64) });
-        }
-        if t.ptc == 5 {
-            if let Some(f) = parse_number(value) {
-                return Ok(Raw::Real(f));
-            }
-        }
-    }
-    to_raw(set, t, value, profile)
+    Domain::of(set, t).mib_raw(value, inter, profile)
 }
 
 /// One allowed range or value of a TC parameter (`PRV`), in raw or
@@ -436,25 +505,28 @@ pub fn allowed(set: &MibSet, t: &ParamType) -> Vec<Allowed> {
 /// What's wrong with `value` for `t`, for a person: never stops the
 /// command being written, only says. Empty when nothing is.
 pub fn check(set: &MibSet, t: &ParamType, value: &str, profile: &Profile) -> Vec<String> {
+    Domain::of(set, t).check(value, profile)
+}
+
+fn check_of(d: &Domain, value: &str, profile: &Profile) -> Vec<String> {
     let v = value.trim();
-    let name = &t.name;
+    let name = &d.ty.name;
     if v.is_empty() {
         return vec![format!("{name}: no value")];
     }
-    let raw = match to_raw(set, t, v, profile) {
+    let raw = match d.to_raw(v, profile) {
         Ok(r) => r,
         Err(e) => return vec![e],
     };
     let mut out = Vec::new();
-    let ranges = allowed(set, t);
-    if !ranges.is_empty() {
-        let eng = if t.texts(set).iter().any(|(_, s)| s == v) { None } else { parse_number(v) };
-        let fits = ranges.iter().any(|r| match r.raw {
+    if !d.allowed.is_empty() {
+        let eng = if d.texts.iter().any(|(_, s)| s == v) { None } else { parse_number(v) };
+        let fits = d.allowed.iter().any(|r| match r.raw {
             true => raw.as_f64().is_some_and(|x| r.contains(x)),
             false => eng.or_else(|| raw.as_f64()).is_some_and(|x| r.contains(x)),
         });
         if !fits {
-            let list: Vec<String> = ranges.iter().map(ToString::to_string).collect();
+            let list: Vec<String> = d.allowed.iter().map(ToString::to_string).collect();
             out.push(format!("{name}: '{v}' is outside the allowed {}", list.join(", ")));
         }
     }

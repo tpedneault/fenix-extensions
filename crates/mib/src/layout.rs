@@ -23,7 +23,7 @@ use crate::packets::Raw;
 use crate::row::Row;
 use crate::set::{DefRef, Kind, MibSet};
 use crate::types::parse_int;
-use crate::values::{self, Interp, ParamType};
+use crate::values::{self, Domain, Interp, ParamType};
 
 /// The most repetitions a group is built or read with: a counter read
 /// from a corrupt packet, or mistyped, mustn't build a million fields.
@@ -76,6 +76,12 @@ pub struct Element {
     /// Its `CPC` definition.
     pub param: Option<DefRef>,
     pub ty: Option<ParamType>,
+    /// Its type with its calibrations, to turn values raw and back.
+    pub domain: Option<Domain>,
+    /// What someone is offered (`Layout::default`), worked out once.
+    pub offered: String,
+    /// A fixed repeater's count.
+    pub fixed_count: Option<usize>,
     pub cdf: Row,
 }
 
@@ -227,7 +233,10 @@ impl Layout {
                     tmid: cdf.clean("CDF_TMID").to_string(),
                     group: parse_int(cdf.clean("CDF_GRPSIZE")).unwrap_or(0).max(0) as usize,
                     param,
+                    domain: ty.as_ref().map(|t| Domain::of(set, t)),
                     ty,
+                    offered: String::new(),
+                    fixed_count: None,
                     cdf: cdf.clone(),
                 }
             })
@@ -238,6 +247,10 @@ impl Layout {
         }
         let mut problems = Vec::new();
         let nodes = build(&elements, 0, elements.len(), &mut problems);
+        for i in 0..elements.len() {
+            elements[i].offered = offered(set, &elements[i]);
+            elements[i].fixed_count = fixed_count(&elements[i]);
+        }
         for el in &elements {
             if el.kind != ElementKind::Area && el.name.is_empty() {
                 problems.push(format!("a {} element names no parameter", if el.kind == ElementKind::Fixed { "fixed" } else { "editable" }));
@@ -303,19 +316,8 @@ impl Layout {
     /// An editable element's default, as someone types it: `CDF_VALUE`,
     /// else `CPC_DEFVAL`, each read as its interpretation says. Empty
     /// for a dynamic default (`dynamic_default` says where from).
-    pub fn default(&self, set: &MibSet, element: usize) -> String {
-        let el = &self.elements[element];
-        let Some(t) = &el.ty else { return el.value.clone() };
-        if !el.value.is_empty() {
-            return match el.inter {
-                Interp::Dynamic => String::new(),
-                ref inter => values::mib_value_as_engineering(set, t, &el.value, inter),
-            };
-        }
-        let Some(p) = el.param else { return String::new() };
-        let cpc = &set.get(p).row;
-        let defval = cpc.clean("CPC_DEFVAL");
-        values::mib_value_as_engineering(set, t, defval, &Interp::of(cpc.clean("CPC_INTER")))
+    pub fn default(&self, _set: &MibSet, element: usize) -> String {
+        self.elements[element].offered.clone()
     }
 
     /// The TM parameter a dynamic default is read from.
@@ -324,27 +326,21 @@ impl Layout {
         (el.inter == Interp::Dynamic && !el.tmid.is_empty()).then_some(el.tmid.as_str())
     }
 
-    /// A fixed element's or repeater's count, when the definition fixes it.
-    fn fixed_count(&self, set: &MibSet, element: usize) -> Option<usize> {
-        let el = &self.elements[element];
-        if el.kind == ElementKind::Editable {
-            return None;
-        }
-        let t = el.ty.as_ref()?;
-        let raw = values::mib_value_to_raw(set, t, &el.value, &el.inter, &Profile::default()).ok()?;
-        raw.as_f64().map(|n| (n.max(0.0) as usize).min(MAX_REPEAT))
-    }
-
     /// Every value someone gives, as `count` (a repeater's field, read
     /// from what's been given) expands the groups. A fixed repeater
     /// repeats as its value says.
-    pub fn fields(&self, set: &MibSet, mut count: impl FnMut(&Field) -> usize) -> Vec<Field> {
+    pub fn fields(&self, _set: &MibSet, count: impl FnMut(&Field) -> usize) -> Vec<Field> {
+        self.fields_by(count)
+    }
+
+    /// `fields`, without the set: everything it needs is read already.
+    pub fn fields_by(&self, mut count: impl FnMut(&Field) -> usize) -> Vec<Field> {
         let mut out = Vec::new();
-        self.expand(set, &self.nodes, &[], &mut count, &mut out);
+        self.expand(&self.nodes, &[], &mut count, &mut out);
         out
     }
 
-    fn expand(&self, set: &MibSet, nodes: &[Node], path: &[usize], count: &mut dyn FnMut(&Field) -> usize, out: &mut Vec<Field>) {
+    fn expand(&self, nodes: &[Node], path: &[usize], count: &mut dyn FnMut(&Field) -> usize, out: &mut Vec<Field>) {
         for n in nodes {
             if out.len() >= MAX_REPEAT {
                 return;
@@ -356,7 +352,7 @@ impl Layout {
                     }
                 }
                 Node::Group { repeater, body } => {
-                    let times = match self.fixed_count(set, *repeater) {
+                    let times = match self.elements[*repeater].fixed_count {
                         Some(n) => n,
                         None if self.elements[*repeater].asked() => {
                             let f = Field { element: *repeater, path: path.to_vec() };
@@ -369,7 +365,7 @@ impl Layout {
                     for rep in 1..=times {
                         let mut p = path.to_vec();
                         p.push(rep);
-                        self.expand(set, body, &p, count, out);
+                        self.expand(body, &p, count, out);
                     }
                 }
             }
@@ -387,9 +383,9 @@ impl Layout {
     }
 
     /// The raw value of a fixed element.
-    fn fixed_raw(&self, set: &MibSet, el: &Element, profile: &Profile) -> Result<Raw, String> {
-        match &el.ty {
-            Some(t) => values::mib_value_to_raw(set, t, &el.value, &el.inter, profile),
+    fn fixed_raw(&self, _set: &MibSet, el: &Element, profile: &Profile) -> Result<Raw, String> {
+        match &el.domain {
+            Some(d) => d.mib_raw(&el.value, &el.inter, profile),
             None if el.value.is_empty() => Ok(Raw::Unsigned(0)),
             None => values::parse_raw_int(&el.value, values::Radix::Decimal)
                 .map(|n| if n < 0 { Raw::Signed(n as i64) } else { Raw::Unsigned(n as u64) })
@@ -449,8 +445,7 @@ impl Layout {
                 return Err(format!("expected {}, got {name}", Field { element: i, path: path.to_vec() }.label(self)));
             }
             st.next += 1;
-            let t = self.type_for(st, el)?;
-            values::to_raw(st.set, &t, value, st.profile)?
+            self.domain_for(st, el)?.to_raw(value, st.profile)?
         } else {
             self.fixed_raw(st.set, el, st.profile)?
         };
@@ -506,13 +501,13 @@ impl Layout {
 
     /// A deduced parameter's type: the TM parameter's the last argument
     /// naming one gave.
-    fn type_for(&self, st: &Writer, el: &Element) -> Result<ParamType, String> {
-        let t = el.ty.clone().ok_or_else(|| format!("{} has no CPC definition", el.name))?;
-        if !t.deduced() {
-            return Ok(t);
+    fn domain_for(&self, st: &Writer, el: &Element) -> Result<Domain, String> {
+        let d = el.domain.clone().ok_or_else(|| format!("{} has no CPC definition", el.name))?;
+        if !d.ty.deduced() {
+            return Ok(d);
         }
         let named = st.referenced.as_ref().ok_or_else(|| format!("{} is deduced, but no argument before it names a parameter", el.name))?;
-        deduced_type(st.set, t.root, named).ok_or_else(|| format!("{} is deduced, but {} names no parameter the MIB has", el.name, named.display()))
+        deduced_type(st.set, d.ty.root, named).map(Domain::plain).ok_or_else(|| format!("{} is deduced, but {} names no parameter the MIB has", el.name, named.display()))
     }
 
     /// The values of the application data `app`, as `encode` would have
@@ -638,6 +633,42 @@ impl Layout {
             _ => None,
         }
     }
+}
+
+/// What an editable element offers: its `CDF_VALUE`, else its
+/// parameter's `CPC_DEFVAL`, as someone types it.
+fn offered(set: &MibSet, el: &Element) -> String {
+    if el.kind != ElementKind::Editable {
+        return String::new();
+    }
+    let Some(d) = &el.domain else { return el.value.clone() };
+    if !el.value.is_empty() {
+        return match el.inter {
+            Interp::Dynamic => String::new(),
+            ref inter => d.mib_value(&el.value, inter),
+        };
+    }
+    let Some(p) = el.param else { return String::new() };
+    let cpc = &set.get(p).row;
+    d.mib_value(cpc.clean("CPC_DEFVAL"), &Interp::of(cpc.clean("CPC_INTER")))
+}
+
+/// A fixed repeater's count.
+fn fixed_count(el: &Element) -> Option<usize> {
+    if el.kind == ElementKind::Editable || !el.is_repeater() {
+        return None;
+    }
+    let raw = el.domain.as_ref()?.mib_raw(&el.value, &el.inter, &Profile::default()).ok()?;
+    raw.as_f64().map(|n| (n.max(0.0) as usize).min(MAX_REPEAT))
+}
+
+/// The count a repeater's value gives: its raw value.
+pub fn count_of(el: &Element, value: &str) -> usize {
+    let raw = match &el.domain {
+        Some(d) => d.to_raw(value, &Profile::default()).ok().and_then(|r| r.as_f64()),
+        None => values::parse_number(value),
+    };
+    raw.map(|n| (n.max(0.0) as usize).min(MAX_REPEAT)).unwrap_or(0)
 }
 
 /// A deduced parameter's type, from the value naming the TM parameter:
