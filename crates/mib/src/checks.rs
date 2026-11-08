@@ -72,6 +72,10 @@ pub fn run(set: &MibSet, o: &Options) -> Vec<Problem> {
                 }
             }
             let Some(bits) = t.bits.map(|b| b as usize) else { continue };
+            // A variable packet's entries after a group have no fixed place.
+            if s.byte.is_none() {
+                continue;
+            }
             let start = (head + s.byte.unwrap_or(0).max(0) as usize) * 8 + s.bit.unwrap_or(0).max(0) as usize;
             let occ = parse_int(&s.occurrences).filter(|n| *n > 1).unwrap_or(1) as usize;
             let plf = set.index().rows_by_field("plf", "PLF_NAME", &s.name, Some(e.root)).into_iter().find(|r| r.clean("PLF_SPID") == e.name);

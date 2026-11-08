@@ -502,6 +502,22 @@ impl MibSet {
                 (_, None) => self.problem(row, format!("{name} is placed in SPID {spid}, which isn't in pid.dat")),
             }
         }
+        // Variable packets: the parameters their structure (VPD) carries.
+        let mut by_tpsd: HashMap<(usize, String), Vec<DefRef>> = HashMap::new();
+        for (index, e) in self.entries(Kind::TmPacket).iter().enumerate() {
+            by_tpsd.entry((e.root, e.row.clean("PID_TPSD").to_string())).or_default().push(DefRef { kind: Kind::TmPacket, index });
+        }
+        for row in index.rows("vpd") {
+            let root = row.source.root_index;
+            let (tpsd, name) = (row.clean("VPD_TPSD"), row.clean("VPD_NAME"));
+            let Some(param) = self.find(Kind::TmParam, root, name) else {
+                self.problem(row, format!("structure {tpsd} -> {name} has no PCF row"));
+                continue;
+            };
+            for &packet in by_tpsd.get(&(root, tpsd.to_string())).map(Vec::as_slice).unwrap_or(&[]) {
+                push_unique(self.used_by.entry(param).or_default(), packet);
+            }
+        }
         for row in index.rows("css") {
             let elem = row.clean("CSS_ELEMID");
             if row.clean("CSS_TYPE") == "C" && self.find(Kind::Telecommand, row.source.root_index, elem).is_none() {
