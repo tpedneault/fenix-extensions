@@ -130,6 +130,9 @@ pub fn check(text: &str, set: &MibSet, t: &Templates) -> Vec<Finding> {
             let vat = line[name_at..].find(value).map(|i| name_at + i).unwrap_or(name_at);
             char_col(line, vat)..char_col(line, vat + value.len().max(1))
         };
+        // The last value naming a parameter: a deduced one's type is that
+        // parameter's.
+        let mut naming: Option<String> = None;
         for f in &fields {
             let el = &layout.elements[f.element];
             let at = match given.get(f) {
@@ -142,7 +145,11 @@ pub fn check(text: &str, set: &MibSet, t: &Templates) -> Vec<Finding> {
                 continue;
             };
             let value = &args[i].1;
-            if let Some(w) = el.domain.as_ref().map(|d| d.check(value, &Profile::default())).and_then(|w| w.into_iter().next()) {
+            let domain = layout.domain_given(f.element, naming.as_deref());
+            if layout.names_a_parameter(f.element) {
+                naming = Some(value.clone());
+            }
+            if let Some(w) = domain.map(|d| d.check(value, &Profile::default())).and_then(|w| w.into_iter().next()) {
                 out.push(Finding { line: ln, cols: value_at(&el.name, value), severity: Severity::Warning, message: w });
             }
         }
@@ -211,6 +218,25 @@ mod tests {
         assert!(found.iter().any(|f| f.line == 1 && f.message == "one more PT than its counter says"), "{msgs:?}");
         assert!(!found.iter().any(|f| f.line == 2 && f.severity == Severity::Warning), "{msgs:?}");
         assert!(found.iter().any(|f| f.line == 2 && f.severity == Severity::Info && f.message.contains("NMODE = NOMINAL")), "{msgs:?}");
+        std::fs::remove_dir_all(&root.path).ok();
+    }
+
+    #[test]
+    fn a_deduced_value_is_checked_as_the_parameter_it_names() {
+        // PUS 20,3: each value takes the type of the parameter whose id
+        // comes before it -- here an 8-bit one, then a 16-bit signed one.
+        let root = crate::mib_page::tests::fixture();
+        std::fs::write(root.path.join("ccf.dat"), "ZTC20003\tSet\t\t\tN\t\t20\t3\t1008\n").unwrap();
+        std::fs::write(root.path.join("cdf.dat"), "ZTC20003\tE\tN\t8\t0\t2\tPN\t\t\t\nZTC20003\tE\tId\t16\t8\t0\tPID\t\t\t\nZTC20003\tE\tValue\t16\t24\t0\tPVAL\t\t\t\n").unwrap();
+        std::fs::write(root.path.join("cpc.dat"), "PN\tCount\t3\t4\nPID\tId\t3\t12\t\t\t\tP\nPVAL\tValue\t11\t0\n").unwrap();
+        std::fs::write(root.path.join("pcf.dat"), "NMODE\tMode\t1003\t\t3\t4\nNTEMP\tTemperature\t1001\t\t4\t12\n").unwrap();
+        let set = MibSet::load(vec![root.clone()], None);
+        let text = "tc::send ZTC20003 -PN 2, -PID 1003, -PVAL 300, -PID 1001, -PVAL -300\ntc::send ZTC20003 -PN 1, -PID 1003, -PVAL 200\n";
+        let found = check(text, &set, &templates());
+        let msgs: Vec<(usize, &str)> = found.iter().map(|f| (f.line, f.message.as_str())).collect();
+        assert!(found.iter().any(|f| f.line == 0 && f.message.contains("300")), "300 doesn't fit NMODE's 8 bits: {msgs:?}");
+        assert_eq!(found.iter().filter(|f| f.line == 0 && f.severity == Severity::Warning).count(), 1, "-300 fits NTEMP's int16: {msgs:?}");
+        assert!(!found.iter().any(|f| f.line == 1 && f.severity == Severity::Warning), "{msgs:?}");
         std::fs::remove_dir_all(&root.path).ok();
     }
 }

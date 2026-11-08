@@ -91,7 +91,7 @@ fn mission(d: &std::path::Path) {
             line(&["PTIME", "Release time", "9", "17"], 17),
             line(&["PLBL", "Label", "8", "0"], 17),
             line(&["POCT", "Key", "7", "4"], 17),
-            line(&["PFLAG", "Flag", "3", "4", "", "", "", "", "", "", "", "", "1"], 17),
+            line(&["PFLAG", "Flag", "3", "4", "", "H", "", "", "", "", "", "", "1F"], 17),
         ],
     );
     write(d, "paf", &[line(&["PAF01", "Heater mode", "U", "3"], 4)]);
@@ -101,7 +101,7 @@ fn mission(d: &std::path::Path) {
     write(d, "cca", &[line(&["CCA01", "Set point", "R", "U", "D", "degC", "2"], 7)]);
     // (engineering, raw): -40 degC is raw 0, 85 degC raw 4000.
     write(d, "ccs", &["CCA01\t-40\t0".into(), "CCA01\t85\t4000".into()]);
-    write(d, "pcf", &[line(&["NTEMP", "Temperature", "1001", "degC", "4", "12"], 24), line(&["NMODE", "Mode", "1002", "", "3", "4"], 24), line(&["NPWR", "Power", "1003", "", "3", "4"], 24)]);
+    write(d, "pcf", &[line(&["NTEMP", "Temperature", "1001", "degC", "4", "12"], 24), line(&["NMODE", "Mode", "1002", "", "3", "4"], 24), line(&["NPWR", "Power", "1003", "", "3", "4"], 24), line(&["NSID", "SID", "", "", "3", "4"], 24)]);
     write(d, "pst", &["PS_HK\tHK settings".into()]);
     write(d, "psm", &["ZHK00301\tC\tPS_HK".into()]);
     write(d, "psv", &["HK_DEF\tVS1\tNominal".into(), "HK_FAST\tVS2\tFast".into()]);
@@ -117,6 +117,11 @@ fn mission(d: &std::path::Path) {
     write(d, "csp", &[line(&["SQHT0001", "FLINE", "1", "Line", "3", "4", "", "", "", "E", "2"], 16)]);
     write(d, "css", &[line(&["SQHT0001", "Switch the heater", "1", "C", "ZHT08001", "2"], 18)]);
     write(d, "sdf", &[line(&["SQHT0001", "1", "ZHT08001", "1", "PLINE", "", "F", "FLINE"], 10), line(&["SQHT0001", "1", "ZHT08001", "2", "PMODE", "", "E", "ON"], 10)]);
+    // Two HK packets told apart by their SID (PI1) alone.
+    write(d, "pid", &[line(&["3", "25", "100", "1", "0", "5001", "HK one", "", "", "13"], 16), line(&["3", "25", "100", "2", "0", "5002", "HK two", "", "", "13"], 16)]);
+    write(d, "pic", &["3\t25\t19\t8\t-1\t0\t".into()]);
+    write(d, "tpcf", &["5001\tHK1\t".into(), "5002\tHK2\t".into()]);
+    write(d, "plf", &["NSID\t5001\t0\t0".into(), "NTEMP\t5001\t1\t0".into(), "NSID\t5002\t0\t0".into(), "NMODE\t5002\t1\t0".into()]);
 }
 
 fn args(a: &[(&str, &str)]) -> Vec<(String, String)> {
@@ -164,11 +169,29 @@ fn a_mission_mib_round_trips_end_to_end() {
         ("ZHT08001", vec![("PLINE", "4"), ("PMODE", "AUTO"), ("PGAIN", "2.5"), ("PSET", "22.5")], vec!["PLINE", "PMODE", "PGAIN", "PSET"], vec![("PFID", "12"), ("PMODE", "10"), ("PSET", "2000")]),
         ("ZTM09001", vec![("PTIME", "2026-01-01T00:00:00"), ("PLBL", "\"HEATER\""), ("POCT", "DEADBEEF"), ("PFLAG", "1")], vec!["PTIME", "PLBL", "POCT", "PFLAG"], vec![("PLBL", "\"HEATER\""), ("POCT", "DE AD BE EF"), ("PFLAG", "1")]),
     ];
+    // Test vectors build every telecommand: an argument with no default
+    // gets a value of its type (octets as zeros, not "0").
+    let v = generate::generate("vectors", &set, &p, OffsetBase::AfterHeaders).unwrap();
+    assert!(v.lines().skip(1).all(|l| !l.contains('#')), "{v}");
     let x = generate::generate("xtce", &set, &p, OffsetBase::AfterHeaders).unwrap();
     let xdir = dir("xtce");
     let xfile = xdir.join("ops.xml");
     std::fs::write(&xfile, &x).unwrap();
     let back = MibSet::load(vec![MibRoot { label: "X".into(), path: xfile }], None);
+    // Read back, it finds what the MIB itself does: no packets that can't
+    // be told apart (PI1 kept), no defaults that don't fit (initialValue
+    // isn't read in CPC_RADIX).
+    let again: Vec<String> = checks::run(&back, &checks::Options { disabled: &off, base: OffsetBase::AfterHeaders, profile: &p }).into_iter().map(|p| p.message).collect();
+    assert!(again.is_empty(), "{again:#?}");
+    let pkt5002 = [0x08, 0x64, 0xC0, 0x00, 0x00, 0x10, 0x20, 0x03, 0x19, 0, 1, 0, 0, 0, 0, 0x03, 0xE8, 0, 0, 2, 1, 0, 0];
+    let id = |s: &MibSet| packets::decode_packet(Some(s), &pkt5002, &p, OffsetBase::AfterHeaders).and_then(|(_, d)| d).map(|d| s.get(d).name.clone());
+    assert_eq!((id(&set), id(&back)), (Some("5002".to_string()), Some("5002".to_string())), "SID 2 is SPID 5002, from the XTCE too");
+    for (i, e) in set.entries(Kind::Telecommand).iter().enumerate() {
+        let ours = Layout::of(&set, fenix_mib::DefRef { kind: Kind::Telecommand, index: i });
+        let theirs = Layout::of(&back, back.find(Kind::Telecommand, 0, &e.name).unwrap());
+        let offered = |l: &Layout| l.asked().map(|el| (el.name.clone(), el.offered.clone())).collect::<Vec<_>>();
+        assert_eq!(offered(&theirs), offered(&ours), "{}: the defaults the form offers, from the XTCE", e.name);
+    }
     for (name, values, labels, raws) in cases {
         let tc = set.find(Kind::Telecommand, 0, name).unwrap();
         let l = Layout::of(&set, tc);
@@ -191,6 +214,11 @@ fn a_mission_mib_round_trips_end_to_end() {
         let theirs = back.find(Kind::Telecommand, 0, name).unwrap();
         let again = packets::encode_tc(&back, theirs, &a, &p, 1).unwrap_or_else(|e| panic!("{name} from XTCE: {e}"));
         assert_eq!(again.bytes, pkt.bytes, "{name} from XTCE");
+        if name == "ZTM09001" {
+            // A time argument decodes as the time typed, not its octets.
+            let t = root.find("PTIME").unwrap();
+            assert_eq!((t.raw.as_str(), t.value.as_str()), ("7F E8 17 A5 00 00", "2026-01-01 00:00:00.000 UTC"));
+        }
     }
 
     // The form's defaults: CDF_VALUE raw 3, a status default, a raw

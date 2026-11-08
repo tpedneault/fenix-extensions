@@ -249,10 +249,22 @@ impl InsertForm {
                 None => format!("{label}: no value"),
             }];
         }
-        match &el.domain {
-            Some(d) => d.check(&v, &Profile::default()),
-            None => vec![format!("{label}: {} has no CPC definition", el.name)],
+        if el.domain.is_none() {
+            return vec![format!("{label}: {} has no CPC definition", el.name)];
         }
+        match self.domain_for(slot) {
+            Some(d) => d.check(&v, &Profile::default()),
+            None => Vec::new(),
+        }
+    }
+
+    /// What `slot`'s value is checked against: a deduced one's, the
+    /// parameter's named before it.
+    fn domain_for(&self, slot: &Field) -> Option<fenix_mib::values::Domain> {
+        let slots = self.slots();
+        let at = slots.iter().position(|s| s == slot).unwrap_or(0);
+        let naming = slots[..at].iter().rev().find(|s| self.layout.names_a_parameter(s.element)).map(|s| self.value(s));
+        self.layout.domain_given(slot.element, naming.as_deref())
     }
 
     pub fn warnings(&self) -> usize {
@@ -284,17 +296,30 @@ impl InsertForm {
     /// One more or one fewer repetition of the group here.
     fn repeat(&mut self, by: i64) {
         let Some(c) = self.counter_here() else {
-            self.note = Some(("+ - change a counter: this field isn't in a repeated group".into(), false));
+            let fixed = self.slots().get(self.focus).and_then(|f| self.layout.enclosing(f.element).first().copied()).filter(|&r| self.layout.elements[r].fixed_count.is_some());
+            let note = match fixed {
+                Some(r) => format!("+ - change a counter: {}'s count is fixed by the MIB", self.layout.elements[r].label()),
+                None => "+ - change a counter: this field isn't in a repeated group".into(),
+            };
+            self.note = Some((note, false));
             return;
         };
+        let here = self.slots().get(self.focus).cloned();
         let n = layout::count_of(&self.layout.elements[c.element], &self.value(&c)) as i64;
         let next = (n + by).clamp(0, MAX_COUNT);
         self.set_value(&c, next.to_string());
         let slots = self.slots();
-        // Stay on the field; when it went away with its repetition, on the counter.
-        if self.focus >= slots.len() {
-            self.focus = slots.iter().position(|s| *s == c).unwrap_or(slots.len().saturating_sub(1));
-        }
+        // Stay on the field; when it went away with its repetition, on the
+        // same field in the last one left, else on the counter -- so a
+        // second `-` keeps shrinking the same group.
+        let depth = c.path.len();
+        let stay = here.as_ref().and_then(|h| slots.iter().position(|s| s == h)).or_else(|| {
+            let h = here.as_ref()?;
+            let mut last = h.path.clone();
+            *last.get_mut(depth)? = next.max(1) as usize;
+            slots.iter().position(|s| s.element == h.element && s.path == last)
+        });
+        self.focus = stay.or_else(|| slots.iter().position(|s| *s == c)).unwrap_or(self.focus.min(slots.len().saturating_sub(1)));
     }
 
     fn cycle(&mut self, by: isize) {
@@ -536,6 +561,11 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Built, String>>, cols: us
         }
         if el.is_repeater() {
             t = format!("repeats next {}", el.group);
+        }
+        if el.ty.as_ref().is_some_and(|t| t.deduced()) {
+            if let Some(d) = form.domain_for(slot) {
+                t = format!("{t} · {}", d.ty.type_name());
+            }
         }
         g.put(y, xt, &fit(&t, xc - xt - 2), Role::Muted);
         let warnings = form.warnings_for(slot);
@@ -861,6 +891,36 @@ mod tests {
         let app = &built.bytes[11..built.bytes.len() - 2];
         assert_eq!(app, &[2, 1, 0, 7, 2, 0, 7, 9]);
         assert!(built.fields.iter().any(|(n, bit, _)| n == "PT[2]" && *bit == 11 * 8 + 32), "{:?}", built.fields);
+        // `-` from the last repetition keeps shrinking the same group:
+        // the cursor stays in it, down to the counter at none.
+        f.key(Key::Char('+'));
+        f.key(Key::Char('j'));
+        f.key(Key::Char('j'));
+        let at = |f: &InsertForm| f.slots()[f.focus].label(&f.layout);
+        assert_eq!(at(&f), "PT[3]");
+        f.key(Key::Char('-'));
+        assert_eq!(at(&f), "PT[2]");
+        f.key(Key::Char('-'));
+        f.key(Key::Char('-'));
+        assert_eq!(f.arguments().into_iter().map(|a| a.0).collect::<Vec<_>>(), vec!["PN", "PD"]);
+        assert_eq!(at(&f), "PN");
+        std::fs::remove_dir_all(&root.path).ok();
+    }
+
+    #[test]
+    fn a_fixed_count_numbers_its_repetitions() {
+        // PN is fixed at 3: three PT fields, numbered "of 3", and + - say why
+        // they don't change it.
+        let (mut f, _set, root) = form_with(
+            "ZTC11006\tFixed\t\t\tN\t\t11\t6\t1008\n",
+            "ZTC11006\tF\tCount\t8\t0\t1\tPN\tR\t3\t\nZTC11006\tE\tTime\t8\t8\t0\tPT\t\t\t\n",
+            "PN\tCount\t3\t4\nPT\tTime\t3\t4\n",
+        );
+        assert_eq!(f.arguments().into_iter().map(|a| a.0).collect::<Vec<_>>(), vec!["PT", "PT", "PT"]);
+        let text = layout(&f, None, 160).text;
+        assert!(text.contains("PN · 3 of 3") && !text.contains("of 0"), "{text}");
+        f.key(Key::Char('+'));
+        assert!(f.note.as_ref().is_some_and(|(n, _)| n.contains("fixed by the MIB")), "{:?}", f.note);
         std::fs::remove_dir_all(&root.path).ok();
     }
 

@@ -35,8 +35,9 @@ built from them follow it.
   times, and deduced parameters (`PTC 11`) typed by the TM parameter an
   earlier argument names (`CPC_CATEG` `P`).
 - **The scripts' checks** follow the counters: a missing repetition,
-  one value too many, a value given twice; and a note on a telecommand
-  sent only while the TM shows something.
+  one value too many, a value given twice; a deduced value is checked as
+  the parameter it names (the form shows that type too); and a note on a
+  telecommand sent only while the TM shows something.
 - **The MIB's own checks** (`layout`, in `ccsds.checks`): `CCF_NPARS`
   against `cdf.dat`, a group running past its elements, a counter that
   isn't an unsigned integer, a fixed element with no value, a default
@@ -57,8 +58,15 @@ built from them follow it.
 - **XTCE**: groups export as repeated command containers and import
   back (and arrays whose length an argument gives); a MIB's own type
   codes, categories, radix and parameter ids go as ancillary data, so
-  a MIB exported and read back builds the same packets. The Python,
-  Wireshark, C and ICD generators know groups.
+  a MIB exported and read back builds the same packets, offers the same
+  defaults (an `initialValue` is no longer read in the MIB's radix) and
+  tells packets apart by their PI1/PI2 values as the MIB does. The
+  Python, Wireshark, C and ICD generators know groups. With several MIBs,
+  `SPC k g` generates from one of them, into its own file
+  (`xtce-OPS.xml`): they used to go into one file, every name twice. An
+  XTCE file in the project can be one of its MIBs (`mib.roots`), to read
+  an export back. Test vectors build telecommands with octets or a
+  parameter id and no default.
 - A `.dat` file that isn't UTF-8 is read as Latin-1, with a problem
   saying where, instead of losing the whole table; `mib.columns` may
   name the TC parameter column `CPC_PNAME`, as the ICD does.

@@ -588,6 +588,9 @@ impl CmdEnv<'_, '_, '_, '_> {
             ("CPC_PFC", t.pfc.to_string()),
             ("CPC_UNIT", t.unit.clone()),
             ("CPC_DEFVAL", initial.clone().unwrap_or_default()),
+            // An initialValue is the value as someone gives it -- through
+            // the calibration, in decimal -- not raw in CPC_RADIX's radix.
+            ("CPC_INTER", if initial.is_some() { "E".into() } else { String::new() }),
             ("CPC_ENDIAN", if t.little_endian { "L".into() } else { String::new() }),
             ("CPC_CATEG", t.categ.clone()),
             ("CPC_RADIX", t.radix.clone()),
@@ -926,6 +929,8 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
         chain.reverse();
         let mut id: HashMap<&'static str, String> = HashMap::new();
         let mut pi_params: [Option<String>; 2] = [None, None];
+        // Comparisons on parameters no name says the role of.
+        let mut unnamed: Vec<(String, String)> = Vec::new();
         for c in &chain {
             let Some(criteria) = child(*c, "BaseContainer").and_then(|b| child(b, "RestrictionCriteria")) else { continue };
             for (p, v) in comparisons(criteria) {
@@ -941,7 +946,10 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
                         pi_params[1] = Some(p);
                         id.insert("pi2", v)
                     }
-                    None => None,
+                    None => {
+                        unnamed.push((p, v));
+                        None
+                    }
                 };
             }
         }
@@ -958,7 +966,21 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
         }
         let mut own = Vec::new();
         lay_out(n, at, 0, &containers, &layouts, &mut own);
-        let anc = |key: &str| descendants(n, "AncillaryData").find(|a| a.attribute("name").is_some_and(|x| x.eq_ignore_ascii_case(key))).and_then(|a| a.text()).map(|t| t.trim().to_string());
+        // A comparison on one of the packet's own parameters tells it from
+        // the others with its APID, type and subtype: PI1, then PI2 --
+        // unless the settings name them.
+        if options.pi1.is_empty() && options.pi2.is_empty() {
+            for (p, v) in unnamed.into_iter().filter(|(p, _)| own.iter().any(|s| s.name == *p)) {
+                let k = match pi_params {
+                    [None, _] => 0,
+                    [_, None] => 1,
+                    _ => break,
+                };
+                id.insert(if k == 0 { "pi1" } else { "pi2" }, v);
+                pi_params[k] = Some(p);
+            }
+        }
+        let anc =|key: &str| descendants(n, "AncillaryData").find(|a| a.attribute("name").is_some_and(|x| x.eq_ignore_ascii_case(key))).and_then(|a| a.text()).map(|t| t.trim().to_string());
         let spid = n.attribute("shortDescription").and_then(|d| d.strip_prefix("SPID ")).map(|s| s.trim().to_string()).or_else(|| anc("SPID")).unwrap_or_else(|| {
             spid_counter += 1;
             format!("{}", 900_000 + spid_counter)

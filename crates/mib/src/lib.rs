@@ -77,6 +77,39 @@ pub fn is_xtce_file(path: &std::path::Path) -> bool {
     path.is_file() && path.extension().is_some_and(|e| e.eq_ignore_ascii_case("xml") || e.eq_ignore_ascii_case("xtce"))
 }
 
+/// Where an extension reads the MIB `label` (`value` in `mib.roots`)
+/// from: the folder Fenix mounts for it in `folders`; else -- Fenix
+/// mounts folders only -- `value` in `project`, when it's relative, for
+/// an XTCE file there. `None` when it's neither a folder nor an XTCE file.
+pub fn root_path(label: &str, value: &str, folders: &std::path::Path, project: &std::path::Path) -> Option<std::path::PathBuf> {
+    let mounted = folders.join(label);
+    if mounted.is_dir() {
+        return Some(mounted);
+    }
+    let value = std::path::Path::new(value.trim());
+    let file = (value.is_relative() && !value.as_os_str().is_empty()).then(|| project.join(value))?;
+    is_xtce_file(&file).then_some(file)
+}
+
+#[cfg(test)]
+mod root_tests {
+    #[test]
+    fn an_xtce_file_in_the_project_is_a_mib_root() {
+        // Fenix mounts folders only: a folder root is read where it's
+        // mounted, an XTCE file from the project.
+        let base = std::env::temp_dir().join(format!("fenix-mib-roots-{}", std::process::id()));
+        let (folders, project) = (base.join("folders"), base.join("project"));
+        std::fs::create_dir_all(folders.join("OPS")).unwrap();
+        std::fs::create_dir_all(project.join("generated")).unwrap();
+        std::fs::write(project.join("generated/xtce-OPS.xml"), "<SpaceSystem/>").unwrap();
+        assert_eq!(super::root_path("OPS", "mib/ops", &folders, &project), Some(folders.join("OPS")));
+        assert_eq!(super::root_path("XTCE", "generated/xtce-OPS.xml", &folders, &project), Some(project.join("generated/xtce-OPS.xml")));
+        assert_eq!(super::root_path("GONE", "mib/gone", &folders, &project), None, "a folder that isn't there");
+        assert_eq!(super::root_path("ABS", "C:/elsewhere/x.xml", &folders, &project), None, "an absolute file can't be reached");
+        std::fs::remove_dir_all(&base).ok();
+    }
+}
+
 /// One configured MIB directory -- a label (shown in candidate lists and
 /// detail views) plus the directory containing its `.dat` table files.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
