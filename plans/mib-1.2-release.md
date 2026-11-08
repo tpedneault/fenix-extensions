@@ -32,7 +32,15 @@ released, the two extensions read the same MIB differently.
   - Value sets, PTV, verification stages, a TCP/PCDF header, a sequence, and a Latin-1 `cdf.dat`.
 
   Every telecommand is filled the way the form fills it, then built, decoded, identified, checked with the MIB checks (no findings), exported to XTCE, read back, and built again to the same bytes. The test found and fixed four bugs (see the commit "an end-to-end test of a mission-like MIB").
-- **In Fenix's wasm host:** the packed `extension.wasm` driven through the insert form, a definition's page, sequences and generation (see "Host smoke test" below).
+- **In Fenix's wasm host** (headless, `fenix-wasm`'s `Worker`, the real `extension.toml`'s permissions): the packed `extension.wasm` passed 18 of 18 checks.
+  - The insert form: value set HK_DEF, `+` growing a group, Bytes with each value at its octet, and `I` inserting.
+  - The heater's PTV note and CDF default.
+  - The MIB page.
+  - Definition pages with verification, value sets and the packet header.
+  - A sequence inserted as its telecommand.
+  - XTCE generated into `generated/`.
+
+  Not covered there: the language server's diagnostics and `K` (the harness doesn't drive LSP; `mib_check` and `hover_text` have unit tests). Packages are rebuilt by `release.yml` from the tag, so a local `extension.wasm` doesn't matter. Repack before any manual install.
 
 ## Still to check before tagging
 
