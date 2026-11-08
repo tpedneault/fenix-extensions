@@ -618,6 +618,12 @@ impl Layout {
         out
     }
 
+    /// Where `nodes` sit with every group there once: their first
+    /// element's start and their last one's end, in bits.
+    pub fn static_extent(&self, nodes: &[Node]) -> Option<(usize, usize)> {
+        self.static_span(nodes)
+    }
+
     /// The value a fixed element must have, raw, for identification.
     pub fn fixed_raw_value(&self, set: &MibSet, element: usize) -> Option<u64> {
         let el = &self.elements[element];
