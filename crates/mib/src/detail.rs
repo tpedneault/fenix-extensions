@@ -3,26 +3,32 @@
 //! parameters by position, a calibration's points or texts, a TM
 //! parameter's limits and the packets carrying it.
 
+use crate::layout::{ElementKind, Layout};
 use crate::row::Row;
 use crate::set::{CalKind, DefRef, Kind, MibSet};
 use crate::types::{self, parse_int};
 
-/// One of a telecommand's `CDF` elements.
+/// One of a telecommand's `CDF` elements, in packet order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TcElement {
     /// Its parameter's name; empty for a spare area.
     pub name: String,
     pub description: String,
+    /// `CDF_ELTYPE`.
+    pub kind: ElementKind,
     pub bit: Option<i64>,
     pub bits: Option<i64>,
-    /// The value it's fixed to, when it is.
+    /// The value it's fixed to, when it is (a fixed parameter or area).
     pub fixed: Option<String>,
     /// Its `CPC` definition.
     pub param: Option<DefRef>,
     /// The parameter's type, decoded.
     pub type_name: String,
     pub unit: String,
+    /// What someone is offered: `CDF_VALUE`, else `CPC_DEFVAL`.
     pub default: String,
+    /// The TM parameter a dynamic default comes from (`CDF_TMID`).
+    pub dynamic: Option<String>,
     /// What it may be: "1..8", "OFF ON AUTO".
     pub allowed: String,
     /// The calibration giving `allowed`.
@@ -30,37 +36,42 @@ pub struct TcElement {
     /// Its `CDF_GRPSIZE`: how many elements after it repeat, as often as
     /// its value says.
     pub group: usize,
+    /// The repeaters of the groups it's in, innermost first, as indexes
+    /// into the list.
+    pub within: Vec<usize>,
 }
 
 pub fn tc_elements(set: &MibSet, tc: DefRef) -> Vec<TcElement> {
     let e = set.get(tc);
-    let index = set.index();
-    index
-        .rows_by_field("cdf", "CDF_CNAME", &e.name, Some(e.root))
-        .into_iter()
-        .map(|cdf| {
-            let name = cdf.clean("CDF_PNAME").to_string();
-            let param = (!name.is_empty()).then(|| set.find(Kind::TcParam, e.root, &name)).flatten();
-            let cpc = param.map(|p| &set.get(p).row);
+    let layout = Layout::of(set, tc);
+    layout
+        .elements
+        .iter()
+        .enumerate()
+        .map(|(i, el)| {
+            let cpc = el.param.map(|p| &set.get(p).row);
             let (allowed, cal) = cpc.map(|c| param_allowed(set, e.root, c)).unwrap_or_default();
-            let description = match cdf.clean("CDF_DESCR") {
-                "" => cpc.map(|c| c.clean("CPC_DESCR").to_string()).unwrap_or_default(),
-                d => d.to_string(),
+            let fixed = match el.kind {
+                ElementKind::Editable => None,
+                ElementKind::Area if el.value.is_empty() => None,
+                _ => Some(el.value.clone()),
             };
-            let fixed = cdf.clean("CDF_VALUE");
             TcElement {
-                description,
-                bit: parse_int(cdf.clean("CDF_BIT")),
-                bits: parse_int(cdf.clean("CDF_ELLEN")),
-                fixed: (!fixed.is_empty()).then(|| fixed.to_string()),
-                param,
+                description: el.description.clone(),
+                kind: el.kind,
+                bit: el.bit.map(|b| b as i64),
+                bits: Some(el.bits as i64),
+                fixed,
+                param: el.param,
                 type_name: cpc.map(|c| types::decode(c.clean("CPC_PTC"), c.clean("CPC_PFC")).name).unwrap_or_default(),
                 unit: cpc.map(|c| c.clean("CPC_UNIT").to_string()).unwrap_or_default(),
-                default: cpc.map(|c| c.clean("CPC_DEFVAL").to_string()).unwrap_or_default(),
+                default: if el.kind == ElementKind::Editable { layout.default(set, i) } else { String::new() },
+                dynamic: layout.dynamic_default(i).map(str::to_string),
                 allowed,
                 cal,
-                group: parse_int(cdf.clean("CDF_GRPSIZE")).unwrap_or(0).max(0) as usize,
-                name,
+                group: if el.is_repeater() { el.group } else { 0 },
+                within: layout.enclosing(i),
+                name: el.name.clone(),
             }
         })
         .collect()

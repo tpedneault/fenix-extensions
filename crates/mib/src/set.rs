@@ -352,7 +352,14 @@ impl MibSet {
                     }
                     CalKind::Range => {
                         let r = rows_of(&prv, root, id);
-                        let text = r.iter().map(|r| format!("{}..{}", r.clean("PRV_MINVAL"), r.clean("PRV_MAXVAL"))).collect::<Vec<_>>().join(", ");
+                        let text = r
+                            .iter()
+                            .map(|r| match r.clean("PRV_MAXVAL") {
+                                "" => r.clean("PRV_MINVAL").to_string(),
+                                max => format!("{}..{max}", r.clean("PRV_MINVAL")),
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ");
                         (text, Vec::new())
                     }
                     CalKind::Polynomial | CalKind::Logarithmic => {
@@ -417,7 +424,7 @@ impl MibSet {
             e.cols = vec![
                 format!("{},{}", row.clean("CCF_TYPE"), row.clean("CCF_STYPE")),
                 row.clean("CCF_APID").to_string(),
-                params.iter().filter(|p| p.clean("CDF_VALUE").is_empty() && !p.clean("CDF_PNAME").is_empty()).count().to_string(),
+                params.iter().filter(|p| crate::layout::ElementKind::of(p.clean("CDF_ELTYPE"), !p.clean("CDF_PNAME").is_empty()) == crate::layout::ElementKind::Editable && !p.clean("CDF_PNAME").is_empty()).count().to_string(),
             ];
             for (what, field) in [("subsystem", "CCF_SUBSYS"), ("description", "CCF_DESCR2")] {
                 if !row.clean(field).is_empty() {

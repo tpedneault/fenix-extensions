@@ -10,6 +10,8 @@ use fenix_ccsds::pus::{self, Profile, Secondary};
 use fenix_ccsds::{bits, Packet};
 
 use crate::detail::{self, CalBody};
+use crate::layout::{self, ElementKind, Layout};
+use crate::values::{self, interpolate};
 use crate::set::{CalKind, DefRef, Kind, MibSet};
 use crate::types::{self, parse_int};
 
@@ -143,20 +145,6 @@ pub fn read_raw(bytes: &[u8], at: usize, ptc: &str, pfc: &str, bits_hint: Option
     Some((raw, width))
 }
 
-fn interpolate(points: &[(f64, f64)], x: f64) -> Option<f64> {
-    if points.len() < 2 {
-        return points.first().map(|p| p.1);
-    }
-    let mut pts = points.to_vec();
-    pts.sort_by(|a, b| a.0.total_cmp(&b.0));
-    let seg = pts.windows(2).find(|w| x <= w[1].0).unwrap_or(&pts[pts.len() - 2..]);
-    let (a, b) = (seg[0], seg[1]);
-    if b.0 == a.0 {
-        return Some(a.1);
-    }
-    Some(a.1 + (x - a.0) * (b.1 - a.1) / (b.0 - a.0))
-}
-
 /// `raw` through calibration `cal`: engineering text, and the number
 /// when there is one.
 pub fn calibrate(set: &MibSet, cal: DefRef, raw: &Raw) -> Option<(String, Option<f64>)> {
@@ -288,15 +276,16 @@ pub fn identify_tc(set: &MibSet, pkt: &Packet, sec: Option<&Secondary>, profile:
         let def = DefRef { kind: Kind::Telecommand, index: i };
         let mut matched = 0;
         let mut ok = true;
-        for el in detail::tc_elements(set, def) {
-            let (Some(fixed), Some(bit), Some(len)) = (&el.fixed, el.bit, el.bits) else { continue };
-            match (parse_int(fixed), bits::get(app, bit.max(0) as usize, len.max(0) as usize)) {
-                (Some(want), Some(have)) if want as u64 == have => matched += 1,
-                (Some(_), _) => {
+        let layout = Layout::of(set, def);
+        for i in layout.static_prefix() {
+            let el = &layout.elements[i];
+            let (Some(want), Some(bit)) = (layout.fixed_raw_value(set, i), el.bit) else { continue };
+            match bits::get(app, bit, el.bits.min(64)) {
+                Some(have) if have == want => matched += 1,
+                _ => {
                     ok = false;
                     break;
                 }
-                _ => {}
             }
         }
         if ok && best.is_none_or(|(m, _)| matched > m) {
@@ -306,41 +295,43 @@ pub fn identify_tc(set: &MibSet, pkt: &Packet, sec: Option<&Secondary>, profile:
     best.map(|(_, d)| d)
 }
 
-/// A TC's application data, element by element.
+/// A TC's application data, element by element, its groups repeated as
+/// their counters in the packet say.
 pub fn decode_tc(set: &MibSet, tc: DefRef, pkt: &Packet, profile: &Profile) -> Field {
     let e = set.get(tc);
     let head = 6 + pus::tc_header_len(profile);
     let app = pkt.bytes.get(head..).unwrap_or(&[]);
+    let layout = Layout::of(set, tc);
     let mut children = Vec::new();
-    for el in detail::tc_elements(set, tc) {
-        let (Some(bit), Some(len)) = (el.bit, el.bits) else { continue };
-        let at = bit.max(0) as usize;
-        let width = len.max(0) as usize;
-        let bits_at = head * 8 + at;
-        let name = if el.name.is_empty() { "spare".to_string() } else { el.name.clone() };
-        let Some(v) = bits::get(app, at, width.min(64)) else {
-            children.push(Field::new(name, bits_at, width, "", "past the end").checked(Check::Bad("packet too short".into())));
-            continue;
-        };
-        let mut value = v.to_string();
-        if let Some(p) = el.param {
-            let cpc = &set.get(p).row;
-            if let Some(status) = set.find_cal(e.root, CalKind::Status, cpc.clean("CPC_PAFREF")) {
-                if let CalBody::Texts(t) = detail::calibration(set, status) {
-                    if let Some((_, text)) = t.iter().find(|(raw, _)| parse_int(raw) == Some(v as i64)) {
-                        value = text.clone();
-                    }
+    for read in layout.decode(set, app, profile) {
+        match read {
+            Ok(placed) => {
+                let el = &layout.elements[placed.element];
+                let name = layout::Field { element: placed.element, path: placed.path.clone() }.label(&layout);
+                let value = match &el.ty {
+                    Some(t) => values::to_engineering(set, t, &placed.raw),
+                    None => placed.raw.display(),
+                };
+                let mut f = Field::new(name, head * 8 + placed.bit, placed.bits, placed.raw.display(), value);
+                if el.kind != ElementKind::Editable && !(el.kind == ElementKind::Area && el.value.is_empty()) {
+                    let want = layout.fixed_raw_value(set, placed.element);
+                    let have = match placed.raw {
+                        Raw::Unsigned(v) => Some(v),
+                        Raw::Signed(v) => Some(v as u64 & if placed.bits >= 64 { u64::MAX } else { (1 << placed.bits) - 1 }),
+                        _ => None,
+                    };
+                    f.check = Some(if want.is_some() && want == have { Check::Ok(format!("fixed {}", el.value)) } else { Check::Bad(format!("fixed at {}", el.value)) });
                 }
+                if !el.name.is_empty() {
+                    f.link = Some(Link::Parameter(el.name.clone()));
+                }
+                children.push(f);
+            }
+            Err((element, path, why)) => {
+                let name = layout::Field { element, path }.label(&layout);
+                children.push(Field::new(name, head * 8 + app.len() * 8, 0, "", "past the end").checked(Check::Bad(why)));
             }
         }
-        let mut f = Field::new(name.clone(), bits_at, width, v.to_string(), value);
-        if let Some(fixed) = &el.fixed {
-            f.check = Some(if parse_int(fixed) == Some(v as i64) { Check::Ok(format!("fixed {fixed}")) } else { Check::Bad(format!("fixed at {fixed}")) });
-        }
-        if !el.name.is_empty() {
-            f.link = Some(Link::Parameter(el.name.clone()));
-        }
-        children.push(f);
     }
     let mut g = Field::group(format!("{} · {}", e.name, e.description), children);
     g.link = Some(Link::Telecommand(e.name.clone()));
@@ -349,47 +340,16 @@ pub fn decode_tc(set: &MibSet, tc: DefRef, pkt: &Packet, profile: &Profile) -> F
 
 /// A value typed for a TC parameter, as the raw number the packet takes:
 /// a status text through its `PAS` table, an engineering number back
-/// through its numeric calibration, else the number itself (hex with 0x).
+/// through its numeric calibration, else the number itself.
 pub fn raw_argument(set: &MibSet, param: DefRef, value: &str) -> Result<u64, String> {
-    let e = set.get(param);
-    let cpc = &e.row;
-    let v = value.trim();
-    if let Some(status) = set.find_cal(e.root, CalKind::Status, cpc.clean("CPC_PAFREF")) {
-        if let CalBody::Texts(t) = detail::calibration(set, status) {
-            if let Some((raw, _)) = t.iter().find(|(_, text)| text == v) {
-                return parse_int(raw).map(|n| n as u64).ok_or_else(|| format!("{raw} isn't a number"));
-            }
-        }
+    let t = values::ParamType::of(set, param);
+    match values::to_raw(set, &t, value, &Profile::default())? {
+        Raw::Unsigned(v) => Ok(v),
+        Raw::Signed(v) => Ok(v as u64 & t.bits().filter(|b| *b < 64).map_or(u64::MAX, |b| (1 << b) - 1)),
+        Raw::Real(f) if t.bits() == Some(32) => Ok((f as f32).to_bits() as u64),
+        Raw::Real(f) => Ok(f.to_bits()),
+        _ => Err(format!("{} isn't a number", t.name)),
     }
-    let ptc = cpc.clean("CPC_PTC");
-    let pfc = cpc.clean("CPC_PFC");
-    let width = types::decode(ptc, pfc).bits.unwrap_or(64) as usize;
-    let number: f64 = match parse_int(v) {
-        Some(n) => n as f64,
-        None => v.parse().map_err(|_| format!("{} needs a number, not {v}", e.name))?,
-    };
-    let number = match set.find_cal(e.root, CalKind::TcNumeric, cpc.clean("CPC_CCAREF")) {
-        Some(cal) => match detail::calibration(set, cal) {
-            // CCS points are (raw, engineering): interpolate the other way.
-            CalBody::Points(p) => {
-                let pts: Vec<(f64, f64)> = p.iter().filter_map(|(r, eng)| Some((eng.trim().parse().ok()?, r.trim().parse().ok()?))).collect();
-                interpolate(&pts, number).unwrap_or(number).round()
-            }
-            _ => number,
-        },
-        None => number,
-    };
-    Ok(match ptc {
-        "5" if width == 32 => (number as f32).to_bits() as u64,
-        "5" => number.to_bits(),
-        "4" => (number as i64 as u64) & if width >= 64 { u64::MAX } else { (1 << width) - 1 },
-        _ => {
-            if number < 0.0 {
-                return Err(format!("{} can't be negative", e.name));
-            }
-            number as u64
-        }
-    })
 }
 
 /// Telecommand `tc`'s packet for `args` (`(parameter, value)` in the
@@ -397,49 +357,7 @@ pub fn raw_argument(set: &MibSet, param: DefRef, value: &str) -> Result<u64, Str
 pub fn encode_tc(set: &MibSet, tc: DefRef, args: &[(String, String)], profile: &Profile, seq: u16) -> Result<Packet, String> {
     let e = set.get(tc);
     let r = &e.row;
-    let els = detail::tc_elements(set, tc);
-    let grouped = els.iter().any(|el| el.group > 0);
-    let mut app: Vec<u8> = Vec::new();
-    let mut next = args.iter();
-    let mut at = 0usize;
-    let mut end = 0usize;
-    // With a repeat group, positions shift with the count: elements are
-    // packed one after the other. Without, each goes where CDF_BIT says.
-    let variable: Vec<&detail::TcElement> = els.iter().collect();
-    let mut queue: Vec<&detail::TcElement> = variable.clone();
-    let mut i = 0;
-    while i < queue.len() {
-        let el = queue[i];
-        let width = el.bits.unwrap_or(0).max(0) as usize;
-        let pos = if grouped { at } else { el.bit.unwrap_or(at as i64).max(0) as usize };
-        let raw = match (&el.fixed, el.name.is_empty(), el.param) {
-            (Some(f), _, _) => parse_int(f).unwrap_or(0) as u64,
-            (None, true, _) => 0,
-            (None, false, Some(p)) => {
-                let (name, value) = next.next().ok_or_else(|| format!("no value for {}", el.name))?;
-                if name != &el.name {
-                    return Err(format!("expected {}, got {name}", el.name));
-                }
-                let raw = raw_argument(set, p, value)?;
-                if el.group > 0 {
-                    // Repeat the next `group` elements `raw` times.
-                    let span: Vec<&detail::TcElement> = variable.iter().skip_while(|x| !std::ptr::eq(**x, el)).skip(1).take(el.group).copied().collect();
-                    let tail: Vec<&detail::TcElement> = queue.split_off(i + 1).into_iter().skip(el.group).collect();
-                    for _ in 0..raw.min(999) {
-                        queue.extend(span.iter().copied());
-                    }
-                    queue.extend(tail);
-                }
-                raw
-            }
-            (None, false, None) => return Err(format!("{} has no CPC definition", el.name)),
-        };
-        bits::put(&mut app, pos, width, raw);
-        at = pos + width;
-        end = end.max(at);
-        i += 1;
-    }
-    app.resize(end.div_ceil(8), 0);
+    let (app, _) = Layout::of(set, tc).encode(set, args, profile)?;
     let apid = parse_int(r.clean("CCF_APID")).ok_or("no APID")? as u16;
     let service = parse_int(r.clean("CCF_TYPE")).ok_or("no type")? as u8;
     let subtype = parse_int(r.clean("CCF_STYPE")).ok_or("no subtype")? as u8;
@@ -597,6 +515,57 @@ pub(crate) mod tests {
         assert_eq!(set.get(def.unwrap()).name, "ZTC08101", "the fixed function id tells it from ZTC08102");
         assert_eq!(root.find("PTH00102").unwrap().value, "AUTO");
         assert!(encode_tc(&set, tc, &args[..1], &Profile::default(), 0).is_err());
+    }
+
+    #[test]
+    fn a_grouped_tc_round_trips_and_is_identified_whatever_its_editable_defaults() {
+        let set = crate::layout::tests::groups();
+        let p = Profile::default();
+        let tc = set.find(Kind::Telecommand, 0, "TC1").unwrap();
+        let a: Vec<(String, String)> = [("N", "2"), ("A", "1"), ("A", "2"), ("C", "9")].iter().map(|(n, v)| (n.to_string(), v.to_string())).collect();
+        let pkt = encode_tc(&set, tc, &a, &p, 3).unwrap();
+        let (root, def) = decode_packet(Some(&set), &pkt.bytes, &p, OffsetBase::AfterHeaders).unwrap();
+        assert_eq!(def, Some(tc));
+        assert_eq!(root.find("A[2]").unwrap().raw, "2");
+        assert_eq!(root.find("B[2]").unwrap().check, Some(Check::Ok("fixed 7".into())));
+        assert_eq!(root.find("C").unwrap().raw, "9");
+        // TC2's first argument has a default in CDF_VALUE: another value
+        // is still TC2, and its value is what was given.
+        let tc2 = set.find(Kind::Telecommand, 0, "TC2").unwrap();
+        let a: Vec<(String, String)> = [("A", "5"), ("M", "OFF")].iter().map(|(n, v)| (n.to_string(), v.to_string())).collect();
+        let pkt = encode_tc(&set, tc2, &a, &p, 0).unwrap();
+        let (root, def) = decode_packet(Some(&set), &pkt.bytes, &p, OffsetBase::AfterHeaders).unwrap();
+        assert_eq!(def, Some(tc2));
+        assert_eq!((root.find("A").unwrap().raw.as_str(), root.find("M").unwrap().value.as_str()), ("5", "OFF"));
+    }
+
+    #[test]
+    fn strings_octets_and_deduced_values_are_built() {
+        let r = temp_root("packets-types");
+        write(&r, "ccf", &line(&["TCS", "Types", "", "", "N", "", "20", "1", "100", "4"], 21));
+        write(
+            &r,
+            "cdf",
+            &[
+                line(&["TCS", "E", "label", "8", "0", "0", "LBL"], 10),
+                line(&["TCS", "E", "blob", "16", "8", "0", "BLB"], 10),
+                line(&["TCS", "E", "param id", "16", "24", "0", "PID"], 10),
+                line(&["TCS", "E", "value", "16", "40", "0", "VAL"], 10),
+            ]
+            .join("\n"),
+        );
+        write(&r, "cpc", &[line(&["LBL", "label", "8", "0"], 17), line(&["BLB", "blob", "7", "2"], 17), line(&["PID", "param", "3", "12", "", "", "", "P"], 17), line(&["VAL", "value", "11", "0"], 17)].join("\n"));
+        write(&r, "pcf", &line(&["NTEMP", "temp", "7", "", "4", "12"], 24));
+        let set = MibSet::load(vec![r], None);
+        let tc = set.find(Kind::Telecommand, 0, "TCS").unwrap();
+        let p = Profile::default();
+        let a: Vec<(String, String)> = [("LBL", "\"AB\""), ("BLB", "0xCAFE"), ("PID", "7"), ("VAL", "-2")].iter().map(|(n, v)| (n.to_string(), v.to_string())).collect();
+        let (app, _) = Layout::of(&set, tc).encode(&set, &a, &p).unwrap();
+        // A length octet and "AB", the two octets, PCF_PID 7, then -2 as NTEMP's int16.
+        assert_eq!(app, vec![2, b'A', b'B', 0xCA, 0xFE, 0x00, 0x07, 0xFF, 0xFE]);
+        let back = Layout::of(&set, tc).decode(&set, &app, &p);
+        let raws: Vec<String> = back.into_iter().map(|r| r.unwrap().raw.display()).collect();
+        assert_eq!(raws, vec!["\"AB\"", "CA FE", "7", "-2"]);
     }
 
     #[test]

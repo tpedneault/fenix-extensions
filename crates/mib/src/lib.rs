@@ -18,6 +18,7 @@
 pub mod checks;
 pub mod detail;
 pub mod generate;
+pub mod layout;
 pub mod mission;
 pub mod packets;
 mod parse;
@@ -27,6 +28,7 @@ pub mod schema;
 mod set;
 pub mod telecommand;
 pub mod types;
+pub mod values;
 mod xtce;
 
 use std::path::PathBuf;
