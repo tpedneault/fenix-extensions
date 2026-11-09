@@ -32,7 +32,7 @@ threads), and `o` there reviews it, or opens a new one.
 | `r`, `R` | Reply to a thread, resolve it |
 | `]t` | The next thread |
 | `i` | Only what changed since your last review |
-| `s` | Submit: `a` approve, `r` request changes, `c` comment, `e` a summary, `S S` sends it. In the summary's box, `A` in Normal mode has your coding agent write it while the box is empty |
+| `s` | Submit: `a` approve, `r` request changes, `c` comment, `e` a summary, `S S` sends it. In the summary's box, `A` in Normal mode (`Ctrl+Shift+A` with standard keys) has your coding agent write it while the box is empty |
 | `m` | Merge: squash, rebase, delete the branch, when the checks pass; `m m` |
 | `w`, `o`, `q` | A worktree, the browser, close |
 
@@ -48,7 +48,8 @@ commits), reviewers and draft: `Enter` edits a field, `e` the
 description, `S S` pushes the branch if it has to and opens it. A branch
 named after a Jira issue puts the key in the title.
 
-`A` in the description's box, in Normal mode, has your coding agent write
+`A` in the description's box, in Normal mode (`Ctrl+Shift+A` with standard
+keys), has your coding agent write
 it, from the branch's change against its base and its commits, filling in
 the repository's template heading by heading. It works while the box is
 empty or still the template; with your text in it, `A` is Vim's. It's

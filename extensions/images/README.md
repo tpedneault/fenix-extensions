@@ -2,7 +2,7 @@
 
 Pictures in a pane. A PNG, JPEG, GIF, WebP, BMP or SVG opens in it however
 you open it -- the explorer, the file picker, `:e`, a recent file, the
-command line, `gf` -- fitted to the pane, over the theme's background,
+command line, `gf` (with standard keys, Ctrl+click or `Alt+F12`) -- fitted to the pane, over the theme's background,
 with a checkerboard under what's transparent and a details line below:
 its name, format, size in pixels and on disk, how big it's shown, and its
 place in its folder.

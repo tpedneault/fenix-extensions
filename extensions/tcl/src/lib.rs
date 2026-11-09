@@ -17,6 +17,19 @@ use fenix_extension_api::{export, host, project, Check, Command, Event, Extensio
 
 use server::{Effect, Tcl};
 
+/// The keys that go to a definition, as the key scheme in use has them
+/// (`gd`, or `F12` with standard keys).
+pub(crate) fn definition_keys() -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        fenix_extension_api::key_for("code.goto_definition").unwrap_or_else(|| "gd".to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        "gd".to_string()
+    }
+}
+
 /// Where an install puts Universal Ctags and Tcl, besides `PATH` and
 /// Fenix's tools folder.
 const CTAGS_HINTS: &[&str] = &["%LOCALAPPDATA%/Microsoft/WinGet/Links", "%ProgramData%/chocolatey/bin", "%USERPROFILE%/scoop/shims", "/usr/local/bin", "/opt/homebrew/bin"];
@@ -51,7 +64,7 @@ impl TclExtension {
                             Ok(process) => self.tcl.started(scan, process),
                             Err(why) => self.tcl.failed(scan, &format!("couldn't run ctags: {why}")),
                         },
-                        None => self.tcl.failed(scan, "ctags not found -- completion of the project's procs, gd and SPC m s need Universal Ctags on PATH"),
+                        None => self.tcl.failed(scan, &format!("ctags not found -- completion of the project's procs, {} and SPC m s need Universal Ctags on PATH", definition_keys())),
                     },
                     Effect::Notify(text) => fenix_extension_api::notify(&text),
                     Effect::Error(text) => host::notify(Level::Error, &text),

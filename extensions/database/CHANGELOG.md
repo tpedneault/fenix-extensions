@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+For Fenix 1.5: with standard keys, Ctrl+Enter in a .sql buffer runs the
+statement under the cursor (or the selection).
+
 ## 1.1.0
 
 For Fenix 1.1: tools for your coding agents.

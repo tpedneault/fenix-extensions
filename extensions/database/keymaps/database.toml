@@ -35,3 +35,12 @@ command = "database.open"
 keys = "n"
 label = "a new query buffer"
 command = "database.new_query"
+
+# Standard keys: Ctrl+Enter runs the statement under the cursor, in a .sql
+# buffer only (its SPC m context).
+[[keys]]
+keys = "C-Enter"
+command = "database.run"
+scheme = "standard"
+when = "text"
+context = "sql"

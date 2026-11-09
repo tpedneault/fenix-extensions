@@ -134,18 +134,19 @@ impl LanguageServer for Lsp<'_> {
             self.ext.notebook()?;
             let from_guest = self.ext.places.guest(&from);
             let nb = self.ext.book.as_ref()?;
+            let gd = crate::definition_keys();
             return text(match nb.resolve(&link, from_guest.as_deref()) {
                 Target::Entry { id, .. } => {
                     let e = nb.get(&id)?;
-                    format!("{} **{}** -- `gd` opens it", if e.kind == Kind::Diagram { "Diagram" } else { "Note" }, e.display_name())
+                    format!("{} **{}** -- `{gd}` opens it", if e.kind == Kind::Diagram { "Diagram" } else { "Note" }, e.display_name())
                 }
-                Target::Missing(name) if !link.markdown && !name.is_empty() => format!("No note called **{name}** yet -- `gd` makes it"),
+                Target::Missing(name) if !link.markdown && !name.is_empty() => format!("No note called **{name}** yet -- `{gd}` makes it"),
                 Target::Missing(name) => format!("Nothing called {name}"),
-                Target::File { path, .. } => format!("A file: {} -- `gd` opens it", self.ext.places.shown(&path)),
-                Target::ProjectFile { project, path, .. } => format!("{path} in {project} -- `gd` opens it"),
-                Target::Url(url) => format!("{url} -- `gd` opens it in the browser"),
-                Target::Mib(name) => format!("The MIB's {name} -- `gd` opens it"),
-                Target::Task(key) => format!("Task {key} -- `gd` opens it in the agenda"),
+                Target::File { path, .. } => format!("A file: {} -- `{gd}` opens it", self.ext.places.shown(&path)),
+                Target::ProjectFile { project, path, .. } => format!("{path} in {project} -- `{gd}` opens it"),
+                Target::Url(url) => format!("{url} -- `{gd}` opens it in the browser"),
+                Target::Mib(name) => format!("The MIB's {name} -- `{gd}` opens it"),
+                Target::Task(key) => format!("Task {key} -- `{gd}` opens it in the agenda"),
             });
         }
         // In a ```mermaid block: how to see it drawn.

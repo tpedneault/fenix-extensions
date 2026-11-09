@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.database"
 name = "Database browser"
-version = "1.1.0"
+version = "1.2.0"
 description = "SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table's rows paged and changed, history, completion of the schema's names"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -14,7 +14,7 @@ runtime = "wasm"
 fenix = ">=1.1, <2"
 # Passwords in the system's keychain (secret-set, patterns), the masked
 # prompt, a minute a call, contributes.magic.
-api = "1.0"
+api = "1.5"
 
 # Its commands load it; so does a .sqlite file opened, and a .sql buffer
 # (its language server).

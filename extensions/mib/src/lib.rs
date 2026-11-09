@@ -21,6 +21,19 @@ mod mib_page;
 mod page;
 mod server;
 
+/// The keys that go to a definition, as the key scheme in use has them
+/// (`gd`, or `F12` with standard keys).
+pub(crate) fn definition_keys() -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        api::key_for("code.goto_definition").unwrap_or_else(|| "gd".to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        "gd".to_string()
+    }
+}
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
