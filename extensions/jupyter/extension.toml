@@ -1,0 +1,61 @@
+[extension]
+id = "fenix.jupyter"
+name = "Jupyter notebooks"
+version = "1.0.0"
+description = "Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib's plots and other pictures -- cells edited beside it and changed through the file's buffer, and run on the notebook's Python: ipykernel when it's there, Python itself when it isn't, input() asked of you"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "data", "tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+[permissions]
+# The notebook's Python, which runs fenix_kernel.py from the extension's
+# folder: the one jupyter.python names, the project's .venv's (found
+# there), uv's for a project of its, or the one on PATH. uv, too, to
+# install ipykernel.
+process = ["python3", "python", "uv", "${setting:jupyter.python}"]
+# The notebook's buffer: read, changed and saved, so Fenix's undo has
+# what it does.
+editor = "write"
+# A notebook kept in the session is read from the project again on the
+# next start; the project's .venv and pyproject.toml are looked for.
+filesystem = "project-read"
+
+[contributes]
+# A notebook opens in it however you open it, which starts it.
+opens = ["*.ipynb"]
+# A notebook's buffer changed: its page is read again (with editor = "read").
+events = ["changed"]
+
+[[contributes.commands]]
+id = "jupyter.run-all"
+title = "Jupyter: run every cell of the notebook"
+
+[[contributes.commands]]
+id = "jupyter.interrupt"
+title = "Jupyter: interrupt the kernel"
+
+[[contributes.commands]]
+id = "jupyter.restart"
+title = "Jupyter: restart the kernel"
+
+[[contributes.commands]]
+id = "jupyter.clear-all"
+title = "Jupyter: clear every cell's outputs"
+
+[[contributes.commands]]
+id = "jupyter.install-ipykernel"
+title = "Jupyter: install ipykernel into the notebooks' Python"
+
+[[contributes.settings]]
+key = "jupyter.python"
+kind = "path"
+label = "Python"
+description = "The Python to run notebooks with; empty for the project's .venv, else uv's for a uv project, else python3 on PATH."
+default = ""
+project = true
