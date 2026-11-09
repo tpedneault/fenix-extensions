@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ccsds"
 name = "CCSDS & ECSS"
-version = "1.2.0"
+version = "1.2.1"
 description = "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"

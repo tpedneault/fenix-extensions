@@ -28,7 +28,7 @@ pub struct Options<'a> {
 }
 
 fn at(row: &Row, message: String) -> Problem {
-    Problem { root: row.source.root_index, file: row.source.file.to_path_buf(), line: Some(row.source.line), message }
+    Problem { root: row.source().root_index, file: row.source().file.to_path_buf(), line: Some(row.line()), message }
 }
 
 /// Every standards problem in `set`.
@@ -171,7 +171,7 @@ pub fn run(set: &MibSet, o: &Options) -> Vec<Problem> {
             }
             let pi = parse_int(r.clean("PID_PI1_VAL")).unwrap_or(0) != 0 || parse_int(r.clean("PID_PI2_VAL")).unwrap_or(0) != 0;
             if pi {
-                let has_pic = set.index().rows("pic").iter().any(|p| p.source.root_index == e.root && p.clean("PIC_TYPE") == r.clean("PID_TYPE") && p.clean("PIC_STYPE") == r.clean("PID_STYPE"));
+                let has_pic = set.index().rows("pic").iter().any(|p| p.source().root_index == e.root && p.clean("PIC_TYPE") == r.clean("PID_TYPE") && p.clean("PIC_STYPE") == r.clean("PID_STYPE"));
                 if !has_pic {
                     out.push(at(r, format!("SPID {}: PI values but no PIC row for {},{} says where to read them", e.name, r.clean("PID_TYPE"), r.clean("PID_STYPE"))));
                 }

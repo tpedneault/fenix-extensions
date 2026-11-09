@@ -236,7 +236,7 @@ type Groups<'a> = HashMap<(usize, String), Vec<&'a Row>>;
 fn group<'a>(index: &'a MibIndex, table: &str, field: &str) -> Groups<'a> {
     let mut out: Groups = HashMap::new();
     for row in index.rows(table) {
-        out.entry((row.source.root_index, row.clean(field).to_string())).or_default().push(row);
+        out.entry((row.source().root_index, row.clean(field).to_string())).or_default().push(row);
     }
     out
 }
@@ -305,7 +305,7 @@ impl MibSet {
     }
 
     fn problem(&mut self, row: &Row, message: String) {
-        self.problems.push(Problem { root: row.source.root_index, file: row.source.file.to_path_buf(), line: Some(row.source.line), message });
+        self.problems.push(Problem { root: row.source().root_index, file: row.source().file.to_path_buf(), line: Some(row.line()), message });
     }
 
     fn build(&mut self, index: &MibIndex) {
@@ -321,7 +321,7 @@ impl MibSet {
             name: name.to_string(),
             alias: String::new(),
             description: description.to_string(),
-            root: row.source.root_index,
+            root: row.source().root_index,
             row: row.clone(),
             cal: None,
             cols: Vec::new(),
@@ -334,7 +334,7 @@ impl MibSet {
         // Calibrations first: the parameters' columns name their kind.
         for cal in CalKind::ALL {
             for row in index.rows(cal.table()) {
-                let root = row.source.root_index;
+                let root = row.source().root_index;
                 let id = row.clean(cal.id_field());
                 let prefix = cal.table().to_uppercase();
                 let mut e = entry(Kind::Calibration, row, id, row.clean(&format!("{prefix}_DESCR")));
@@ -384,7 +384,7 @@ impl MibSet {
 
         // TC parameters.
         for row in index.rows("cpc") {
-            let root = row.source.root_index;
+            let root = row.source().root_index;
             let mut e = entry(Kind::TcParam, row, row.clean("CPC_NAME"), row.clean("CPC_DESCR"));
             let cal = if !row.clean("CPC_PAFREF").is_empty() {
                 "status"
@@ -417,7 +417,7 @@ impl MibSet {
 
         // Telecommands, and the parameters they use.
         for row in index.rows("ccf") {
-            let root = row.source.root_index;
+            let root = row.source().root_index;
             let name = row.clean("CCF_CNAME");
             let params = rows_of(&cdf, root, name);
             let mut e = entry(Kind::Telecommand, row, name, row.clean("CCF_DESCR"));
@@ -445,14 +445,14 @@ impl MibSet {
         }
         for row in index.rows("cdf") {
             let name = row.clean("CDF_CNAME");
-            if self.find(Kind::Telecommand, row.source.root_index, name).is_none() {
+            if self.find(Kind::Telecommand, row.source().root_index, name).is_none() {
                 self.problem(row, format!("{name} isn't in ccf.dat"));
             }
         }
 
         // TM packets.
         for row in index.rows("pid") {
-            let root = row.source.root_index;
+            let root = row.source().root_index;
             let spid = row.clean("PID_SPID");
             let mut e = entry(Kind::TmPacket, row, spid, row.clean("PID_DESCR"));
             let tp = rows_of(&tpcf, root, spid).first();
@@ -463,7 +463,7 @@ impl MibSet {
 
         // TM parameters, their calibrations, and the packets carrying them.
         for row in index.rows("pcf") {
-            let root = row.source.root_index;
+            let root = row.source().root_index;
             let categ = row.clean("PCF_CATEG");
             let curtx = row.clean("PCF_CURTX");
             let cal = match (categ, curtx.is_empty()) {
@@ -494,7 +494,7 @@ impl MibSet {
             }
         }
         for row in index.rows("plf") {
-            let root = row.source.root_index;
+            let root = row.source().root_index;
             let (name, spid) = (row.clean("PLF_NAME"), row.clean("PLF_SPID"));
             match (self.find(Kind::TmParam, root, name), self.find(Kind::TmPacket, root, spid)) {
                 (Some(param), Some(packet)) => push_unique(self.used_by.entry(param).or_default(), packet),
@@ -508,7 +508,7 @@ impl MibSet {
             by_tpsd.entry((e.root, e.row.clean("PID_TPSD").to_string())).or_default().push(DefRef { kind: Kind::TmPacket, index });
         }
         for row in index.rows("vpd") {
-            let root = row.source.root_index;
+            let root = row.source().root_index;
             let (tpsd, name) = (row.clean("VPD_TPSD"), row.clean("VPD_NAME"));
             let Some(param) = self.find(Kind::TmParam, root, name) else {
                 self.problem(row, format!("structure {tpsd} -> {name} has no PCF row"));
@@ -520,7 +520,7 @@ impl MibSet {
         }
         for row in index.rows("css") {
             let elem = row.clean("CSS_ELEMID");
-            if row.clean("CSS_TYPE") == "C" && self.find(Kind::Telecommand, row.source.root_index, elem).is_none() {
+            if row.clean("CSS_TYPE") == "C" && self.find(Kind::Telecommand, row.source().root_index, elem).is_none() {
                 self.problem(row, format!("{} sends {elem}, which isn't in ccf.dat", row.clean("CSS_SQNAME")));
             }
         }
@@ -528,13 +528,13 @@ impl MibSet {
         for (i, _) in index.roots().iter().enumerate() {
             let mut info = RootInfo { format: index.format(i).map(ToString::to_string), ..RootInfo::default() };
             for table in index.options().schema.tables() {
-                let n = index.rows(&table).iter().filter(|r| r.source.root_index == i).count();
+                let n = index.rows(&table).iter().filter(|r| r.source().root_index == i).count();
                 if n > 0 {
                     info.tables += 1;
                     info.rows += n;
                 }
             }
-            info.version = index.rows("vdf").iter().find(|r| r.source.root_index == i).map(|r| {
+            info.version = index.rows("vdf").iter().find(|r| r.source().root_index == i).map(|r| {
                 let (name, comment) = (r.clean("VDF_NAME"), r.clean("VDF_COMMENT"));
                 if comment.is_empty() { name.to_string() } else { format!("{name} {comment}") }
             });
@@ -641,7 +641,7 @@ impl MibSet {
         self.index
             .rows("css")
             .iter()
-            .filter(|r| r.source.root_index == e.root && r.clean("CSS_TYPE") == "C" && r.clean("CSS_ELEMID") == e.name)
+            .filter(|r| r.source().root_index == e.root && r.clean("CSS_TYPE") == "C" && r.clean("CSS_ELEMID") == e.name)
             .map(|r| {
                 let name = r.clean("CSS_SQNAME").to_string();
                 let descr = self.index.first_row_by_field("csf", "CSF_NAME", &name, Some(e.root)).map(|s| s.clean("CSF_DESC").to_string()).unwrap_or_default();

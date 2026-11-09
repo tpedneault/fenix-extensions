@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+
+- A large MIB takes about a third of the memory it did (the SCOS-2000
+  MIB extension's 1.2.1 reading of it), so the extension is no longer
+  stopped for running out of memory reading one.
+
 ## 1.2.0
 
 The MIB is read with the SCOS-2000 MIB extension's 1.2 reading of it:

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::row::{Row, RowSource};
+use crate::row::{Row, RowShape, RowSource};
 
 /// Something wrong with a MIB's files or rows, and where: shown on the
 /// MIB page, in the project's MIB settings and by the project doctor.
@@ -64,10 +64,16 @@ pub fn parse_table_text(root_index: usize, root_label: &str, table: &str, file: 
     let problem = |line: Option<usize>, message: String| Problem { root: root_index, file: file.to_path_buf(), line, message };
     let mut rows = Vec::new();
     let mut problems = Vec::new();
-    // What every row of the file shares.
-    let (table_name, label, path): (std::sync::Arc<str>, std::sync::Arc<str>, std::sync::Arc<Path>) = (table.into(), root_label.into(), file.into());
-    let names: std::sync::Arc<[String]> = columns.into();
-    for (i, line) in contents.lines().enumerate() {
+    // What every row of the file shares: where it's from, its columns,
+    // and its text -- each row is where its line is in it.
+    let source = RowSource { root_index, root_label: root_label.into(), table: table.into(), file: file.into() };
+    let shape = RowShape::new(source, columns.into());
+    let text: std::sync::Arc<str> = contents.into();
+    let mut at = 0;
+    for (i, raw) in text.split_inclusive('\n').enumerate() {
+        let start = at;
+        at += raw.len();
+        let line = raw.strip_suffix('\n').unwrap_or(raw);
         // A file written on Windows.
         let line = line.strip_suffix('\r').unwrap_or(line);
         if line.is_empty() {
@@ -77,9 +83,7 @@ pub fn parse_table_text(root_index: usize, root_label: &str, table: &str, file: 
         if count > columns.len() {
             problems.push(problem(Some(i + 1), format!("{count} columns, {layout} has {}; the extra ones were dropped", columns.len())));
         }
-        let values: Vec<Box<str>> = line.split('\t').take(names.len()).map(Into::into).collect();
-        let source = RowSource { root_index, root_label: label.clone(), table: table_name.clone(), file: path.clone(), line: i + 1 };
-        rows.push(Row::new(table_name.clone(), names.clone(), values, source));
+        rows.push(Row::in_text(&shape, &text, start, line.len(), i + 1));
     }
     (rows, problems)
 }
@@ -121,11 +125,11 @@ mod tests {
 
         let rows = parse_table_file(3, "MIB-D", "prv", &file).0;
 
-        assert_eq!(rows[0].source.root_index, 3);
-        assert_eq!(&*rows[0].source.root_label, "MIB-D");
-        assert_eq!(&*rows[0].source.file, file.as_path());
-        assert_eq!(rows[0].source.line, 1);
-        assert_eq!(rows[1].source.line, 2);
+        assert_eq!(rows[0].source().root_index, 3);
+        assert_eq!(&*rows[0].source().root_label, "MIB-D");
+        assert_eq!(&*rows[0].source().file, file.as_path());
+        assert_eq!(rows[0].line(), 1);
+        assert_eq!(rows[1].line(), 2);
         std::fs::remove_dir_all(&dir).ok();
     }
 

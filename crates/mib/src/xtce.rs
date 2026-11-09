@@ -37,7 +37,7 @@ use std::path::Path;
 use roxmltree::Node;
 
 use crate::parse::Problem;
-use crate::row::{Row, RowSource};
+use crate::row::{Row, RowShape, RowSource};
 use crate::schema;
 
 /// Which parameters carry a packet's identification in an XTCE file's
@@ -108,17 +108,20 @@ struct Builder<'a> {
     label: &'a str,
     file: &'a Path,
     tables: HashMap<String, Vec<Row>>,
+    shapes: HashMap<String, std::sync::Arc<RowShape>>,
 }
 
 impl Builder<'_> {
     fn push(&mut self, table: &str, values: &[(&str, String)], line: usize) {
         let Some(columns) = schema::columns(table) else { return };
-        let fields = columns
-            .iter()
-            .map(|c| (c.to_string(), values.iter().find(|(k, _)| k == c).map(|(_, v)| v.clone()).unwrap_or_default()))
-            .collect();
-        let source = RowSource { root_index: self.root, root_label: self.label.into(), table: table.into(), file: self.file.into(), line };
-        self.tables.entry(table.to_string()).or_default().push(Row::from_pairs(table.into(), fields, source));
+        // One shape for every row of a table.
+        let (root, label, file) = (self.root, self.label, self.file);
+        let shape = self.shapes.entry(table.to_string()).or_insert_with(|| {
+            let source = RowSource { root_index: root, root_label: label.into(), table: table.into(), file: file.into() };
+            RowShape::new(source, columns.iter().map(|c| c.to_string()).collect::<Vec<_>>().into())
+        });
+        let row = Row::with_values(shape, columns.iter().map(|c| values.iter().find(|(k, _)| k == c).map(|(_, v)| v.as_str()).unwrap_or("")), line);
+        self.tables.entry(table.to_string()).or_default().push(row);
     }
 }
 
@@ -754,7 +757,7 @@ pub fn read(root: usize, label: &str, file: &Path, options: &XtceOptions) -> (Ha
     }
     let version = version_of(top.tag_name().namespace());
     let line_of = |n: Node| doc.text_pos_at(n.range().start).row as usize;
-    let mut b = Builder { root, label, file, tables: HashMap::new() };
+    let mut b = Builder { root, label, file, tables: HashMap::new(), shapes: HashMap::new() };
     let mut problems = Vec::new();
 
     let mut types = Types { nodes: HashMap::new(), done: HashMap::new() };

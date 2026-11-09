@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+
+- **Large MIBs no longer run it out of memory.** Every field of every
+  row was its own string: a 20 MiB mission MIB took about 300 MiB once
+  read, past the 128 MiB Fenix gives an extension, and the extension
+  was stopped. Rows now point into their table file's text, kept once:
+  the same MIB takes about 115 MiB, its tables alone about 40 MiB.
+
 ## 1.2.0
 
 Telecommands are read the way the SCOS-2000 Database Import ICD lays

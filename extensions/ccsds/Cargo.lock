@@ -107,7 +107,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-ccsds-extension"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "chrono",
  "fenix-ccsds",
@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-mib"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "fenix-ccsds",
  "roxmltree",

@@ -47,11 +47,11 @@ pub const DEFAULT_ARGUMENT_SEPARATOR: &str = ", ";
 
 /// Every `CDF` row for `ccf` (a telecommand row from the `ccf` table),
 /// each joined with its `CPC` definition (by `CDF_PNAME`/`CPC_NAME`) if
-/// one exists -- scoped to `ccf`'s own MIB root (`ccf.source.root_index`),
+/// one exists -- scoped to `ccf`'s own MIB root (`ccf.source().root_index`),
 /// so a same-named parameter defined in a *different* configured root
 /// never gets pulled in by mistake.
 pub fn tc_parameters(index: &MibIndex, ccf: &Row) -> Vec<TcParameter> {
-    let root = Some(ccf.source.root_index);
+    let root = Some(ccf.source().root_index);
     let name = ccf.clean("CCF_CNAME");
     let mut rows = index.rows_by_field("cdf", "CDF_CNAME", name, root);
     if rows.iter().all(|r| crate::types::parse_int(r.clean("CDF_BIT")).is_some()) {
@@ -94,7 +94,7 @@ pub fn parameter_domain(index: &MibIndex, param: &TcParameter) -> ParamDomain {
 }
 
 fn alias_values(index: &MibIndex, cpc: &Row) -> Vec<String> {
-    let root = Some(cpc.source.root_index);
+    let root = Some(cpc.source().root_index);
     let reference = cpc.clean("CPC_PAFREF");
     if reference.is_empty() {
         return Vec::new();
@@ -108,7 +108,7 @@ fn alias_values(index: &MibIndex, cpc: &Row) -> Vec<String> {
 }
 
 fn range_pairs(index: &MibIndex, cpc: &Row) -> Vec<(f64, f64)> {
-    let root = Some(cpc.source.root_index);
+    let root = Some(cpc.source().root_index);
     let reference = cpc.clean("CPC_PRFREF");
     if reference.is_empty() {
         return Vec::new();
@@ -137,7 +137,7 @@ fn numeric_cpc(cpc: &Row) -> bool {
 /// `CPC_PRFREF` -- scoped to `cpc`'s own MIB root, same reasoning as
 /// `tc_parameters`.
 pub fn calibration_rows(index: &MibIndex, cpc: &Row) -> Vec<Row> {
-    let root = Some(cpc.source.root_index);
+    let root = Some(cpc.source().root_index);
     let mut rows = Vec::new();
     let cca_ref = cpc.clean("CPC_CCAREF");
     if !cca_ref.is_empty() {
@@ -370,8 +370,8 @@ mod tests {
 
         let rows = calibration_rows(&index, mode.cpc.as_ref().unwrap());
 
-        assert_eq!(rows.iter().filter(|r| &*r.table == "paf").count(), 1);
-        assert_eq!(rows.iter().filter(|r| &*r.table == "pas").count(), 2);
+        assert_eq!(rows.iter().filter(|r| r.table() == "paf").count(), 1);
+        assert_eq!(rows.iter().filter(|r| r.table() == "pas").count(), 2);
         std::fs::remove_dir_all(&root.path).ok();
     }
 
@@ -484,7 +484,7 @@ mod tests {
 
     fn dummy_row(table: &str) -> Row {
         let file = std::path::PathBuf::from(format!("{table}.dat"));
-        let source = crate::RowSource { root_index: 0, root_label: "TEST".into(), table: table.into(), file: file.as_path().into(), line: 1 };
-        Row::from_pairs(table.into(), Vec::new(), source)
+        let source = crate::RowSource { root_index: 0, root_label: "TEST".into(), table: table.into(), file: file.as_path().into() };
+        Row::from_pairs(table.into(), Vec::new(), source, 1)
     }
 }
