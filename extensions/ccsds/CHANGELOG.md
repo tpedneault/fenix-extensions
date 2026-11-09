@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- A command that reads a large MIB may take up to a minute, rather than
+  being stopped after 5 seconds.
+
 ## 1.2.1
 
 - A large MIB takes about a third of the memory it did (the SCOS-2000

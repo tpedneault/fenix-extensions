@@ -16,6 +16,8 @@
 //! arguments goes through this: the insert form, the scripts' checks,
 //! completion, the generators, the packet builder and decoder.
 
+use std::sync::Arc;
+
 use fenix_ccsds::bits;
 use fenix_ccsds::pus::Profile;
 
@@ -77,7 +79,7 @@ pub struct Element {
     pub param: Option<DefRef>,
     pub ty: Option<ParamType>,
     /// Its type with its calibrations, to turn values raw and back.
-    pub domain: Option<Domain>,
+    pub domain: Option<Arc<Domain>>,
     /// What someone is offered (`Layout::default`), worked out once.
     pub offered: String,
     /// A fixed repeater's count.
@@ -128,7 +130,7 @@ pub struct Layout {
     /// For a telecommand with a deduced parameter (PTC 11): the TM
     /// parameters a value may name -- `PCF_NAME`, `PCF_PID` -- and their
     /// types.
-    deducible: Vec<(String, Option<u64>, ParamType)>,
+    deducible: Arc<[Deducible]>,
 }
 
 /// One value someone gives: an editable element, in a repetition of
@@ -220,7 +222,9 @@ impl Layout {
             .map(|cdf| {
                 let name = cdf.clean("CDF_PNAME").to_string();
                 let param = (!name.is_empty()).then(|| set.find(Kind::TcParam, e.root, &name)).flatten();
-                let ty = param.map(|p| ParamType::of(set, p));
+                // Its type and calibrations, read once per parameter for the set.
+                let domain = param.map(|p| set.domain(p));
+                let ty = domain.as_ref().map(|d| d.ty.clone());
                 let description = match cdf.clean("CDF_DESCR") {
                     "" => param.map(|p| set.get(p).row.clean("CPC_DESCR").to_string()).unwrap_or_default(),
                     d => d.to_string(),
@@ -237,7 +241,7 @@ impl Layout {
                     tmid: cdf.clean("CDF_TMID").to_string(),
                     group: parse_int(cdf.clean("CDF_GRPSIZE")).unwrap_or(0).max(0) as usize,
                     param,
-                    domain: ty.as_ref().map(|t| Domain::of(set, t)),
+                    domain,
                     ty,
                     offered: String::new(),
                     fixed_count: None,
@@ -270,18 +274,7 @@ impl Layout {
                 }
             }
         }
-        let deducible = if elements.iter().any(|el| el.ty.as_ref().is_some_and(ParamType::deduced)) {
-            set.entries(Kind::TmParam)
-                .iter()
-                .filter(|p| p.root == e.root)
-                .filter_map(|p| {
-                    let (ptc, pfc) = (p.row.clean("PCF_PTC").parse().ok()?, p.row.clean("PCF_PFC").parse().ok()?);
-                    Some((p.name.clone(), parse_int(p.row.clean("PCF_PID")).and_then(|n| u64::try_from(n).ok()), ParamType::plain(&p.name, ptc, pfc, e.root)))
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
+        let deducible = if elements.iter().any(|el| el.ty.as_ref().is_some_and(ParamType::deduced)) { set.deducible(e.root) } else { Arc::from(Vec::new()) };
         Layout { tc, elements, nodes, problems, deducible }
     }
 
@@ -341,7 +334,7 @@ impl Layout {
     /// that `naming` names, `naming` being the value given to the last
     /// argument before it that names a parameter (`CPC_CATEG` `P`), as
     /// someone typed it. `None` when a deduced type can't be told yet.
-    pub fn domain_given(&self, element: usize, naming: Option<&str>) -> Option<Domain> {
+    pub fn domain_given(&self, element: usize, naming: Option<&str>) -> Option<Arc<Domain>> {
         let el = &self.elements[element];
         let d = el.domain.clone()?;
         if !d.ty.deduced() {
@@ -354,7 +347,7 @@ impl Layout {
             Raw::Unsigned(n) => self.deducible.iter().find(|(_, pid, _)| *pid == Some(*n)).or_else(|| self.deducible.iter().find(|(name, _, _)| *name == n.to_string())),
             _ => None,
         };
-        found.map(|(_, _, t)| Domain::plain(t.clone()))
+        found.map(|(_, _, t)| Arc::new(Domain::plain(t.clone())))
     }
 
     /// Whether a value given to `element` names the parameter that later
@@ -550,13 +543,13 @@ impl Layout {
 
     /// A deduced parameter's type: the TM parameter's the last argument
     /// naming one gave.
-    fn domain_for(&self, st: &Writer, el: &Element) -> Result<Domain, String> {
+    fn domain_for(&self, st: &Writer, el: &Element) -> Result<Arc<Domain>, String> {
         let d = el.domain.clone().ok_or_else(|| format!("{} has no CPC definition", el.name))?;
         if !d.ty.deduced() {
             return Ok(d);
         }
         let named = st.referenced.as_ref().ok_or_else(|| format!("{} is deduced, but no argument before it names a parameter", el.name))?;
-        deduced_type(st.set, d.ty.root, named).map(Domain::plain).ok_or_else(|| format!("{} is deduced, but {} names no parameter the MIB has", el.name, named.display()))
+        deduced_type(st.set, d.ty.root, named).map(|t| Arc::new(Domain::plain(t))).ok_or_else(|| format!("{} is deduced, but {} names no parameter the MIB has", el.name, named.display()))
     }
 
     /// The values of the application data `app`, as `encode` would have
@@ -729,6 +722,10 @@ pub fn count_of(el: &Element, value: &str) -> usize {
     };
     raw.map(|n| (n.max(0.0) as usize).min(MAX_REPEAT)).unwrap_or(0)
 }
+
+/// A TM parameter a deduced value may name: its `PCF_NAME`, its
+/// `PCF_PID`, and its type.
+pub type Deducible = (String, Option<u64>, ParamType);
 
 /// A deduced parameter's type, from the value naming the TM parameter:
 /// its name, or its `PCF_PID` number.

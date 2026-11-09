@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.2
+
+- **The MIB page opens on a large MIB.** `SPC k k` read the MIB and ran
+  its checks within the 5 seconds a command has, and a large MIB took
+  longer: the extension was stopped ("it took too long"). A command may
+  now take up to a minute, the checks take about a third less time (a
+  telecommand parameter's type and calibrations are read once, not for
+  every element using it), and a page whose MIB isn't read yet reads it
+  in a call of its own rather than within the second a page is laid out
+  in.
+
 ## 1.2.1
 
 - **Large MIBs no longer run it out of memory.** Every field of every

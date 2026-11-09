@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.mib"
 name = "SCOS-2000 MIB"
-version = "1.2.1"
+version = "1.2.2"
 description = "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -17,6 +17,11 @@ api = "1.0"
 # With Fenix: the project doctor's checks are there from the start, and
 # the MIB is read as soon as you're in a project's file, for K, gd and
 # completion.
+# Reading a large MIB, and checking it, takes longer than the 5 seconds
+# a call has by default.
+[limits]
+call_ms = 60000
+
 [activation]
 on_startup = true
 

@@ -221,6 +221,13 @@ pub struct MibSet {
     default_root: usize,
     info: Vec<RootInfo>,
     stamp: Stamp,
+    /// Each TC parameter's type with its calibrations, read the first
+    /// time a layout needs it: a telecommand's elements share a few
+    /// hundred parameters, and reading their calibrations for every
+    /// element made reading a large MIB take seconds.
+    domains: std::sync::Mutex<HashMap<DefRef, std::sync::Arc<crate::values::Domain>>>,
+    /// Per MIB, the TM parameters a deduced value may name.
+    deducible: std::sync::Mutex<HashMap<usize, std::sync::Arc<[crate::layout::Deducible]>>>,
 }
 
 impl std::fmt::Debug for MibSet {
@@ -278,6 +285,8 @@ impl MibSet {
             info: Vec::new(),
             stamp,
             index: MibIndex::new(Vec::new()),
+            domains: Default::default(),
+            deducible: Default::default(),
         };
         set.build(&index);
         set.index = index;
@@ -545,6 +554,41 @@ impl MibSet {
     /// The raw rows, for what the entries don't carry.
     pub fn index(&self) -> &MibIndex {
         &self.index
+    }
+
+    /// TC parameter `param`'s type with its calibrations, read once.
+    pub fn domain(&self, param: DefRef) -> std::sync::Arc<crate::values::Domain> {
+        if let Some(d) = self.domains.lock().unwrap_or_else(|e| e.into_inner()).get(&param) {
+            return d.clone();
+        }
+        let d = std::sync::Arc::new(crate::values::Domain::param(self, param));
+        self.domains.lock().unwrap_or_else(|e| e.into_inner()).insert(param, d.clone());
+        d
+    }
+
+    /// Lets go of the parameter types read for layouts: after a pass over
+    /// every telecommand (the checks), they'd be kept for nothing.
+    pub fn forget_domains(&self) {
+        self.domains.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        self.deducible.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    }
+
+    /// MIB `root`'s TM parameters a deduced value may name, read once.
+    pub fn deducible(&self, root: usize) -> std::sync::Arc<[crate::layout::Deducible]> {
+        if let Some(d) = self.deducible.lock().unwrap_or_else(|e| e.into_inner()).get(&root) {
+            return d.clone();
+        }
+        let d: std::sync::Arc<[crate::layout::Deducible]> = self
+            .entries(Kind::TmParam)
+            .iter()
+            .filter(|p| p.root == root)
+            .filter_map(|p| {
+                let (ptc, pfc) = (p.row.clean("PCF_PTC").parse().ok()?, p.row.clean("PCF_PFC").parse().ok()?);
+                Some((p.name.clone(), types::parse_int(p.row.clean("PCF_PID")).and_then(|n| u64::try_from(n).ok()), crate::values::ParamType::plain(&p.name, ptc, pfc, root)))
+            })
+            .collect();
+        self.deducible.lock().unwrap_or_else(|e| e.into_inner()).insert(root, d.clone());
+        d
     }
 
     pub fn roots(&self) -> &[MibRoot] {

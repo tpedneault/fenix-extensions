@@ -287,6 +287,7 @@ pub fn run(set: &MibSet, o: &Options) -> Vec<Problem> {
             out.push(at(&e.row, format!("SPID {}: PID_TIME says a time is present, but the project's TM time format is none (ccsds.tm_time)", e.name)));
         }
     }
+    set.forget_domains();
     out
 }
 
