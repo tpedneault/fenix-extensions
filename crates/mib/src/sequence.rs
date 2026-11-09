@@ -136,7 +136,7 @@ fn param_type(set: &MibSet, root: usize, row: &Row, prefix: &str) -> ParamType {
 
 /// Every sequence in the set: (its MIB, name, description).
 pub fn sequences(set: &MibSet) -> Vec<(usize, String, String)> {
-    set.index().rows("csf").iter().map(|r| (r.source.root_index, r.clean("CSF_NAME").to_string(), r.clean("CSF_DESC").to_string())).collect()
+    set.index().rows("csf").iter().map(|r| (r.source().root_index, r.clean("CSF_NAME").to_string(), r.clean("CSF_DESC").to_string())).collect()
 }
 
 /// Sequence `name` of MIB `root`.

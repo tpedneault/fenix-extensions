@@ -233,7 +233,7 @@ pub(crate) fn facts(set: &MibSet, def: DefRef, apid_hex: bool) -> Vec<(&'static 
             ("related", r.clean("PCF_RELATED").to_string()),
         ],
         Kind::Calibration => {
-            let p = r.table.to_uppercase();
+            let p = r.table().to_uppercase();
             vec![
                 ("kind", e.cal.map(|k| k.label()).unwrap_or("").to_string()),
                 ("unit", e.cols.get(2).cloned().unwrap_or_default()),
@@ -541,13 +541,13 @@ fn build(set: &MibSet, def: DefRef, raw: bool) -> Doc {
             used_by_rows(&mut doc, set, def);
         }
     }
-    doc.heading("Raw fields", format!("{} · {}.dat line {} · r {}", e.row.field_count(), e.row.table, e.row.source.line, if raw { "hides" } else { "shows" }));
+    doc.heading("Raw fields", format!("{} · {}.dat line {} · r {}", e.row.field_count(), e.row.table(), e.row.line(), if raw { "hides" } else { "shows" }));
     if raw {
         for (name, value) in e.row.fields() {
             doc.row(vec![c(2, name, Role::Muted), c(20, value.trim(), Role::Text)]);
         }
     }
-    doc.row(vec![Cell { at: 2, text: format!("{}:{}", e.row.source.file.display(), e.row.source.line), role: Role::Accent, target: Some(Target::Row(e.row.source.file.to_path_buf(), e.row.source.line)) }]);
+    doc.row(vec![Cell { at: 2, text: format!("{}:{}", e.row.source().file.display(), e.row.line()), role: Role::Accent, target: Some(Target::Row(e.row.source().file.to_path_buf(), e.row.line())) }]);
     doc
 }
 
@@ -688,8 +688,8 @@ impl DefPage {
             match key {
                 Key::Char('g') => self.focus = 0,
                 Key::Char('f') => {
-                    let r = &set.get(self.current()).row.source;
-                    return Action::OpenFile(r.file.to_path_buf(), r.line);
+                    let r = &set.get(self.current()).row;
+                    return Action::OpenFile(r.source().file.to_path_buf(), r.line());
                 }
                 _ => {}
             }
@@ -792,7 +792,7 @@ pub fn layout(page: &DefPage, set: Option<&MibSet>, apid_hex: bool, cols: usize)
         x = g.put(2, x, &e.alias, Role::Text) + 2;
     }
     g.put(2, x, &fit(&e.description, (left + width).saturating_sub(x + 30)), Role::Text);
-    let source = format!("{} · {}.dat:{}", set.root_label(e.root), e.row.table, e.row.source.line);
+    let source = format!("{} · {}.dat:{}", set.root_label(e.root), e.row.table(), e.row.line());
     g.put(2, (left + width).saturating_sub(source.chars().count()), &source, Role::Muted);
     let mut y = 3;
     for extra in ["CCF_DESCR2", "CPC_DESCR2", "PCF_DESCR2"] {

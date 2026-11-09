@@ -300,7 +300,7 @@ pub fn calibration(set: &MibSet, cal: DefRef) -> CalBody {
         ),
         CalKind::Range => CalBody::Ranges(pairs("prv", "PRV_NUMBR", "PRV_MINVAL", "PRV_MAXVAL")),
         CalKind::Polynomial | CalKind::Logarithmic => {
-            let prefix = e.row.table.to_uppercase();
+            let prefix = e.row.table().to_uppercase();
             CalBody::Coefficients((1..=5).map(|i| e.row.clean(&format!("{prefix}_POL{i}")).to_string()).take_while(|t| !t.is_empty()).collect())
         }
     }

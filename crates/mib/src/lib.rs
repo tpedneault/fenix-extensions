@@ -38,7 +38,7 @@ use std::path::PathBuf;
 
 pub use parse::Problem;
 pub use query::Query;
-pub use row::{Row, RowSource};
+pub use row::{Row, RowShape, RowSource};
 pub use schema::{Icd, Schema};
 pub use set::{CalKind, DefRef, Entry, Kind, MibSet, Stamp};
 pub use xtce::XtceOptions;
@@ -219,7 +219,7 @@ impl MibIndex {
         let rows = self.rows(table);
         let lookup = self.lookup(table, field, rows);
         let Some(places) = lookup.get(value.trim()) else { return Vec::new() };
-        places.iter().map(|&i| &rows[i]).filter(|row| root_index.is_none_or(|i| row.source.root_index == i)).collect()
+        places.iter().map(|&i| &rows[i]).filter(|row| root_index.is_none_or(|i| row.source().root_index == i)).collect()
     }
 
     /// `table`'s rows by `field`, built the first time it's asked for.
