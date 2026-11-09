@@ -114,6 +114,10 @@ pub(crate) struct Mib {
     last: HashMap<(Option<PathBuf>, String), HashMap<String, String>>,
     /// The timer that looks for changed files.
     watch: Option<u64>,
+    /// The timer that reads the MIBs a page asked for: a page is laid out
+    /// in a second at most, and a large MIB takes longer to read, so it's
+    /// read in a call of its own.
+    reading: Option<u64>,
     /// Definitions `gd` asked for, opened once the language server's
     /// answer is sent.
     pub(crate) to_open: Vec<DefRef>,
@@ -320,6 +324,27 @@ impl Mib {
     /// The MIBs, only if they're read: for what never waits.
     pub(crate) fn set_ready(&self) -> Option<Arc<MibSet>> {
         self.set.as_ref().map(|(_, s)| s.clone())
+    }
+
+    /// For a page: the MIBs here if they're read; else what was read, and
+    /// they're read in a call of their own, the page shown again then.
+    fn set_for_page(&mut self) -> Option<Arc<MibSet>> {
+        let (key, _) = key_here();
+        if key.roots.is_empty() {
+            return None;
+        }
+        if !matches!(&self.set, Some((k, _)) if *k == key) && self.reading.is_none() {
+            self.reading = Some(host::set_timer(1, false));
+        }
+        self.set_ready()
+    }
+
+    /// The reading timer: the MIBs here, read.
+    fn read_now(&mut self) {
+        self.reading = None;
+        if self.set().is_some() {
+            self.refresh_pages();
+        }
     }
 
     /// Reads `key`'s MIBs, checked against the mission; every page shows
@@ -672,15 +697,16 @@ impl Mib {
 
     fn layout(&mut self, id: u64, width: usize) -> Page {
         let set = match self.pages.get(&id) {
-            Some(Open::Mib(_) | Open::Def(_)) => self.set(),
+            Some(Open::Mib(_) | Open::Def(_)) => self.set_for_page(),
             _ => self.set_ready(),
         };
+        let loading = self.reading.is_some();
         let hex = apid_hex();
         match self.pages.get(&id) {
             Some(Open::Mib(p)) => {
                 let (here, source) = key_here();
                 let source = if here == p.key { source } else { String::new() };
-                let ctx = mib_page::Ctx { set: set.as_deref(), loading: false, apid_hex: hex, source };
+                let ctx = mib_page::Ctx { set: set.as_deref(), loading, apid_hex: hex, source };
                 Page::canvas(mib_page::layout(p, &ctx, width)).typing(p.typing()).space(p.claims_space())
             }
             Some(Open::Def(p)) => Page::canvas(mib_def::layout(p, set.as_deref(), hex, width)).typing(p.typing()),
@@ -980,6 +1006,7 @@ impl Extension for MibExtension {
         match event {
             Event::Picked((id, value)) => self.mib.picked(id, value),
             Event::Timer(t) if Some(t) == self.mib.watch => self.mib.watched(),
+            Event::Timer(t) if Some(t) == self.mib.reading => self.mib.read_now(),
             // Read before they're asked for, so K, gd and completion have
             // them.
             Event::FocusChanged(_) => {

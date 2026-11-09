@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ccsds"
 name = "CCSDS & ECSS"
-version = "1.2.1"
+version = "1.2.2"
 description = "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -16,6 +16,11 @@ api = "1.0"
 
 # With Fenix: the mission clock is in the modeline from the start, and K
 # on hex works in any file.
+# Reading a large MIB, and checking it, takes longer than the 5 seconds
+# a call has by default.
+[limits]
+call_ms = 60000
+
 [activation]
 on_startup = true
 

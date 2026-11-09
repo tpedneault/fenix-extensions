@@ -260,7 +260,7 @@ impl InsertForm {
 
     /// What `slot`'s value is checked against: a deduced one's, the
     /// parameter's named before it.
-    fn domain_for(&self, slot: &Field) -> Option<fenix_mib::values::Domain> {
+    fn domain_for(&self, slot: &Field) -> Option<std::sync::Arc<fenix_mib::values::Domain>> {
         let slots = self.slots();
         let at = slots.iter().position(|s| s == slot).unwrap_or(0);
         let naming = slots[..at].iter().rev().find(|s| self.layout.names_a_parameter(s.element)).map(|s| self.value(s));
