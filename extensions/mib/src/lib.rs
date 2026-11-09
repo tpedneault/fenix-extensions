@@ -211,11 +211,11 @@ fn project_lists_roots() -> bool {
 pub(crate) fn key_here() -> (MibKey, String) {
     let mut roots: Vec<MibRoot> = map("mib.roots")
         .into_iter()
-        .map(|(label, _)| {
-            let path = PathBuf::from(format!("{FOLDERS}/{label}"));
-            MibRoot { label, path }
+        .filter_map(|(label, value)| {
+            // A folder, or an XTCE file in the project.
+            let path = fenix_mib::root_path(&label, &value, Path::new(FOLDERS), Path::new(PROJECT))?;
+            Some(MibRoot { label, path })
         })
-        .filter(|root| root.path.is_dir())
         .collect();
     let listed = !roots.is_empty();
     if roots.is_empty() {
@@ -500,12 +500,23 @@ impl Mib {
         }
     }
 
-    /// `SPC k g`: something to generate from the MIBs.
+    /// `SPC k g`: something to generate from the MIBs -- from one of
+    /// them when there are several, since each defines its own names.
     fn cmd_generate(&mut self) {
-        if key_here().0.roots.is_empty() {
+        let (key, _) = key_here();
+        if key.roots.is_empty() {
             return error(NO_MIB);
         }
-        let items: Vec<PickerItem> = fenix_mib::generate::KINDS.iter().enumerate().map(|(i, (_, file, what))| PickerItem::new(format!("{file:<18} {what}"), i.to_string())).collect();
+        let mut items = Vec::new();
+        for (i, (_, file, what)) in fenix_mib::generate::KINDS.iter().enumerate() {
+            if key.roots.len() == 1 {
+                items.push(PickerItem::new(format!("{file:<18} {what}"), i.to_string()));
+                continue;
+            }
+            for (r, root) in key.roots.iter().enumerate() {
+                items.push(PickerItem::new(format!("{:<24} {what} · {}", generated_name(file, Some(&root.label)), root.label), format!("{i}:{r}")));
+            }
+        }
         let id = api::pick("Generate from the MIB", &items);
         self.asked.insert(id, Asked::Generate);
     }
@@ -588,10 +599,16 @@ impl Mib {
     }
 
     /// Writes generated file `kind` into the project's `generated/` and
-    /// opens it.
-    fn generate(&mut self, kind: usize) {
-        let Some(set) = self.set_here() else { return };
+    /// opens it: from the MIB `root` when the project has several.
+    fn generate(&mut self, kind: usize, root: Option<usize>) {
+        let Some(all) = self.set_here() else { return };
         let Some((name, file, _)) = fenix_mib::generate::KINDS.get(kind) else { return };
+        let (key, _) = key_here();
+        let (set, file) = match root.and_then(|r| key.roots.get(r)).filter(|_| key.roots.len() > 1) {
+            Some(r) => (Arc::new(MibSet::load_with(vec![r.clone()], None, key.options.clone())), generated_name(file, Some(&r.label))),
+            None => (all, file.to_string()),
+        };
+        let file = file.as_str();
         if !Path::new(PROJECT).is_dir() {
             return error("open a file of the project first -- what's generated goes in its generated/ folder");
         }
@@ -808,8 +825,9 @@ impl Mib {
                 }
             }
             Asked::Generate => {
-                if let Ok(kind) = value.parse() {
-                    self.generate(kind);
+                let (kind, root) = value.split_once(':').map_or((value.as_str(), None), |(k, r)| (k, r.parse().ok()));
+                if let Ok(kind) = kind.parse() {
+                    self.generate(kind, root);
                 }
             }
             Asked::Sequence => self.insert_sequence(&value),
@@ -910,6 +928,17 @@ fn mission_checks(set: &MibSet) -> Vec<(String, Health, String)> {
         out.push(("recordings".to_string(), Health::Info, "no recordings/ folder for dumps and captures".to_string()));
     }
     out
+}
+
+/// A generated file's name: `file`, or with several MIBs the MIB's
+/// label before its extension (`xtce-OPS.xml`, `mib-OPS.h`).
+fn generated_name(file: &str, label: Option<&str>) -> String {
+    let Some(label) = label else { return file.to_string() };
+    let safe: String = label.chars().map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect();
+    match file.rsplit_once('.') {
+        Some((stem, ext)) => format!("{stem}-{safe}.{ext}"),
+        None => format!("{file}-{safe}"),
+    }
 }
 
 /// What starts a comment in a file of `language` (its name or extension).
@@ -1091,6 +1120,15 @@ mod tests {
     fn ops() -> MibSet {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../crates/mib/tests/fixtures/ops");
         MibSet::load(vec![MibRoot { label: "OPS".into(), path }], None)
+    }
+
+    #[test]
+    fn each_mib_generates_into_its_own_file() {
+        // Two MIBs define the same names: one file each, or XTCE gets
+        // every MetaCommand twice in one SpaceSystem.
+        assert_eq!(generated_name("xtce.xml", None), "xtce.xml");
+        assert_eq!(generated_name("xtce.xml", Some("OPS")), "xtce-OPS.xml");
+        assert_eq!(generated_name("mib_dissector.lua", Some("OPS 2.1")), "mib_dissector-OPS_2_1.lua");
     }
 
     #[test]

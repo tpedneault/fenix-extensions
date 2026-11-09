@@ -196,7 +196,7 @@ fn error(message: &str) {
 fn mib_key() -> MibKey {
     use fenix_mib::{schema, Icd, Schema};
     let map = |key: &str| text(key).map(|t| map_entries(&t)).unwrap_or_default();
-    let mut roots: Vec<MibRoot> = map("mib.roots").into_iter().map(|(label, _)| MibRoot { path: PathBuf::from(format!("{MIBS}/{label}")), label }).filter(|r| r.path.is_dir()).collect();
+    let mut roots: Vec<MibRoot> = map("mib.roots").into_iter().filter_map(|(label, value)| Some(MibRoot { path: fenix_mib::root_path(&label, &value, Path::new(MIBS), Path::new(PROJECT))?, label })).collect();
     if roots.is_empty() {
         let tables = ["vdf.dat", "ccf.dat", "pcf.dat", "pid.dat", "tpcf.dat", "caf.dat", "txf.dat"];
         let root = Path::new(PROJECT);
@@ -316,7 +316,15 @@ fn longest_hex(line: &str) -> Option<Vec<u8>> {
             }
         }
     }
-    let at = (0..line.chars().count()).filter_map(|col| fenix_ccsds::hex::around(line, col).map(|(_, b)| b)).max_by_key(Vec::len);
+    // A run that starts or ends inside a word isn't hex: `TTYP0001 18 64`
+    // (a test vector's line) would take the name's `0001`.
+    let chars: Vec<char> = line.chars().collect();
+    let wordy = |c: Option<&char>| c.is_some_and(|c| c.is_alphanumeric() || *c == '_');
+    let at = (0..chars.len())
+        .filter_map(|col| fenix_ccsds::hex::around(line, col))
+        .filter(|(r, _)| !(r.start > 0 && wordy(chars.get(r.start - 1))) && !wordy(chars.get(r.end)))
+        .map(|(_, b)| b)
+        .max_by_key(Vec::len);
     let best = match at {
         Some(b) if b.len() > best.len() => b,
         _ => best,
@@ -1371,5 +1379,8 @@ mod tests {
         assert_eq!(longest_hex("puts hello"), None);
         assert_eq!(longest_hex("    send 1BF2C007 0009 now"), Some(vec![0x1B, 0xF2, 0xC0, 0x07, 0x00, 0x09]), "a word before it that ends in hex");
         assert_eq!(longest_hex("bytes = {0x1B, 0xF2, 0xC0, 0x07}"), Some(vec![0x1B, 0xF2, 0xC0, 0x07]));
+        // A line of the MIB's tc_vectors.txt: the mnemonic's 0001 isn't hex.
+        assert_eq!(longest_hex("TTYP0001     18 64 C0 00 00 1D"), Some(vec![0x18, 0x64, 0xC0, 0x00, 0x00, 0x1D]));
+        assert_eq!(longest_hex("x=1B F2 C0 07"), Some(vec![0x1B, 0xF2, 0xC0, 0x07]), "after punctuation it is");
     }
 }

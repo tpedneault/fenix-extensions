@@ -188,15 +188,21 @@ pub fn xtce_as(set: &MibSet, profile: &Profile, base: OffsetBase, version: XtceV
         let r = &e.row;
         let name = if e.alias.is_empty() { format!("SPID_{}", e.name) } else { ident(&e.alias) };
         out.push_str(&format!("      <xtce:SequenceContainer name=\"{}\" shortDescription=\"SPID {}\"><xtce:LongDescription>{}</xtce:LongDescription><xtce:EntryList>", xml(&name), xml(&e.name), xml(&e.description)));
-        for p in placed(set, spid, profile, base) {
+        let params = placed(set, spid, profile, base);
+        for p in &params {
             out.push_str(&format!(
                 "<xtce:ParameterRefEntry parameterRef=\"{}\"><xtce:LocationInContainerInBits referenceLocation=\"containerStart\"><xtce:FixedValue>{}</xtce:FixedValue></xtce:LocationInContainerInBits></xtce:ParameterRefEntry>",
                 xml(&p.name),
                 p.bit
             ));
         }
+        // PI1 and PI2 (PIC): a raw comparison on the parameter where each is.
+        let pis: String = pi_checks(set, r)
+            .into_iter()
+            .filter_map(|(bit, _, value)| params.iter().find(|p| p.bit as i64 == bit).map(|p| format!("<xtce:Comparison parameterRef=\"{}\" value=\"{value}\" useCalibratedValue=\"false\"/>", xml(&p.name))))
+            .collect();
         out.push_str(&format!(
-            "</xtce:EntryList><xtce:BaseContainer containerRef=\"CCSDS_Packet\"><xtce:RestrictionCriteria><xtce:ComparisonList><xtce:Comparison parameterRef=\"CCSDS_APID\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SERVICE\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SUBTYPE\" value=\"{}\"/></xtce:ComparisonList></xtce:RestrictionCriteria></xtce:BaseContainer></xtce:SequenceContainer>\n",
+            "</xtce:EntryList><xtce:BaseContainer containerRef=\"CCSDS_Packet\"><xtce:RestrictionCriteria><xtce:ComparisonList><xtce:Comparison parameterRef=\"CCSDS_APID\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SERVICE\" value=\"{}\"/><xtce:Comparison parameterRef=\"PUS_SUBTYPE\" value=\"{}\"/>{pis}</xtce:ComparisonList></xtce:RestrictionCriteria></xtce:BaseContainer></xtce:SequenceContainer>\n",
             parse_int(r.clean("PID_APID")).unwrap_or(0),
             parse_int(r.clean("PID_TYPE")).unwrap_or(0),
             parse_int(r.clean("PID_STYPE")).unwrap_or(0)
@@ -815,6 +821,16 @@ pub fn vectors(set: &MibSet, profile: &Profile) -> String {
             }
             if el.is_repeater() {
                 return "1".into();
+            }
+            if t.ptc == 7 {
+                // Octets: as many zeros as the element is wide.
+                return "00".repeat(el.bits / 8);
+            }
+            if t.names_a_parameter() {
+                // A parameter id: the MIB's first, so what's deduced from it builds.
+                if let Some(pid) = set.entries(Kind::TmParam).iter().filter(|p| p.root == e.root).find_map(|p| parse_int(p.row.clean("PCF_PID"))) {
+                    return pid.to_string();
+                }
             }
             values::allowed(set, t).first().map(|a| a.min.to_string()).unwrap_or_else(|| "0".into())
         };

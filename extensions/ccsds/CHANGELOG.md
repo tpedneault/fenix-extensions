@@ -11,10 +11,15 @@ The MIB is read with the SCOS-2000 MIB extension's 1.2 reading of it:
   repeated as their counters say; a parameter's calibration is chosen
   by its `CUR` rows when it has some.
 - Telecommand arguments are shown as their status texts and through
-  their numeric calibrations.
+  their numeric calibrations; times as the UTC time or duration they
+  are.
 - A new MIB check, `layout` (`ccsds.checks`): telecommand definitions
   the ICD's rules disagree with.
 - A MIB table that isn't UTF-8 is read as Latin-1 instead of being lost.
+- An XTCE file in the project can be one of its MIBs (`mib.roots`).
+- `SPC k d` on a line that starts with a name ending in digits
+  (`TTYP0001 18 64 ...`, a line of the MIB's `tc_vectors.txt`) no longer
+  takes the name's digits for hex.
 
 ## 1.1.0
 

@@ -125,6 +125,10 @@ pub struct Layout {
     pub nodes: Vec<Node>,
     /// What's wrong with the definition, for the checks.
     pub problems: Vec<String>,
+    /// For a telecommand with a deduced parameter (PTC 11): the TM
+    /// parameters a value may name -- `PCF_NAME`, `PCF_PID` -- and their
+    /// types.
+    deducible: Vec<(String, Option<u64>, ParamType)>,
 }
 
 /// One value someone gives: an editable element, in a repetition of
@@ -266,7 +270,19 @@ impl Layout {
                 }
             }
         }
-        Layout { tc, elements, nodes, problems }
+        let deducible = if elements.iter().any(|el| el.ty.as_ref().is_some_and(ParamType::deduced)) {
+            set.entries(Kind::TmParam)
+                .iter()
+                .filter(|p| p.root == e.root)
+                .filter_map(|p| {
+                    let (ptc, pfc) = (p.row.clean("PCF_PTC").parse().ok()?, p.row.clean("PCF_PFC").parse().ok()?);
+                    Some((p.name.clone(), parse_int(p.row.clean("PCF_PID")).and_then(|n| u64::try_from(n).ok()), ParamType::plain(&p.name, ptc, pfc, e.root)))
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+        Layout { tc, elements, nodes, problems, deducible }
     }
 
     /// Whether any group repeats.
@@ -318,6 +334,33 @@ impl Layout {
     /// for a dynamic default (`dynamic_default` says where from).
     pub fn default(&self, _set: &MibSet, element: usize) -> String {
         self.elements[element].offered.clone()
+    }
+
+    /// What a value for `element` is checked against: its own type, or --
+    /// for a deduced parameter (PTC 11) -- the type of the TM parameter
+    /// that `naming` names, `naming` being the value given to the last
+    /// argument before it that names a parameter (`CPC_CATEG` `P`), as
+    /// someone typed it. `None` when a deduced type can't be told yet.
+    pub fn domain_given(&self, element: usize, naming: Option<&str>) -> Option<Domain> {
+        let el = &self.elements[element];
+        let d = el.domain.clone()?;
+        if !d.ty.deduced() {
+            return Some(d);
+        }
+        let namer = self.elements[..element].iter().rev().find(|e| e.ty.as_ref().is_some_and(ParamType::names_a_parameter))?;
+        let raw = namer.domain.as_ref()?.to_raw(naming?, &Profile::default()).ok()?;
+        let found = match &raw {
+            Raw::Text(name) => self.deducible.iter().find(|(n, _, _)| n == name.trim()),
+            Raw::Unsigned(n) => self.deducible.iter().find(|(_, pid, _)| *pid == Some(*n)).or_else(|| self.deducible.iter().find(|(name, _, _)| *name == n.to_string())),
+            _ => None,
+        };
+        found.map(|(_, _, t)| Domain::plain(t.clone()))
+    }
+
+    /// Whether a value given to `element` names the parameter that later
+    /// deduced ones take their type from.
+    pub fn names_a_parameter(&self, element: usize) -> bool {
+        self.elements[element].ty.as_ref().is_some_and(ParamType::names_a_parameter)
     }
 
     /// The TM parameter a dynamic default is read from.
@@ -674,8 +717,12 @@ fn fixed_count(el: &Element) -> Option<usize> {
     raw.as_f64().map(|n| (n.max(0.0) as usize).min(MAX_REPEAT))
 }
 
-/// The count a repeater's value gives: its raw value.
+/// The count a repeater's value gives: its raw value. A fixed repeater
+/// repeats as the MIB says, whatever `value` is.
 pub fn count_of(el: &Element, value: &str) -> usize {
+    if let Some(n) = el.fixed_count {
+        return n;
+    }
     let raw = match &el.domain {
         Some(d) => d.to_raw(value, &Profile::default()).ok().and_then(|r| r.as_f64()),
         None => values::parse_number(value),
@@ -849,6 +896,21 @@ pub(crate) mod tests {
         let labels: Vec<String> = l.fields(&set, |f| counts.get(&f.key(&l)).copied().unwrap_or(0)).iter().map(|f| f.label(&l)).collect();
         assert_eq!(labels, vec!["N", "N2[1]", "A[1.1]", "N2[2]", "A[2.1]", "A[2.2]", "C"]);
         assert_eq!(l.enclosing(2), vec![1, 0]);
+    }
+
+    #[test]
+    fn a_fixed_repeater_counts_as_the_mib_says() {
+        let r = temp_root("layout-fixed");
+        write(&r, "ccf", &line(&["TCF", "Fixed", "", "", "N", "", "8", "1", "100", "2"], 21));
+        write(&r, "cdf", &[line(&["TCF", "F", "n", "8", "0", "1", "N", "R", "3"], 10), line(&["TCF", "E", "a", "8", "8", "0", "A"], 10)].join("\n"));
+        write(&r, "cpc", &[line(&["N", "n", "3", "4"], 17), line(&["A", "a", "3", "4"], 17)].join("\n"));
+        let set = MibSet::load(vec![r], None);
+        let l = tc(&set, "TCF");
+        assert_eq!(l.elements[0].fixed_count, Some(3));
+        // What the form's "N · 2 of 3" headings and the script checks read.
+        assert_eq!(count_of(&l.elements[0], ""), 3);
+        assert_eq!(count_of(&l.elements[0], "7"), 3, "a fixed count isn't anyone's to change");
+        assert_eq!(l.fields(&set, |_| 0).len(), 3);
     }
 
     #[test]

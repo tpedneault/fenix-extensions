@@ -72,6 +72,8 @@ As the SCOS-2000 Database Import ICD lays them out:
 
 1. The folders `mib.roots` names: the project's own list (in its
    `.fenix/settings.toml`, folders relative to it) in place of yours.
+   In a project's list, an XTCE file relative to it is a MIB too
+   (`XTCE = "generated/xtce-OPS.xml"`).
 2. Else the project itself, when it's a MIB (`.dat` tables in it or in
    its `mib/`).
 

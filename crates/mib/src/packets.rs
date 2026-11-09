@@ -559,7 +559,7 @@ pub fn decode_tc(set: &MibSet, tc: DefRef, pkt: &Packet, profile: &Profile) -> F
                 let el = &layout.elements[placed.element];
                 let name = layout::Field { element: placed.element, path: placed.path.clone() }.label(&layout);
                 let value = match &el.ty {
-                    Some(t) => values::to_engineering(set, t, &placed.raw),
+                    Some(t) => values::time_text(t, &placed.raw, profile).unwrap_or_else(|| values::to_engineering(set, t, &placed.raw)),
                     None => placed.raw.display(),
                 };
                 let mut f = Field::new(name, head * 8 + placed.bit, placed.bits, placed.raw.display(), value);

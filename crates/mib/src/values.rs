@@ -301,6 +301,20 @@ fn mask(bits: usize) -> u64 {
     }
 }
 
+/// A time argument's octets as someone typed them: an absolute time
+/// (`PTC 9`) as UTC, a relative one (`PTC 10`) as seconds. `None` for
+/// anything else, or octets that don't read as its format.
+pub fn time_text(t: &ParamType, raw: &Raw, profile: &Profile) -> Option<String> {
+    let Raw::Bytes(b) = raw else { return None };
+    let fmt = time_format(t.ptc, t.pfc, profile)?;
+    if t.ptc == 10 {
+        let d = time::decode(b, fmt, time::Epoch { tai: Tai(0.0), level1: false }, &profile.leap, 0)?;
+        return Some(format!("{} s", trim_float(d.tai.0)));
+    }
+    let d = time::decode(b, fmt, profile.epoch, &profile.leap, 0)?;
+    Some(d.field.value)
+}
+
 /// The time format of an absolute (`PTC 9`) or relative (`PTC 10`) time
 /// of format `pfc`: CDS for PFC 1 and 2, CUC for 3 to 18, the mission's
 /// TM time (with its P-field) for 0.

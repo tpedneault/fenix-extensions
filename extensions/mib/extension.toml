@@ -123,7 +123,7 @@ key = "mib.roots"
 kind = "map"
 columns = ["Name", "Folder"]
 label = "MIBs"
-description = "The MIB folders: their .dat tables. A project's own list takes the place of yours in that project; a folder in a project can be relative to it."
+description = "The MIB folders: their .dat tables -- or, in a project, an XTCE file relative to it. A project's own list takes the place of yours in that project; a folder in a project can be relative to it."
 project = true
 
 [[contributes.settings]]

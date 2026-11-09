@@ -249,10 +249,22 @@ impl InsertForm {
                 None => format!("{label}: no value"),
             }];
         }
-        match &el.domain {
-            Some(d) => d.check(&v, &Profile::default()),
-            None => vec![format!("{label}: {} has no CPC definition", el.name)],
+        if el.domain.is_none() {
+            return vec![format!("{label}: {} has no CPC definition", el.name)];
         }
+        match self.domain_for(slot) {
+            Some(d) => d.check(&v, &Profile::default()),
+            None => Vec::new(),
+        }
+    }
+
+    /// What `slot`'s value is checked against: a deduced one's, the
+    /// parameter's named before it.
+    fn domain_for(&self, slot: &Field) -> Option<fenix_mib::values::Domain> {
+        let slots = self.slots();
+        let at = slots.iter().position(|s| s == slot).unwrap_or(0);
+        let naming = slots[..at].iter().rev().find(|s| self.layout.names_a_parameter(s.element)).map(|s| self.value(s));
+        self.layout.domain_given(slot.element, naming.as_deref())
     }
 
     pub fn warnings(&self) -> usize {
@@ -284,17 +296,30 @@ impl InsertForm {
     /// One more or one fewer repetition of the group here.
     fn repeat(&mut self, by: i64) {
         let Some(c) = self.counter_here() else {
-            self.note = Some(("+ - change a counter: this field isn't in a repeated group".into(), false));
+            let fixed = self.slots().get(self.focus).and_then(|f| self.layout.enclosing(f.element).first().copied()).filter(|&r| self.layout.elements[r].fixed_count.is_some());
+            let note = match fixed {
+                Some(r) => format!("+ - change a counter: {}'s count is fixed by the MIB", self.layout.elements[r].label()),
+                None => "+ - change a counter: this field isn't in a repeated group".into(),
+            };
+            self.note = Some((note, false));
             return;
         };
+        let here = self.slots().get(self.focus).cloned();
         let n = layout::count_of(&self.layout.elements[c.element], &self.value(&c)) as i64;
         let next = (n + by).clamp(0, MAX_COUNT);
         self.set_value(&c, next.to_string());
         let slots = self.slots();
-        // Stay on the field; when it went away with its repetition, on the counter.
-        if self.focus >= slots.len() {
-            self.focus = slots.iter().position(|s| *s == c).unwrap_or(slots.len().saturating_sub(1));
-        }
+        // Stay on the field; when it went away with its repetition, on the
+        // same field in the last one left, else on the counter -- so a
+        // second `-` keeps shrinking the same group.
+        let depth = c.path.len();
+        let stay = here.as_ref().and_then(|h| slots.iter().position(|s| s == h)).or_else(|| {
+            let h = here.as_ref()?;
+            let mut last = h.path.clone();
+            *last.get_mut(depth)? = next.max(1) as usize;
+            slots.iter().position(|s| s.element == h.element && s.path == last)
+        });
+        self.focus = stay.or_else(|| slots.iter().position(|s| *s == c)).unwrap_or(self.focus.min(slots.len().saturating_sub(1)));
     }
 
     fn cycle(&mut self, by: isize) {
@@ -489,7 +514,7 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Built, String>>, cols: us
     let hidden = if form.fixed > 0 { format!("{} fixed, not asked", form.fixed) } else { String::new() };
     g.heading(y, left, width, &if hidden.is_empty() { format!("Arguments · {}", slots.len()) } else { format!("Arguments · {} · {hidden}", slots.len()) });
     y += 1;
-    let (xn, xd, xv, xt, xc) = (left + 1, left + 24, left + 50, left + 74, left + 96);
+    let (xn, xd, xv, xt, xc) = columns(left, width);
     if slots.is_empty() {
         g.put(y, xn, "Nothing to fill: this telecommand takes no arguments.", Role::Muted);
         y += 1;
@@ -513,7 +538,9 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Built, String>>, cols: us
         last_path = slot.path.clone();
         let indent = slot.path.len() * 2;
         g.put(y, xn + indent, &fit(&slot.label(&form.layout), xd - xn - indent - 1), Role::Title);
-        g.put(y, xd, &fit(&el.description, xv - xd - 2), Role::Muted);
+        if xv > xd + 2 {
+            g.put(y, xd, &fit(&el.description, xv - xd - 2), Role::Muted);
+        }
         let value = form.value(slot);
         let aliases = el.domain.as_ref().map(|d| d.aliases()).unwrap_or_default();
         let on = i == form.focus;
@@ -537,18 +564,35 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Built, String>>, cols: us
         if el.is_repeater() {
             t = format!("repeats next {}", el.group);
         }
-        g.put(y, xt, &fit(&t, xc - xt - 2), Role::Muted);
+        if el.ty.as_ref().is_some_and(|t| t.deduced()) {
+            if let Some(d) = form.domain_for(slot) {
+                t = format!("{t} · {}", d.ty.type_name());
+            }
+        }
+        if xc > xt + 2 {
+            g.put(y, xt, &fit(&t, xc - xt - 2), Role::Muted);
+        }
         let warnings = form.warnings_for(slot);
         let (mark, role) = match warnings.first() {
             None => (format!("✓ {}", el.domain.as_ref().filter(|d| d.aliases().is_empty()).map(|d| d.allowed_text()).unwrap_or_default()), Role::Good),
             Some(w) => (format!("⚠ {}", w.split_once(": ").map(|(_, r)| r).unwrap_or(w)), Role::Warn),
         };
-        g.put(y, xc, &fit(&mark, (left + width).saturating_sub(xc)), role);
+        let room = (left + width).saturating_sub(xc);
+        // A warning too long for its column (a narrow pane) goes in full
+        // on the line under its argument.
+        let below = (role == Role::Warn && mark.chars().count() > room).then(|| mark.clone());
+        g.put(y, xc, &fit(if below.is_some() { "⚠" } else { &mark }, room), role.clone());
         if on {
             g.focus(y, left..left + width);
             anchor = y;
         }
         y += 1;
+        if let Some(w) = below {
+            for line in wrap(&w, (left + width).saturating_sub(xd + 1)) {
+                g.put(y, xd, &line, Role::Warn);
+                y += 1;
+            }
+        }
     }
     y += 1;
     let warnings = form.warnings();
@@ -598,7 +642,7 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Built, String>>, cols: us
         }
         y += 1;
     }
-    g.put(y, left, "Inserted as text where the form was opened -- nothing is sent anywhere.", Role::Muted);
+    g.put(y, left, &fit("Inserted as text where the form was opened -- nothing is sent anywhere.", width), Role::Muted);
 
     if let Some(at) = form.menu {
         if let Some(slot) = slots.get(form.focus) {
@@ -642,8 +686,45 @@ pub fn layout(form: &InsertForm, bytes: Option<&Result<Built, String>>, cols: us
     } else {
         &[("Enter", "edit"), ("h l", "change"), ("+ -", "repeat"), ("v", "value set"), ("I", "insert"), ("b", "bytes"), ("y", "copy bytes"), ("D", "decode them"), ("R", "defaults"), ("d", "definition"), ("?", "all keys"), ("q", "cancel")]
     };
-    g.keys(left, width, keys);
+    keys_wrapped(&mut g, left, width, keys);
     g.finish()
+}
+
+/// Where the arguments' columns start: name, description, value, type
+/// and check. Wide, as they always were; narrower (a split, a small
+/// window), the name, value and type keep their widths, the check keeps
+/// room for a warning, and the description takes what's left -- none
+/// when that's too little to read.
+fn columns(left: usize, width: usize) -> (usize, usize, usize, usize, usize) {
+    if width >= 120 {
+        return (left + 1, left + 24, left + 50, left + 74, left + 96);
+    }
+    // Narrower still, the type goes: the check says what's wrong with a value.
+    let (name, value, kind, check) = if width >= 1 + 18 + 16 + 16 + 26 { (18, 16, 16, 26) } else { (14, 12, 0, 20) };
+    let rest = width.saturating_sub(1 + name + value + kind + check);
+    let description = if rest >= 10 { rest.min(26) } else { 0 };
+    let xn = left + 1;
+    let xd = xn + name;
+    let xv = xd + description;
+    let xt = xv + value;
+    (xn, xd, xv, xt, xt + kind)
+}
+
+/// The keys along the foot, on as many lines as they take: in a narrow
+/// pane the last ones used to be left out.
+fn keys_wrapped(g: &mut Grid, left: usize, width: usize, keys: &[(&str, &str)]) {
+    let foot = g.height() + 1;
+    g.rule(foot, left..left + width);
+    let (mut y, mut x) = (foot + 1, left);
+    for (key, label) in keys {
+        let needed = key.chars().count() + 1 + label.chars().count();
+        if x > left && x + needed > left + width {
+            y += 1;
+            x = left;
+        }
+        x = g.put(y, x, key, Role::Accent) + 1;
+        x = g.put(y, x, label, Role::Muted) + 3;
+    }
 }
 
 /// The form's packet, built: its bytes, where each value went, and where
@@ -861,6 +942,62 @@ mod tests {
         let app = &built.bytes[11..built.bytes.len() - 2];
         assert_eq!(app, &[2, 1, 0, 7, 2, 0, 7, 9]);
         assert!(built.fields.iter().any(|(n, bit, _)| n == "PT[2]" && *bit == 11 * 8 + 32), "{:?}", built.fields);
+        // `-` from the last repetition keeps shrinking the same group:
+        // the cursor stays in it, down to the counter at none.
+        f.key(Key::Char('+'));
+        f.key(Key::Char('j'));
+        f.key(Key::Char('j'));
+        let at = |f: &InsertForm| f.slots()[f.focus].label(&f.layout);
+        assert_eq!(at(&f), "PT[3]");
+        f.key(Key::Char('-'));
+        assert_eq!(at(&f), "PT[2]");
+        f.key(Key::Char('-'));
+        f.key(Key::Char('-'));
+        assert_eq!(f.arguments().into_iter().map(|a| a.0).collect::<Vec<_>>(), vec!["PN", "PD"]);
+        assert_eq!(at(&f), "PN");
+        std::fs::remove_dir_all(&root.path).ok();
+    }
+
+    #[test]
+    fn a_fixed_count_numbers_its_repetitions() {
+        // PN is fixed at 3: three PT fields, numbered "of 3", and + - say why
+        // they don't change it.
+        let (mut f, _set, root) = form_with(
+            "ZTC11006\tFixed\t\t\tN\t\t11\t6\t1008\n",
+            "ZTC11006\tF\tCount\t8\t0\t1\tPN\tR\t3\t\nZTC11006\tE\tTime\t8\t8\t0\tPT\t\t\t\n",
+            "PN\tCount\t3\t4\nPT\tTime\t3\t4\n",
+        );
+        assert_eq!(f.arguments().into_iter().map(|a| a.0).collect::<Vec<_>>(), vec!["PT", "PT", "PT"]);
+        let text = layout(&f, None, 160).text;
+        assert!(text.contains("PN · 3 of 3") && !text.contains("of 0"), "{text}");
+        f.key(Key::Char('+'));
+        assert!(f.note.as_ref().is_some_and(|(n, _)| n.contains("fixed by the MIB")), "{:?}", f.note);
+        std::fs::remove_dir_all(&root.path).ok();
+    }
+
+    #[test]
+    fn in_a_split_every_argument_keeps_its_check_and_every_key_shows() {
+        // Half of a 1784-pixel window: 98 columns. The check column (✓ or
+        // the warning) used to start past the pane's edge, and the keys
+        // stopped at "copy bytes".
+        let (mut f, _set, root) = form_with(
+            "ZTC11007\tSplit\t\t\tN\t\t11\t7\t1008\n",
+            "ZTC11007\tE\tCount of the items that follow\t8\t0\t1\tPN\t\t2\t\nZTC11007\tE\tTime\t8\t8\t0\tPT\t\t\t\nZTC11007\tE\tAfter\t8\t16\t0\tPA\t\t3\t\n",
+            "PN\tCount\t3\t4\nPT\tTime\t3\t4\nPA\tAfter\t3\t4\n",
+        );
+        f.fill(&[("PN".into(), "2".into()), ("PT".into(), "1".into()), ("PT".into(), "300".into()), ("PA".into(), "3".into())]);
+        for cols in [98, 60] {
+            let (left, width) = frame(cols, 150);
+            let text = layout(&f, None, cols).text;
+            assert!(text.lines().all(|l| l.chars().count() <= left + width), "{cols}: a line runs past the pane:\n{text}");
+            let rows: Vec<&str> = text.lines().filter(|l| l.trim_start().starts_with("PT[") || l.trim_start().starts_with("PA ")).collect();
+            assert_eq!(rows.len(), 3, "{text}");
+            assert!(rows.iter().all(|r| r.contains('✓') || r.contains('⚠')), "{cols}: every argument has its check:\n{text}");
+            assert!(text.contains("? all keys") && text.contains("q cancel"), "{cols}: the keys wrap rather than stop:\n{text}");
+            assert!(text.contains("300 doesn't fit in 8 bits"), "{cols}: the warning in full, under its argument:\n{text}");
+        }
+        // Wide, nothing moves.
+        assert_eq!(columns(10, 150), (11, 34, 60, 84, 106));
         std::fs::remove_dir_all(&root.path).ok();
     }
 
