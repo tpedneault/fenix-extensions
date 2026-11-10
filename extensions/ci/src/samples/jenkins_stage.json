@@ -1,0 +1,34 @@
+{
+  "id": "23",
+  "name": "Test",
+  "execNode": "",
+  "status": "FAILED",
+  "startTimeMillis": 1793954582000,
+  "durationMillis": 186000,
+  "pauseDurationMillis": 0,
+  "stageFlowNodes": [
+    {
+      "id": "24",
+      "name": "Shell Script",
+      "execNode": "",
+      "status": "SUCCESS",
+      "parameterDescription": "cargo build --tests",
+      "startTimeMillis": 1793954582000,
+      "durationMillis": 61000,
+      "pauseDurationMillis": 0,
+      "parentNodes": ["23"]
+    },
+    {
+      "id": "25",
+      "name": "Shell Script",
+      "execNode": "",
+      "status": "FAILED",
+      "error": { "message": "script returned exit code 101", "type": "hudson.AbortException" },
+      "parameterDescription": "cargo test --workspace",
+      "startTimeMillis": 1793954643000,
+      "durationMillis": 125000,
+      "pauseDurationMillis": 0,
+      "parentNodes": ["24"]
+    }
+  ]
+}

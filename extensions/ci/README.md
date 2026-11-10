@@ -1,9 +1,9 @@
 # CI status
 
-Your branch's CI, without leaving Fenix: GitHub Actions or GitLab
-pipelines on the modeline, a page of the branch's runs with their jobs,
-steps and logs, a notification when a run finishes -- and the failing
-jobs' logs for your coding agent, so it can fix them.
+Your branch's CI, without leaving Fenix: GitHub Actions, GitLab
+pipelines or Jenkins on the modeline, a page of the branch's runs with
+their jobs, steps and logs, a notification when a run finishes -- and the
+failing jobs' logs for your coding agent, so it can fix them.
 
 | Modeline | What it means |
 | --- | --- |
@@ -40,6 +40,41 @@ newest first, the first opened on its jobs. A job opens on its steps
 A log is its end when it's big (the last 512 KiB): the colours, GitLab's
 section markers and GitHub's timestamps taken off.
 
+## Jenkins
+
+Jenkins doesn't know a repository by its remote, so you name the job:
+
+| Setting | What to put |
+| --- | --- |
+| `ci.jenkins_url` | Your Jenkins, `https://ci.example.com` |
+| `ci.jenkins_job` | The project's job: its folders and its name (`space/rocket`), or its address |
+| `ci.jenkins_user`, `ci.jenkins_token` | Your user there and one of its API tokens (your name, Security, Add new token) |
+
+The first two are per project (`SPC ,`, CI status). With a job named and
+no `ci.provider` chosen, the CI is Jenkins.
+
+The page then shows the branch's **builds**. For a multibranch pipeline
+(or a folder of jobs) they're the builds of the job named after your
+branch; for any other job, the builds Git made of your branch
+(`origin/<branch>`), or all of them when Git has no part in the job. A
+build waiting in the queue shows as queued.
+
+A build opens on its **stages**, each with its state and how long it
+took; a stage that failed opens on its **steps** and what each ran. That
+comes from the Pipeline Stage View plugin, which most Jenkins have: where
+it's missing, or the job isn't a pipeline, a build has one row, its
+console. `Enter` on a stage opens its part of the build's console, on a
+step its stage's.
+
+| Key | On Jenkins |
+| --- | --- |
+| `r` | Build the job again (a job with parameters, with their defaults) |
+| `c` | Stop the build, asked first |
+
+Unstable builds count as failed, and a stage waiting for input shows as
+manual (`▷`). Anonymous reading works where your Jenkins allows it;
+building and stopping want the user and the token.
+
 ## When it asks
 
 It looks at the repository every 3 seconds (Fenix's `git_state`). A new
@@ -71,7 +106,8 @@ it's offered by default.
 The remote, `origin` (else the first), from `.git/config` (or `git
 remote get-url origin` in a worktree): `github.com` is GitHub, `gitlab.com`
 GitLab, the addresses in the settings theirs, and anything else a GitLab
-at the remote's host, as the Review extension takes it.
+at the remote's host, as the Review extension takes it. A Jenkins is
+where the settings say (above), whatever the remote.
 
 The tokens are Fenix's own (`SPC ,`, Forges): `github.token`, else the
 GitHub CLI's (`gh auth token`, `--hostname` for an Enterprise Server);
@@ -82,7 +118,9 @@ A public repository on GitHub needs none.
 
 | Key | What it does |
 | --- | --- |
-| `ci.provider` | `github` or `gitlab`, or empty to tell by the remote |
+| `ci.provider` | `github`, `gitlab` or `jenkins`; empty is Jenkins when a job is named, else tells by the remote |
+| `ci.jenkins_url`, `ci.jenkins_job` | Your Jenkins and the project's job on it |
+| `ci.jenkins_user`, `ci.jenkins_token` | Your user on Jenkins and its API token |
 | `ci.github_url` | Your GitHub Enterprise Server (`https://github.example.com`) |
 | `ci.gitlab_url` | Your GitLab; empty uses Fenix's GitLab server (`gitlab.base_url`) |
 | `ci.poll_running`, `ci.poll_idle` | Seconds between looks while something runs (30), when nothing does (120) |

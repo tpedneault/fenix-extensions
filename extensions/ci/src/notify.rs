@@ -81,13 +81,17 @@ pub fn note(branch: &str, current: &[&Run], jobs: &HashMap<u64, Vec<Job>>, wante
     let first = current.first()?;
     let took = current.iter().filter_map(|r| took(r.started, r.finished, now)).max().map(duration);
     let names = current.iter().map(|r| r.name.as_str()).collect::<Vec<_>>().join(", ");
-    let at = format!("{} at {}", branch, short(&first.sha));
+    // A Jenkins build Git had no part in names no commit.
+    let (at, passed) = match short(&first.sha) {
+        "" => (branch.to_string(), names.clone()),
+        sha => (format!("{branch} at {sha}"), format!("{names} · {sha}")),
+    };
     match summary.overall {
         Overall::Success if wanted.success => Some(Note {
             summary: format!("CI passed on {branch}"),
             body: match took {
-                Some(t) => format!("{names} · {} · in {t}", short(&first.sha)),
-                None => format!("{names} · {}", short(&first.sha)),
+                Some(t) => format!("{passed} · in {t}"),
+                None => passed,
             },
             loudness: Loudness::Low,
             actions: vec![("Open in the browser".into(), format!("url:{}", first.url))],

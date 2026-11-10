@@ -15,7 +15,7 @@ use serde_json::Value;
 use crate::model::{Job, Provider, Run};
 use crate::remote::Repo;
 use crate::summary;
-use crate::{github, gitlab, log, poll};
+use crate::{github, gitlab, jenkins, log, poll};
 
 /// What it remembers between asks, shared by every client of a repository.
 #[derive(Debug, Default)]
@@ -24,6 +24,11 @@ pub struct Memory {
     etags: HashMap<String, (String, String)>,
     /// When a rate limit lifts (ms since the epoch).
     pub blocked_until: Option<i64>,
+    /// Jenkins: whether the job named is a multibranch pipeline (or a
+    /// folder), its builds in a job per branch. Asked once.
+    folder: Option<bool>,
+    /// Jenkins: the job whose builds were last listed -- the branch's.
+    builds_at: Option<String>,
 }
 
 pub type Shared = Rc<RefCell<Memory>>;
@@ -50,6 +55,9 @@ pub struct Snapshot {
 /// for the commit that counts.
 const MOST_RUNS_WITH_JOBS: usize = 8;
 
+/// Jenkins: the most failed stages of a build whose steps it reads.
+const MOST_STAGES_WITH_STEPS: usize = 4;
+
 impl<H: Http> Client<H> {
     pub fn new(http: H, repo: Repo, token: Option<String>, memory: Shared, clock: fn() -> i64) -> Self {
         Client { http, repo, token: token.filter(|t| !t.trim().is_empty()), memory, clock }
@@ -72,12 +80,19 @@ impl<H: Http> Client<H> {
                     h.push(("PRIVATE-TOKEN", t.clone()));
                 }
             }
+            Provider::Jenkins => {
+                h.push(("Accept", "application/json".to_string()));
+                // A user and their API token, `user:token`.
+                if let Some(t) = &self.token {
+                    h.push(("Authorization", jenkins::basic(t)));
+                }
+            }
         }
         h
     }
 
-    /// A request, its rate limit noted; an error status as the forge says it.
-    async fn send(&self, method: &str, url: &str, extra: &[(&'static str, String)], body: Option<String>) -> Result<Response, String> {
+    /// A request, its rate limit noted: what came back, whatever its status.
+    async fn ask(&self, method: &str, url: &str, extra: &[(&'static str, String)], body: Option<String>) -> Result<Response, String> {
         let mut headers = self.headers();
         headers.extend(extra.iter().cloned());
         let response = self.http.request(method, url, &headers, body).await?;
@@ -85,20 +100,42 @@ impl<H: Http> Client<H> {
         if limited.is_some() || response.status < 400 {
             self.memory.borrow_mut().blocked_until = limited;
         }
+        Ok(response)
+    }
+
+    /// An answer, or its error status as the forge says it.
+    fn checked(&self, response: Response) -> Result<Response, String> {
         if response.status >= 400 && response.status != 416 {
-            return Err(self.describe(&response, limited.is_some()));
+            let limited = poll::rate_limited_until(response.status, &response.headers, (self.clock)()).is_some();
+            return Err(self.describe(&response, limited));
         }
         Ok(response)
+    }
+
+    /// A request, its rate limit noted; an error status as the forge says it.
+    async fn send(&self, method: &str, url: &str, extra: &[(&'static str, String)], body: Option<String>) -> Result<Response, String> {
+        let response = self.ask(method, url, extra, body).await?;
+        self.checked(response)
+    }
+
+    fn read(&self, body: &str) -> Result<Value, String> {
+        serde_json::from_str(body).map_err(|e| format!("couldn't read {}'s answer: {e}", self.forge()))
     }
 
     fn describe(&self, response: &Response, limited: bool) -> String {
         let said = match self.repo.provider {
             Provider::GitHub => github::message(&response.body),
             Provider::GitLab => gitlab::message(&response.body),
+            // Jenkins answers an error with a page.
+            Provider::Jenkins => None,
         };
         let code = response.status;
+        let jenkins = self.repo.provider == Provider::Jenkins;
         let what = match (code, limited) {
             (_, true) => "rate limited: it waits until the limit lifts".to_string(),
+            (401, _) if jenkins => "Jenkins refused the user or the API token: set them in SPC , (CI status)".to_string(),
+            (403, _) if jenkins && self.token.is_none() => "Jenkins wants a user and an API token: set them in SPC , (CI status)".to_string(),
+            (404, _) if jenkins => format!("Jenkins has no job {}{}", self.repo.project, if self.token.is_none() { ", or it wants a user and an API token (SPC , CI status)" } else { "" }),
             (401, _) => format!("{} refused the token: set it in SPC , (Forges)", self.forge()),
             (403, _) if self.token.is_none() => format!("{} wants a token: set it in SPC , (Forges)", self.forge()),
             (404, _) if self.token.is_none() => format!("{} has no such project, or it's private and wants a token (SPC , Forges)", self.forge()),
@@ -111,10 +148,7 @@ impl<H: Http> Client<H> {
     }
 
     fn forge(&self) -> &'static str {
-        match self.repo.provider {
-            Provider::GitHub => "GitHub",
-            Provider::GitLab => "GitLab",
-        }
+        self.repo.provider.forge()
     }
 
     /// JSON at `url`, asked with its last ETag: a `304` is the last answer.
@@ -143,7 +177,7 @@ impl<H: Http> Client<H> {
                 response.body
             }
         };
-        serde_json::from_str(&body).map_err(|e| format!("couldn't read {}'s answer: {e}", self.forge()))
+        self.read(&body)
     }
 
     /// The branch's latest runs, newest first.
@@ -152,7 +186,59 @@ impl<H: Http> Client<H> {
         Ok(match self.repo.provider {
             Provider::GitHub => github::runs(&self.get_json(&github::runs_url(api, project, branch)).await?),
             Provider::GitLab => gitlab::pipelines(&self.get_json(&gitlab::pipelines_url(api, project, branch)).await?),
+            Provider::Jenkins => self.builds(branch).await?,
         })
+    }
+
+    /// Jenkins: the branch's builds. The job named is asked first; when
+    /// it turns out a multibranch pipeline (or a folder), the branch's
+    /// job in it is, from then on -- and has none until Jenkins has seen
+    /// the branch.
+    async fn builds(&self, branch: &str) -> Result<Vec<Run>, String> {
+        let job = &self.repo.api;
+        let name = self.repo.project.rsplit('/').next().unwrap_or(&self.repo.project);
+        if self.memory.borrow().folder != Some(true) {
+            let v = self.get_json(&jenkins::builds_url(job)).await?;
+            let folder = jenkins::is_folder(&v);
+            let mut memory = self.memory.borrow_mut();
+            memory.folder = Some(folder);
+            if !folder {
+                memory.builds_at = Some(job.clone());
+                return Ok(jenkins::builds(&v, name, branch, true));
+            }
+        }
+        let at = jenkins::branch_job_url(job, branch);
+        self.memory.borrow_mut().builds_at = Some(at.clone());
+        let response = self.ask("GET", &jenkins::builds_url(&at), &[], None).await?;
+        if response.status == 404 {
+            return Ok(Vec::new());
+        }
+        Ok(jenkins::builds(&self.read(&self.checked(response)?.body)?, name, branch, false))
+    }
+
+    /// Jenkins: the job the builds are in.
+    fn builds_at(&self) -> Result<String, String> {
+        self.memory.borrow().builds_at.clone().ok_or_else(|| "The builds haven't been read yet: ask again (R).".to_string())
+    }
+
+    /// Jenkins: a build's stages, the failed ones with their steps; a
+    /// build that has none (not a pipeline, or no Stage View) as its console.
+    async fn stages(&self, build: u64) -> Result<Vec<Job>, String> {
+        let at = self.builds_at()?;
+        let response = self.ask("GET", &jenkins::stages_url(&at, build), &[], None).await?;
+        let mut stages = match response.status {
+            404 => Vec::new(),
+            _ => jenkins::stages(&self.read(&self.checked(response)?.body)?, &at, build),
+        };
+        if stages.is_empty() {
+            return Ok(vec![jenkins::whole(&self.get_json(&jenkins::build_url(&at, build)).await?, &at, build)]);
+        }
+        for stage in stages.iter_mut().filter(|s| s.failed()).take(MOST_STAGES_WITH_STEPS) {
+            if let Ok(v) = self.get_json(&jenkins::stage_url(&at, build, jenkins::split(stage.id).1)).await {
+                stage.steps = jenkins::steps(&v);
+            }
+        }
+        Ok(stages)
     }
 
     /// A run's jobs.
@@ -161,6 +247,7 @@ impl<H: Http> Client<H> {
         Ok(match self.repo.provider {
             Provider::GitHub => github::jobs(&self.get_json(&github::jobs_url(api, project, run)).await?),
             Provider::GitLab => gitlab::jobs(&self.get_json(&gitlab::jobs_url(api, project, run)).await?),
+            Provider::Jenkins => self.stages(run).await?,
         })
     }
 
@@ -199,11 +286,14 @@ impl<H: Http> Client<H> {
     }
 
     /// The end of a job's log, clean, and whether it's only its end.
-    pub async fn log(&self, job: u64) -> Result<(String, bool), String> {
+    /// `name`: the job's -- a Jenkins stage's log is its part of the
+    /// build's console, found by it (the whole console when it isn't there).
+    pub async fn log(&self, job: u64, name: &str) -> Result<(String, bool), String> {
         let (api, project) = (&self.repo.api, &self.repo.project);
         let url = match self.repo.provider {
             Provider::GitHub => github::log_url(api, project, job),
             Provider::GitLab => gitlab::trace_url(api, project, job),
+            Provider::Jenkins => jenkins::console_url(&self.builds_at()?, jenkins::split(job).0),
         };
         let range = [("Range", format!("bytes=-{}", log::TAIL_BYTES))];
         let mut response = self.send("GET", &url, &range, None).await?;
@@ -217,29 +307,48 @@ impl<H: Http> Client<H> {
         if cut {
             body.drain(..body.len() - log::TAIL_BYTES);
         }
-        Ok((log::clean(&log::text_of(&body, partial || cut)), partial || cut))
+        let text = log::clean(&log::text_of(&body, partial || cut));
+        if self.repo.provider == Provider::Jenkins && jenkins::split(job).1 != 0 {
+            if let Some(stage) = jenkins::stage_log(&text, name) {
+                return Ok((stage, false));
+            }
+        }
+        Ok((text, partial || cut))
     }
 
     /// Re-runs `run`'s failed jobs, or `job` alone.
+    /// Jenkins builds the job again, whatever failed.
     pub async fn rerun(&self, run: u64, job: Option<u64>) -> Result<(), String> {
         let (api, project) = (&self.repo.api, &self.repo.project);
+        if self.repo.provider == Provider::Jenkins {
+            let at = self.builds_at()?;
+            let response = self.ask("POST", &jenkins::build_again_url(&at, false), &[], None).await?;
+            // A job with parameters wants them: built with their defaults.
+            return match response.status {
+                400 | 405 => self.send("POST", &jenkins::build_again_url(&at, true), &[], None).await.map(|_| ()),
+                _ => self.checked(response).map(|_| ()),
+            };
+        }
         let url = match (self.repo.provider, job) {
             (Provider::GitHub, None) => github::rerun_failed_url(api, project, run),
             (Provider::GitHub, Some(job)) => github::rerun_job_url(api, project, job),
             (Provider::GitLab, None) => gitlab::retry_pipeline_url(api, project, run),
             (Provider::GitLab, Some(job)) => gitlab::retry_job_url(api, project, job),
+            (Provider::Jenkins, _) => unreachable!("built again above"),
         };
         let body = (self.repo.provider == Provider::GitHub).then(|| "{}".to_string());
         self.send("POST", &url, &[], body).await.map(|_| ())
     }
 
-    /// Cancels `run`, or on GitLab `job` alone (GitHub cancels whole runs).
+    /// Cancels `run`, or on GitLab `job` alone (GitHub cancels whole
+    /// runs; Jenkins stops the build).
     pub async fn cancel(&self, run: u64, job: Option<u64>) -> Result<(), String> {
         let (api, project) = (&self.repo.api, &self.repo.project);
         let url = match (self.repo.provider, job) {
             (Provider::GitHub, _) => github::cancel_url(api, project, run),
             (Provider::GitLab, None) => gitlab::cancel_pipeline_url(api, project, run),
             (Provider::GitLab, Some(job)) => gitlab::cancel_job_url(api, project, job),
+            (Provider::Jenkins, _) => jenkins::stop_url(&self.builds_at()?, run),
         };
         self.send("POST", &url, &[], None).await.map(|_| ())
     }
@@ -362,14 +471,101 @@ pub mod tests {
         let http = FakeHttp::default();
         http.on("GET https://api.github.com/repos/acme/rocket/actions/jobs/5/logs", 206, &format!("cut line\n{}", include_str!("samples/github_log.txt")), &[]);
         let client = Client::new(http.clone(), github_repo(), None, Shared::default(), clock);
-        let (text, partial) = block_on(client.log(5)).unwrap();
+        let (text, partial) = block_on(client.log(5, "test")).unwrap();
         assert!(partial);
         assert!(text.starts_with("##[group]Run cargo test"), "{text}");
         assert!(http.asked.borrow()[0].2.contains(&("Range".into(), format!("bytes=-{}", log::TAIL_BYTES))));
         // A log shorter than the range: 416, then the whole.
         http.on("GET https://api.github.com/repos/acme/rocket/actions/jobs/6/logs", 416, "", &[]);
         http.on("GET https://api.github.com/repos/acme/rocket/actions/jobs/6/logs", 200, "short\n", &[]);
-        assert_eq!(block_on(client.log(6)).unwrap(), ("short\n".to_string(), false));
+        assert_eq!(block_on(client.log(6, "test")).unwrap(), ("short\n".to_string(), false));
+    }
+
+    fn jenkins_repo() -> Repo {
+        Repo { provider: Provider::Jenkins, api: "https://ci.example.com/job/space/job/rocket".into(), project: "space/rocket".into(), host: "ci.example.com".into() }
+    }
+
+    const BRANCH_JOB: &str = "https://ci.example.com/job/space/job/rocket/job/feature%252Ftelemetry";
+
+    #[test]
+    fn a_multibranch_pipelines_builds_are_its_branchs_jobs() {
+        let http = FakeHttp::default();
+        let memory = Shared::default();
+        let folder = format!("GET {}", jenkins::builds_url("https://ci.example.com/job/space/job/rocket"));
+        let builds = format!("GET {}", jenkins::builds_url(BRANCH_JOB));
+        http.on(&folder, 200, r#"{"_class":"org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject"}"#, &[]);
+        http.on(&builds, 200, include_str!("samples/jenkins_builds.json"), &[]);
+        // HEAD's build runs: its stages aren't there yet, so it's its console.
+        http.on(&format!("GET {BRANCH_JOB}/14/wfapi/describe"), 200, r#"{"id":"14","status":"IN_PROGRESS","stages":[]}"#, &[]);
+        http.on(&format!("GET {}", jenkins::build_url(BRANCH_JOB, 14)), 200, r#"{"number":14,"building":true,"result":null,"timestamp":1793958067000,"duration":0}"#, &[]);
+        let client = Client::new(http.clone(), jenkins_repo(), Some("alex:11aa".into()), memory.clone(), clock);
+        let snap = block_on(client.snapshot("feature/telemetry", Some(HEAD), &[])).unwrap();
+        assert_eq!(snap.runs.iter().map(|r| r.number).collect::<Vec<_>>(), [14, 13, 12]);
+        assert_eq!(snap.runs[0].name, "rocket");
+        let console = &snap.jobs[&14][0];
+        assert_eq!((console.name.as_str(), console.state), ("console", crate::model::State::Running));
+        assert!(http.asked.borrow()[0].2.contains(&("Authorization".into(), "Basic YWxleDoxMWFh".into())));
+        // From then on the branch's job is asked straight away; a branch
+        // Jenkins hasn't seen has no builds.
+        http.on(&format!("GET {}", jenkins::builds_url("https://ci.example.com/job/space/job/rocket/job/new")), 404, "<html>Not Found</html>", &[]);
+        assert_eq!(block_on(client.runs("new")).unwrap(), Vec::new());
+        assert_eq!(http.asked.borrow().len(), 5);
+    }
+
+    #[test]
+    fn a_jenkins_builds_stages_come_with_the_failed_ones_steps_and_their_part_of_the_console() {
+        let http = FakeHttp::default();
+        // A job of its own, every branch built in it.
+        let job = "https://ci.example.com/job/space/job/rocket";
+        http.on(&format!("GET {}", jenkins::builds_url(job)), 200, include_str!("samples/jenkins_builds.json"), &[]);
+        http.on(&format!("GET {job}/13/wfapi/describe"), 200, include_str!("samples/jenkins_stages.json"), &[]);
+        http.on(&format!("GET {job}/13/execution/node/23/wfapi/describe"), 200, include_str!("samples/jenkins_stage.json"), &[]);
+        let client = Client::new(http.clone(), jenkins_repo(), Some("alex:11aa".into()), Shared::default(), clock);
+        assert!(block_on(client.jobs(13)).unwrap_err().contains("ask again"), "which job isn't known before the builds are read");
+        assert_eq!(block_on(client.runs("feature/telemetry")).unwrap().len(), 2);
+        let stages = block_on(client.jobs(13)).unwrap();
+        assert_eq!(stages.len(), 4);
+        let test = &stages[2];
+        assert_eq!((test.name.as_str(), test.steps.len(), test.steps[1].name.as_str()), ("Test", 2, "Shell Script: cargo test --workspace"));
+        assert!(stages[1].steps.is_empty(), "a stage that passed isn't asked for its steps");
+        // Its log: the console's part that is the stage's.
+        http.on(&format!("GET {job}/13/consoleText"), 200, include_str!("samples/jenkins_console.txt"), &[]);
+        let (text, partial) = block_on(client.log(test.id, &test.name)).unwrap();
+        assert!(!partial && text.starts_with("[Pipeline] sh\n+ cargo test --workspace") && !text.contains("cargo build"), "{text}");
+        // A build with no stages (no Stage View): the console, whole.
+        http.on(&format!("GET {job}/12/wfapi/describe"), 404, "", &[]);
+        http.on(&format!("GET {}", jenkins::build_url(job, 12)), 200, r#"{"number":12,"building":false,"result":"ABORTED","timestamp":1793870000000,"duration":95000}"#, &[]);
+        let whole = block_on(client.jobs(12)).unwrap();
+        assert_eq!((whole.len(), whole[0].state), (1, crate::model::State::Cancelled));
+        http.on(&format!("GET {job}/12/consoleText"), 200, "Started by timer\nAborted by Alex\n", &[]);
+        assert_eq!(block_on(client.log(whole[0].id, "console")).unwrap().0, "Started by timer\nAborted by Alex\n");
+    }
+
+    #[test]
+    fn jenkins_builds_again_and_stops_and_says_what_it_wants() {
+        let http = FakeHttp::default();
+        let job = "https://ci.example.com/job/space/job/rocket";
+        http.on(&format!("GET {}", jenkins::builds_url(job)), 200, include_str!("samples/jenkins_builds.json"), &[]);
+        let client = Client::new(http.clone(), jenkins_repo(), Some("alex:11aa".into()), Shared::default(), clock);
+        block_on(client.runs("feature/telemetry")).unwrap();
+        http.on(&format!("POST {job}/build"), 201, "", &[]);
+        block_on(client.rerun(13, None)).unwrap();
+        // A job with parameters: with their defaults.
+        http.on(&format!("POST {job}/build"), 400, "<html>Nothing is submitted</html>", &[]);
+        http.on(&format!("POST {job}/buildWithParameters"), 201, "", &[]);
+        block_on(client.rerun(13, Some(jenkins::stage_id(13, 23)))).unwrap();
+        http.on(&format!("POST {job}/14/stop"), 302, "", &[]);
+        block_on(client.cancel(14, None)).unwrap();
+        http.on(&format!("POST {job}/14/stop"), 403, "<html>No valid crumb</html>", &[]);
+        assert_eq!(block_on(client.cancel(14, None)).unwrap_err(), "HTTP 403 (Forbidden)");
+        // No user and token.
+        let http = FakeHttp::default();
+        http.on(&format!("GET {}", jenkins::builds_url(job)), 403, "<html>Authentication required</html>", &[]);
+        http.on(&format!("GET {}", jenkins::builds_url(job)), 404, "", &[]);
+        let anonymous = Client::new(http.clone(), jenkins_repo(), None, Shared::default(), clock);
+        assert_eq!(block_on(anonymous.runs("main")).unwrap_err(), "HTTP 403 (Jenkins wants a user and an API token: set them in SPC , (CI status))");
+        assert_eq!(block_on(anonymous.runs("main")).unwrap_err(), "HTTP 404 (Jenkins has no job space/rocket, or it wants a user and an API token (SPC , CI status))");
+        assert!(!http.asked.borrow()[0].2.iter().any(|(k, _)| k == "Authorization"));
     }
 
     #[test]

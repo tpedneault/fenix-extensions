@@ -1,0 +1,50 @@
+{
+  "_links": { "self": { "href": "/job/space/job/rocket/job/feature%252Ftelemetry/13/wfapi/describe" } },
+  "id": "13",
+  "name": "#13",
+  "status": "FAILED",
+  "startTimeMillis": 1793954467000,
+  "endTimeMillis": 1793954879000,
+  "durationMillis": 412000,
+  "queueDurationMillis": 1200,
+  "pauseDurationMillis": 0,
+  "stages": [
+    {
+      "id": "6",
+      "name": "Checkout",
+      "execNode": "",
+      "status": "SUCCESS",
+      "startTimeMillis": 1793954470000,
+      "durationMillis": 4000,
+      "pauseDurationMillis": 0
+    },
+    {
+      "id": "14",
+      "name": "Build",
+      "execNode": "",
+      "status": "SUCCESS",
+      "startTimeMillis": 1793954474000,
+      "durationMillis": 108000,
+      "pauseDurationMillis": 0
+    },
+    {
+      "id": "23",
+      "name": "Test",
+      "execNode": "",
+      "status": "FAILED",
+      "error": { "message": "script returned exit code 101", "type": "hudson.AbortException" },
+      "startTimeMillis": 1793954582000,
+      "durationMillis": 186000,
+      "pauseDurationMillis": 0
+    },
+    {
+      "id": "41",
+      "name": "Deploy",
+      "execNode": "",
+      "status": "NOT_EXECUTED",
+      "startTimeMillis": 1793954768000,
+      "durationMillis": 0,
+      "pauseDurationMillis": 0
+    }
+  ]
+}

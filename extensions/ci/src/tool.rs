@@ -40,7 +40,11 @@ pub struct Report<'a> {
 impl Report<'_> {
     pub fn text(&self) -> String {
         let mut out = format!("# CI for {} ({}), branch {}\n\n", self.project, self.forge, self.branch);
-        let sha = short(&self.summary.sha);
+        // A Jenkins build Git had no part in names no commit.
+        let sha = match short(&self.summary.sha) {
+            "" => "unknown",
+            sha => sha,
+        };
         out.push_str(&format!("Status: {} (commit {sha}", self.summary.sentence()));
         if let Some(h) = self.head {
             if self.summary.earlier {
