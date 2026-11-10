@@ -1,8 +1,8 @@
 [extension]
 id = "fenix.ci"
 name = "CI status"
-version = "1.0.0"
-description = "Your branch's CI on the modeline -- GitHub Actions or GitLab pipelines -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs' logs for your coding agent"
+version = "1.1.0"
+description = "Your branch's CI on the modeline -- GitHub Actions, GitLab pipelines or Jenkins -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs' logs for your coding agent"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tpedneault/fenix-extensions"
@@ -26,7 +26,7 @@ filesystem = "project-read"
 # GitHub CLI's token when it's signed in (gh auth token).
 process = ["git", "gh"]
 # GitHub's API and where it sends a job's log; gitlab.com; your GitHub
-# Enterprise Server and your GitLab.
+# Enterprise Server, your GitLab and your Jenkins.
 network = [
   "api.github.com",
   "*.actions.githubusercontent.com",
@@ -35,9 +35,11 @@ network = [
   "${setting:ci.github_url}",
   "${setting:ci.gitlab_url}",
   "${setting:gitlab.base_url}",
+  "${setting:ci.jenkins_url}",
 ]
-# Fenix's own tokens (SPC , Forges).
-secrets = ["github.token", "gitlab.token"]
+# Fenix's own tokens (SPC , Forges), and its own for Jenkins: your API
+# token there, kept in the system's keychain.
+secrets = ["github.token", "gitlab.token", "ci.jenkins_token"]
 # Fenix's GitLab server (gitlab.base_url), when ci.gitlab_url is empty.
 settings = ["gitlab"]
 
@@ -52,7 +54,7 @@ title = "CI: the branch's runs, jobs and logs"
 
 [[contributes.commands]]
 id = "ci.refresh"
-title = "CI: ask the forge again"
+title = "CI: ask the forge or Jenkins again"
 
 [[contributes.commands]]
 id = "ci.failed_log"
@@ -64,7 +66,7 @@ title = "CI: open the branch's latest run in the browser"
 
 [[contributes.agent_tools]]
 name = "failures"
-description = "The CI status of the current branch (GitHub Actions or GitLab pipelines): its failing jobs, the steps that failed, the error lines and the end of each failing job's log. Call it to fix a failing CI."
+description = "The CI status of the current branch (GitHub Actions, GitLab pipelines or Jenkins): its failing jobs or stages, the steps that failed, the error lines and the end of each failing job's log. Call it to fix a failing CI."
 service = "ci.failures"
 input = '{"type":"object","properties":{"lines":{"type":"integer","description":"Lines of each failing log to give, 10 to 400 (80 by default)"}}}'
 class = "read"
@@ -75,9 +77,9 @@ default = true
 key = "ci.provider"
 kind = "choice"
 label = "Provider"
-description = "Where the CI runs: github or gitlab. Empty tells by the remote's host (github.com, gitlab.com, the addresses below; anything else is taken to be a GitLab)."
+description = "Where the CI runs: github, gitlab or jenkins. Empty is Jenkins when a job is named below, else tells by the remote's host (github.com, gitlab.com, the addresses below; anything else is taken to be a GitLab)."
 default = ""
-choices = ["", "github", "gitlab"]
+choices = ["", "github", "gitlab", "jenkins"]
 project = true
 section = "CI status"
 
@@ -97,6 +99,39 @@ label = "GitLab server"
 description = "Your GitLab's address, like https://gitlab.example.com. Empty uses Fenix's own (Forges: GitLab server), else the remote's host."
 default = ""
 project = true
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.jenkins_url"
+kind = "text"
+label = "Jenkins server"
+description = "Your Jenkins's address, like https://ci.example.com (with its prefix, when it has one: https://example.com/jenkins)."
+default = ""
+project = true
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.jenkins_job"
+kind = "text"
+label = "Jenkins job"
+description = "This project's job on it: its folders and its name, like space/rocket, or its address. A multibranch pipeline shows the builds of the branch you're on; any other job the builds Git made of it."
+default = ""
+project = true
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.jenkins_user"
+kind = "text"
+label = "Jenkins user"
+description = "Your user name on Jenkins: the API token below is this user's."
+default = ""
+section = "CI status"
+
+[[contributes.settings]]
+key = "ci.jenkins_token"
+kind = "secret"
+label = "Jenkins API token"
+description = "An API token of that user (Jenkins: your name, Security, Add new token). Kept in the system's keychain."
 section = "CI status"
 
 [[contributes.settings]]

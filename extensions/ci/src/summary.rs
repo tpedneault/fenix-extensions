@@ -37,6 +37,11 @@ pub struct Summary {
 /// earlier commit than `head`.
 pub fn current<'a>(runs: &'a [Run], head: Option<&str>) -> (Vec<&'a Run>, bool) {
     let matches = |sha: &str, head: &str| !sha.is_empty() && !head.is_empty() && (sha.starts_with(head) || head.starts_with(sha));
+    // Jenkins: a build still in the queue, or one Git had no part in,
+    // names no commit. When that's the newest, it's the one that counts.
+    if let Some(newest) = runs.iter().max_by_key(|r| (r.created.unwrap_or(0), r.id)).filter(|r| r.sha.is_empty()) {
+        return (vec![newest], false);
+    }
     let for_head = head.filter(|h| runs.iter().any(|r| matches(&r.sha, h)));
     let (sha, earlier) = match for_head {
         Some(h) => (h.to_string(), false),
@@ -203,6 +208,23 @@ mod tests {
         let (current, _) = super::current(&runs, Some(HEAD));
         assert_eq!(summarise(&current, &HashMap::new(), false).modeline(), "CI ⊘ cancelled");
         assert_eq!(summarise(&[], &HashMap::new(), false).modeline(), "CI –");
+    }
+
+    #[test]
+    fn a_jenkins_build_that_names_no_commit_counts_when_its_the_newest() {
+        let v: serde_json::Value = serde_json::from_str(include_str!("samples/jenkins_builds.json")).unwrap();
+        let runs = crate::jenkins::builds(&v, "rocket", "feature/telemetry", false);
+        let (cur, earlier) = current(&runs, Some(HEAD));
+        assert_eq!((cur.len(), cur[0].number, earlier), (1, 14, false), "HEAD's build");
+        assert_eq!(summarise(&cur, &HashMap::new(), earlier).modeline(), "CI ● 0/1");
+        // The next one waits in the queue: no commit yet, and it's what counts.
+        let mut queued = v.clone();
+        queued["inQueue"] = serde_json::Value::Bool(true);
+        queued["queueItem"] = serde_json::json!({"why": "Waiting for next available executor", "inQueueSince": 1793958100000u64});
+        let runs = crate::jenkins::builds(&queued, "rocket", "feature/telemetry", false);
+        let (cur, earlier) = current(&runs, Some(HEAD));
+        assert_eq!((cur[0].number, earlier), (15, false));
+        assert_eq!(summarise(&cur, &HashMap::new(), earlier).modeline(), "CI ○ queued");
     }
 
     #[test]

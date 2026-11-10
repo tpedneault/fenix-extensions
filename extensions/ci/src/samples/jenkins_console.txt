@@ -1,0 +1,35 @@
+Started by user Alex
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on agent-3 in /var/jenkins/workspace/rocket_feature_telemetry
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Build)
+[Pipeline] sh
++ cargo build --tests
+   Compiling rocket-telemetry v0.4.0 (/var/jenkins/workspace/rocket_feature_telemetry/telemetry)
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Test)
+[Pipeline] sh
++ cargo test --workspace
+running 2 tests
+test pus::tests::service_1_ack ... ok
+test pus::tests::service_17_reply ... FAILED
+thread 'pus::tests::service_17_reply' panicked at telemetry/src/pus.rs:212:9:
+  left: Unknown(17)
+ right: AreYouAlive
+error: test failed, to rerun pass `-p rocket-telemetry --lib`
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy)
+Stage "Deploy" skipped due to earlier failure(s)
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 101
+Finished: FAILURE

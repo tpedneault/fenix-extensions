@@ -218,7 +218,7 @@ impl CiPage {
             Key::Char('c') => {
                 let (run_id, job_id) = match row {
                     Some(RowKey::Run(id)) | Some(RowKey::Note(id)) => (id, None),
-                    // GitHub cancels a whole run; GitLab a job.
+                    // GitHub cancels a whole run, Jenkins a whole build; GitLab a job.
                     Some(RowKey::Job(r, j)) | Some(RowKey::Step(r, j, _)) => (r, (data.provider == Some(Provider::GitLab)).then_some(j)),
                     None => return Action::None,
                 };
@@ -336,7 +336,9 @@ impl CiPage {
                     if !run.event.is_empty() {
                         tail.push(run.event.clone());
                     }
-                    tail.push(short(&run.sha).to_string());
+                    if !run.sha.is_empty() {
+                        tail.push(short(&run.sha).to_string());
+                    }
                     if let Some(t) = took(run.started, run.finished, now) {
                         tail.push(duration(t));
                     }
@@ -387,7 +389,13 @@ impl CiPage {
                     g.put(y, tail_x, &tail, Role::Muted);
                 }
                 RowKey::Note(r) => {
-                    let text = if data.reading.contains(&r) || !data.jobs.contains_key(&r) { "reading its jobs…" } else { "no jobs" };
+                    let jenkins = data.provider == Some(Provider::Jenkins);
+                    let text = match (data.reading.contains(&r) || !data.jobs.contains_key(&r), jenkins) {
+                        (true, false) => "reading its jobs…",
+                        (true, true) => "reading its stages…",
+                        (false, false) => "no jobs",
+                        (false, true) => "no stages",
+                    };
                     g.put(y, left + 6, text, Role::Muted);
                 }
             }
@@ -403,10 +411,13 @@ impl CiPage {
             g.put(y, left, &format!("… {} more", rows.len() - self.scroll - room), Role::Muted);
         }
         let on_job = matches!(rows.get(at), Some(RowKey::Job(..) | RowKey::Step(..)));
-        let keys: &[(&str, &str)] = if on_job {
-            &[("Enter", "log"), ("l", "steps"), ("h", "close"), ("r", "re-run job"), ("c", "cancel"), ("o", "browser"), ("R", "refresh"), ("q", "close")]
-        } else {
-            &[("Enter", "jobs"), ("j k", "move"), ("r", "re-run failed"), ("c", "cancel"), ("o", "browser"), ("R", "refresh"), ("q", "close")]
+        // Jenkins builds the job again, whatever the row; its jobs are a build's stages.
+        let jenkins = data.provider == Some(Provider::Jenkins);
+        let keys: &[(&str, &str)] = match (on_job, jenkins) {
+            (true, false) => &[("Enter", "log"), ("l", "steps"), ("h", "close"), ("r", "re-run job"), ("c", "cancel"), ("o", "browser"), ("R", "refresh"), ("q", "close")],
+            (true, true) => &[("Enter", "log"), ("l", "steps"), ("h", "close"), ("r", "build again"), ("c", "stop the build"), ("o", "browser"), ("R", "refresh"), ("q", "close")],
+            (false, false) => &[("Enter", "jobs"), ("j k", "move"), ("r", "re-run failed"), ("c", "cancel"), ("o", "browser"), ("R", "refresh"), ("q", "close")],
+            (false, true) => &[("Enter", "stages"), ("j k", "move"), ("r", "build again"), ("c", "stop"), ("o", "browser"), ("R", "refresh"), ("q", "close")],
         };
         g.keys(left, width, keys);
         g.finish()
@@ -533,6 +544,45 @@ mod tests {
         assert_eq!(p.focused(&d), Some(RowKey::Job(1468213077, 8312904417)));
         assert_eq!(p.key(Key::Char('l'), &d), Action::Log { run: 1468213077, job: 8312904417 }, "no steps: its log");
         assert_eq!(p.key(Key::Char('r'), &d), Action::Rerun { run: 1468213077, job: Some(8312904417) });
+    }
+
+    #[test]
+    fn jenkins_shows_builds_their_stages_and_a_failed_stages_steps() {
+        let v: serde_json::Value = serde_json::from_str(include_str!("samples/jenkins_builds.json")).unwrap();
+        let runs = crate::jenkins::builds(&v, "rocket", "feature/telemetry", false);
+        let job = "https://ci.example.com/job/space/job/rocket/job/feature%252Ftelemetry";
+        let mut stages = crate::jenkins::stages(&serde_json::from_str(include_str!("samples/jenkins_stages.json")).unwrap(), job, 13);
+        stages[2].steps = crate::jenkins::steps(&serde_json::from_str(include_str!("samples/jenkins_stage.json")).unwrap());
+        let test = stages[2].id;
+        let mut jobs = HashMap::new();
+        jobs.insert(13, stages);
+        let mut d = Data { project: Some("space/rocket".into()), provider: Some(Provider::Jenkins), branch: Some("feature/telemetry".into()), head: Some(HEAD.into()), runs, jobs, checked: Some(now()), ..Data::default() };
+        d.summary = Some(summary_of(&d));
+        let mut p = CiPage::default();
+        p.open_first(&d);
+        let text = p.layout(&d, 120, 40, now()).text;
+        assert!(text.contains("CI · space/rocket") && text.contains("Jenkins") && text.contains("BUILDS · 3"), "{text}");
+        assert!(text.contains("▾ ● rocket #14  Decode PUS-17 replies") && text.contains("push · 9f1c2e7 · 3m 24s · 3m ago"), "{text}");
+        assert!(text.contains("reading its stages…") && text.contains("Enter stages") && text.contains("r build again"), "{text}");
+        assert!(text.contains("▸ ✗ rocket #13  Started by user Alex") && text.contains("manual · 4d2a9b1 · 6m 52s · 1h ago"), "{text}");
+        p.key(Key::Char('j'), &d);
+        p.key(Key::Char('j'), &d);
+        assert_eq!(p.focused(&d), Some(RowKey::Run(13)));
+        assert_eq!(p.key(Key::Char('l'), &d), Action::None, "its stages are known");
+        let text = p.layout(&d, 120, 40, now()).text;
+        assert!(text.contains("✓ Build") && text.contains("1m 48s") && text.contains("▸ ✗ Test") && text.contains("3m 06s") && text.contains("– Deploy"), "{text}");
+        for _ in 0..3 {
+            p.key(Key::Char('j'), &d);
+        }
+        assert_eq!(p.focused(&d), Some(RowKey::Job(13, test)));
+        p.key(Key::Char('l'), &d);
+        let text = p.layout(&d, 120, 40, now()).text;
+        assert!(text.contains("✗ 25 Shell Script: cargo test --workspace") && text.contains("2m 05s"), "{text}");
+        assert!(text.contains("r build again") && text.contains("c stop the build"), "{text}");
+        assert_eq!(p.key(Key::Enter, &d), Action::Log { run: 13, job: test });
+        // On a stage, it's the build that stops: this one has finished.
+        assert_eq!(p.key(Key::Char('c'), &d), Action::None);
+        assert!(p.layout(&d, 120, 40, now()).text.contains("It has finished: there's nothing to cancel."));
     }
 
     #[test]

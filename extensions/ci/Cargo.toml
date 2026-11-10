@@ -1,10 +1,10 @@
 [package]
 name = "fenix-ci"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
-description = "CI status in Fenix: the branch's GitHub Actions runs or GitLab pipelines on the modeline, a page of their jobs, steps and logs, notifications when they finish, and a tool for coding agents."
+description = "CI status in Fenix: the branch's GitHub Actions runs, GitLab pipelines or Jenkins builds on the modeline, a page of their jobs, steps and logs, notifications when they finish, and a tool for coding agents."
 
 [lib]
 crate-type = ["cdylib", "rlib"]

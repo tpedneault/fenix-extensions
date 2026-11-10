@@ -1,8 +1,13 @@
-//! CI status in Fenix: the open project's branch on GitHub Actions or
-//! GitLab pipelines, on the modeline (`CI ✓`, `CI ● 3/7`, `CI ✗ 2
-//! failed`); a page of its runs, their jobs and steps, logs, re-runs and
-//! cancels (`SPC g C`); a notification when a run finishes; and a tool
-//! for coding agents that gives them the failing jobs and their logs.
+//! CI status in Fenix: the open project's branch on GitHub Actions,
+//! GitLab pipelines or Jenkins, on the modeline (`CI ✓`, `CI ● 3/7`,
+//! `CI ✗ 2 failed`); a page of its runs, their jobs and steps, logs,
+//! re-runs and cancels (`SPC g C`); a notification when a run finishes;
+//! and a tool for coding agents that gives them the failing jobs and
+//! their logs.
+//!
+//! GitHub and GitLab are found by the repository's remote; a Jenkins job
+//! is named in the settings (`jenkins`), its builds the runs and their
+//! stages the jobs.
 //!
 //! A timer looks at the repository every few seconds (`host::git_state`):
 //! a new branch, a new `HEAD` or a push asks the forge at once; otherwise
@@ -14,6 +19,7 @@
 mod client;
 mod github;
 mod gitlab;
+mod jenkins;
 mod log;
 mod model;
 mod notify;
@@ -110,10 +116,13 @@ fn config() -> Config {
         provider: match setting("ci.provider").as_deref() {
             Some("github") => Some(Provider::GitHub),
             Some("gitlab") => Some(Provider::GitLab),
+            Some("jenkins") => Some(Provider::Jenkins),
             _ => None,
         },
         github_url: setting("ci.github_url"),
         gitlab_url: setting("ci.gitlab_url").or_else(|| setting("gitlab.base_url")),
+        jenkins_url: setting("ci.jenkins_url"),
+        jenkins_job: setting("ci.jenkins_job"),
     }
 }
 
@@ -122,7 +131,9 @@ fn intervals() -> Intervals {
 }
 
 /// The forge's token: Fenix's own (`github.token`, `gitlab.token`), else
-/// the GitHub CLI's for that host. None for a public repository.
+/// the GitHub CLI's for that host. None for a public repository. A
+/// Jenkins's is this extension's own: a user and their API token, as
+/// `user:token`.
 async fn token(repo: &Repo) -> Option<String> {
     if let Some(known) = TOKENS.with(|t| t.borrow().get(&repo.host).cloned()) {
         return known;
@@ -130,6 +141,7 @@ async fn token(repo: &Repo) -> Option<String> {
     let fenix = |key: &str| host::secret(key).map(|t| t.trim().to_string()).filter(|t| !t.is_empty());
     let found = match repo.provider {
         Provider::GitLab => fenix("gitlab.token"),
+        Provider::Jenkins => setting("ci.jenkins_user").zip(fenix("ci.jenkins_token")).map(|(user, token)| format!("{user}:{token}")),
         Provider::GitHub if repo.host == "github.com" => match fenix("github.token") {
             Some(t) => Some(t),
             None => proc::stdout(Command::new("gh").args(["auth", "token"])).await,
@@ -223,11 +235,7 @@ impl Ci {
 
     fn set_remote(&mut self, url: Option<String>) {
         self.remote = url.clone();
-        let repo = match url {
-            None => Err("This repository has no remote to find its CI by.".to_string()),
-            Some(url) => remote::resolve(&url, &config()),
-        };
-        match repo {
+        match remote::locate(url.as_deref(), &config()) {
             Ok(repo) => {
                 if self.repo.as_ref() != Some(&repo) {
                     *self.memory.borrow_mut() = client::Memory::default();
@@ -416,7 +424,7 @@ impl Ci {
                 let url = self.data.jobs.values().flatten().find(|j| j.id == job_id).map(|j| j.url.clone()).unwrap_or_default();
                 api::notify(&format!("Reading the log of {name}…"));
                 job(async move {
-                    let (text, partial) = client(repo, memory).await.log(job_id).await.map_err(|e| format!("Couldn't read the log of {name}: {e}"))?;
+                    let (text, partial) = client(repo, memory).await.log(job_id, &name).await.map_err(|e| format!("Couldn't read the log of {name}: {e}"))?;
                     let text = if partial { format!("… only the end of the log: the whole of it is at {url}\n\n{text}") } else { text };
                     api::open_text(&format!("CI log · {name}"), &text, Some("log"));
                     Ok(())
@@ -444,9 +452,18 @@ impl Ci {
         }
     }
 
-    /// "Re-running the failed jobs of CI #482", "Cancelling the job test".
+    /// "Re-running the failed jobs of CI #482", "Cancelling the job test";
+    /// on Jenkins "Building rocket again", "Stopping rocket #14".
     fn describe(&self, run: u64, job: Option<u64>, verb: &str) -> String {
-        let run_name = self.data.runs.iter().find(|r| r.id == run).map(|r| format!("{} #{}", r.name, r.number)).unwrap_or_else(|| format!("#{run}"));
+        let found = self.data.runs.iter().find(|r| r.id == run);
+        let run_name = found.map(|r| format!("{} #{}", r.name, r.number)).unwrap_or_else(|| format!("#{run}"));
+        if self.data.provider == Some(Provider::Jenkins) {
+            return match (verb, found) {
+                ("Re-running", Some(r)) => format!("Building {} again", r.name),
+                ("Re-running", None) => "Building it again".to_string(),
+                _ => format!("Stopping {run_name}"),
+            };
+        }
         match job.and_then(|j| self.data.jobs.values().flatten().find(|x| x.id == j)) {
             Some(j) => format!("{verb} the job {} of {run_name}", j.name),
             None if verb == "Re-running" => format!("{verb} the failed jobs of {run_name}"),
@@ -491,7 +508,7 @@ impl Ci {
     /// logs read, the report given back.
     fn failures(&mut self, call: u64, payload: &str) -> Option<Result<String, String>> {
         let Some(repo) = self.repo.clone() else {
-            return Some(Err(self.data.error.clone().unwrap_or_else(|| "No CI to read: the project has no GitHub or GitLab remote.".into())));
+            return Some(Err(self.data.error.clone().unwrap_or_else(|| "No CI to read: the project has no GitHub or GitLab remote, and no Jenkins job is set.".into())));
         };
         let Some(branch) = self.data.branch.clone() else { return Some(Err("HEAD is detached: CI is read for a branch.".into())) };
         let (head, memory, lines) = (self.data.head.clone(), self.memory.clone(), tool::lines_asked(payload));
@@ -508,7 +525,7 @@ impl Ci {
             let mut logs = HashMap::new();
             for (i, (_, j)) in failed.iter().take(tool::MOST_LOGS).enumerate() {
                 api::progress(call, &format!("reading the log of {}", j.name), Some(0.3 + 0.6 * i as f32 / failed.len().max(1) as f32));
-                logs.insert(j.id, client.log(j.id).await.map(|(text, _)| text));
+                logs.insert(j.id, client.log(j.id, &j.name).await.map(|(text, _)| text));
             }
             let report = tool::Report { project: &repo.project, forge: repo.provider.label(), branch: &branch, head: head.as_deref(), summary: &summary, current: &current, jobs: &snap.jobs, logs: &logs, lines }.text();
             api::answer(call, Ok(report));

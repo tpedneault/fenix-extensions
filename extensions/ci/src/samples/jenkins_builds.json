@@ -1,0 +1,99 @@
+{
+  "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
+  "inQueue": false,
+  "nextBuildNumber": 15,
+  "queueItem": null,
+  "builds": [
+    {
+      "_class": "org.jenkinsci.plugins.workflow.job.WorkflowRun",
+      "number": 14,
+      "url": "https://ci.example.com/job/space/job/rocket/job/feature%252Ftelemetry/14/",
+      "building": true,
+      "result": null,
+      "timestamp": 1793958067000,
+      "duration": 0,
+      "actions": [
+        {
+          "_class": "hudson.model.CauseAction",
+          "causes": [
+            { "_class": "jenkins.branch.BranchEventCause", "shortDescription": "Push event to branch feature/telemetry" }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "5ab1e0f0c3d24b6f8a7e9d0c1b2a3f4e5d6c7b8a",
+            "branch": [{ "name": "v2" }]
+          }
+        },
+        {},
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "9f1c2e7d4b8a6f3e2d1c0b9a8f7e6d5c4b3a2f10",
+            "branch": [{ "name": "feature/telemetry" }]
+          }
+        },
+        { "_class": "org.jenkinsci.plugins.workflow.cps.EnvActionImpl" }
+      ],
+      "changeSets": [
+        {
+          "_class": "hudson.plugins.git.GitChangeSetList",
+          "items": [
+            { "msg": "Decode PUS-17 replies\n\nThe reply's service type is read before its subtype." }
+          ]
+        }
+      ]
+    },
+    {
+      "_class": "org.jenkinsci.plugins.workflow.job.WorkflowRun",
+      "number": 13,
+      "url": "https://ci.example.com/job/space/job/rocket/job/feature%252Ftelemetry/13/",
+      "building": false,
+      "result": "FAILURE",
+      "timestamp": 1793954467000,
+      "duration": 412000,
+      "actions": [
+        {
+          "_class": "hudson.model.CauseAction",
+          "causes": [
+            { "_class": "hudson.model.Cause$UserIdCause", "shortDescription": "Started by user Alex" }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "4d2a9b1c7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b",
+            "branch": [{ "name": "feature/telemetry" }]
+          }
+        }
+      ],
+      "changeSets": []
+    },
+    {
+      "_class": "org.jenkinsci.plugins.workflow.job.WorkflowRun",
+      "number": 12,
+      "url": "https://ci.example.com/job/space/job/rocket/job/feature%252Ftelemetry/12/",
+      "building": false,
+      "result": "ABORTED",
+      "timestamp": 1793870000000,
+      "duration": 95000,
+      "actions": [
+        {
+          "_class": "hudson.model.CauseAction",
+          "causes": [
+            { "_class": "hudson.triggers.TimerTrigger$TimerTriggerCause", "shortDescription": "Started by timer" }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "1e0f9a8b7c6d5e4f3a2b4d2a9b1c7e6f5a4b3c2d",
+            "branch": [{ "name": "main" }]
+          }
+        }
+      ],
+      "changeSets": []
+    }
+  ]
+}

@@ -1,12 +1,14 @@
-//! What the CI status is made of, the same for GitHub Actions and GitLab
-//! pipelines: runs (a workflow run, a pipeline), their jobs, and a job's
-//! steps -- each with its state and when it started and finished.
+//! What the CI status is made of, the same for GitHub Actions, GitLab
+//! pipelines and Jenkins: runs (a workflow run, a pipeline, a build),
+//! their jobs (Jenkins: a build's stages), and a job's steps -- each with
+//! its state and when it started and finished.
 
 /// Which forge runs the repository's CI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Provider {
     GitHub,
     GitLab,
+    Jenkins,
 }
 
 impl Provider {
@@ -14,14 +16,25 @@ impl Provider {
         match self {
             Provider::GitHub => "GitHub Actions",
             Provider::GitLab => "GitLab pipelines",
+            Provider::Jenkins => "Jenkins",
         }
     }
 
-    /// A run's name for it: a workflow run, a pipeline.
+    /// A run's name for it: a workflow run, a pipeline, a build.
     pub fn run_word(self) -> &'static str {
         match self {
             Provider::GitHub => "run",
             Provider::GitLab => "pipeline",
+            Provider::Jenkins => "build",
+        }
+    }
+
+    /// Its server, by name.
+    pub fn forge(self) -> &'static str {
+        match self {
+            Provider::GitHub => "GitHub",
+            Provider::GitLab => "GitLab",
+            Provider::Jenkins => "Jenkins",
         }
     }
 }
