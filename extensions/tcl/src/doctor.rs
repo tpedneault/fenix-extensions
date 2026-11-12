@@ -69,9 +69,24 @@ fn value(text: &str, section: &str, key: &str) -> Option<String> {
     None
 }
 
+/// The keys its hints name, as the key scheme in use has them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Keys {
+    /// Go to definition (`gd`, `F12`).
+    pub definition: String,
+    /// The project's definitions by name (`SPC m s`, `C-k m s`).
+    pub symbols: String,
+}
+
+impl Default for Keys {
+    fn default() -> Self {
+        Keys { definition: "gd".into(), symbols: "SPC m s".into() }
+    }
+}
+
 /// The doctor's checks for a Tcl project, with where `tclsh` and `ctags`
 /// were found.
-pub fn checks(tclsh: Option<&str>, ctags: Option<&str>) -> Vec<Check> {
+pub fn checks(tclsh: Option<&str>, ctags: Option<&str>, keys: &Keys) -> Vec<Check> {
     vec![
         match tclsh {
             Some(path) => Check { label: "tclsh", health: Health::Ok, detail: path.to_string() },
@@ -79,7 +94,7 @@ pub fn checks(tclsh: Option<&str>, ctags: Option<&str>) -> Vec<Check> {
         },
         match ctags {
             Some(path) => Check { label: "ctags", health: Health::Ok, detail: path.to_string() },
-            None => Check { label: "ctags", health: Health::Info, detail: format!("not found -- completion of the project's procs, {} and SPC m s need Universal Ctags", crate::definition_keys()) },
+            None => Check { label: "ctags", health: Health::Info, detail: format!("not found -- completion of the project's procs, {} and {} need Universal Ctags", keys.definition, keys.symbols) },
         },
     ]
 }
@@ -123,11 +138,19 @@ mod tests {
 
     #[test]
     fn tcl_missing_warns_and_ctags_missing_informs() {
-        let found = checks(Some("/usr/bin/tclsh"), Some("/usr/bin/ctags"));
+        let found = checks(Some("/usr/bin/tclsh"), Some("/usr/bin/ctags"), &Keys::default());
         assert!(found.iter().all(|c| c.health == Health::Ok));
         assert_eq!(found[0].detail, "/usr/bin/tclsh");
-        let missing = checks(None, None);
+        let missing = checks(None, None, &Keys::default());
         assert_eq!(missing[0], Check { label: "tclsh", health: Health::Warn, detail: "not found -- install Tcl to run scripts".into() });
         assert_eq!(missing[1].health, Health::Info);
+        assert_eq!(missing[1].detail, "not found -- completion of the project's procs, gd and SPC m s need Universal Ctags");
+    }
+
+    #[test]
+    fn the_ctags_hint_names_the_keys_of_the_scheme() {
+        let standard = Keys { definition: "F12".into(), symbols: "C-k m s".into() };
+        let missing = checks(None, None, &standard);
+        assert_eq!(missing[1].detail, "not found -- completion of the project's procs, F12 and C-k m s need Universal Ctags");
     }
 }

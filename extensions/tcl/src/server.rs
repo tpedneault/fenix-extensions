@@ -61,6 +61,10 @@ pub struct Tcl {
     pick_after: Option<String>,
     /// The rows of the picker open now, and their project.
     picking: Option<(String, Vec<Tag>)>,
+    /// The keys of `completion.refresh_tags`, as the key scheme in use has
+    /// them, for what it says; `lib.rs` gives them before each call that
+    /// can. `None`: `SPC m T`.
+    pub refresh_keys: Option<String>,
     /// What it asks of Fenix, for `lib.rs` to carry out.
     pub effects: Vec<Effect>,
 }
@@ -186,7 +190,7 @@ impl Tcl {
             return self.scan(&root, false);
         };
         if tags.is_empty() {
-            return self.effects.push(Effect::Notify(format!("no Tcl definitions found in {root} -- SPC m T scans it again")));
+            return self.effects.push(Effect::Notify(format!("no Tcl definitions found in {root} -- {} scans it again", self.refresh_keys.as_deref().unwrap_or("SPC m T"))));
         }
         let items = tags
             .iter()
@@ -656,6 +660,19 @@ mod tests {
         tcl.effects.clear();
         tcl.picked(Some("1"));
         assert!(tcl.effects.is_empty(), "the picker's gone");
+    }
+
+    #[test]
+    fn an_empty_scan_names_the_keys_that_scan_again() {
+        let mut tcl = scanned(vec![]);
+        tcl.symbols(Some("/p".into()));
+        assert_eq!(tcl.effects, [Effect::Notify("no Tcl definitions found in /p -- SPC m T scans it again".into())]);
+        for keys in ["C-k m T", "SPC m T"] {
+            tcl.effects.clear();
+            tcl.refresh_keys = Some(keys.into());
+            tcl.symbols(Some("/p".into()));
+            assert_eq!(tcl.effects, [Effect::Notify(format!("no Tcl definitions found in /p -- {keys} scans it again"))]);
+        }
     }
 
     #[test]
