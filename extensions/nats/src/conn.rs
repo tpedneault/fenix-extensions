@@ -41,7 +41,9 @@ impl Addr {
     }
 
     /// `nats://host:4222`, `tls://host:4443`, `host`, `host:port`.
-    pub fn parse(url: &str) -> Result<Addr, String> {
+    /// `credentials` is the keys that set a server's credentials, for the
+    /// error when the URL has them.
+    pub fn parse(url: &str, credentials: &str) -> Result<Addr, String> {
         let url = url.trim();
         let (scheme, rest) = url.split_once("://").unwrap_or(("nats", url));
         let tls = match scheme.to_ascii_lowercase().as_str() {
@@ -51,7 +53,7 @@ impl Addr {
         };
         let rest = rest.trim_end_matches('/');
         if rest.contains('@') {
-            return Err(format!("{url}: credentials don't go in the URL -- SPC o m a keeps them in the keychain"));
+            return Err(format!("{url}: credentials don't go in the URL -- {credentials} keeps them in the keychain"));
         }
         let (host, port) = match rest.strip_prefix('[') {
             Some(v6) => {
@@ -562,17 +564,18 @@ mod tests {
 
     #[test]
     fn servers_are_read() {
-        assert_eq!(Addr::parse("nats://Demo.NATS.io:4222").unwrap(), Addr { url: "nats://Demo.NATS.io:4222".into(), host: "demo.nats.io".into(), port: 4222, tls: false });
-        assert!(Addr::parse("tls://secure:4443/").unwrap().tls);
-        assert_eq!(Addr::parse("localhost").unwrap().port, 4222);
-        assert_eq!(Addr::parse("[::1]:5222").unwrap().host, "::1");
-        assert!(Addr::parse("nats://u:p@host:4222").is_err());
-        assert!(Addr::parse("http://host").is_err());
-        assert!(Addr::parse("nats://host:x").is_err());
+        assert_eq!(Addr::parse("nats://Demo.NATS.io:4222", "SPC o m a").unwrap(), Addr { url: "nats://Demo.NATS.io:4222".into(), host: "demo.nats.io".into(), port: 4222, tls: false });
+        assert!(Addr::parse("tls://secure:4443/", "SPC o m a").unwrap().tls);
+        assert_eq!(Addr::parse("localhost", "SPC o m a").unwrap().port, 4222);
+        assert_eq!(Addr::parse("[::1]:5222", "SPC o m a").unwrap().host, "::1");
+        assert_eq!(Addr::parse("nats://u:p@host:4222", "SPC o m a").unwrap_err(), "nats://u:p@host:4222: credentials don't go in the URL -- SPC o m a keeps them in the keychain");
+        assert_eq!(Addr::parse("nats://u:p@host:4222", "C-k o m a").unwrap_err(), "nats://u:p@host:4222: credentials don't go in the URL -- C-k o m a keeps them in the keychain", "standard keys'");
+        assert!(Addr::parse("http://host", "SPC o m a").is_err());
+        assert!(Addr::parse("nats://host:x", "SPC o m a").is_err());
     }
 
     fn conn(patterns: &[&str]) -> Conn {
-        Conn::new(0, Addr::parse("localhost").unwrap(), patterns.iter().map(|s| s.to_string()).collect(), "_INBOX.t", "fenix")
+        Conn::new(0, Addr::parse("localhost", "SPC o m a").unwrap(), patterns.iter().map(|s| s.to_string()).collect(), "_INBOX.t", "fenix")
     }
 
     #[test]

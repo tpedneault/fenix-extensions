@@ -231,6 +231,11 @@ Payloads are cut at 4 KiB, binary ones in base64.
 | `SPC o m c` | `nats.connect` | Connect to a server, or disconnect |
 | `SPC o m f`, `SPC o m h` | `nats.filter`, `nats.rules` | The filter, the highlight rules |
 
+With standard keys the leader is `Ctrl+K`: `Ctrl+K o m m` and so on.
+What it says names the keys as the key scheme in use has them, and yours
+when you've bound your own: "then `C-k o m c` connects" with standard
+keys, "`SPC o m c`" with Vim keys. It needs Fenix 1.5 or later.
+
 ## Settings
 
 | Setting | What it is |
@@ -269,7 +274,7 @@ Filters and rules are kept in its data folder (`nats.json`).
   the system's keychain.
 - Write exports to its exports folder, and read `.creds` files from its
   credentials folder.
-- Notify (Fenix 1.2's API 1.3), when a rule marked `!` matches.
+- Notify (API 1.3), when a rule marked `!` matches.
 
 ## Building
 

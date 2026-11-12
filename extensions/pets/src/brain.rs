@@ -188,6 +188,9 @@ pub struct State {
     pub today: u32,
     /// What to say, for whoever's showing them.
     pub said: Vec<String>,
+    /// The keys that open their home (`pets.home`), as the key scheme in
+    /// use has them, for what's said.
+    pub home_keys: String,
     /// Something worth keeping changed.
     pub dirty: bool,
     next_uid: u32,
@@ -306,6 +309,7 @@ impl State {
             clips: HashMap::new(),
             today,
             said: Vec::new(),
+            home_keys: "SPC P p".to_string(),
             dirty: false,
             next_uid,
             rng: seed | 1,
@@ -993,7 +997,7 @@ impl State {
         self.dirty = true;
         if let Some(level) = self.pets[i].care.gain(xp) {
             let name = self.pets[i].name.clone();
-            let what = care::unlocked_at(level).map(|w| format!(" -- and can wear {w} now (SPC P p)")).unwrap_or_default();
+            let what = care::unlocked_at(level).map(|w| format!(" -- and can wear {w} now ({})", self.home_keys)).unwrap_or_default();
             self.said.push(format!("{name} reached level {level}{what}"));
             self.confetti(i, now);
         }
@@ -1952,6 +1956,12 @@ mod tests {
         assert_eq!(st.pets[0].act, Act::Jump);
         assert_eq!(st.pets[0].care.level(), 2);
         assert_eq!(st.said, ["duck reached level 2 -- and can wear a bow now (SPC P p)"]);
+        // With standard keys, theirs.
+        let mut st = state(&["duck"]);
+        st.home_keys = "C-k P p".into();
+        st.pets[0].care.xp = 24;
+        st.saved(1000);
+        assert_eq!(st.said, ["duck reached level 2 -- and can wear a bow now (C-k P p)"]);
         assert!(st.fx.list.iter().any(|p| fx::CONFETTI.contains(&p.frames[0])));
         st.saved(2000);
         assert_eq!(st.pets[0].care.xp, 25, "not again so soon");

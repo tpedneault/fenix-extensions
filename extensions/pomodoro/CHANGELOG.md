@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0
+
+For Fenix 1.5 (extension API 1.5):
+
+- A round that runs out is a notification, not a line in the message
+  line: what comes next, and Enter on it, or a click, starts it. The next
+  round's end replaces it, and starting a round puts it away. It still
+  chimes (`pomodoro.sound`); a round you skip is still said on the
+  message line.
+- What it says names the keys of the key scheme in use, and yours when
+  you've bound your own: "`C-k o p s` starts it" with standard keys,
+  `SPC o p s` with Vim keys, and the agenda's key to add a task.
+- The README gives standard keys beside Vim's.
+
 ## 1.1.0
 
 - `pomodoro.open` can be run from outside Fenix, over the control channel

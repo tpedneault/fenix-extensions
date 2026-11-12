@@ -14,6 +14,7 @@ mod client;
 mod drafts;
 mod git_bits;
 mod git_request;
+mod keys;
 mod page;
 mod proc;
 mod review_inbox;
@@ -26,7 +27,7 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
-use fenix_extension_api::{self as api, export, forge, host, run, Event, Extension, Key, Page};
+use fenix_extension_api::{self as api, export, forge, host, run, Event, Extension, Key, Notification, Page};
 use fenix_forge::{Forge, MergeRequest, Verdict};
 
 use client::Client;
@@ -193,15 +194,38 @@ fn without_timestamp(line: &str) -> &str {
     }
 }
 
+/// Why there's no request to open: `switch` is the keys that switch
+/// branch, as the key scheme in use has them.
+fn not_on_a_branch(switch: &str) -> String {
+    format!("not on a branch -- switch to one ({switch}) to open a pull request from it")
+}
+
+/// Why there's no request to open: `settings` is the keys that open
+/// Fenix's settings.
+fn no_base_branch(settings: &str) -> String {
+    format!("no base branch to open it against -- set one in {settings} (Git)")
+}
+
+/// The notification that a request was opened: Enter or a click opens it
+/// in the browser. `warning` is what didn't work (asking reviewers).
+fn opened(reference: &str, title: &str, url: &str, warning: Option<String>) -> Notification {
+    let note = Notification::new(format!("Opened {reference} {title}"));
+    let note = match warning {
+        Some(warning) => note.body(format!("{reference} is open, {warning}")),
+        None => note.body("o on the Git page reviews it"),
+    };
+    note.action("Open it in the browser", format!("url:{url}"))
+}
+
 /// The request page for the branch checked out at `root`: the branch's
 /// commits against its base, whether it's pushed and merges cleanly.
 async fn new_request(root: String) -> Result<(), String> {
     let branch = proc::git(&root, &["rev-parse", "--abbrev-ref", "HEAD"]).await?.trim().to_string();
     if branch.is_empty() || branch == "HEAD" {
-        return Err("not on a branch -- switch to one (SPC g w) to open a pull request from it".into());
+        return Err(not_on_a_branch(&keys::switch_branch()));
     }
     let client = client::for_repo(&root).await?;
-    let base_ref = base_ref(&root).await.ok_or("no base branch to open it against -- set one in SPC , (Git)")?;
+    let base_ref = base_ref(&root).await.ok_or_else(|| no_base_branch(&keys::settings()))?;
     let base = base_ref.strip_prefix("origin/").unwrap_or(&base_ref).to_string();
     if base == branch {
         return Err(format!("{branch} is the base branch -- make a branch for the change first (b c on the Git page)"));
@@ -799,11 +823,7 @@ impl ReviewExtension {
                     Ok((made, warning)) => {
                         request_drafts::clear(Path::new(request_drafts::REQUESTS), &r.project, &r.branch);
                         self.close(page);
-                        let opened = format!("opened {} {}", made.reference(), made.title);
-                        match warning {
-                            Some(warning) => error(&format!("{opened} -- {warning}")),
-                            None => api::notify(&format!("{opened} ✓ -- o on the Git page reviews it")),
-                        }
+                        opened(&made.reference(), &made.title, &made.web_url, warning).show();
                         forge::refresh();
                     }
                     Err(err) => {
@@ -993,6 +1013,26 @@ export!(ReviewExtension);
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn what_stops_a_request_names_the_keys_of_the_scheme_in_use() {
+        assert_eq!(not_on_a_branch("SPC g w"), "not on a branch -- switch to one (SPC g w) to open a pull request from it");
+        assert_eq!(not_on_a_branch("C-k g w"), "not on a branch -- switch to one (C-k g w) to open a pull request from it");
+        assert_eq!(no_base_branch("SPC ,"), "no base branch to open it against -- set one in SPC , (Git)");
+        assert_eq!(no_base_branch("C-,"), "no base branch to open it against -- set one in C-, (Git)");
+    }
+
+    #[test]
+    fn an_opened_request_is_a_notification_that_opens_it() {
+        let note = opened("#7", "Telemetry over UDP", "https://github.com/acme/rocket/pull/7", None);
+        assert_eq!(note.summary, "Opened #7 Telemetry over UDP");
+        assert_eq!(note.body, "o on the Git page reviews it");
+        assert_eq!(note.actions.len(), 1);
+        assert_eq!(note.actions[0].command, "url:https://github.com/acme/rocket/pull/7");
+        assert!(matches!(note.urgency, api::Urgency::Normal));
+        let note = opened("!7", "Telemetry", "https://gitlab.com/acme/rocket/-/merge_requests/7", Some("but asking ada to review didn't work: 422".into()));
+        assert_eq!(note.body, "!7 is open, but asking ada to review didn't work: 422");
+    }
 
     #[test]
     fn a_shortstat_is_read() {

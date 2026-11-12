@@ -9,6 +9,12 @@ open the board, the list and this week's time. `SPC A n` adds a task,
 `SPC A h` adds one about the selection or line you're on, and `SPC A t`
 stops the clock, resumes it or switches it.
 
+With standard keys they're `Ctrl+K A a` and so on. What it says names
+the keys as the key scheme in use has them, and yours when you've bound
+your own -- on the page, on Home's today and in its messages: "`C-k A n`
+to add one" with standard keys, "`SPC A n`" with Vim keys. It needs
+Fenix 1.5 or later.
+
 ## The page
 
 | Key | What it does |
@@ -34,6 +40,10 @@ Jira, and Jira's come back every `jira.sync_minutes`:
 - `SPC A i` imports issues assigned to you
 - `SPC A s` syncs now
 - `SPC A w` reviews the week's unsent time and sends it as worklogs
+
+A sync you asked for ends in a notification: how many issues it brought
+up to date, or why it failed. One that finds a conflict says so, even a
+timed one; Enter on it opens the agenda. Each replaces the last.
 
 ## Settings
 

@@ -2,8 +2,10 @@
 
 A focus timer for Fenix: a work round, then a break, and a long break
 every few rounds. The round counts down on the modeline -- `🍅 18:42`
-while you work, `☕ 04:12` on a break -- and Fenix chimes when it's
-over and says what comes next.
+while you work, `☕ 04:12` on a break -- and when it's over Fenix
+chimes and a notification says what comes next: Enter on it, or a
+click, starts it. The next round's end replaces it, and starting a
+round puts it away. A round you skip is said on the message line.
 
 `SPC o p s` starts a round. A break starts by itself when the work
 before it ends (`pomodoro.auto_breaks`); the next work round waits for
@@ -18,6 +20,11 @@ closed, and one that ran out meanwhile is counted.
 | `SPC o p r` | Back to the first round |
 | `SPC o p o` | The page: the round, today's rounds, the week's |
 | `SPC o p t` | The agenda task work rounds clock into |
+
+With standard keys they're `Ctrl+K o p s` and so on. What it says names
+the keys as the key scheme in use has them, and yours when you've bound
+your own: "`C-k o p s` starts it" with standard keys, "`SPC o p s`" with
+Vim keys. It needs Fenix 1.5 or later.
 
 ## The page
 

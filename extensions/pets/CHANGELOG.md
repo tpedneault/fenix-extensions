@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+- For Fenix 1.5 (extension API 1.5): what the pets say names the keys
+  of the key scheme in use, and yours when you've bound your own --
+  "`C-k P a` adopts one" with standard keys, `SPC P a` with Vim keys, and
+  likewise hiding them, rehoming one and, at a new level, their home.
+  The README gives standard keys beside Vim's.
+
 ## 1.2.0
 
 - `pets.home` can be run from outside Fenix, over the control channel

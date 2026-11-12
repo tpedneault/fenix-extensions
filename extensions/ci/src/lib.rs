@@ -20,6 +20,7 @@ mod client;
 mod github;
 mod gitlab;
 mod jenkins;
+mod keys;
 mod log;
 mod model;
 mod notify;
@@ -123,6 +124,7 @@ fn config() -> Config {
         gitlab_url: setting("ci.gitlab_url").or_else(|| setting("gitlab.base_url")),
         jenkins_url: setting("ci.jenkins_url"),
         jenkins_job: setting("ci.jenkins_job"),
+        settings_keys: keys::settings(),
     }
 }
 
@@ -158,7 +160,7 @@ async fn token(repo: &Repo) -> Option<String> {
 
 async fn client(repo: Repo, memory: Shared) -> Client<Fetch> {
     let token = token(&repo).await;
-    Client::new(Fetch, repo, token, memory, now_ms)
+    Client::new(Fetch, repo, token, memory, now_ms).settings_at(keys::settings())
 }
 
 /// `origin`'s URL, from the project's `.git/config`.

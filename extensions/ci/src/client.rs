@@ -41,6 +41,9 @@ pub struct Client<H> {
     memory: Shared,
     /// Now, in ms since the epoch: for rate limits.
     clock: fn() -> i64,
+    /// The keys that open Fenix's settings, for an error that says what
+    /// to set there.
+    settings: String,
 }
 
 /// What a poll found: the branch's latest runs, newest first, and the
@@ -60,7 +63,14 @@ const MOST_STAGES_WITH_STEPS: usize = 4;
 
 impl<H: Http> Client<H> {
     pub fn new(http: H, repo: Repo, token: Option<String>, memory: Shared, clock: fn() -> i64) -> Self {
-        Client { http, repo, token: token.filter(|t| !t.trim().is_empty()), memory, clock }
+        Client { http, repo, token: token.filter(|t| !t.trim().is_empty()), memory, clock, settings: "SPC ,".to_string() }
+    }
+
+    /// The keys that open Fenix's settings, as the key scheme in use has
+    /// them (`SPC ,`, `C-,`), for what its errors say.
+    pub fn settings_at(mut self, keys: String) -> Self {
+        self.settings = keys;
+        self
     }
 
     fn headers(&self) -> Vec<(&'static str, String)> {
@@ -131,14 +141,15 @@ impl<H: Http> Client<H> {
         };
         let code = response.status;
         let jenkins = self.repo.provider == Provider::Jenkins;
+        let settings = &self.settings;
         let what = match (code, limited) {
             (_, true) => "rate limited: it waits until the limit lifts".to_string(),
-            (401, _) if jenkins => "Jenkins refused the user or the API token: set them in SPC , (CI status)".to_string(),
-            (403, _) if jenkins && self.token.is_none() => "Jenkins wants a user and an API token: set them in SPC , (CI status)".to_string(),
-            (404, _) if jenkins => format!("Jenkins has no job {}{}", self.repo.project, if self.token.is_none() { ", or it wants a user and an API token (SPC , CI status)" } else { "" }),
-            (401, _) => format!("{} refused the token: set it in SPC , (Forges)", self.forge()),
-            (403, _) if self.token.is_none() => format!("{} wants a token: set it in SPC , (Forges)", self.forge()),
-            (404, _) if self.token.is_none() => format!("{} has no such project, or it's private and wants a token (SPC , Forges)", self.forge()),
+            (401, _) if jenkins => format!("Jenkins refused the user or the API token: set them in {settings} (CI status)"),
+            (403, _) if jenkins && self.token.is_none() => format!("Jenkins wants a user and an API token: set them in {settings} (CI status)"),
+            (404, _) if jenkins => format!("Jenkins has no job {}{}", self.repo.project, if self.token.is_none() { format!(", or it wants a user and an API token ({settings} CI status)") } else { String::new() }),
+            (401, _) => format!("{} refused the token: set it in {settings} (Forges)", self.forge()),
+            (403, _) if self.token.is_none() => format!("{} wants a token: set it in {settings} (Forges)", self.forge()),
+            (404, _) if self.token.is_none() => format!("{} has no such project, or it's private and wants a token ({settings} Forges)", self.forge()),
             _ => fenix_forge::reason(code).to_string(),
         };
         match said {
@@ -452,6 +463,12 @@ pub mod tests {
         let client = Client::new(http, github_repo(), Some("old".into()), Shared::default(), clock);
         let err = block_on(client.runs("feature/telemetry")).unwrap_err();
         assert_eq!(err, "HTTP 401 (GitHub refused the token: set it in SPC , (Forges)): Bad credentials");
+        // With standard keys, theirs.
+        let http = FakeHttp::default();
+        http.on(RUNS, 401, r#"{"message":"Bad credentials"}"#, &[]);
+        let client = Client::new(http, github_repo(), Some("old".into()), Shared::default(), clock).settings_at("C-,".into());
+        let err = block_on(client.runs("feature/telemetry")).unwrap_err();
+        assert_eq!(err, "HTTP 401 (GitHub refused the token: set it in C-, (Forges)): Bad credentials");
     }
 
     #[test]

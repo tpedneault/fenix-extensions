@@ -631,7 +631,7 @@ pub mod tests {
     pub fn up(patterns: &[&str]) -> (Core, FakeNet, u64) {
         let mut net = FakeNet::default();
         let mut core = Core::new(Limits::default(), 1_000_000_000);
-        core.set_servers(&mut net, vec![Addr::parse("nats://localhost:4222").unwrap()], &patterns.iter().map(|s| s.to_string()).collect::<Vec<_>>());
+        core.set_servers(&mut net, vec![Addr::parse("nats://localhost:4222", "SPC o m a").unwrap()], &patterns.iter().map(|s| s.to_string()).collect::<Vec<_>>());
         core.connect(&mut net, 0, Auth::None, 1_000_000_000);
         let socket = core.conns[0].socket.unwrap();
         core.on_connected(&mut net, socket, Ok(()), 1_000_000_000);
@@ -715,7 +715,7 @@ pub mod tests {
     fn tls_is_started_when_the_server_wants_it() {
         let mut net = FakeNet::default();
         let mut core = Core::new(Limits::default(), 0);
-        core.set_servers(&mut net, vec![Addr::parse("localhost").unwrap()], &[">".into()]);
+        core.set_servers(&mut net, vec![Addr::parse("localhost", "SPC o m a").unwrap()], &[">".into()]);
         core.connect(&mut net, 0, Auth::Token("t0k".into()), 0);
         let s = core.conns[0].socket.unwrap();
         core.on_connected(&mut net, s, Ok(()), 0);
