@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.diagrams"
 name = "Diagrams"
-version = "1.0.0"
+version = "1.1.0"
 description = "Mermaid diagrams drawn as you type, their errors on their lines, Fenix's themes and yours, and exports"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # A Mermaid file's errors show as you type; its commands load it too.
 [activation]
