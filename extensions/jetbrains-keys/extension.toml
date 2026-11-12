@@ -1,0 +1,13 @@
+[extension]
+id = "fenix.jetbrains-keys"
+name = "JetBrains keys"
+version = "1.0.0"
+description = "The IntelliJ platform's default shortcuts, over Fenix's standard keys"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["keymaps"]
+runtime = "none"
+
+[engine]
+fenix = ">=1.6.0, <2"           # a flavour's F-keys go over the debugger's from 1.6; the nightlies count as 1.6.0
