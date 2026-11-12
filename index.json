@@ -2579,6 +2579,38 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.python-bundle",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/python-bundle-v1.0.0/fenix.python-bundle-1.0.0.fenixext",
+          "sha256": "dee6632b265541038e9b1a6c1993e5e3cdad7aa3d64de0fa0ae7acbb84ecc0d1",
+          "size": 1275,
+          "dependencies": {
+            "fenix.csv": "^1",
+            "fenix.jupyter": "^1",
+            "fenix.python": "^1"
+          },
+          "categories": [
+            "languages"
+          ],
+          "bundle": [
+            "fenix.csv",
+            "fenix.jupyter",
+            "fenix.python"
+          ]
+        }
+      ],
+      "name": "Python",
+      "description": "Python with Jupyter notebooks: the language pack (basedpyright, ruff, debugpy, uv), .ipynb notebooks run on a kernel, and the CSV table for the data they read",
+      "categories": [
+        "languages"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.reading-bundle",
       "versions": [
         {
