@@ -137,6 +137,24 @@ impl Engine {
         }
     }
 
+    /// A container's last `tail` lines, once, for a coding agent: not
+    /// followed. `container` is one `agent::reference` let through; for
+    /// Docker and Podman it goes after `--`, so even so it can't be read as
+    /// an option. wslc isn't known to take `--` (or `--tail`): it's given
+    /// the name alone, and its lines are cut to `tail` as they come.
+    pub fn logs_tail(self, container: &str, tail: usize) -> Vec<String> {
+        let tail = tail.to_string();
+        match self {
+            Engine::Wslc => Self::args(&["container", "logs", container]),
+            _ => Self::args(&["logs", "--timestamps", "--tail", &tail, "--", container]),
+        }
+    }
+
+    /// The project's Dockerfile built, in `/project`, as `tag`.
+    pub fn build(self, tag: &str) -> Vec<String> {
+        Self::args(&["build", "-t", tag, "."])
+    }
+
     pub fn inspect(self, id: &str) -> Vec<String> {
         Self::args(&["container", "inspect", id])
     }
@@ -218,6 +236,15 @@ mod tests {
         assert_eq!(Engine::Docker.compose("up", "shop", Some("compose.yaml")), ["compose", "-f", "compose.yaml", "up", "-d"]);
         assert_eq!(Engine::Docker.compose("down", "monitoring", None), ["compose", "-p", "monitoring", "down"]);
         assert_eq!(Engine::by_name(" Podman "), Some(Engine::Podman));
+    }
+
+    /// An agent's container comes last, after `--`, where the CLI takes it.
+    #[test]
+    fn an_agents_log_tail_puts_the_container_after_the_options() {
+        assert_eq!(Engine::Docker.logs_tail("web", 200), ["logs", "--timestamps", "--tail", "200", "--", "web"]);
+        assert_eq!(Engine::Podman.logs_tail("8a1f3c2d9e12", 5), ["logs", "--timestamps", "--tail", "5", "--", "8a1f3c2d9e12"]);
+        assert_eq!(Engine::Wslc.logs_tail("web", 200), ["container", "logs", "web"]);
+        assert!(!Engine::Docker.logs_tail("web", 1).contains(&"-f".to_string()), "never followed");
     }
 
     /// The probe says up, down and why, in each engine's own words.

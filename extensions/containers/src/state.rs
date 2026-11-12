@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 
 use fenix_extension_api::{page, Key, Line, Page, Role, Span};
 
+use crate::agent::{self, Ask, Tail};
 use crate::engine::{Engine, Up};
 use crate::model::{self, Container, Details, DiskUse, Image, Layer, Load, Network, Stack, Volume};
 
@@ -31,8 +32,11 @@ pub enum Job {
     /// A log stream for page `page`, from container `id`, shown as `name`.
     Logs { page: u64, id: String, name: String },
     /// Something done, said as `what`; its output kept for the Compose
-    /// tab when it's a stack's.
-    Action { what: String, stack: bool },
+    /// tab when it's a stack's. A `long` one (a pull, `compose up`) ends
+    /// with a notification when you're elsewhere.
+    Action { what: String, stack: bool, long: bool },
+    /// A coding agent's call `call`, asked of `engine`.
+    Agent { call: u64, engine: Engine, ask: Ask },
     /// Starting an engine.
     Start(Engine),
 }
@@ -50,8 +54,30 @@ pub enum Effect {
     OpenUrl(String),
     Copy(String),
     Terminal { engine: Engine, args: Vec<String>, title: String, cwd: Option<String> },
+    /// The project's image built as `tag`, as a task beside the task pane
+    /// with its output shown: `State::task_started` with its id,
+    /// `State::task_finished` at its end.
+    Build { engine: Engine, tag: String },
+    /// A task's output shown again (`containers.build_output`).
+    ShowTask(u64),
+    /// A notification: something long ended while you were elsewhere.
+    Notification(Note),
+    /// The answer to a coding agent's call.
+    Answer { call: u64, result: Result<String, String> },
     OpenText { title: String, text: String, language: String },
     Status(Option<String>),
+}
+
+/// A notification, as `lib.rs` shows it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Note {
+    pub summary: String,
+    pub body: String,
+    pub failed: bool,
+    /// Another with the same tag replaces it.
+    pub tag: String,
+    /// What Enter on it does: a label, and one of its commands.
+    pub action: (String, String),
 }
 
 /// What a prompt was for.
@@ -160,6 +186,14 @@ pub struct State {
     /// Each log page's containers, `(id, name)`, to stream again when it's
     /// seen again.
     pub log_targets: HashMap<u64, Vec<(String, String)>>,
+    /// Agents' calls that came before the engines were known.
+    pub agent_waiting: Vec<(u64, Ask)>,
+    /// An agent's log tail being read, by process.
+    pub agent_tails: HashMap<u64, Tail>,
+    /// Builds running as tasks, by task id: the tag each builds.
+    pub builds: HashMap<u64, String>,
+    /// The last build's task, for `containers.build_output`.
+    pub last_build: Option<u64>,
 }
 
 fn order(e: Engine) -> u8 {
@@ -344,6 +378,9 @@ impl State {
         if job == Job::Stats && self.current.is_some_and(|e| e.caps().stats_stream) {
             self.stats_process = Some(process);
         }
+        if let Job::Agent { ask: Ask::Logs { lines, .. }, .. } = &job {
+            self.agent_tails.insert(process, Tail::new(*lines));
+        }
         self.jobs.insert(process, (job, Vec::new(), Vec::new()));
     }
 
@@ -379,6 +416,17 @@ impl State {
                     lines.pop_front();
                 }
                 vec![Effect::Refresh(page)]
+            }
+            // A log's tail for an agent: its lines kept to the tail as they
+            // come, and the engine's own complaint, if it makes one.
+            Job::Agent { ask: Ask::Logs { .. }, .. } => {
+                if stderr && err.len() < 20 {
+                    err.push(text.to_string());
+                }
+                if let Some(tail) = self.agent_tails.get_mut(&process) {
+                    tail.push(text);
+                }
+                Vec::new()
             }
             Job::Action { stack: true, .. } => {
                 (if stderr { err } else { out }).push(text.to_string());
@@ -423,6 +471,7 @@ impl State {
     /// A process ended: its output read for what it was for.
     pub fn exited(&mut self, process: u64, code: Option<i32>) -> Vec<Effect> {
         let Some((job, out, err)) = self.jobs.remove(&process) else { return Vec::new() };
+        let tail = self.agent_tails.remove(&process);
         if self.stats_process == Some(process) {
             self.stats_process = None;
         }
@@ -507,9 +556,24 @@ impl State {
                 }
                 effects.push(Effect::Refresh(page));
             }
-            Job::Action { what, stack } => {
-                let said = if ok { format!("{what}: done") } else { format!("{what}: failed -- {}", err.iter().chain(&out).rev().find(|l| !l.trim().is_empty()).map(|l| l.trim()).unwrap_or("no reason given")) };
-                effects.push(Effect::Notify(said));
+            Job::Agent { call, engine, ask } => {
+                let result = match (ok, ask) {
+                    (false, _) => Err(agent::failure(engine.program(), &err, &out)),
+                    (true, Ask::List { all }) => {
+                        let containers = if engine == Engine::Wslc { model::wslc_containers(&text) } else { model::containers(&text) };
+                        Ok(agent::list_answer(engine, &containers, all).to_string())
+                    }
+                    (true, Ask::Images) => {
+                        let images = if engine == Engine::Wslc { model::wslc_images(&text) } else { model::images(&text) };
+                        Ok(agent::images_answer(engine, &images).to_string())
+                    }
+                    (true, Ask::Logs { container, lines }) => Ok(tail.unwrap_or_else(|| Tail::new(lines)).answer(engine, &container).to_string()),
+                };
+                effects.push(Effect::Answer { call, result });
+            }
+            Job::Action { what, stack, long } => {
+                let why = err.iter().chain(&out).rev().find(|l| !l.trim().is_empty()).map(|l| l.trim().to_string()).unwrap_or_else(|| "no reason given".into());
+                effects.push(self.ended(&what, ok, &why, long));
                 if stack {
                     if let Some((title, _)) = &mut self.last_run {
                         *title = format!("{title} · {}", if ok { "done" } else { "failed" });
@@ -539,6 +603,11 @@ impl State {
                 effects.extend(self.reload());
             }
         }
+        // Agents' calls that waited for the engines: asked now, or kept
+        // until the rest have answered.
+        for (call, ask) in std::mem::take(&mut self.agent_waiting) {
+            effects.extend(self.agent(call, ask));
+        }
         effects.extend(self.status());
         effects.extend(self.refresh_all());
         effects
@@ -549,7 +618,104 @@ impl State {
     pub fn unspawnable(&mut self, job: Job) -> Vec<Effect> {
         match job {
             Job::Probe(e) => self.probed(e, Up::Missing),
+            Job::Agent { call, engine, .. } => vec![Effect::Answer { call, result: Err(format!("{} couldn't be run", engine.program())) }],
             _ => Vec::new(),
+        }
+    }
+
+    /// A coding agent's call: asked of the engine in use, once there is
+    /// one. It only reads: `ps`, `images`, `logs --tail`.
+    pub fn agent(&mut self, call: u64, ask: Ask) -> Vec<Effect> {
+        let probing = self.engines.values().any(|(_, up)| *up == Up::Probing);
+        let Some(e) = self.current else {
+            if probing || self.engines.is_empty() {
+                self.agent_waiting.push((call, ask));
+                return Vec::new();
+            }
+            return vec![Effect::Answer { call, result: Err("No container engine here: Docker, Podman or wslc (WSL 2.9.3 or later), on the PATH Fenix has".into()) }];
+        };
+        match self.up(e) {
+            Some(Up::Running { .. }) => {}
+            Some(Up::Probing) | None => {
+                self.agent_waiting.push((call, ask));
+                return Vec::new();
+            }
+            Some(Up::Down(why)) => return vec![Effect::Answer { call, result: Err(format!("{} is installed but not running: {why}. Nothing was started; the Containers page can start it.", e.program())) }],
+            Some(Up::Missing) => return vec![Effect::Answer { call, result: Err(format!("{} isn't installed", e.program())) }],
+        }
+        let args = match &ask {
+            Ask::List { .. } => e.containers(),
+            Ask::Images => e.images(),
+            Ask::Logs { container, lines } => e.logs_tail(container, *lines),
+        };
+        vec![Effect::Spawn { job: Job::Agent { call, engine: e, ask }, engine: e, args, cwd: None }]
+    }
+
+    /// An agent's call given up on: what it ran stopped.
+    pub fn cancelled(&mut self, call: u64) -> Vec<Effect> {
+        self.agent_waiting.retain(|(c, _)| *c != call);
+        let mut gone: Vec<u64> = self.jobs.iter().filter(|(_, (j, _, _))| matches!(j, Job::Agent { call: c, .. } if *c == call)).map(|(p, _)| *p).collect();
+        gone.sort();
+        for p in &gone {
+            self.jobs.remove(p);
+            self.agent_tails.remove(p);
+        }
+        gone.into_iter().map(Effect::Kill).collect()
+    }
+
+    /// Whether you're elsewhere: none of its pages in view.
+    fn away(&self) -> bool {
+        self.shown.is_empty()
+    }
+
+    /// How something it did is said to have ended: in the message line,
+    /// or -- something `long` (a build, a pull, `compose up`), ended while
+    /// none of its pages is in view -- as a notification, which Fenix
+    /// shows as a toast, or the system's own when it isn't in front.
+    fn ended(&self, what: &str, ok: bool, why: &str, long: bool) -> Effect {
+        if !(long && self.away()) {
+            return Effect::Notify(if ok { format!("{what}: done") } else { format!("{what}: failed -- {why}") });
+        }
+        let engine = self.current.map(|e| e.program()).unwrap_or("the engine");
+        Effect::Notification(Note {
+            summary: if ok { format!("{}: done", capital(what)) } else { format!("{}: failed", capital(what)) },
+            body: if ok { format!("{engine} finished it.") } else { why.to_string() },
+            failed: !ok,
+            tag: format!("containers.{what}"),
+            action: ("Open Containers".into(), "containers.open".into()),
+        })
+    }
+
+    /// A build's task started, as task `task`.
+    pub fn task_started(&mut self, task: u64, tag: &str) {
+        self.builds.insert(task, tag.to_string());
+        self.last_build = Some(task);
+    }
+
+    /// A task ended: a build's, said as `ended` says, and the images
+    /// listed again.
+    pub fn task_finished(&mut self, task: u64, ok: bool) -> Vec<Effect> {
+        let Some(tag) = self.builds.remove(&task) else { return Vec::new() };
+        let what = format!("build {tag}");
+        let mut out = vec![match self.ended(&what, ok, "", true) {
+            // A build's failure is in its output: Enter shows it.
+            Effect::Notification(mut note) if !ok => {
+                note.body = "Its output says why.".into();
+                note.action = ("Show its output".into(), "containers.build_output".into());
+                Effect::Notification(note)
+            }
+            Effect::Notify(_) if !ok => Effect::Notify(format!("{what}: failed -- its output says why")),
+            told => told,
+        }];
+        out.extend(self.reload());
+        out
+    }
+
+    /// `containers.build_output`: the last build's output.
+    pub fn build_output(&self) -> Vec<Effect> {
+        match self.last_build {
+            Some(task) => vec![Effect::ShowTask(task)],
+            None => vec![Effect::Notify("No image built yet: containers.build builds the project's".into())],
         }
     }
 
@@ -935,7 +1101,7 @@ impl State {
                     disarm(self);
                     let Some(e) = e else { return Vec::new() };
                     let args = if kind == "container" { e.act("rm", &id) } else { e.remove(kind, &id) };
-                    self.run(Job::Action { what: format!("remove {name}"), stack: false }, args).into_iter().collect()
+                    self.run(Job::Action { what: format!("remove {name}"), stack: false, long: false }, args).into_iter().collect()
                 } else {
                     set(self, tab, focus, false, Some(id));
                     vec![Effect::Notify(format!("x again removes {name} -- anything else keeps it"))]
@@ -950,7 +1116,7 @@ impl State {
                 if armed.as_deref() == Some("prune") {
                     disarm(self);
                     let Some(e) = e else { return Vec::new() };
-                    self.run(Job::Action { what: format!("prune unused {kind}s"), stack: false }, e.prune(kind)).into_iter().collect()
+                    self.run(Job::Action { what: format!("prune unused {kind}s"), stack: false, long: false }, e.prune(kind)).into_iter().collect()
                 } else {
                     set(self, tab, focus, false, Some("prune".into()));
                     vec![Effect::Notify(format!("P again removes every {kind} nothing uses -- anything else keeps them"))]
@@ -1004,7 +1170,7 @@ impl State {
     fn container_action(&mut self, page: u64, id: &str, key: Key) -> Vec<Effect> {
         let Some(c) = self.container(id).cloned() else { return Vec::new() };
         let Some(e) = self.current else { return Vec::new() };
-        let act = |state: &State, verb: &str, what: &str| state.run(Job::Action { what: format!("{what} {}", c.name), stack: false }, e.act(verb, &c.id)).into_iter().collect::<Vec<_>>();
+        let act = |state: &State, verb: &str, what: &str| state.run(Job::Action { what: format!("{what} {}", c.name), stack: false, long: false }, e.act(verb, &c.id)).into_iter().collect::<Vec<_>>();
         match key {
             Key::Enter => vec![Effect::OpenPage { kind: format!("container:{}", c.id), title: c.name.clone() }],
             Key::Char('S') | Key::Char('s') if !c.running() => act(self, "start", "start"),
@@ -1032,7 +1198,7 @@ impl State {
         let Some(e) = self.current else { return Vec::new() };
         match key {
             Key::Enter => vec![Effect::OpenPage { kind: format!("image:{}", img.id), title: img.reference() }],
-            Key::Char('p') if !img.dangling() => self.run(Job::Action { what: format!("pull {}", img.reference()), stack: false }, e.image_act("pull", &img.reference())).into_iter().collect(),
+            Key::Char('p') if !img.dangling() => self.run(Job::Action { what: format!("pull {}", img.reference()), stack: false, long: true }, e.image_act("pull", &img.reference())).into_iter().collect(),
             Key::Char('R') if !img.dangling() => vec![Effect::Terminal { engine: e, args: vec!["run".into(), "--rm".into(), "-it".into(), img.reference()], title: img.reference(), cwd: None }],
             _ => Vec::new(),
         }
@@ -1065,7 +1231,9 @@ impl State {
             _ => return Vec::new(),
         };
         self.last_run = Some((format!("compose {verb} · {name}"), Vec::new()));
-        vec![Effect::Spawn { job: Job::Action { what: format!("compose {verb} {name}"), stack: true }, engine: e, args: e.compose(verb, name, file.as_deref()), cwd }]
+        // Up, pull and build fetch and build images: long.
+        let long = matches!(verb, "up" | "pull" | "build");
+        vec![Effect::Spawn { job: Job::Action { what: format!("compose {verb} {name}"), stack: true, long }, engine: e, args: e.compose(verb, name, file.as_deref()), cwd }]
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1098,7 +1266,7 @@ impl State {
                 if armed {
                     set(self, focus, false, reveal, false);
                     let Some(e) = self.current else { return Vec::new() };
-                    let mut out: Vec<Effect> = self.run(Job::Action { what: format!("remove {}", c.name), stack: false }, e.act("rm", &c.id)).into_iter().collect();
+                    let mut out: Vec<Effect> = self.run(Job::Action { what: format!("remove {}", c.name), stack: false, long: false }, e.act("rm", &c.id)).into_iter().collect();
                     out.push(Effect::Close(page));
                     out
                 } else {
@@ -1195,7 +1363,9 @@ impl State {
                 if tag.is_empty() {
                     return Vec::new();
                 }
-                vec![Effect::Terminal { engine: e, args: vec!["build".into(), "-t".into(), tag.into(), ".".into()], title: format!("build {tag}"), cwd: Some("/project".into()) }]
+                // A task beside the task pane, its output shown: it ends
+                // with an event, so a notification can say how it went.
+                vec![Effect::Build { engine: e, tag: tag.to_string() }]
             }
             Asking::Filter(page) => match self.views.get_mut(&page) {
                 Some(View::Main { filter, focus, .. }) => {
@@ -1644,6 +1814,12 @@ impl State {
     }
 }
 
+/// `text` with its first letter a capital, for a notification's summary.
+fn capital(text: &str) -> String {
+    let mut chars = text.chars();
+    chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default()
+}
+
 /// The container menu: key, and what it does.
 const MENU: [(&str, &str); 9] = [("s", "Start or stop"), ("R", "Restart"), ("p", "Pause"), ("!", "Shell"), ("l", "Logs"), ("o", "Open its port"), ("i", "Inspect (JSON)"), ("y", "Copy its id"), ("x", "Remove (x x)")];
 
@@ -1794,7 +1970,7 @@ mod tests {
         assert!(t.contains("build ./api") && t.contains("not started"), "{t}");
         let e = st.key(page, Key::Char('u'));
         assert!(matches!(&e[0], Effect::Spawn { args, cwd, job: Job::Action { stack: true, .. }, .. } if args == &["compose", "-f", "compose.yaml", "up", "-d"] && cwd.as_deref() == Some("/project")), "{e:?}");
-        st.started(32, Job::Action { what: "compose up shop".into(), stack: true });
+        st.started(32, Job::Action { what: "compose up shop".into(), stack: true, long: true });
         st.output(32, true, " Container shop-web-1  Started");
         assert!(text(&st.render(page, 120)).contains("Container shop-web-1  Started"));
         // The other stack, by its name.
@@ -1921,6 +2097,186 @@ mod tests {
         assert!(effects.iter().any(|e| matches!(e, Effect::Spawn { engine: Engine::Podman, job: Job::Containers, .. })), "{effects:?}");
         assert!(effects.contains(&Effect::Status(Some("podman · 0 running".into()))));
         assert!(st.pin(Some(Engine::Podman)).is_empty());
+    }
+
+    /// An agent's call before the engines are known waits for them, then
+    /// runs only what reads; its answer goes back to its call.
+    #[test]
+    fn an_agents_call_waits_for_the_engines_and_only_reads() {
+        let mut st = State::default();
+        st.activate(None);
+        assert!(st.agent(7, Ask::List { all: true }).is_empty(), "waits");
+        assert!(st.agent(8, Ask::Logs { container: "shop-web-1".into(), lines: 2 }).is_empty());
+        st.started(1, Job::Probe(Engine::Docker));
+        st.output(1, false, "29.7.2");
+        let effects = st.exited(1, Some(0));
+        let spawned: Vec<(&Job, &Vec<String>)> = effects.iter().filter_map(|e| match e { Effect::Spawn { job: job @ Job::Agent { .. }, args, .. } => Some((job, args)), _ => None }).collect();
+        assert_eq!(spawned.len(), 2, "{effects:?}");
+        assert_eq!(spawned[0].1, &["ps", "-a", "--no-trunc", "--format", "json"]);
+        assert_eq!(spawned[1].1, &["logs", "--timestamps", "--tail", "2", "--", "shop-web-1"]);
+        assert!(st.agent_waiting.is_empty());
+        // The list.
+        st.started(70, spawned[0].0.clone());
+        for l in PS.lines() {
+            st.output(70, false, l);
+        }
+        let e = st.exited(70, Some(0));
+        let [Effect::Answer { call: 7, result: Ok(json) }] = &e[..] else { panic!("{e:?}") };
+        let v: serde_json::Value = serde_json::from_str(json).unwrap();
+        assert_eq!((v["running"].as_u64(), v["containers"][0]["name"].as_str()), (Some(1), Some("shop-web-1")));
+        // The log's tail: the last lines, the cut said.
+        st.started(80, spawned[1].0.clone());
+        for l in ["2026-10-24T14:31:58Z GET / 200", "2026-10-24T14:31:59Z GET /a 200", "2026-10-24T14:32:04Z ERROR payment: connection refused"] {
+            st.output(80, false, l);
+        }
+        let e = st.exited(80, Some(0));
+        let [Effect::Answer { call: 8, result: Ok(json) }] = &e[..] else { panic!("{e:?}") };
+        let v: serde_json::Value = serde_json::from_str(json).unwrap();
+        assert_eq!(v["log"], "2026-10-24T14:31:59Z GET /a 200\n2026-10-24T14:32:04Z ERROR payment: connection refused");
+        assert_eq!(v["truncated"], "only the last 2 of the 3 lines read");
+        assert!(st.agent_tails.is_empty());
+        // A container that isn't there: the engine's reason.
+        let e = st.agent(9, Ask::Logs { container: "nope".into(), lines: 10 });
+        let Some(Effect::Spawn { job, .. }) = e.first().cloned() else { panic!("{e:?}") };
+        st.started(90, job);
+        st.output(90, true, "Error response from daemon: No such container: nope");
+        assert_eq!(st.exited(90, Some(1)), [Effect::Answer { call: 9, result: Err("docker: No such container: nope".into()) }]);
+        // Images, with what uses them.
+        let e = st.agent(10, Ask::Images);
+        let Some(Effect::Spawn { job, args, .. }) = e.first().cloned() else { panic!("{e:?}") };
+        assert_eq!(args, ["images", "--format", "json"]);
+        st.started(91, job);
+        st.output(91, false, "{\"ID\":\"3f9c\",\"Repository\":\"nginx\",\"Tag\":\"1.27\",\"Size\":\"188MB\",\"CreatedSince\":\"3 weeks ago\"}");
+        let e = st.exited(91, Some(0));
+        let [Effect::Answer { call: 10, result: Ok(json) }] = &e[..] else { panic!("{e:?}") };
+        assert!(json.contains("\"repository\":\"nginx\"") && json.contains("\"size_bytes\":188000000"), "{json}");
+    }
+
+    #[test]
+    fn an_agents_call_with_no_engine_or_one_down_is_told_why_and_nothing_starts() {
+        let mut st = State::default();
+        st.activate(None);
+        for e in Engine::ALL {
+            st.unspawnable(Job::Probe(e));
+        }
+        let e = st.agent(1, Ask::List { all: true });
+        assert!(matches!(&e[..], [Effect::Answer { call: 1, result: Err(why) }] if why.starts_with("No container engine here")), "{e:?}");
+        let mut st = State::default();
+        st.activate(None);
+        st.agent(2, Ask::Images);
+        st.started(1, Job::Probe(Engine::Docker));
+        st.output(1, true, "failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine");
+        st.exited(1, Some(1));
+        st.unspawnable(Job::Probe(Engine::Podman));
+        let e = st.unspawnable(Job::Probe(Engine::Wslc));
+        let answer = e.iter().find(|e| matches!(e, Effect::Answer { .. }));
+        assert!(matches!(answer, Some(Effect::Answer { call: 2, result: Err(why) }) if why.contains("Docker Desktop isn't running") && why.contains("Nothing was started")), "{e:?}");
+        assert!(!e.iter().any(|e| matches!(e, Effect::Spawn { job: Job::Start(_), .. })), "the engine isn't started for an agent");
+        // An engine that can't be run at all.
+        assert_eq!(st.unspawnable(Job::Agent { call: 3, engine: Engine::Docker, ask: Ask::Images }), [Effect::Answer { call: 3, result: Err("docker couldn't be run".into()) }]);
+    }
+
+    #[test]
+    fn an_agents_call_given_up_on_stops_what_it_ran() {
+        let (mut st, _) = ready();
+        let e = st.agent(5, Ask::Logs { container: "shop-web-1".into(), lines: 100 });
+        let Some(Effect::Spawn { job, .. }) = e.first().cloned() else { panic!("{e:?}") };
+        st.started(55, job);
+        st.output(55, false, "a line");
+        assert_eq!(st.cancelled(5), [Effect::Kill(55)]);
+        assert!(st.jobs.is_empty() && st.agent_tails.is_empty());
+        assert!(st.exited(55, None).is_empty(), "its end answers nothing");
+        let mut waiting = State::default();
+        waiting.activate(None);
+        waiting.agent(6, Ask::Images);
+        assert!(waiting.cancelled(6).is_empty() && waiting.agent_waiting.is_empty());
+    }
+
+    /// A pull, `compose up` or a build that ends while no page of its is in
+    /// view is a notification; with one in view, or something quick, the
+    /// message line.
+    #[test]
+    fn something_long_ended_while_youre_elsewhere_is_a_notification() {
+        let (mut st, page) = ready();
+        st.images = model::images("{\"ID\":\"3f9c\",\"Repository\":\"nginx\",\"Tag\":\"1.27\",\"Size\":\"188MB\"}");
+        st.key(page, Key::Char('3'));
+        let e = st.key(page, Key::Char('p'));
+        let Some(Effect::Spawn { job: job @ Job::Action { long: true, .. }, .. }) = e.first().cloned() else { panic!("{e:?}") };
+        // Looking at the page: the message line.
+        st.started(60, job.clone());
+        assert_eq!(st.exited(60, Some(0))[0], Effect::Notify("pull nginx:1.27: done".into()));
+        // Elsewhere: a notification, Enter opening Containers.
+        st.shown(page, false);
+        st.started(61, job.clone());
+        let e = st.exited(61, Some(0));
+        let Effect::Notification(note) = &e[0] else { panic!("{e:?}") };
+        assert_eq!((note.summary.as_str(), note.failed, note.tag.as_str()), ("Pull nginx:1.27: done", false, "containers.pull nginx:1.27"));
+        assert_eq!(note.action, ("Open Containers".to_string(), "containers.open".to_string()));
+        st.started(62, job);
+        st.output(62, true, "Error response from daemon: manifest unknown");
+        let e = st.exited(62, Some(1));
+        assert!(matches!(&e[0], Effect::Notification(n) if n.failed && n.summary == "Pull nginx:1.27: failed" && n.body.contains("manifest unknown")), "{e:?}");
+        // Something quick is never one.
+        st.started(63, Job::Action { what: "stop migrate".into(), stack: false, long: false });
+        assert_eq!(st.exited(63, Some(0))[0], Effect::Notify("stop migrate: done".into()));
+        // Compose: up, pull and build are long; down isn't.
+        st.shown(page, true);
+        st.key(page, Key::Char('2'));
+        st.stacks = model::stacks(r#"[{"Name":"shop","Status":"running(1)","ConfigFiles":"x"}]"#);
+        let up = st.key(page, Key::Char('u'));
+        assert!(matches!(&up[0], Effect::Spawn { job: Job::Action { long: true, .. }, .. }), "{up:?}");
+        let down = st.key(page, Key::Char('d'));
+        assert!(matches!(&down[0], Effect::Spawn { job: Job::Action { long: false, .. }, .. }), "{down:?}");
+    }
+
+    #[test]
+    fn a_build_runs_as_a_task_and_its_end_is_told() {
+        let (mut st, page) = ready();
+        assert_eq!(st.prompted(Asking::BuildTag, Some(" app:dev ".into())), [Effect::Build { engine: Engine::Docker, tag: "app:dev".into() }]);
+        assert_eq!(Engine::Docker.build("app:dev"), ["build", "-t", "app:dev", "."]);
+        assert!(matches!(&st.build_output()[0], Effect::Notify(t) if t.starts_with("No image built yet")));
+        st.task_started(4, "app:dev");
+        assert_eq!(st.build_output(), [Effect::ShowTask(4)]);
+        // Done while the page is in view: the message line, the images again.
+        let e = st.task_finished(4, true);
+        assert_eq!(e[0], Effect::Notify("build app:dev: done".into()));
+        assert!(e.iter().any(|e| matches!(e, Effect::Spawn { job: Job::Images, .. })), "{e:?}");
+        assert!(st.task_finished(4, true).is_empty(), "told once");
+        // Failed while you're elsewhere: Enter shows its output.
+        st.shown(page, false);
+        st.task_started(5, "app:dev");
+        let e = st.task_finished(5, false);
+        let Effect::Notification(note) = &e[0] else { panic!("{e:?}") };
+        assert_eq!((note.summary.as_str(), note.failed), ("Build app:dev: failed", true));
+        assert_eq!(note.action, ("Show its output".to_string(), "containers.build_output".to_string()));
+        st.task_started(6, "app:dev");
+        assert!(matches!(&st.task_finished(6, true)[0], Effect::Notification(n) if n.summary == "Build app:dev: done" && n.action.1 == "containers.open"));
+        assert!(st.task_finished(99, true).is_empty(), "a task not its own");
+    }
+
+    /// Its pages' hints name only the page's own keys, which standard keys
+    /// leave as they are; none names a leader key or a Vim command, which
+    /// would read wrong with standard keys.
+    #[test]
+    fn no_page_names_a_leader_key() {
+        let (mut st, page) = ready();
+        st.opened(300, "container", Some("8a1f3c2d9e".into()));
+        st.opened(400, "performance", None);
+        st.open_logs(500, "web · logs", &[("a".into(), "web".into())]);
+        let mut texts: Vec<String> = [page, 300, 400, 500].iter().map(|p| text(&st.render(*p, 120))).collect();
+        for tab in ['2', '3', '4', '5'] {
+            st.key(page, Key::Char(tab));
+            texts.push(text(&st.render(page, 120)));
+        }
+        let mut down = State::default();
+        down.activate(None);
+        down.opened(1, "main", None);
+        texts.push(text(&down.render(1, 120)));
+        for t in &texts {
+            for leader in ["SPC", "C-k", "Ctrl+K", "Space", ":w", ":q"] {
+                assert!(!t.contains(leader), "{leader} in {t}");
+            }
+        }
     }
 
     #[test]
