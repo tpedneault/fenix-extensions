@@ -881,6 +881,31 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.gallery",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/gallery-v1.0.0/fenix.gallery-1.0.0.fenixext",
+          "sha256": "39734d7a481412cf725dc6a32ab0a68ee185f14c4cd031de1ddfe1d6cbd02273",
+          "size": 178699,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {}
+        }
+      ],
+      "name": "Widget gallery",
+      "description": "Every ui-kit widget working on one page -- tables, trees, tabs, fields, lists, menus, splits, scrolled regions, styles and the mouse -- each with the code that draws it a key away: for people writing extensions",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.go",
       "versions": [
         {
