@@ -25,10 +25,13 @@ to the store.
 - [Licence](#licence)
 
 Coming, and not here yet: `cargo xtask new` to start an extension from
-a template, `cargo xtask install` to pack and install in one step, a
-test kit, and a widget gallery
+a template, `cargo xtask install` to pack and install in one step, and a
+test kit
 ([milestone 2](plans/roadmap.md#milestone-2-author-tooling)). Until
-then, copy the nearest extension here and change it.
+then, copy the nearest extension here and change it. For a page, the
+[widget gallery](extensions/gallery) (`gallery.open`, `SPC h g`) has
+every `ui-kit` widget working, each with the code that draws it a key
+away: copy the section nearest to what you want.
 
 ## Two ways in
 
@@ -412,7 +415,8 @@ extensions depend on by path
 
 - [`ui-kit`](crates/ui-kit/README.md): widgets for canvas pages --
   tables, trees, tabs, text fields, splits, scrolled regions -- and
-  their keys and mouse. Use it rather than laying out your own.
+  their keys and mouse. Use it rather than laying out your own; the
+  [widget gallery](extensions/gallery) shows each one working.
 - [`lang-kit`](crates/lang-kit/README.md): what language packs share --
   the packages page, doctor checks, tasks, installing a server, a
   formatter and a linter -- and a fake host to test them with.

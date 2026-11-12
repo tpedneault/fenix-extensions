@@ -10,6 +10,18 @@ out its own.
 fenix-ui-kit = { path = "../../crates/ui-kit" }
 ```
 
+## Start here
+
+- **See them working.** The [widget gallery](../../extensions/gallery)
+  (`gallery.open`, `SPC h g`) is a page with a section for each widget
+  -- table, tree, tabs, text field, list, popup menu, splits, scrolled
+  region, styles, the mouse -- live, on made-up data. `c` on a section
+  opens the code that draws it, read from the gallery's own source, so
+  it's the code that runs. Its `src/sections/*.rs` are the snippets to
+  copy; its `src/lib.rs` is the glue a page needs around them.
+- **Start an extension.** `cargo xtask new tool` starts a page-based
+  extension with this crate already wired in.
+
 Each widget is a state struct the extension keeps, and the data it
 borrows to draw. `render(&state, ..., rect, &mut canvas)` draws it into a
 rectangle; `handle_key(&mut state, key, ...)` answers a key with an
