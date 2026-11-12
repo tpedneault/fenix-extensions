@@ -555,6 +555,27 @@
               "wslc"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/containers-v1.1.0/fenix.containers-1.1.0.fenixext",
+          "sha256": "8a4b3f0d67814a24bce44a77628852243e6d1055f0e2a27fb613c0636b255dc8",
+          "size": 190904,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "filesystem": "project-read",
+            "process": [
+              "docker",
+              "podman",
+              "wslc"
+            ]
+          }
         }
       ],
       "name": "Containers",
