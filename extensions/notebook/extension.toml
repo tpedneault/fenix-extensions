@@ -10,7 +10,7 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+fenix = ">=1.5, <2"
 api = "1.5"
 
 # Home lists it, notes save themselves as you type, and the control

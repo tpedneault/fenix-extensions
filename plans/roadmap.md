@@ -85,6 +85,56 @@ preview, a log, a hex dump opened by command), which Fenix's rule for
   floors are just out of step with 3.2's rule.
 - `validate` accepts `runtime = "lua"`, which Fenix can't run yet.
 
+## Milestone 3: built, not yet proven
+
+Built on 13 November, on `claude/pensive-carson-xu7nwb`, not yet on
+`main`. Nothing was played or run in Fenix.
+
+| Item | Built |
+|---|---|
+| 3.1 Lessons | `cargo xtask validate` reads lessons as Fenix does and holds them to the extension's floor. Lessons for HTTP, Containers, Database, Notebook, Jupyter, and one shape filled in for Rust, Python, Web and Go: ten in all with Review's |
+| 3.2 The sweep | 17 extensions say the keys of the scheme in use (`key_for`): Notebook, MIB, Tcl; CI, NATS, Review, Pets, Agenda, Pomodoro; CCSDS, Arduino, Diagrams, Jira, PDF, VNC, Images, Data tools. The last fourteen moved to API 1.5 and Fenix 1.5 for it. Notifications for a pull request opened, a Jira sync, a Pomodoro round, and Containers' long jobs |
+| 3.3 Agent tools | Logs (query, summary), Containers (list, logs, images; read only), HTTP (list requests; run one by name, off until allowed) |
+
+What it turned up:
+
+- **Fenix already rewrites `SPC` to the leader chord in the message
+  line and the modeline** under standard keys, extensions' messages
+  included. So the sweep's gain is narrower than 3.2 first said: page
+  text, Home's key label and titles, which Fenix shows as given, and
+  keys you rebound.
+- **`key_for` answers nothing for a command reached only through
+  `SPC m`.** Each extension works the leader out and writes the menu's
+  key after it. An issue for Fenix.
+- **A lesson can't see** the debugger, task output, an extension's
+  prompts or a doctor fix, and every step must check something. The
+  language packs' lesson says "it stops at the breakpoint"; it can't
+  check it.
+- **Extensions on the shared kits stay on API 1.0** (HTTP, Database,
+  Logs, Jupyter and the language packs): no `key_for`, no
+  notifications. Their hints are worded to read right in both schemes.
+  Moving the kits to API 1.5 is the next step, and takes 28 extensions
+  with it.
+- **Arduino got no notification of its own**: Fenix already shows one
+  when a task of 10 seconds or more ends.
+- **Additions made to make a lesson possible**: HTTP sends a request
+  from text that isn't a file; Database has `database.sample`, a small
+  database to practise on.
+- **Three defects fixed in Database's agent tools**; the one that
+  matters: a read-only session kept a connection's old host and user
+  after they changed.
+- **Bundles still say Fenix 1.0** while some members' newest releases
+  need 1.5: an older Fenix gets the newest member that fits.
+- **Stale ranges put right**: Notebook, HTTP, MIB and Tcl declared API
+  1.5 with a `fenix` range that still admitted 1.0.
+- Setting descriptions in manifests still name `SPC` keys; they're
+  static text.
+
+Where to look first in a real Fenix: Jupyter's lesson (its first step
+saves the practice text as a notebook), the language packs' debug
+steps, HTTP's `http_run` behind Fenix's ask, and Containers' build now
+running as a background task.
+
 ## Milestone 2: built, not yet proven
 
 Built on 13 November, on `claude/pensive-carson-xu7nwb`, not yet on

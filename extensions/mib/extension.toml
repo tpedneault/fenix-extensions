@@ -11,7 +11,7 @@ runtime = "wasm"
 
 [engine]
 # Agent tools: Fenix 1.1.
-fenix = ">=1.1, <2"
+fenix = ">=1.5, <2"
 api = "1.5"
 
 # With Fenix: the project doctor's checks are there from the start, and

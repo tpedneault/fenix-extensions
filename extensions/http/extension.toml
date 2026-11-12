@@ -12,7 +12,7 @@ runtime = "wasm"
 [engine]
 # Fenix 1.0 runs all but the agent tools (1.1) and the Ctrl+Enter chord
 # (1.5), which it leaves out; the tutorial lesson keeps to what 1.0 reads.
-fenix = ">=1.0, <2"
+fenix = ">=1.5, <2"
 # http-send with its timing, tagged decorations, page-render-ex, the
 # grammar for .http files; 0.8.7: the keychain (secret-set, patterns), the
 # masked prompt, tcp-listen, env-var.

@@ -10,7 +10,7 @@ categories = ["languages"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+fenix = ">=1.5, <2"
 api = "1.5"
 
 # With Fenix: the project doctor's checks are there from the start, and a
