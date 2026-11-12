@@ -1,5 +1,6 @@
 # A collection: requests between ### lines. Run the one the cursor's in
-# with SPC p r r (SPC m r), or click its ▶.
+# with SPC p r r (SPC m r) -- with standard keys Ctrl+Enter, or Ctrl+K p r r
+# -- or click its ▶.
 
 @baseUrl = https://httpbin.org
 
