@@ -1,0 +1,84 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor, the packages page, a task, a debug session, formatting
+# and linting on save -- filled in for Rust. See "Tutorial lessons" in the
+# repository's CONTRIBUTING.md.
+id = "rust.project"
+track = "Rust"
+order = 1
+title = "A Rust project: doctor, crates, tasks, debugging"
+about = "In a Rust project of yours (a Cargo.toml at its top; cargo new makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Rust project in Fenix: what it needs, its crates, its tasks, its
+program under the debugger, and rustfmt and clippy as you save.
+
+SPC p h   the project doctor: each check, and a fix for what's missing
+          (f runs the fix on the row, r checks again, q closes it)
+SPC m p   the crates: vulnerable and outdated first; u upgrade, a add,
+          d remove (SPC m d checks the project again, SPC m c clippy now)
+SPC p t   the tasks: build, run, test, clippy, fmt, audit
+SPC u b   a breakpoint on the cursor's line; SPC u U a launch to start,
+          then n step over, c continue, SPC u q end
+SPC ,     the settings: editor.format_on_save, rust.clippy
+
+The practice program, for a project that has no main of its own: put it
+in src/main.rs, and the breakpoint on the total += line.
+
+fn main() {
+    let names = ["Ada", "Grace", "Linus"];
+    let mut total = 0;
+    for name in names {
+        total += name.len();
+    }
+    println!("{total} letters");
+}
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- the toolchain, rust-analyzer, clippy, rustfmt, the debugger, each checked."
+hint = "SPC p, then h. In a Rust project: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix: f on rust-analyzer's runs rustup component add rust-analyzer, and the server starts. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC m p: the crates -- the vulnerable first, then the outdated."
+hint = "SPC m, then p, in the Rust project (or SPC : and Rust: crates). Without cargo, s on the tutorial page skips this."
+page = "fenix.rust/packages"
+
+[[step]]
+say = "u upgrades the crate under the cursor, a adds one, d removes one -- each as a task. q closes the page for now."
+hint = "q, on the crates page."
+closed = "fenix.rust/packages"
+
+[[step]]
+say = "SPC p t: the project's tasks, from Cargo.toml's targets."
+hint = "SPC p, then t. Without cargo there are none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick test and Enter: cargo test runs in Task Output (q there closes it). Or Esc."
+hint = "Type test to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "In src/main.rs, SPC u b puts a breakpoint on the cursor's line. Then SPC u U: the launches Rust offers."
+hint = "In a .rs file, not the practice text: SPC u U needs a Rust file in front. It needs lldb-dap or CodeLLDB -- the doctor's row says how to install one; without, s on the tutorial page skips this."
+picker = "any"
+
+[[step]]
+say = "Rust: binary (cargo build), Enter: cargo builds it, and it stops at your breakpoint. n steps over, c continues, SPC u q ends it."
+hint = "Enter on the launch; Esc puts the list away."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Rust file then runs rustfmt on it."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a Rust file now: rustfmt formats it, and clippy's lints show beside rust-analyzer's (rust.clippy, on unless you turn it off)."
+hint = "q, on the settings page."
+closed = "settings"

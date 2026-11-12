@@ -1,0 +1,81 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor, the packages page, a task, a debug session, formatting
+# and linting on save -- filled in for Python. See "Tutorial lessons" in
+# the repository's CONTRIBUTING.md.
+id = "python.project"
+track = "Python"
+order = 1
+title = "A Python project: doctor, packages, tasks, debugging"
+about = "In a Python project of yours (a pyproject.toml, requirements.txt or uv.lock at its top; uv init makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Python project in Fenix: what it needs, its packages, its tasks, its
+program under the debugger, and ruff as you type and save.
+
+SPC p h   the project doctor: each check, and a fix for what's missing
+          (f runs the fix on the row, r checks again, q closes it)
+SPC m p   the packages: vulnerable and outdated first; u upgrade, a add,
+          d remove (SPC m d checks the project again, SPC m s uv sync)
+SPC p t   the tasks: run, test, lint, format, typecheck, sync
+SPC u b   a breakpoint on the cursor's line; SPC u U a launch to start,
+          then n step over, c continue, SPC u q end
+SPC ,     the settings: editor.format_on_save, python.ruff
+
+The practice program, for a project that has nothing to run yet: put it
+in main.py, and the breakpoint on the total += line.
+
+names = ["Ada", "Grace", "Guido"]
+total = 0
+for name in names:
+    total += len(name)
+print(total, "letters")
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Python, uv, the .venv, the language server, ruff, each checked."
+hint = "SPC p, then h. In a Python project: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix: f on the language server's installs basedpyright (uv tool install, else pipx or pip). Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC m p: the packages -- the vulnerable first, then the outdated."
+hint = "SPC m, then p, in the Python project (or SPC : and Python: packages). Without uv or pip, s on the tutorial page skips this."
+page = "fenix.python/packages"
+
+[[step]]
+say = "u upgrades the package under the cursor, a adds one, d removes one -- each as a task. q closes the page for now."
+hint = "q, on the packages page."
+closed = "fenix.python/packages"
+
+[[step]]
+say = "SPC p t: the project's tasks."
+hint = "SPC p, then t. A project with nothing to run has none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick test and Enter: pytest runs in Task Output (q there closes it). Or Esc."
+hint = "Type test to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "In main.py, SPC u b puts a breakpoint on the cursor's line. Then SPC u U: the launches Python offers."
+hint = "In a .py file, not the practice text: SPC u U needs a Python file in front. It needs debugpy -- uv brings it, or the doctor's row installs it; without, s on the tutorial page skips this."
+picker = "any"
+
+[[step]]
+say = "Python: current file, Enter: it runs, and stops at your breakpoint. n steps over, c continues, SPC u q ends it."
+hint = "Enter on the launch; Esc puts the list away."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Python file then runs ruff format on it."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a Python file now: ruff formats it, and ruff's problems show as you type beside the server's (python.ruff = server; save checks on save instead)."
+hint = "q, on the settings page."
+closed = "settings"

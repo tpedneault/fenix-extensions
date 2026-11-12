@@ -140,6 +140,16 @@ command line) and a workspace; this adds:
   call it without a server (tower's `oneshot`), tracing, and a clean
   shutdown on Ctrl+C.
 
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Rust* section, in a
+Rust project of yours: the project doctor and a fix from it, the crates
+page, a task, a debug session stopped at a breakpoint, and rustfmt and
+clippy on save. Each step is checked by what's on screen -- the page or
+the picker in front -- and a step whose tool isn't installed yet is
+skipped with `s` on the tutorial page; the doctor says how to install
+it.
+
 ## Keys
 
 After `SPC m` in a Rust project: `p` crates, `d` check again, `c`

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- A lesson in Fenix's tutorial (`SPC h T`, its *Web: JavaScript and
+  TypeScript* section), in a project of yours with a `package.json`: the
+  project doctor and a fix from it, the packages page, a task, a debug
+  session stopped at a breakpoint, and the formatter and ESLint on save.
+
 ## 1.1.0
 
 - `web.packages` can be run from outside Fenix, over the control channel
