@@ -7,7 +7,9 @@ registry Fenix installs them from.
 extensions/<name>/        one extension: extension.toml, its data, README.md, CHANGELOG.md,
                           and screenshots/ if it likes
 xtask/                    validate, pack, and add a release to the index
-.github/workflows/        ci.yml (validate and pack), release.yml (release, index, sign)
+.github/workflows/        ci.yml (validate and pack), release.yml (release, index, sign),
+                          external.yml, pack-extension.yml, external-links.yml (extensions built elsewhere)
+external.toml             releases built elsewhere, and publishers.toml who may publish them
 ```
 
 The `registry` branch holds `index.json` and its signature
@@ -192,6 +194,128 @@ The signature needs the registry key: `MINISIGN_SECRET_KEY` (the secret
 key file's contents) and, if the key has one, `MINISIGN_PASSWORD`, as
 Actions secrets. Its public half is `REGISTRY_KEY` in Fenix's
 `crates/fenix-gui/src/installed.rs`.
+
+## Extensions built elsewhere
+
+An extension doesn't have to live here to be in the store. Its author
+builds it and hosts the `.fenixext` as a release asset of their own
+GitHub repository; this repository lists it in `external.toml`, and
+`external.yml` adds it to the index and signs it, as `release.yml` does
+for the extensions built here.
+
+### Submitting one
+
+1. Pack it and attach it to a release of your repository. The reusable
+   workflow does both, with this repository's `xtask` at a commit you
+   pin, and prints the entry to submit (its inputs are at the top of
+   `.github/workflows/pack-extension.yml`):
+
+   ```yaml
+   on:
+     push:
+       tags: ['v*']
+   jobs:
+     pack:
+       permissions:
+         contents: write
+       uses: tpedneault/fenix-extensions/.github/workflows/pack-extension.yml@<commit>
+       with:
+         xtask-ref: <commit>
+   ```
+
+   Or by hand: `cargo xtask pack <dir> dist` in a checkout of this
+   repository, `sha256sum` the package, and attach it yourself.
+2. Open a pull request here adding one `[[release]]` to `external.toml`:
+
+   ```toml
+   [[release]]
+   id = "acme.dusk"
+   version = "1.0.0"
+   url = "https://github.com/acme/dusk/releases/download/v1.0.0/acme.dusk-1.0.0.fenixext"
+   sha256 = "<the package's SHA-256>"
+   repository = "https://github.com/acme/dusk"
+   ```
+
+   Your first one also claims your publisher id in `publishers.toml`
+   (below). Each later version is another entry, in another pull request.
+3. Once it's merged, the release is in the store within minutes.
+
+### Publishers
+
+The part of an id before its first dot is its publisher: `acme` in
+`acme.dusk`. `fenix` is this repository's own, and nothing in
+`external.toml` may use it. Any other id is claimed, first come, by the
+first accepted submission under it, which adds it to `publishers.toml`
+with the GitHub users or organisations that may release under it:
+
+```toml
+[publishers.acme]
+owners = ["acme", "alice"]
+```
+
+From then on, a release under `acme` must be a release asset
+(`https://github.com/<owner>/<repo>/releases/download/<tag>/<file>.fenixext`)
+of a repository one of those owners owns, and its `repository` must be
+that owner's too. That ties a publisher to a GitHub account with nothing
+to set up, and stops anyone else shipping under its name. Changing a
+publisher's owners is a pull request one of its current owners approves.
+
+### What's checked
+
+`cargo xtask external-check --offline` checks the two files without the
+network: the shape of each entry, a valid id, a publisher that isn't
+`fenix` and is in `publishers.toml`, an `https` URL that is a GitHub
+release asset of one of its owners (not a branch, a raw file or
+`releases/latest`), a `repository` of the same owner, a 64-digit
+lower-case SHA-256, and a version listed once, and not one released from
+`extensions/`. Without `--offline` it also downloads each package
+(`curl`, https only, a few redirects, 50 MiB at most) and checks it as
+`index-add-external` does. CI runs that on every pull request touching
+either file.
+
+`cargo xtask index-add-external <index.json>` (what `external.yml` runs)
+adds each release the index hasn't. For each it:
+
+- downloads the package and checks its size and SHA-256 against the
+  entry;
+- unpacks it defensively: no name outside its folder, no links, no name
+  twice, at most 10,000 files and 64 MiB unpacked, as Fenix itself
+  allows;
+- reads `extension.toml` **from inside the package** and requires its id
+  and version to be the entry's;
+- holds it to what `validate` checks of a folder here: the manifest,
+  keymaps' chords, agent tools, themes, snippets, screenshots' format and
+  size, `extension.wasm` for a `wasm` extension, and dependencies the
+  index has;
+- writes its index entry from that manifest -- name, description,
+  categories, permissions, `fenix`, `api`, runtime, dependencies -- with
+  the `repository` from `external.toml`, and prints what it may do.
+
+Nothing the pull request says of a package besides its URL, hash and
+repository reaches the index, and nothing in a package is run. A release
+in the index doesn't change: an entry edited after it's listed is
+refused, so a new package is a new version. Each week `external-links.yml`
+downloads every package again and opens an issue (or updates the open
+one) for any URL that no longer serves its hash.
+
+### What the reviewer looks at
+
+The CI job "Extensions built elsewhere" prints each package's name,
+description, runtime, dependencies and permissions. The registry vouches
+for who published a package and that it's the one reviewed, not for the
+code inside, which wasn't built here; so read:
+
+- **Permissions**, as for any extension: the narrowest `process`,
+  `network` and `sockets` that work, no `network = ["*"]` without a
+  reason in its README, secrets by key.
+- **The name and description**: nothing that passes for one of this
+  repository's, or another publisher's.
+- **`publishers.toml`**: a new publisher whose owners are the account
+  opening the pull request, or one it belongs to. A change to an existing
+  publisher's owners is flagged by CI, and needs one of its current
+  owners' approval.
+- **The repository**: public, with the extension's source, a README and a
+  licence.
 
 ## Licence
 

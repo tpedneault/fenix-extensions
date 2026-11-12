@@ -1,0 +1,58 @@
+# Once a week (and by hand: Actions, External links, Run workflow), every
+# release in external.toml is downloaded again and checked as it was when
+# it was listed. A URL that no longer answers, or answers with another
+# package, opens an issue -- or updates the one already open.
+name: External links
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup override set stable
+      - name: Every external package, downloaded and checked
+        id: check
+        run: |
+          # What the packages say can't issue workflow commands.
+          token=$(openssl rand -hex 16)
+          echo "::stop-commands::$token"
+          status=0
+          cargo xtask external-check 2> "$RUNNER_TEMP/problems.txt" || status=$?
+          cat "$RUNNER_TEMP/problems.txt"
+          echo "::$token::"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: An issue, opened or updated
+        if: steps.check.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="External packages no longer served as listed"
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          {
+            echo "The check of \`external.toml\` ($run) found releases whose URL no longer serves the package listed for them. Each needs its author to put the package back as it was, or the release taken out of the index."
+            echo
+            # Indented, so nothing in it can end the block.
+            sed 's/^/    /' "$RUNNER_TEMP/problems.txt"
+          } > "$RUNNER_TEMP/body.md"
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number,title --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/body.md"
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "Still failing: $run"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file "$RUNNER_TEMP/body.md"
+          fi
+          exit 1
