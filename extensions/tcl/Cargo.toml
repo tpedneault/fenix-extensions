@@ -10,7 +10,7 @@ description = "Tcl in Fenix: hover, completion and go-to-definition from Tcl's o
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", branch = "claude/fenix-ide-keybindings-3sjjky" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 serde_json = "1"
 
 [dev-dependencies]

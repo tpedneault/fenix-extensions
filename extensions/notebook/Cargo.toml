@@ -10,7 +10,7 @@ description = "Notes, a daily journal, links and quick captures, kept for you in
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", branch = "claude/fenix-ide-keybindings-3sjjky" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 serde = { version = "1", features = ["derive"] }

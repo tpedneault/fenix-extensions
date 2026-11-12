@@ -99,7 +99,7 @@ checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 [[package]]
 name = "fenix-extension-api"
 version = "1.5.0"
-source = "git+https://github.com/tpedneault/fenix?branch=claude%2Ffenix-ide-keybindings-3sjjky#866321aa4325f55771a30ac9e94479d7d379b71b"
+source = "git+https://github.com/tpedneault/fenix?tag=v1.5.0#58a177124dffceacde20bdf6f1c7415c58f18d41"
 dependencies = [
  "chrono",
  "lsp-types",
