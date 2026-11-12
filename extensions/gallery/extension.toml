@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.gallery"
 name = "Widget gallery"
-version = "1.0.0"
+version = "1.1.0"
 description = "Every ui-kit widget working on one page -- tables, trees, tabs, fields, lists, menus, splits, scrolled regions, styles and the mouse -- each with the code that draws it a key away: for people writing extensions"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,9 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# The key that opens it, as the scheme in use has it (key_for, 1.5).
+api = "1.5"
 
 # Its command loads it.
 [activation]

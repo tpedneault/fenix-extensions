@@ -8,8 +8,8 @@
 
 use fenix_extension_api as real;
 use real::{
-    Check, Command, CursorImage, CursorInfo, Decoration, DecorationRule, EditorTheme, FolderEntry, Here, HomeSection, HttpRequest, ImageInfo, Item, LaunchConfig, LayerLevel, Level, ModelInfo, PickerItem, PlatformInfo, Problem,
-    Rgb, SurfaceMark, SurfaceOptions, Task, TextBuffer, TextEdit, TlsOptions,
+    Check, Command, CursorImage, CursorInfo, Decoration, DecorationRule, EditorTheme, FolderEntry, GitSummary, Here, HomeSection, HttpRequest, ImageInfo, Item, KeyScheme, LaunchConfig, LayerLevel, Level, ModelInfo,
+    Notification, PickerItem, PlatformInfo, Problem, Rgb, SurfaceMark, SurfaceOptions, Task, TaskResult, TextBuffer, TextEdit, TlsOptions,
 };
 
 use crate::fake::{line, Fake};
@@ -492,6 +492,48 @@ pub fn agent_provide(id: &str, cmd: Option<&Command>) -> Result<(), String> {
     })
 }
 
+// -- What API 1.1 to 1.5 added ---------------------------------------------
+
+/// 1.1: the open project's repository, as the test set it
+/// ([`Fake::git`](crate::Fake::git)).
+pub fn git_state() -> Option<GitSummary> {
+    with(|s| s.git.clone())
+}
+/// 1.1: the task that ended last ([`Fake::last_task`](crate::Fake::last_task),
+/// or one [`Fake::on_task`](crate::Fake::on_task) ended).
+pub fn last_task() -> Option<TaskResult> {
+    with(|s| s.last_task.clone())
+}
+/// 1.2: how far a service call has got.
+pub fn service_progress(call: u64, message: &str, fraction: Option<f32>) {
+    with(|s| s.progress(call, message, fraction))
+}
+/// 1.3: a notification. `Notification::show` is the API's method, which
+/// calls Fenix's: in a test, call this with it.
+pub fn notify_with(notification: &Notification) {
+    with(|s| s.notify_with(notification))
+}
+/// 1.3: its toast with this tag taken away.
+pub fn notify_dismiss(tag: &str) {
+    with(|s| s.notify_dismiss(tag))
+}
+/// 1.4: a compose pane the agent can write; answered as `compose` is
+/// ([`Fake::on_prompt`](crate::Fake::on_prompt)).
+pub fn compose_with_ask(title: &str, verb: &str, initial: &str, _allow_empty: bool, ask: &str, over_initial: bool) -> u64 {
+    with(|s| s.compose_asking(title, verb, initial, Some((ask, over_initial))))
+}
+/// 1.5: how you edit ([`Fake::key_scheme`](crate::Fake::key_scheme)).
+pub fn editor_keys() -> KeyScheme {
+    with(|s| s.key_scheme)
+}
+/// 1.5: the keys that run `command` in the scheme in use, as the test set
+/// them ([`Fake::key`](crate::Fake::key)); none for a command it said
+/// nothing of, or one bound only in `SPC m`
+/// ([`Fake::menu_key`](crate::Fake::menu_key)).
+pub fn key_for(command: &str) -> Option<String> {
+    with(|s| s.key_for(command))
+}
+
 /// Each of these is the API's own signature: a call that builds against
 /// one builds against the other.
 macro_rules! same {
@@ -618,4 +660,13 @@ same! {
     tcp_listen: fn(u16) -> Result<(u64, u16), String>;
     env_var: fn(&str) -> Option<String>;
     agent_provide: fn(&str, Option<&Command>) -> Result<(), String>;
+    // 1.1 to 1.5.
+    git_state: fn() -> Option<GitSummary>;
+    last_task: fn() -> Option<TaskResult>;
+    service_progress: fn(u64, &str, Option<f32>);
+    notify_with: fn(&Notification);
+    notify_dismiss: fn(&str);
+    compose_with_ask: fn(&str, &str, &str, bool, &str, bool) -> u64;
+    editor_keys: fn() -> KeyScheme;
+    key_for: fn(&str) -> Option<String>;
 }

@@ -13,8 +13,8 @@ use std::rc::Rc;
 
 use fenix_extension_api::chrono::{DateTime, FixedOffset};
 use fenix_extension_api::{
-    Check, Command, CursorInfo, Decoration, EditorTheme, Event, FolderEntry, Here, HttpRequest, HttpResponse, LaunchConfig, Level, PickerItem, PlatformInfo, ProcessOutput, Problem, ProjectInfo, Rgb, Task,
-    TextBuffer, TextEdit,
+    Check, Command, CursorInfo, Decoration, EditorTheme, Event, FolderEntry, GitSummary, Here, HttpRequest, HttpResponse, KeyScheme, LaunchConfig, Level, Notification, PickerItem, PlatformInfo, ProcessOutput, Problem,
+    ProjectInfo, Rgb, Task, TaskResult, TextBuffer, TextEdit, Urgency,
 };
 
 /// A command as a line: its program, then its arguments, a space between.
@@ -138,6 +138,8 @@ pub enum Choice {
 }
 
 type SpawnFn = Box<dyn Fn(&Command) -> Option<Result<Ran, String>>>;
+/// A task's name, whether it succeeds, and its tests passed and failed.
+type TaskEnd = (String, bool, Option<(u32, u32)>);
 type ServiceFn = Box<dyn Fn(&str) -> Result<String, String>>;
 
 /// A page it opened.
@@ -185,6 +187,61 @@ pub struct Prompt {
     pub secret: bool,
     /// A compose pane (`compose`), not a one-line prompt.
     pub compose: bool,
+    /// A compose pane the agent can write (`compose-with-ask`, 1.4): the
+    /// `agents.ask` payload `A` sends, and whether it writes over
+    /// `initial` too.
+    pub ask: Option<(String, bool)>,
+}
+
+/// The keys a command has, as a test set them ([`Fake::key`] and the
+/// rest): what `key-for` answers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Keys {
+    /// Bound under the leader or as a chord: written with `SPC` for the
+    /// leader, as Vim keys write it; with standard keys `SPC` is said as
+    /// the leader chord ([`Fake::leader_chord`], `C-k`). `standard`, when
+    /// given, is what standard keys have instead (`gd`, `F12`).
+    Bound { vim: Option<String>, standard: Option<String> },
+    /// Bound only in a buffer's `SPC m` menu, as this key there: Fenix's
+    /// `key-for` doesn't know those, so it answers none.
+    Menu(String),
+}
+
+/// A progress it said for a service call (`service-progress`, 1.2).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Progress {
+    pub call: u64,
+    pub message: String,
+    pub fraction: Option<f32>,
+}
+
+/// An urgency as the log's lines say it.
+pub fn urgency(u: Urgency) -> &'static str {
+    match u {
+        Urgency::Low => "low",
+        Urgency::Normal => "normal",
+        Urgency::Critical => "critical",
+    }
+}
+
+/// A notification as a line of the log: `notification low #tag: Summary
+/// -- its body [Label -> command]`.
+pub fn notification_line(n: &Notification) -> String {
+    let mut out = format!("notification {}", urgency(n.urgency));
+    if let Some(tag) = &n.tag {
+        out.push_str(&format!(" #{tag}"));
+    }
+    out.push_str(&format!(": {}", n.summary));
+    if !n.body.is_empty() {
+        out.push_str(&format!(" -- {}", n.body));
+    }
+    for a in &n.actions {
+        out.push_str(&format!(" [{} -> {}]", a.label, a.command));
+    }
+    if let Some(p) = n.progress {
+        out.push_str(&format!(" ({:.0}%)", p * 100.0));
+    }
+    out
 }
 
 /// A timer it set, still set.
@@ -237,11 +294,32 @@ pub struct State {
     pub utc_offset: i32,
     /// Every `spawn` fails, as on a machine without the program.
     pub spawn_fails: bool,
+    /// How you edit (`editor-keys`, 1.5): Vim keys unless a test says.
+    pub key_scheme: KeyScheme,
+    /// The leader as standard keys write it: `C-k`.
+    pub leader_chord: String,
+    /// The keys of each command, by id: what `key-for` answers (1.5).
+    pub keys: BTreeMap<String, Keys>,
+    /// The open project's repository (`git-state`, 1.1).
+    pub git: Option<GitSummary>,
+    /// The task that ended last (`last-task`, 1.1).
+    pub last_task: Option<TaskResult>,
 
     // What it did.
     pub pages: BTreeMap<u64, OpenPage>,
     pub status: Option<String>,
     pub notifications: Vec<(Level, String)>,
+    /// Its notifications (`notify-with`, 1.3), in order.
+    pub toasts: Vec<Notification>,
+    /// The tags it dismissed (`notify-dismiss`), in order.
+    pub dismissed: Vec<String>,
+    /// Its notifications showing: one with a tag in place of the one
+    /// before it with that tag, none whose tag it dismissed since.
+    pub showing: Vec<Notification>,
+    /// What it said of its service calls' progress (`service-progress`).
+    pub progress: Vec<Progress>,
+    /// The commands it asked the keys of (`key-for`), in order.
+    pub keys_asked: Vec<String>,
     pub logs: Vec<(Level, String)>,
     pub processes: BTreeMap<u64, Process>,
     pub tasks_run: BTreeMap<u64, (String, Command)>,
@@ -277,7 +355,7 @@ pub struct State {
     replies: Vec<(String, ServiceFn)>,
     picks: Vec<(String, Choice)>,
     typed: Vec<(String, Option<String>)>,
-    task_ends: Vec<(String, bool)>,
+    task_ends: Vec<TaskEnd>,
 }
 
 impl Default for State {
@@ -316,9 +394,19 @@ impl Default for State {
             clock: None,
             utc_offset: 0,
             spawn_fails: false,
+            key_scheme: KeyScheme::Vim,
+            leader_chord: "C-k".into(),
+            keys: BTreeMap::new(),
+            git: None,
+            last_task: None,
             pages: BTreeMap::new(),
             status: None,
             notifications: Vec::new(),
+            toasts: Vec::new(),
+            dismissed: Vec::new(),
+            showing: Vec::new(),
+            progress: Vec::new(),
+            keys_asked: Vec::new(),
             logs: Vec::new(),
             processes: BTreeMap::new(),
             tasks_run: BTreeMap::new(),
@@ -396,6 +484,17 @@ pub fn apply_edits(text: &str, edits: &[TextEdit]) -> String {
         out.splice(a..b, e.text.chars());
     }
     out.into_iter().collect()
+}
+
+/// Vim keys' `SPC …` as standard keys' key menu writes it, under
+/// `leader`: `C-k …`. Keys without the leader (`gd`) aren't standard
+/// keys': none.
+fn in_standard(vim: &str, leader: &str) -> Option<String> {
+    match vim.strip_prefix("SPC") {
+        Some("") => Some(leader.to_string()),
+        Some(rest) if rest.starts_with(' ') => Some(format!("{leader}{rest}")),
+        _ => None,
+    }
 }
 
 fn words(languages: &[String]) -> String {
@@ -476,8 +575,11 @@ impl State {
         let word = if background { "background" } else { "task" };
         self.call(format!("{word} {id} {name}: {}", line(cmd)));
         self.tasks_run.insert(id, (name.into(), cmd.clone()));
-        let ended = self.task_ends.iter().rev().find(|(n, _)| n == name).map(|(_, ok)| *ok);
-        if let Some(ok) = ended {
+        let ended = self.task_ends.iter().rev().find(|(n, _, _)| n == name).map(|(_, ok, tests)| (*ok, *tests));
+        if let Some((ok, tests)) = ended {
+            if !background {
+                self.last_task = Some(TaskResult { name: name.into(), ok, tests });
+            }
             self.send(Event::TaskFinished((id, ok)));
         }
         Ok(id)
@@ -529,7 +631,7 @@ impl State {
     pub fn prompt(&mut self, label: &str, initial: &str, secret: bool) -> u64 {
         let id = self.id();
         self.call(if secret { format!("prompt-secret {id} {label}") } else { format!("prompt {id} {label} [{initial}]") });
-        self.prompts.push(Prompt { id, label: label.into(), initial: initial.into(), secret, compose: false });
+        self.prompts.push(Prompt { id, label: label.into(), initial: initial.into(), secret, compose: false, ask: None });
         if let Some(text) = self.typed_for(label) {
             self.send(Event::Prompted((id, text)));
         }
@@ -537,9 +639,19 @@ impl State {
     }
 
     pub fn compose(&mut self, title: &str, verb: &str, initial: &str) -> u64 {
+        self.compose_asking(title, verb, initial, None)
+    }
+
+    /// A compose pane; with `ask`, one the agent can write
+    /// (`compose-with-ask`): its payload, and whether it writes over
+    /// `initial`. What's in the pane comes back as for any compose pane.
+    pub fn compose_asking(&mut self, title: &str, verb: &str, initial: &str, ask: Option<(&str, bool)>) -> u64 {
         let id = self.id();
-        self.call(format!("compose {id} {title} ({verb}) [{initial}]"));
-        self.prompts.push(Prompt { id, label: title.into(), initial: initial.into(), secret: false, compose: true });
+        self.call(match ask {
+            Some((payload, over)) => format!("compose {id} {title} ({verb}) [{initial}] ask{} {payload}", if over { " over" } else { "" }),
+            None => format!("compose {id} {title} ({verb}) [{initial}]"),
+        });
+        self.prompts.push(Prompt { id, label: title.into(), initial: initial.into(), secret: false, compose: true, ask: ask.map(|(p, o)| (p.to_string(), o)) });
         if let Some(text) = self.typed_for(title) {
             self.send(Event::Composed((id, text)));
         }
@@ -579,6 +691,43 @@ impl State {
             l => format!("notify {} {message}", self::level(l)),
         });
         self.notifications.push((level, message.into()));
+    }
+
+    /// A notification (`notify-with`): written down, kept, and shown in
+    /// place of the one showing with its tag.
+    pub fn notify_with(&mut self, n: &Notification) {
+        self.call(notification_line(n));
+        self.toasts.push(n.clone());
+        if n.tag.is_some() {
+            self.showing.retain(|o| o.tag != n.tag);
+        }
+        self.showing.push(n.clone());
+    }
+
+    /// Its toast tagged `tag` taken away (`notify-dismiss`).
+    pub fn notify_dismiss(&mut self, tag: &str) {
+        self.call(format!("dismiss {tag}"));
+        self.dismissed.push(tag.into());
+        self.showing.retain(|n| n.tag.as_deref() != Some(tag));
+    }
+
+    /// What `key-for` answers for `command` in the scheme in use.
+    pub fn key_for(&mut self, command: &str) -> Option<String> {
+        self.keys_asked.push(command.into());
+        let Some(Keys::Bound { vim, standard }) = self.keys.get(command) else { return None };
+        match self.key_scheme {
+            KeyScheme::Vim => vim.clone(),
+            KeyScheme::Standard => standard.clone().or_else(|| vim.as_deref().and_then(|v| in_standard(v, &self.leader_chord))),
+        }
+    }
+
+    /// How far service call `call` has got (`service-progress`).
+    pub fn progress(&mut self, call: u64, message: &str, fraction: Option<f32>) {
+        self.call(match fraction {
+            Some(f) => format!("progress {call} {message} ({:.0}%)", f * 100.0),
+            None => format!("progress {call} {message}"),
+        });
+        self.progress.push(Progress { call, message: message.into(), fraction });
     }
 
     pub fn log(&mut self, level: Level, message: &str) {
@@ -992,6 +1141,78 @@ impl Fake {
         self
     }
 
+    /// How you edit (`key_scheme`, `editor-keys`): Vim keys unless a test
+    /// says. [`crate::Harness::key_scheme`] switches it and tells the
+    /// extension, as Fenix does.
+    pub fn key_scheme(&self, scheme: KeyScheme) -> &Fake {
+        self.state_mut().key_scheme = scheme;
+        self
+    }
+
+    /// The leader as standard keys write it (`keys.leader_chord`): `C-k`
+    /// unless a test says.
+    pub fn leader_chord(&self, chord: &str) -> &Fake {
+        self.state_mut().leader_chord = chord.into();
+        self
+    }
+
+    /// `command` runs on `keys`, written as Vim keys write them, `SPC`
+    /// the leader (`SPC h g`): `key_for` answers that with Vim keys, and
+    /// with standard keys the same under the leader chord (`C-k h g`). A
+    /// key that isn't under the leader (`gd`) standard keys don't have
+    /// unless [`Fake::key_in`] says.
+    pub fn key(&self, command: &str, keys: &str) -> &Fake {
+        self.state_mut().keys.insert(command.into(), Keys::Bound { vim: Some(keys.into()), standard: None });
+        self
+    }
+
+    /// `command` runs on `keys` in `scheme` alone (`F12` with standard
+    /// keys), over what [`Fake::key`] said for it.
+    pub fn key_in(&self, scheme: KeyScheme, command: &str, keys: &str) -> &Fake {
+        let mut s = self.state_mut();
+        let entry = s.keys.entry(command.into()).or_insert(Keys::Bound { vim: None, standard: None });
+        if let Keys::Menu(_) = entry {
+            *entry = Keys::Bound { vim: None, standard: None };
+        }
+        if let Keys::Bound { vim, standard } = entry {
+            match scheme {
+                KeyScheme::Vim => *vim = Some(keys.into()),
+                KeyScheme::Standard => *standard = Some(keys.into()),
+            }
+        }
+        drop(s);
+        self
+    }
+
+    /// No key runs `command`: `key_for` answers none (as for any command
+    /// a test said nothing of), with either scheme.
+    pub fn no_key(&self, command: &str) -> &Fake {
+        self.state_mut().keys.remove(command);
+        self
+    }
+
+    /// `command` is bound only in a buffer's `SPC m` menu, as `key`
+    /// there: `key_for` answers none for it, as Fenix's does, so the
+    /// extension has to write the menu's keys itself.
+    pub fn menu_key(&self, command: &str, key: &str) -> &Fake {
+        self.state_mut().keys.insert(command.into(), Keys::Menu(key.into()));
+        self
+    }
+
+    /// The open project's repository, as `git_state` gives it; none
+    /// outside one (the default).
+    pub fn git(&self, git: Option<GitSummary>) -> &Fake {
+        self.state_mut().git = git;
+        self
+    }
+
+    /// The task that ended last, as `last_task` gives it. A task pane's
+    /// task answered by [`Fake::on_task`] sets it too, as it ends.
+    pub fn last_task(&self, task: Option<TaskResult>) -> &Fake {
+        self.state_mut().last_task = task;
+        self
+    }
+
     // -- Its answers ---------------------------------------------------------
 
     /// A process `pattern` names -- its whole command line, or its start
@@ -1082,7 +1303,14 @@ impl Fake {
 
     /// A task called `name` ends, having succeeded or not.
     pub fn on_task(&self, name: &str, ok: bool) -> &Fake {
-        self.state_mut().task_ends.push((name.into(), ok));
+        self.state_mut().task_ends.push((name.into(), ok, None));
+        self
+    }
+
+    /// A task called `name` ends with its tests counted, `passed` and
+    /// `failed` (`last_task`'s `tests`): it succeeded when none failed.
+    pub fn on_task_tests(&self, name: &str, passed: u32, failed: u32) -> &Fake {
+        self.state_mut().task_ends.push((name.into(), failed == 0, Some((passed, failed))));
         self
     }
 
@@ -1120,6 +1348,35 @@ impl Fake {
     /// What it notified, in order (any level).
     pub fn notifications(&self) -> Vec<String> {
         self.state().notifications.iter().map(|(_, m)| m.clone()).collect()
+    }
+
+    /// Its notifications (`notify-with`), every one, in order: what each
+    /// said, how urgent, its tag and actions.
+    pub fn toasts(&self) -> Vec<Notification> {
+        self.state().toasts.clone()
+    }
+
+    /// The notifications showing now, oldest first, as Fenix keeps them:
+    /// one with a tag in place of the one before it with that tag, and
+    /// none whose tag it dismissed since. (A toast's time running out
+    /// isn't counted: what's shown is what it last said.)
+    pub fn showing(&self) -> Vec<Notification> {
+        self.state().showing.clone()
+    }
+
+    /// The tags it dismissed (`notify-dismiss`), in order.
+    pub fn dismissed(&self) -> Vec<String> {
+        self.state().dismissed.clone()
+    }
+
+    /// What it said of service call `call`'s progress, in order.
+    pub fn progress_of(&self, call: u64) -> Vec<Progress> {
+        self.state().progress.iter().filter(|p| p.call == call).cloned().collect()
+    }
+
+    /// The commands it asked the keys of (`key_for`), in order.
+    pub fn keys_asked(&self) -> Vec<String> {
+        self.state().keys_asked.clone()
     }
 
     /// What it logged, in order, as `level message`.

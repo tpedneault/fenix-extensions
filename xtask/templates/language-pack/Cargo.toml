@@ -10,7 +10,7 @@ description = "{{name}}: a language pack on lang-kit -- tasks, and a project che
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 fenix-lang-kit = { path = "../../crates/lang-kit" }
 
 [dev-dependencies]

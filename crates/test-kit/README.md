@@ -5,6 +5,11 @@ that writes down what the extension asked of it and answers with what
 the test gives it, a harness that drives the extension as Fenix does,
 and its pages as text to snapshot.
 
+It's built on extension API 1.5 (`fenix-extension-api`, tag `v1.5.0`),
+as ui-kit and lang-kit are: an extension using it builds its API from
+that tag too, so their types are one (`engine.api = "1.5"`, Fenix 1.5 and
+after).
+
 ```toml
 [dev-dependencies]
 fenix-test-kit = { path = "../../crates/test-kit" }
@@ -23,9 +28,12 @@ a test a host of its own, and two ways to reach it:
 - **`fenix_test_kit::api`**, the API with the fake for its host. It's
   everything `fenix_extension_api` has -- types, `Page`'s builders,
   `export!` -- with each free function, each `page::`, `buffer::`,
-  `project::` and the like call, every `host::` call of API 1.0, and
-  `info!`, `warn!` and `error!` going to the fake. Each is checked at
-  compile time to have the API's own signature. An extension takes it
+  `project::` and the like call, every `host::` call of API 1.5 (1.0's
+  and what 1.1 to 1.5 added: `key_for`, `key_scheme`, `notify_dismiss`,
+  `compose_with_ask`, `progress`, `host::notify_with`,
+  `host::git_state`, `host::last_task`), and `info!`, `warn!` and
+  `error!` going to the fake. Each is checked at compile time to have
+  the API's own signature. An extension takes it
   in its tests in place of the API, by the name it calls the API by:
 
   ```rust,ignore
@@ -91,6 +99,88 @@ assert_eq!(fake.notifications(), ["on feature/kit"]);
 assert_eq!(fake.take()[..3], ["page 1 branches Branches", "spawn 2 git branch --format=%(refname:short)", "refresh 1"]);
 ```
 
+## Keys of the scheme in use
+
+`key_for` and `key_scheme` (API 1.5) are the fake's too, so a hint that
+names a key -- "`SPC h g` opens the gallery", `C-k h g` with standard
+keys -- is tested as it is, natively, with no `#[cfg(target_arch =
+"wasm32")]` around the call and no literal fallback for `cargo test`:
+the code calls `api::key_for`, and the test says what Fenix would
+answer. A key bound only in a buffer's `SPC m` menu is no key to
+Fenix's `key_for`, nor to the fake's (`menu_key`): the extension writes
+those itself, from the leader.
+
+```rust
+use fenix_test_kit::{api, Fake, Harness};
+use api::{page, Extension, KeyScheme, Page};
+
+/// The keys that run `command` now, else `vim` with the leader of the
+/// scheme in use.
+fn keys(command: &str, vim: &str) -> String {
+    api::key_for(command).unwrap_or_else(|| match (api::key_scheme(), vim.strip_prefix("SPC ")) {
+        (KeyScheme::Standard, Some(rest)) => format!("C-k {rest}"),
+        _ => vim.to_string(),
+    })
+}
+
+#[derive(Default)]
+struct Hints(Option<u64>);
+
+impl Extension for Hints {
+    fn run_command(&mut self, _id: &str) -> Result<(), String> {
+        self.0 = Some(page::open("hints", "Hints"));
+        Ok(())
+    }
+    fn page(&mut self, _: u64, _: u32, _: u32) -> Page {
+        Page::new()
+            .line([page::text(format!("{} opens the gallery", keys("gallery.open", "SPC h g")))])
+            .line([page::text(format!("{} formats the file", keys("demo.format", "SPC m f")))])
+    }
+    // Told the scheme changed: the hints are drawn again.
+    fn key_scheme_changed(&mut self, _: KeyScheme) {
+        if let Some(p) = self.0 {
+            page::refresh(p);
+        }
+    }
+}
+
+let fake = Fake::new();
+fake.key("gallery.open", "SPC h g").menu_key("demo.format", "f");
+let mut h: Harness<Hints> = Harness::with_fake(fake.clone());
+h.command("hints.open").unwrap();
+let p = h.page("hints");
+assert_eq!(h.screen(p), "SPC h g opens the gallery\nSPC m f formats the file\n");
+
+h.key_scheme(KeyScheme::Standard); // set in the fake, then `key_scheme_changed`
+assert_eq!(h.screen(p), "C-k h g opens the gallery\nC-k m f formats the file\n");
+assert_eq!(fake.take().last().map(String::as_str), Some("refresh 1"));
+```
+
+`fake.key(command, "SPC h g")` is written as Vim keys write it; with
+standard keys the fake says its `SPC` as the leader chord, `C-k` (or what
+`leader_chord` sets), as Fenix's key menu does. `key_in(scheme, command,
+keys)` gives one scheme keys of its own (`F12` for `gd`), `no_key` takes
+them away.
+
+## Notifications
+
+`api::host::notify_with(&notification)` (API 1.3) is the fake's;
+`Notification::show()`, the API's method, calls Fenix's and panics
+natively, so code a test reaches calls the host function, which is what
+`show` does:
+
+```rust,ignore
+api::host::notify_with(&api::Notification::new("Build passed").body("in 41 s").urgency(api::Urgency::Low).tag("build"));
+```
+
+`fake.toasts()` is every one, in order, as given -- summary, body,
+urgency, tag, actions, progress; `fake.showing()` those Fenix would show
+now, one with a tag in place of the one before with that tag, none whose
+tag was dismissed since (`api::notify_dismiss`, `fake.dismissed()`). A
+line in the log is `notification low #build: Build passed -- in 41 s`,
+with ` [Label -> command]` for each action. `fake.notifications()` is
+still the message line's, `api::notify`.
+
 Kept as a snapshot instead, in `tests/snapshots/branches.txt` beside the
 crate's tests:
 
@@ -106,20 +196,25 @@ diff before you commit them. `tests/` isn't packed.
 
 | | |
 |---|---|
-| `Fake` | The host. Set up what the extension finds: `setting`, `secret`, `env`, `program` (for `find-program`), `platform`, `theme`, `palette`, `in_file` (where you are, and that buffer's text), `cursor`, `selection`, `project`, `buffer`, `file` (for `read-file`), `clipboard`, `clock` (`api::clock::now`), `now` (lang-kit's). Give its answers: `on_spawn` (a `Ran`: stdout and stderr in lines, an exit code; or still running), `on_spawn_error`, `on_spawn_with` (a closure), `on_http` and `on_http_error` (`URL`, `METHOD URL`, a `*` at the end), `on_download` (writes the file), `on_service` and `on_service_with`, `on_pick`, `on_pick_many`, `on_pick_nothing`, `on_prompt` and `on_prompt_nothing` (prompts, secrets' prompts, compose panes), `on_task`. The last answer given for a pattern wins. Read what it did: `take` (the calls since last asked, a line each), `calls`, `notifications`, `logs`, `status`, `open_pages` and `page(kind)`, `spawned` and `process(pattern)` (stdin written, closed, killed), `requests`, `timers`, `pickers`, `prompts`, `services`, `problems(path)`, `decorations(path)`, `text(path)` (a buffer with its edits made), `copied`, `checks`, `tasks`, `settings_read`, `setting_value`; the rest, whole, in `state()`. |
-| `Harness` | `activate`, `command`, `event`, `key`, `keys("jj<Enter>")`, `press`, `ctrl`, `named`, `paste`, `click`, `mouse`, `close` (you closed a page), `saved`, `focus`, `changed`, `serve`, `set_setting` (set, then `setting-changed`), `fire` and `fire_timers`, `said` and `exited` (a process's lines by hand); then `render`, `screen` and `marked` a page. After each call the events waiting are given to the extension (`settles`; off, `settle` does it). `Harness::new` makes the extension with `Default`; `with_fake` once a fake is set up; `wrap` takes one made some other way. |
+| `Fake` | The host. Set up what the extension finds: `setting`, `secret`, `env`, `program` (for `find-program`), `platform`, `theme`, `palette`, `in_file` (where you are, and that buffer's text), `cursor`, `selection`, `project`, `buffer`, `file` (for `read-file`), `clipboard`, `clock` (`api::clock::now`), `now` (lang-kit's); and from API 1.1 to 1.5 `key_scheme`, `key`, `key_in`, `no_key`, `menu_key` and `leader_chord` (what `key_for` answers), `git` (`git_state`), `last_task`. Give its answers: `on_spawn` (a `Ran`: stdout and stderr in lines, an exit code; or still running), `on_spawn_error`, `on_spawn_with` (a closure), `on_http` and `on_http_error` (`URL`, `METHOD URL`, a `*` at the end), `on_download` (writes the file), `on_service` and `on_service_with`, `on_pick`, `on_pick_many`, `on_pick_nothing`, `on_prompt` and `on_prompt_nothing` (prompts, secrets' prompts, compose panes, the agent's too), `on_task` and `on_task_tests` (its tests counted, for `last_task`). The last answer given for a pattern wins. Read what it did: `take` (the calls since last asked, a line each), `calls`, `notifications` (the message line's), `toasts`, `showing` and `dismissed` (notifications), `logs`, `status`, `open_pages` and `page(kind)`, `spawned` and `process(pattern)` (stdin written, closed, killed), `requests`, `timers`, `pickers`, `prompts` (a compose pane's `ask`), `services`, `progress_of(call)`, `problems(path)`, `decorations(path)`, `text(path)` (a buffer with its edits made), `copied`, `checks`, `tasks`, `settings_read`, `keys_asked`, `setting_value`; the rest, whole, in `state()`. |
+| `Harness` | `activate`, `command`, `event`, `key`, `keys("jj<Enter>")`, `press`, `ctrl`, `named`, `paste`, `click`, `mouse`, `close` (you closed a page), `saved`, `focus`, `changed`, `serve`, `set_setting` (set, then `setting-changed`), `key_scheme` (set, then `key-scheme-changed`), `cancelled` (`service-cancelled`), `ask_progress` (`agent-ask-progress`), `fire` and `fire_timers`, `said` and `exited` (a process's lines by hand); then `render`, `screen` and `marked` a page. After each call the events waiting are given to the extension (`settles`; off, `settle` does it). `Harness::new` makes the extension with `Default`; `with_fake` once a fake is set up; `wrap` takes one made some other way. |
 | `render` | `text(&Page)`: a page's lines, or a canvas's cells, a line each; hairlines as `─` and `│`, pictures as `▒`, a popup under its line, the keys at the foot. `marked(&Page)`: the same, the focused line with `>` in the gutter, and a run in a role, on a background, underlined or in a colour as `«accent bg=panel:text»`. `canvas` and `canvas_marked` take a `ui-kit` `Canvas` (feature `ui-kit`, on by default): a widget's test, or a gallery's. Spaces at lines' ends go. |
 | `assert_snapshot!` | Text against `tests/snapshots/<name>.txt`; `UPDATE_SNAPSHOTS=1` writes it. |
-| `Fake` as lang-kit's `Host` | Feature `lang-kit`. Its lines are lang-kit's mock's (`spawn 3 /t/zig version`, `tasks build, fmt`, `problems /project/a.zig 1`), except a log line says its level (`warn ...` for what the mock wrote `log ...`). `fake.host()` is it boxed for `Kit::with_host`; `server_settings(name)` what a server was given. |
+| `Fake` as lang-kit's `Host` | Feature `lang-kit`. Its lines are lang-kit's mock's (`spawn 3 /t/zig version`, `tasks build, fmt`, `problems /project/a.zig 1`, `notification low #install.zls: Installed ZLS -- ...`), except a log line says its level (`warn ...` for what the mock wrote `log ...`). An install the kit ran is in `toasts` and `showing`. `fake.host()` is it boxed for `Kit::with_host`; `server_settings(name)` what a server was given. |
 
 ## What it doesn't do
 
 - **Methods on the API's types that call the host**: `Command::spawn`,
   `spawn_raw`, `run_as_task`, `run_in_background`, `run_in_terminal`,
-  `run_below`, `HttpRequest::send`, `send_with` and `download`. They're
-  the API's code, so natively they panic. Call what they stand for:
-  `api::host::spawn(&cmd)`, `api::host::run_task(name, &cmd)`,
-  `api::host::http(&req)` -- the same calls, in both builds.
+  `run_below`, `HttpRequest::send`, `send_with` and `download`,
+  `Notification::show`. They're the API's code, so natively they panic.
+  Call what they stand for: `api::host::spawn(&cmd)`,
+  `api::host::run_task(name, &cmd)`, `api::host::http(&req)`,
+  `api::host::notify_with(&n)` -- the same calls, in both builds.
+- **Asking an agent**: `agents::ask` and `agents::ask_with` wait on the
+  API's own `run` executor, whose service calls are Fenix's. A test can
+  give the extension the answer as an event (`ServiceReply`) and drive
+  the streamed draft with `Harness::ask_progress`.
 - **A call by the API's own path** (`fenix_extension_api::notify`, a
   `use fenix_extension_api::page`): Fenix's, so it panics. Every call
   goes through the `api` name.
@@ -134,13 +229,12 @@ diff before you commit them. `tests/` isn't packed.
 - **The filesystem**: `std::fs` is the machine's, and `/data`,
   `/project` and `/tools` aren't there. Keep paths in a field a test can
   point at a temporary folder, as the language packs do.
-- **API 1.1 to 1.5**: it's built on API 1.0, the tag ui-kit, lang-kit
-  and 39 of the 47 code extensions pin. An extension on a later tag has
-  its types from that tag, which aren't the kit's, and Cargo won't patch
-  one tag of a git dependency with another: it can't use the kit yet. That
-  takes a kit built on its tag, as ui-kit and lang-kit would need too, and
-  the calls 1.1 to 1.5 added (`notify-with`, `git-state`, `key-for` and
-  the rest) faked.
+- **Another tag of the API**: it's built on `v1.5.0`, as ui-kit and
+  lang-kit are. An extension on another tag has its types from that tag,
+  which aren't the kit's, and Cargo won't patch one tag of a git
+  dependency with another: it moves to `v1.5.0` to use the kit. An
+  extension on 1.0 to 1.4 that doesn't want Fenix 1.5's floor can't use
+  it.
 - **Timing**: the fake answers at once, in order; timers go off when a
   test fires them.
 

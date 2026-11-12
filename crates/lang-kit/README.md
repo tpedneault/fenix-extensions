@@ -7,7 +7,7 @@ into the tools folder, a formatter and a linter.
 
 ```toml
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 fenix-lang-kit = { path = "../../crates/lang-kit" }
 ```
 
@@ -64,7 +64,9 @@ Its manifest lists the kit's commands -- `python.packages`, `python.doctor`,
 `python.install.ruff` and each fix row's (`python.install-uv`) -- the
 programs it runs (`uv`, `python3`, `/tools/*` for what it installs),
 the hosts it downloads from, `filesystem = "project-read"`, `editor =
-"read"` and `events = ["saved"]` for the linter, and `api = "1.0"`.
+"read"` and `events = ["saved"]` for the linter, and `api = "1.5"`: the kit is built
+on extension API 1.5 (tag `v1.5.0`), so a pack using it builds its API
+from that tag too, and needs Fenix 1.5 (`fenix = ">=1.5, <2"`).
 
 | | |
 |---|---|
@@ -73,15 +75,16 @@ the hosts it downloads from, `filesystem = "project-read"`, `editor =
 | `Program`, `Doctor` | A program found with `find-program`, asked its version (5 s, or its `timeout`, with its `env` and `cwd`), held to a `Requirement` (`>=3.9`, `^1.22`, `>=18 <21 \|\| 22`); a fix row that runs a task, an install, or a command of the pack's. The checks are made again after a fix. A program can be checked twice under two labels (`uv`, and the Python uv finds), and `judge` -- a closure, which may hold what it expects -- reads what it said in place of a version (`uv sync --locked --dry-run`: in step or not). `Kit::extra_checks` works the pack's own checks out again each time. |
 | `Version`, `Requirement`, `find_version` | Versions as tools print them (`go1.22.3`, `3.12.0rc1`, `1.0-SNAPSHOT`, pseudo-versions), compared; ranges npm, Cargo and pip write; the version in `--version`'s output. |
 | `Tasks` | A table of name and command line, a `cwd`, an env file's values (`parse_env`), set with `tasks-set`. |
-| `Install`, `Installer` | A release downloaded into `/tools/<name>` and checked by Fenix, unpacked a step a timer (`.zip`/`.vsix`, `.tar.gz`, `.tar.xz`, `.tar`, `.gz`, a plain file) with paths kept in the folder, made to run, marked with its URL, then set as the language server, a server beside the others (`added_language_server`), or the debug adapter, on stdio or over a socket (`debug_adapter_connect`). Used again when the pack starts. |
+| `Install`, `Installer` | A release downloaded into `/tools/<name>` and checked by Fenix, unpacked a step a timer (`.zip`/`.vsix`, `.tar.gz`, `.tar.xz`, `.tar`, `.gz`, a plain file) with paths kept in the folder, made to run, marked with its URL, then set as the language server, a server beside the others (`added_language_server`), or the debug adapter, on stdio or over a socket (`debug_adapter_connect`). Used again when the pack starts. Starting one is said in the message line; how it ended is a notification (API 1.3), since a download can take minutes while you work elsewhere: tagged `install.<name>`, so the newest for a tool takes the older's place; low urgency when it worked ("Installed ZLS", what it's now used as), normal when it didn't, saying which step failed and why, with *Try again* (`<prefix>.install.<name>`). A failure's toast is taken away when that install starts again. |
 | `Linter`, `Lint`, `compiler_lines` | Run on `saved` in `/project` (or `Kit::file_saved`'s path), its output read into `Problem`s (`path:line:col: severity: message`, MSBuild's, or the pack's own parser) and set with `diagnostics-set`. `Linter::with_fixes` gives each problem its fixes (`diagnostics-set-ex`, `SPC c a`); `Linter::across` speaks of several files (clippy, a package's vet), each set and those it no longer speaks of made clean. |
 | `Risk`, `cvss` | An advisory's severity as tools say it: a word, a score, or a CVSS 2 or 3 vector. |
 | `formatter` | `project::formatter`: Fenix runs it on `SPC c F` and on save. |
-| `Host` | Every host call; `Fenix` makes them. The later ones -- HTTP, `platform`, `open_url`, a server added or given settings, an adapter over a socket, problems with fixes, background tasks, launches and their variables -- have defaults that say the host can't, so a host of a pack's own needn't have them. |
+| `Host` | Every host call; `Fenix` makes them. The later ones -- HTTP, `platform`, `open_url`, a server added or given settings, an adapter over a socket, problems with fixes, background tasks, launches and their variables, a notification and its dismissal -- have defaults that say the host can't (a notification is said in the message line), so a host of a pack's own needn't have them. |
 
 A pack tests its own wiring with the host lang-kit's tests use, the
 `mock` feature's `host::mock::{Mock, Shared}`: every call written down as
-a line, programs found from a map. Or, better, with the
+a line (a notification as `notification low #install.zls: Installed ZLS --
+...`, as the test kit's `Fake` writes it too), programs found from a map. Or, better, with the
 [test kit](../test-kit/README.md)'s `Fake` (its `lang-kit` feature), which
 is a `Host` writing the same lines, and answers too -- a process's
 output, a download -- sees the pack's own calls to the API, drives it as

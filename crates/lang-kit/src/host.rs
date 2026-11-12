@@ -3,8 +3,7 @@
 //! here runs and tests on the host.
 
 use fenix_extension_api as api;
-use fenix_extension_api::{Check, Command, HttpRequest, PickerItem, PlatformInfo, Problem, Task};
-use fenix_extension_api::LaunchConfig;
+use fenix_extension_api::{Check, Command, HttpRequest, LaunchConfig, Notification, PickerItem, PlatformInfo, Problem, Task, Urgency};
 
 /// The host calls lang-kit makes.
 pub trait Host {
@@ -38,9 +37,8 @@ pub trait Host {
     fn now(&mut self) -> u64;
 
     // Later calls, each with what a host that hasn't it does: says so, or
-    // nothing. `Fenix` makes those of 0.8.5 and after with the `later`
-    // feature only, for a pack whose Cargo.lock reaches API 0.8.7; without
-    // it they're these defaults, and a pack on 0.8.4 builds as it did.
+    // nothing, so a host of a pack's own needn't have them. `Fenix` makes
+    // them all.
 
     /// An HTTP request (`permissions.network`): its answer comes as
     /// `Event::HttpResponse`.
@@ -76,8 +74,7 @@ pub trait Host {
     }
     /// Problems with their fixes, offered by `SPC c a`.
     fn diagnostics_with_fixes(&mut self, path: &str, problems: &[Problem]) -> Result<(), String> {
-        let plain: Vec<Problem> = problems.iter().map(|p| p.clone()).collect();
-        self.diagnostics(path, &plain)
+        self.diagnostics(path, problems)
     }
     /// A task beside the task pane: several run at once.
     fn run_task_background(&mut self, _name: &str, _cmd: &Command) -> Result<u64, String> {
@@ -95,6 +92,44 @@ pub trait Host {
     fn launch_variable(&mut self, _name: &str, _choices: &[PickerItem]) -> Result<(), String> {
         Err("this host can't take launch variables".into())
     }
+    /// A notification (API 1.3's `notify-with`): a toast, kept in the
+    /// history, the system's own when Fenix is away. A host without them
+    /// says its summary and body in the message line.
+    fn notification(&mut self, n: &Notification) {
+        if n.body.is_empty() {
+            self.notify(&n.summary)
+        } else {
+            self.notify(&format!("{}: {}", n.summary, n.body))
+        }
+    }
+    /// Its toast tagged `tag` taken away, if one is showing (`notify-dismiss`).
+    fn dismiss(&mut self, _tag: &str) {}
+}
+
+/// A notification as a line of a test host's log: `notification low
+/// #tag: Summary -- its body [Label -> command]`. The test kit's `Fake`
+/// writes the same.
+pub fn notification_line(n: &Notification) -> String {
+    let urgency = match n.urgency {
+        Urgency::Low => "low",
+        Urgency::Normal => "normal",
+        Urgency::Critical => "critical",
+    };
+    let mut out = format!("notification {urgency}");
+    if let Some(tag) = &n.tag {
+        out.push_str(&format!(" #{tag}"));
+    }
+    out.push_str(&format!(": {}", n.summary));
+    if !n.body.is_empty() {
+        out.push_str(&format!(" -- {}", n.body));
+    }
+    for a in &n.actions {
+        out.push_str(&format!(" [{} -> {}]", a.label, a.command));
+    }
+    if let Some(p) = n.progress {
+        out.push_str(&format!(" ({:.0}%)", p * 100.0));
+    }
+    out
 }
 
 /// The real thing: each call is Fenix's.
@@ -215,6 +250,12 @@ impl Host for Fenix {
     fn launch_variable(&mut self, name: &str, choices: &[PickerItem]) -> Result<(), String> {
         api::debug::variable(name, choices)
     }
+    fn notification(&mut self, n: &Notification) {
+        api::host::notify_with(n)
+    }
+    fn dismiss(&mut self, tag: &str) {
+        api::notify_dismiss(tag)
+    }
 }
 
 /// A host for tests: ids counted up, each call written down as a line,
@@ -249,6 +290,8 @@ pub mod mock {
         pub launches: Vec<LaunchConfig>,
         /// Launch variables' choices, by name.
         pub variables: HashMap<String, Vec<PickerItem>>,
+        /// Its notifications, in order.
+        pub notifications: Vec<Notification>,
     }
 
     pub fn line(cmd: &Command) -> String {
@@ -403,7 +446,7 @@ pub mod mock {
         fn diagnostics_with_fixes(&mut self, path: &str, problems: &[Problem]) -> Result<(), String> {
             let fixes: usize = problems.iter().map(|p| p.fixes.len()).sum();
             self.calls.push(format!("problems {path} {} ({fixes} fixes)", problems.len()));
-            self.problems.insert(path.into(), problems.iter().map(|p| p.clone()).collect());
+            self.problems.insert(path.into(), problems.to_vec());
             self.fixes.insert(path.into(), problems.to_vec());
             Ok(())
         }
@@ -433,6 +476,13 @@ pub mod mock {
             }
             Ok(())
         }
+        fn notification(&mut self, n: &Notification) {
+            self.calls.push(notification_line(n));
+            self.notifications.push(n.clone());
+        }
+        fn dismiss(&mut self, tag: &str) {
+            self.calls.push(format!("dismiss {tag}"));
+        }
     }
     /// The mock, shared: a test keeps one and gives the [`crate::Kit`]
     /// the other, and looks at the calls while the kit has it.
@@ -455,6 +505,9 @@ pub mod mock {
                 }
                 fn launches(&mut self, launches: &[LaunchConfig]) -> Result<(), String> {
                     self.0.borrow_mut().launches(launches)
+                }
+                fn notification(&mut self, n: &Notification) {
+                    self.0.borrow_mut().notification(n)
                 }
             }
         };
@@ -495,5 +548,6 @@ pub mod mock {
         task_cancel(task: u64) -> ();
         task_show(task: u64) -> Result<(), String>;
         launch_variable(name: &str, choices: &[PickerItem]) -> Result<(), String>;
+        dismiss(tag: &str) -> ();
     }
 }

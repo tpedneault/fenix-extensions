@@ -3,7 +3,7 @@
 //! asks through [`api`](crate::api) are written down in one log, in the
 //! words lang-kit's own mock used.
 
-use fenix_extension_api::{Check, Command, HttpRequest, LaunchConfig, Level, PickerItem, PlatformInfo, Problem, Task};
+use fenix_extension_api::{Check, Command, HttpRequest, LaunchConfig, Level, Notification, PickerItem, PlatformInfo, Problem, Task};
 use fenix_lang_kit::Host;
 
 use crate::Fake;
@@ -117,6 +117,12 @@ impl Host for Fake {
     }
     fn launch_variable(&mut self, name: &str, choices: &[PickerItem]) -> Result<(), String> {
         self.state_mut().launch_variable(name, choices)
+    }
+    fn notification(&mut self, n: &Notification) {
+        self.state_mut().notify_with(n)
+    }
+    fn dismiss(&mut self, tag: &str) {
+        self.state_mut().notify_dismiss(tag)
     }
 }
 

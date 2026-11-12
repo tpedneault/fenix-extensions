@@ -68,7 +68,7 @@ fn every_section_has_a_snapshot_and_no_snapshot_is_left_over() {
     for id in Id::ALL {
         assert!(names.iter().any(|n| n == id.file().trim_end_matches(".rs")), "{id:?}");
     }
-    if std::env::var("GALLERY_SNAPSHOTS").as_deref() == Ok("write") {
+    if std::env::var(fenix_test_kit::snapshot::UPDATE).is_ok_and(|v| !v.is_empty() && v != "0") {
         return;
     }
     for entry in std::fs::read_dir(dir).unwrap() {

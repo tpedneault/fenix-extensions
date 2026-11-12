@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.regex"
 name = "Regex"
-version = "1.1.0"
+version = "1.2.0"
 description = "A regex playground: matches and their groups coloured as you type, the replacement's result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,9 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# As the shared test kit its tests run on is built.
+api = "1.5"
 
 # Its commands load it.
 [activation]

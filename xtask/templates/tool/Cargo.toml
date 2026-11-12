@@ -10,7 +10,7 @@ description = "{{name}}: a page that counts the words in what you type."
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 fenix-ui-kit = { path = "../../crates/ui-kit" }
 
 [profile.release]

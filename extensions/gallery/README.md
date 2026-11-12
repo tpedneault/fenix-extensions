@@ -5,7 +5,9 @@ you writing an extension: what each looks like, how its keys and the
 mouse behave, and, a key away, the code that draws it. It's the kit's
 living documentation, and its visual regression test.
 
-`gallery.open` (`SPC h g`) opens it. The sections are down the left;
+`gallery.open` (`SPC h g`, or `C-k h g` with standard keys) opens it,
+and the foot of the page says those keys, as the scheme you're in has
+them, or yours if you've rebound them. The sections are down the left;
 `[` and `]` go through them, or click one. Each is a widget working as
 it would in a real extension, on made-up data:
 
@@ -31,7 +33,7 @@ runs.
 
 | Key | What it does |
 | --- | --- |
-| `SPC h g` | Open the gallery (`gallery.open`) |
+| `SPC h g` (standard keys: `C-k h g`) | Open the gallery (`gallery.open`) |
 | `[` `]` | The section before, after |
 | `c` | The section's code, beside the page |
 | `q`, `Esc` | Close it |
@@ -71,19 +73,22 @@ cargo xtask pack extensions/gallery dist
 cargo test --manifest-path extensions/gallery/Cargo.toml
 ```
 
-It's built against the 1.0 extension API, as `ui-kit` is: the kit's
-conversions to the API's types are 1.0's, and the gallery's keys are
-the page's own, the same under either key scheme, so it needs nothing
-newer (no `key_for`).
+It needs Fenix 1.5 or later (extension API 1.5), as `ui-kit` is built
+on it: the hint at its foot asks Fenix the keys of `gallery.open` in the
+scheme in use (`key_for`). The page's own keys are the same under
+either key scheme.
 
 `cargo test` checks that every section, in each state its keys put it
 in, draws only inside its rectangle at sizes from 120 by 40 down to 1
 by 1 and none; the page as text at 100 by 30 (and some at 80 by 24)
-against the snapshots in `tests/snapshots/` (`GALLERY_SNAPSHOTS=write
+against the snapshots in `tests/snapshots/` (`UPDATE_SNAPSHOTS=1
 cargo test` takes them again); each widget's keys and mouse; that the
-session keeps what it should; and that every section's file has its
-`// gallery:begin` and `// gallery:end` markers round the code `c`
-shows. The text a canvas becomes is drawn by `tests/support/mod.rs`.
+session keeps what it should; that the foot names the keys of the
+scheme in use, on the [test kit](../../crates/test-kit)'s fake host;
+and that every section's file has its `// gallery:begin` and
+`// gallery:end` markers round the code `c` shows. The text a canvas
+becomes is the test kit's (`fenix_test_kit::render`), with the focus,
+the popup's place and typing said below it by `tests/support/mod.rs`.
 
 Not yet tried in a running Fenix: the snapshots are how it's been
 seen. The colours, the tints, the popup's box and the code's
