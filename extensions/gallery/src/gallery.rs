@@ -40,6 +40,10 @@ pub struct Gallery {
     sidebar: TreeState,
     /// The last thing a section said; gone at the next key.
     pub message: Option<String>,
+    /// What the foot says when nothing else is: the keys that open the
+    /// gallery from anywhere, as the scheme in use has them (`lib.rs`
+    /// asks Fenix, `key_for`). None when no key does.
+    pub hint: Option<String>,
     /// Where the sidebar was drawn, for clicks.
     side: Cell<Rect>,
 }
@@ -92,6 +96,7 @@ impl Gallery {
             mouse: Default::default(),
             sidebar,
             message: None,
+            hint: None,
             side: Cell::new(Rect::default()),
         }
     }
@@ -177,6 +182,8 @@ impl Gallery {
             c.rule(foot.y, 0..w);
             if let Some(m) = &self.message {
                 draw::text(&mut c, foot, 0, 1, m, Role::Accent);
+            } else if let Some(keys) = &self.hint {
+                draw::text(&mut c, foot, 0, 1, &format!("{keys} opens the gallery from anywhere"), Role::Muted);
             }
             draw::draw_strip(&mut c, &keys, Rect::new(0, foot.y + 2, w, strip));
         }

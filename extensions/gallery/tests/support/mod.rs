@@ -1,10 +1,8 @@
-//! A canvas as plain text, and what it drew outside a rectangle: the test
-//! support for the gallery's tests. Kept to this one file so it can give
-//! way to the shared canvas-to-text renderer the test kit is to bring.
+//! The test support for the gallery's tests: a canvas as plain text --
+//! the test kit's (`fenix_test_kit::render`), with what it doesn't say --
+//! and what a canvas drew outside a rectangle.
 
 #![allow(dead_code)]
-
-use std::path::PathBuf;
 
 use fenix_gallery::gallery::Gallery;
 use fenix_gallery::sections::Id;
@@ -31,25 +29,13 @@ fn cells(c: &Canvas, y: usize) -> Vec<String> {
     out
 }
 
-/// The canvas as a screen `h` lines tall: its text, hairlines drawn as
-/// `─` over blank cells, then the focused row, the popup Fenix would
-/// draw over it, and whether it's typing.
+/// The canvas as a screen `h` lines tall: its text as the test kit
+/// draws it (hairlines as `─` over blank cells, dividers as `│`, the popup
+/// Fenix would draw over it under the line it's beside), then the focused
+/// row, the popup's place, and whether it's typing.
 pub fn screen(c: &Canvas, h: usize) -> String {
-    let mut lines = Vec::new();
-    for y in 0..h.max(c.height()) {
-        let mut row = cells(c, y);
-        for (_, cols) in c.rules().iter().filter(|(ry, _)| *ry == y) {
-            if row.len() < cols.end {
-                row.resize(cols.end, " ".into());
-            }
-            for cell in &mut row[cols.clone()] {
-                if cell == " " {
-                    *cell = "─".into();
-                }
-            }
-        }
-        lines.push(row.concat().trim_end().to_string());
-    }
+    let mut lines: Vec<String> = fenix_test_kit::render::canvas(c).lines().map(str::to_string).collect();
+    lines.resize(lines.len().max(h.max(c.height())), String::new());
     let mut out = lines.join("\n");
     out.push_str("\n----\n");
     match c.focused() {
@@ -58,9 +44,6 @@ pub fn screen(c: &Canvas, h: usize) -> String {
     }
     if let Some(p) = c.popup_ref() {
         out.push_str(&format!("popup: beside line {}, from cell {}\n", p.line, p.col));
-        for row in &p.rows {
-            out.push_str(&format!("  {}\n", row.iter().map(|(t, _)| t.as_str()).collect::<String>().trim_end()));
-        }
     }
     out.push_str(&format!("typing: {}\n", c.typing()));
     out
@@ -117,15 +100,9 @@ pub fn outside(c: &Canvas, rect: Rect) -> Vec<String> {
 }
 
 /// `text` against the snapshot `name`, under `tests/snapshots/`; with
-/// `GALLERY_SNAPSHOTS=write`, written there instead.
+/// `UPDATE_SNAPSHOTS=1`, written there instead.
 pub fn snapshot(name: &str, text: &str) {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/snapshots").join(format!("{name}.txt"));
-    if std::env::var("GALLERY_SNAPSHOTS").as_deref() == Ok("write") {
-        std::fs::write(&path, text).unwrap();
-        return;
-    }
-    let want = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("no snapshot {}: GALLERY_SNAPSHOTS=write cargo test makes it", path.display()));
-    assert!(want == text, "{name} isn't its snapshot ({}); GALLERY_SNAPSHOTS=write cargo test takes it as it is now.\n--- now:\n{text}\n--- snapshot:\n{want}", path.display());
+    fenix_test_kit::assert_snapshot!(name, text);
 }
 
 /// Each key of `keys` pressed on `g`, a char a key.

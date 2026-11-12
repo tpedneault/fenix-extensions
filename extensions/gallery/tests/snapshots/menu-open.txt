@@ -5,6 +5,11 @@ Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
   Tabs       │ Cargo.toml                             612 B
   Text field │ README.md                             3.8 KB
   List       │ CHANGELOG.md                          1.2 KB
+                             │ › Open          o
+                             │   Open beside   b
+                             │   Copy the path y
+                             │   Rename…       r
+                             │   Delete        d
 › Popup menu │ src/main.rs                           2.1 KB
   Splits     │ src/cli.rs                            4.3 KB
   Scrolling  │ src/tides/mod.rs                       905 B
@@ -31,9 +36,4 @@ j k move  Enter pick  o b y r d pick that  m close it  [ ] section  c its code
 ----
 focus: line 6, cells 15..59
 popup: beside line 6, from cell 29
-  › Open          o
-    Open beside   b
-    Copy the path y
-    Rename…       r
-    Delete        d
 typing: false
