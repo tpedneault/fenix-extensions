@@ -487,8 +487,6 @@ with the test explorer as the case for it.
 
 ## Still open
 
-1. Mark page-opening commands `external = true`, extension by
-   extension, so screenshots can reach them? It also lets other tools
-   open those pages.
-2. `Ctrl+T` in JetBrains keys runs `git pull --rebase` at once, where
-   IntelliJ asks first. Keep it?
+Nothing. Decided on 13 November: page-opening commands are to be marked
+`external = true`, extension by extension, so screenshots can reach
+them; and `Ctrl+T` stays in JetBrains keys.
