@@ -20,6 +20,7 @@
 
 mod external;
 mod install;
+mod lessons;
 mod new;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -329,6 +330,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
     }
     check_dependencies(&known, &here)?;
     screenshots::validate_all(root)?;
+    lessons::validate_all(root)?;
     println!("{count} extension(s)");
     Ok(())
 }
