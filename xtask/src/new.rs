@@ -1,5 +1,7 @@
-//! `cargo xtask new <kind> <publisher.name> [--name "Display name"] [--fenix]`:
-//! a new extension, started from a template, in `extensions/<name>/`.
+//! `cargo xtask new <kind> <name> [--name "Display name"]`: a new
+//! extension, started from a template, in `extensions/<name>/`. A bare
+//! `<name>` is this repository's, `fenix.<name>`; `<publisher.name>` is
+//! one its author will host.
 //!
 //! ```text
 //! theme          a light theme: manifest, one theme file
@@ -121,7 +123,7 @@ pub const KINDS: &[Kind] = &[
     },
 ];
 
-const USAGE: &str = "cargo xtask new <kind> <publisher.name> [--name \"Display name\"] [--fenix]";
+const USAGE: &str = "cargo xtask new <kind> <name | publisher.name> [--name \"Display name\"]";
 
 /// Where an extension of this repository is hosted.
 const HOME: &str = "https://github.com/tpedneault/fenix-extensions";
@@ -136,7 +138,7 @@ pub struct Options {
 }
 
 pub fn options(args: &[String]) -> Result<Options, String> {
-    let (mut name, mut fenix, mut positional) = (None, false, Vec::new());
+    let (mut name, mut positional) = (None, Vec::new());
     let mut args = args.iter();
     while let Some(arg) = args.next() {
         let (flag, inline) = match arg.split_once('=') {
@@ -145,13 +147,17 @@ pub fn options(args: &[String]) -> Result<Options, String> {
         };
         match flag {
             "--name" => name = Some(inline.or_else(|| args.next().cloned()).ok_or("--name needs a value")?),
-            "--fenix" if inline.is_none() => fenix = true,
             f if f.starts_with("--") => return Err(format!("new: {f}? -- {USAGE}")),
             _ => positional.push(arg.clone()),
         }
     }
     match positional.as_slice() {
-        [kind, id] => Ok(Options { kind: kind.clone(), id: id.clone(), name, fenix }),
+        [kind, id] => {
+            // A bare name is this repository's own: fenix.<name>.
+            let id = if id.contains('.') { id.clone() } else { format!("{RESERVED}.{id}") };
+            let fenix = id.split_once('.').is_some_and(|(publisher, _)| publisher == RESERVED);
+            Ok(Options { kind: kind.clone(), id, name, fenix })
+        }
         _ => Err(format!("{USAGE}\nkinds: {}", kinds_said())),
     }
 }
@@ -221,25 +227,14 @@ fn taken(root: &Path, id: &str) -> Option<PathBuf> {
 ///
 /// **Publisher ids**, as CONTRIBUTING.md has them: `fenix.` is this
 /// repository's, and every extension under `extensions/` that's meant to
-/// stay here is `fenix.<folder>`; a package built elsewhere "can't use
-/// it" and has a publisher id of its own (your GitHub name, lower-cased).
-/// So an id that starts with `fenix.` is refused unless `--fenix` says
-/// the extension is for this repository, and `--fenix` with any other
-/// publisher is refused as a slip.
+/// stay here is `fenix.<folder>` -- what a bare name gives. Any other
+/// publisher is a package built elsewhere, with a publisher id of its
+/// own (your GitHub name, lower-cased): it's scaffolded here to be moved
+/// out, and the next steps say so.
 pub fn plan(root: &Path, o: &Options) -> Result<(&'static Kind, Plan), String> {
     let kind = KINDS.iter().find(|k| k.name == o.kind).ok_or_else(|| format!("{:?} isn't a kind of extension: {}", o.kind, kinds_said()))?;
     let (publisher, folder) = split_id(&o.id)?;
-    match (publisher == RESERVED, o.fenix) {
-        (true, false) => {
-            return Err(format!(
-                "{publisher}. is this repository's own: an extension built elsewhere has a publisher id of its own -- your GitHub name, lower-cased (CONTRIBUTING.md, \"Publisher ids\"). \
-                 To add {} to this repository's extensions/, say so: cargo xtask new {} {} --fenix",
-                o.id, o.kind, o.id
-            ))
-        }
-        (false, true) => return Err(format!("--fenix is for ids that start with {RESERVED}., the ones that live in this repository -- not {:?}", o.id)),
-        _ => {}
-    }
+    let fenix = publisher == RESERVED;
     let name = match &o.name {
         Some(name) => {
             check_name(name)?;
@@ -254,7 +249,7 @@ pub fn plan(root: &Path, o: &Options) -> Result<(&'static Kind, Plan), String> {
     if let Some(other) = taken(root, &o.id) {
         return Err(format!("{} already has the id {}", other.display(), o.id));
     }
-    let repository = if o.fenix { HOME.to_string() } else { format!("https://github.com/{publisher}/{folder}") };
+    let repository = if fenix { HOME.to_string() } else { format!("https://github.com/{publisher}/{folder}") };
     Ok((kind, Plan { id: o.id.clone(), name, folder: folder.into(), crate_name: format!("{publisher}-{folder}"), repository }))
 }
 
@@ -349,7 +344,7 @@ pub fn next_steps(w: &Written, fenix: bool) -> String {
         s += &format!(
             "\n{} doesn't start with fenix.: under extensions/, only fenix.<name> extensions are built and released by this repository (CONTRIBUTING.md, \"Two ways in\"). \
              To publish it from your own repository, move extensions/{folder} there and list its package in external.toml.{} \
-             To have it looked after here instead, run this again with the id fenix.{folder} and --fenix.\n",
+             To have it looked after here instead, run this again with the name {folder} alone.\n",
             w.plan.id,
             if w.code { " Its Cargo.toml reaches the shared crates by a path (../../crates/...): outside this repository it names them as git dependencies pinned to a commit, as CONTRIBUTING.md's \"Shared crates\" says." } else { "" }
         );
@@ -405,14 +400,15 @@ mod tests {
     fn the_command_line_is_read() {
         let o = options(&args("theme acme.dusk")).unwrap();
         assert_eq!(o, Options { kind: "theme".into(), id: "acme.dusk".into(), name: None, fenix: false });
-        let o = options(&["tool".into(), "--name".into(), "Word count".into(), "acme.words".into(), "--fenix".into()]).unwrap();
-        assert_eq!((o.name.as_deref(), o.fenix), (Some("Word count"), true));
+        let o = options(&["tool".into(), "--name".into(), "Word count".into(), "words".into()]).unwrap();
+        assert_eq!((o.name.as_deref(), o.id.as_str(), o.fenix), (Some("Word count"), "fenix.words", true), "a bare name is this repository's");
+        assert!(options(&args("tool fenix.words")).unwrap().fenix);
         assert_eq!(options(&["tool".into(), "acme.x".into(), "--name=Two words".into()]).unwrap().name.as_deref(), Some("Two words"));
         assert!(options(&args("theme")).unwrap_err().contains("kinds: theme"));
         assert!(options(&args("theme a.b c.d")).is_err());
         assert!(options(&args("theme a.b --colour")).unwrap_err().contains("--colour"));
         assert!(options(&args("theme a.b --name")).unwrap_err().contains("needs a value"));
-        assert!(options(&args("theme a.b --fenix=yes")).is_err());
+        assert!(options(&args("theme a.b --fenix")).is_err(), "the flag is gone");
     }
 
     #[test]
@@ -542,15 +538,14 @@ mod tests {
     }
 
     #[test]
-    fn the_fenix_publisher_needs_the_flag_and_the_flag_needs_fenix() {
+    fn a_bare_name_is_this_repositorys_and_a_publisher_is_someone_elses() {
         let t = Temp::new("fenix");
-        let err = make(&t.0, "theme fenix.dusk").unwrap_err();
-        assert!(err.contains("this repository's own") && err.contains("--fenix"), "{err}");
-        assert!(!t.0.join("extensions/dusk").exists(), "nothing written");
-        let err = make(&t.0, "theme acme.dusk --fenix").unwrap_err();
-        assert!(err.contains("--fenix is for"), "{err}");
+        let other = make(&t.0, "theme acme.dawn").unwrap();
+        assert_eq!(other.plan.repository, "https://github.com/acme/dawn");
+        assert!(next_steps(&other, false).contains("external.toml"));
+        assert_eq!(make(&t.0, "theme fenix.noon").unwrap().plan.repository, HOME);
 
-        let w = make(&t.0, "theme fenix.dusk --fenix").unwrap();
+        let w = make(&t.0, "theme dusk").unwrap();
         assert_eq!(w.plan.repository, HOME);
         assert!(next_steps(&w, true).contains("for this repository"));
         let manifest = std::fs::read_to_string(w.dir.join("extension.toml")).unwrap();
@@ -565,7 +560,6 @@ mod tests {
         let empty = |t: &Temp| std::fs::read_dir(t.0.join("extensions")).unwrap().count() == 0;
         for (line, says) in [
             ("tool Acme.dusk", "isn't an id"),
-            ("tool acme", "isn't an id"),
             ("tool acme.", "isn't an id"),
             ("tool acme.my$tool", "isn't an id"),
             ("tool acme.a.b", "one dot"),
@@ -574,7 +568,7 @@ mod tests {
             ("tool 9acme.dusk", "start with a letter"),
             ("tool acme.1dusk", "start with a letter"),
             ("widget acme.dusk", "isn't a kind"),
-            ("theme fenix.dusk", "--fenix"),
+            ("tool Dusk", "isn't an id"),
         ] {
             let err = make(&t.0, line).unwrap_err();
             assert!(err.contains(says), "{line}: {err}");

@@ -25,7 +25,7 @@ to the store.
 - [Reporting a security problem](#reporting-a-security-problem)
 - [Licence](#licence)
 
-Start from a template: `cargo xtask new <kind> <publisher.name>`
+Start from a template: `cargo xtask new <kind> <name>`
 ([Starting one](#starting-one)). For a page, the
 [widget gallery](extensions/gallery) (`gallery.open`, `SPC h g`) has
 every `ui-kit` widget working, each with the code that draws it a key
@@ -291,12 +291,12 @@ checks it against the code.
 ## Starting one
 
 ```text
-cargo xtask new <kind> <publisher.name> [--name "Display name"] [--fenix]
+cargo xtask new <kind> <name | publisher.name> [--name "Display name"]
 ```
 
 `<kind>` is `theme`, `keymap`, `snippets`, `language-pack` or `tool`,
-and the id's name part is the folder: `cargo xtask new tool acme.word-count`
-writes `extensions/word-count/`. What it writes is the smallest working
+and the name is the folder: `cargo xtask new tool word-count` writes
+`extensions/word-count/`, as `fenix.word-count`. What it writes is the smallest working
 extension of the kind -- the same files [What every extension
 carries](#what-every-extension-carries) lists, a README with its **What it
 may do**, a CHANGELOG for 1.0.0, and the narrowest permissions the kind
@@ -316,11 +316,10 @@ a language pack is about -- the file has a `TODO(you)` note saying what
 goes there; search the folder for them. A code kind's `Cargo.lock` is
 committed with it, so `--locked` holds from the start.
 
-- **The id.** `publisher.name`, one dot. An id that starts with `fenix.`
-  is this repository's ([Publisher ids](#publisher-ids)): `new` refuses
-  it unless you say `--fenix`, and refuses `--fenix` with any other
-  publisher. Under `extensions/` it's `fenix.<folder>`; one of your own is
-  for a package you build and host, and `new` says so when it finishes.
+- **The id.** A bare name is this repository's: `fenix.<name>`
+  ([Publisher ids](#publisher-ids)), as everything under `extensions/`
+  is. `publisher.name`, one dot, is one of your own, for a package you
+  build and host: `new` says so when it finishes, and what to move.
 - **Refused**, with nothing written: an id that isn't `publisher.name`
   (the name is lower-case letters, digits and `-`, starting with a
   letter), a kind it doesn't have, a folder or an id that's already taken.

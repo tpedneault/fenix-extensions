@@ -108,8 +108,8 @@ What it turned up:
   is `unreachable!()`. An issue for Fenix.
 - **Methods on API types aren't faked** (`Command::spawn`,
   `HttpRequest::send`): a test needs the `api::host::` form of the call.
-- **`xtask new` defaults to an extension you host yourself**; one for
-  this repository takes `--fenix`.
+- **`xtask new <kind> <name>` makes one for this repository**,
+  `fenix.<name>`; `publisher.name` starts one its author hosts.
 - **The gallery keeps its own small canvas-to-text helper**
   (`tests/support/mod.rs`), written before the test kit landed. Moving
   it onto `fenix_test_kit::render` is a small follow-up.

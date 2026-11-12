@@ -125,15 +125,16 @@ cargo xtask site index.json out       # then open out/index.html
 The quickest start is a template:
 
 ```text
-cargo xtask new tool acme.word-count --name "Word count"   # or theme, keymap, snippets, language-pack
-cargo xtask install extensions/word-count --watch          # packs it and installs it into Fenix, again whenever you save
+cargo xtask new tool word-count --name "Word count"   # or theme, keymap, snippets, language-pack
+cargo xtask install extensions/word-count --watch     # packs it and installs it into Fenix, again whenever you save
 ```
 
 `new` writes `extensions/<name>/` -- a manifest, README, CHANGELOG and
 what the kind needs, with `TODO(you)` where something is yours to say --
 and what it writes passes `cargo xtask validate`, packs, and (the two kinds
-with code) builds, tests and lints as it is. An id that starts with `fenix.`
-is this repository's: say `--fenix` to add one here. `install` runs
+with code) builds, tests and lints as it is. A bare name is this
+repository's, `fenix.<name>`; `publisher.name` starts one you'll host
+yourself. `install` runs
 `fenix --install-extension` on the package (`$FENIX`, or `--fenix <path>`,
 when Fenix isn't on the `PATH`).
 
