@@ -121,6 +121,20 @@ cargo xtask site index.json out       # then open out/index.html
 ## Making an extension
 
 [CONTRIBUTING.md](CONTRIBUTING.md) says how to add one or improve one.
+The quickest start is a template:
+
+```text
+cargo xtask new tool acme.word-count --name "Word count"   # or theme, keymap, snippets, language-pack
+cargo xtask install extensions/word-count --watch          # packs it and installs it into Fenix, again whenever you save
+```
+
+`new` writes `extensions/<name>/` -- a manifest, README, CHANGELOG and
+what the kind needs, with `TODO(you)` where something is yours to say --
+and what it writes passes `cargo xtask validate`, packs, and (the two kinds
+with code) builds, tests and lints as it is. An id that starts with `fenix.`
+is this repository's: say `--fenix` to add one here. `install` runs
+`fenix --install-extension` on the package (`$FENIX`, or `--fenix <path>`,
+when Fenix isn't on the `PATH`).
 
 An extension carries data -- themes, snippets, project templates and
 keymaps, laid out like your own in Fenix's settings folder -- or code: a
@@ -174,7 +188,7 @@ style, and what's known not to work.
 ```text
 cargo xtask validate                  # or: cargo xtask validate index.json
 cargo xtask pack extensions/my-themes dist
-fenix --install-extension dist/fenix.my-themes-1.0.0.fenixext   # try it
+cargo xtask install extensions/my-themes                        # try it: packs it, then fenix --install-extension
 ```
 
 ## Bundles
