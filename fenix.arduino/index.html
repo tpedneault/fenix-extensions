@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arduino · Fenix extensions</title>
+<meta name="description" content="Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Arduino</h1>
+<p class="id"><code>fenix.arduino</code></p>
+<p class="lead">Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>190 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/arduino">extensions/arduino</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.lab-bundle/index.html">Lab</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Arduino</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/arduino-v1.0.0/fenix.arduino-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.arduino-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>arduino-cli</code></li><li><code>clangd</code></li><li><code>arduino-language-server</code></li><li><code>${setting:arduino.cli}</code> <span class="gloss">the program the setting arduino.cli names</span></li><li><code>${setting:arduino.clangd}</code> <span class="gloss">the program the setting arduino.clangd names</span></li><li><code>${setting:arduino.language_server}</code> <span class="gloss">the program the setting arduino.language_server names</span></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Arduino sketches in Fenix, through <code>arduino-cli</code>: build, upload, the
+serial monitor, debugging where the board allows it, boards, ports,
+libraries and board packages, and <code>arduino-language-server</code> for
+completion, which runs clangd against the sketch as the CLI builds it.</p>
+<p>A sketch is a folder holding <code>&lt;folder&gt;.ino</code> (or a <code>sketch.yaml</code>). Inside
+one, <code>SPC m</code> is its menu:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>b</code></td><td>Build (verify); errors go to the quickfix list</td></tr>
+<tr><td><code>u</code></td><td>Build and upload; the serial monitor steps aside, then comes back</td></tr>
+<tr><td><code>m</code></td><td>The serial monitor, in a pane under yours</td></tr>
+<tr><td><code>B</code></td><td>The monitor&#39;s speed</td></tr>
+<tr><td><code>p</code> <code>s</code> <code>o</code></td><td>The port, the board, the board&#39;s options</td></tr>
+<tr><td><code>l</code> <code>c</code></td><td>Install a library, or board support</td></tr>
+<tr><td><code>d</code></td><td>Debug, if the board can be</td></tr>
+<tr><td><code>i</code></td><td>The sketch&#39;s board, port, speed and tools</td></tr>
+<tr><td><code>n</code></td><td>A new sketch (also <code>SPC f n</code>)</td></tr>
+</tbody>
+</table></div>
+<p>The board and port live in <code>sketch.yaml</code>, where <code>arduino-cli</code> and the
+Arduino IDE read them too; the monitor&#39;s speed in <code>.fenix/settings.toml</code>.</p>
+<h3 id="readme-tools">Tools</h3>
+<p>It finds <code>arduino-cli</code>, <code>clangd</code> and <code>arduino-language-server</code> in
+Fenix&#39;s tools folder, on <code>PATH</code>, or where the Arduino CLI installer and
+an Arduino IDE 2 put them. <code>arduino.cli</code>, <code>arduino.clangd</code> and
+<code>arduino.language_server</code> point it elsewhere. The project doctor says
+what&#39;s missing, whether the board&#39;s core is installed and whether the
+board is plugged in, with a fix for each.</p>
+<h3 id="readme-permissions">Permissions</h3>
+<p>It runs those three programs, and reads and writes the sketch&#39;s
+<code>sketch.yaml</code> and <code>.fenix/settings.toml</code>. It sends nothing anywhere.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>190 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/arduino-v1.0.0/fenix.arduino-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 909f828eecf8340ecbad1d8d82b333c871940360f517e1337c8c60a56352880b">909f828eec…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

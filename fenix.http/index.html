@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTP client · Fenix extensions</title>
+<meta name="description" content="An HTTP client on .http files (REST Client&#39;s and JetBrains&#39;): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response&#39;s body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server&#39;s schema, and imports from Postman, Insomnia, OpenAPI and curl">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>HTTP client</h1>
+<p class="id"><code>fenix.http</code></p>
+<p class="lead">An HTTP client on .http files (REST Client&#39;s and JetBrains&#39;): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response&#39;s body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server&#39;s schema, and imports from Postman, Insomnia, OpenAPI and curl</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=web">Web</a></li><li><a href="../index.html?category=tools">Tools</a></li><li><a href="../index.html?category=languages">Languages</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.1.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>876 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/http">extensions/http</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>HTTP client</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/http-v1.1.0/fenix.http-1.1.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.http-1.1.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Makes web (HTTP) requests to any host on the internet</dt></div>
+<div><dt>Opens network connections (TCP and UDP sockets) to these addresses</dt><dd><ul class="chips"><li><code>tcp://*:*</code> <span class="gloss">any host, any port</span></li></ul></dd></div>
+<div><dt>Listens for connections on these of this computer&#39;s ports</dt><dd><ul class="chips"><li><code>127.0.0.1:*</code></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+<div><dt>Reads and keeps secrets in Fenix&#39;s secret store, under these keys</dt><dd><ul class="chips"><li><code>http.secret.*</code></li><li><code>http.token.*</code></li><li><code>http.secrets</code></li></ul></dd></div>
+<div><dt>Reads these of Fenix&#39;s environment variables</dt><dd><ul class="chips"><li><code>${setting:http.env}</code> <span class="gloss">those the setting http.env lists</span></li></ul></dd></div>
+<div><dt>Reads the text on your clipboard</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>An HTTP client in Fenix, on <code>.http</code> files: the format VS Code&#39;s REST
+Client and JetBrains&#39; IDEs use. You edit them as text, with Vim and all,
+review them in Git and share them with people on other editors; a folder
+of them is a collection.</p>
+<pre><code class="language-http">@baseUrl = https://api.example.com
+
+### Log in
+# @name login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{ &quot;user&quot;: &quot;ada&quot;, &quot;password&quot;: &quot;{{password}}&quot; }
+
+### Who am I
+# @test status == 200
+# @test $.name == &quot;ada&quot;
+GET {{baseUrl}}/me
+Authorization: Bearer {{login.response.body.$.token}}
+</code></pre>
+<p><code>examples/</code> has a collection to try, with its env files.</p>
+<h3 id="readme-running-from-the-buffer">Running from the buffer</h3>
+<p><code>SPC p r r</code> (or <code>SPC m r</code> in a <code>.http</code> file, or a click on the <code>▶</code>
+before it) sends the request the cursor&#39;s in. Its status shows after it
+-- <code>200 OK · 85 ms · 1.2 kB · tests 2/2</code> -- and its response opens
+beside; a click on the status brings the response back. <code>SPC p r a</code>
+runs every request in the file and reports.</p>
+<p><code>.http</code> and <code>.rest</code> files are highlighted by tree-sitter-http, which the
+extension brings (<code>grammars/</code>): Fenix has no grammar of its own for them.
+As you type, <code>{{</code> offers the variables -- the file&#39;s, the environment&#39;s,
+the secrets&#39;, the system&#39;s, other requests&#39; answers -- a header line the
+header names, <code>Content-Type:</code> and <code>Authorization:</code> their usual values,
+<code># @</code> the directives; a variable nothing sets is underlined.</p>
+<h3 id="readme-the-format">The format</h3>
+<ul>
+<li><p>Requests between <code>###</code> lines (what follows <code>###</code> is its title). A
+request line, <code>GET https://...</code> (the method left out is GET), its query
+carried on indented <code>?</code> and <code>&amp;</code> lines; headers; a blank line; the body.</p></li>
+<li><p>File variables, <code>@name = value</code>, and <code>{{name}}</code> anywhere.</p></li>
+<li><p>Comments, <code>#</code> and <code>//</code>, and directives in them:</p>
+<div class="table"><table>
+<thead><tr><th>Directive</th><th></th></tr></thead>
+<tbody>
+<tr><td><code># @name login</code></td><td>What chained requests call it</td></tr>
+<tr><td><code># @test status == 200</code></td><td>A test on its answer (below)</td></tr>
+<tr><td><code># @no-redirect</code></td><td>A 3xx is the answer</td></tr>
+<tr><td><code># @no-cookie-jar</code></td><td>No cookies sent or kept</td></tr>
+<tr><td><code># @timeout 10</code></td><td>Seconds it may take (<code>500 ms</code>, <code>2 m</code>)</td></tr>
+<tr><td><code># @insecure</code></td><td>A server whose certificate doesn&#39;t check out</td></tr>
+<tr><td><code># @stream</code></td><td>Its body shown as it comes: server-sent events</td></tr>
+<tr><td><code># @no-log</code></td><td>Not kept in history</td></tr>
+</tbody>
+</table></div></li>
+<li><p>Bodies: text, its variables filled in; <code>&lt; ./file</code> a file&#39;s bytes (<code>&lt;@ ./file</code> with its variables filled in) -- a binary body, or a part of a
+<code>multipart/form-data</code> one, its lines sent with CRLF; a form&#39;s lines
+joined (<code>name=ada</code> then <code>&amp;role=admin</code>); GraphQL with <code>X-Request-Type: GraphQL</code> (or the method <code>GRAPHQL</code>): the query, a blank line, its
+variables as JSON.</p></li>
+<li><p><code>WEBSOCKET ws://...</code> (or <code>wss://</code>): a WebSocket, below.</p></li>
+<li><p><code>Authorization: Basic user:password</code> (or <code>user password</code>) is encoded as
+it&#39;s sent.</p></li>
+<li><p><code>&gt;&gt; out.json</code> after the body saves the response&#39;s body beside the file
+(<code>out-1.json</code> when there&#39;s one; <code>&gt;&gt;!</code> writes over it). JetBrains&#39;
+handler scripts (<code>&gt; {% ... %}</code>) are kept but not run: they&#39;re
+JavaScript, which an extension has nothing to run. Say tests with
+<code># @test</code>.</p></li>
+</ul>
+<h4 id="readme-variables">Variables</h4>
+<p>Looked for in the file&#39;s variables, then the environment&#39;s, then the
+secrets&#39;. System ones: <code>{{$uuid}}</code>, <code>{{$timestamp}}</code> (<code>-1 d</code>),
+<code>{{$isoTimestamp}}</code>, <code>{{$datetime iso8601}}</code> (<code>rfc1123</code>, <code>&quot;YYYY-MM-DD&quot;</code>,
+an offset), <code>{{$localDatetime}}</code>, <code>{{$randomInt 1 100}}</code>,
+<code>{{$random.integer(1, 100)}}</code>, <code>{{$random.alphanumeric(8)}}</code>,
+<code>{{$random.email}}</code>, <code>{{$dotenv NAME}}</code> (the project&#39;s <code>.env</code>),
+<code>{{$secret name}}</code>, <code>{{$auth.token(&quot;id&quot;)}}</code>, and <code>{{$processEnv NAME}}</code>,
+one of Fenix&#39;s environment variables -- only those <code>http.env</code> lists
+(<code>JAVA_*</code> for those starting so); <code>{{$processEnv %name}}</code> takes the
+variable&#39;s name from the environment&#39;s <code>name</code>.</p>
+<h4 id="readme-chained-requests">Chained requests</h4>
+<p><code>{{login.response.body.$.token}}</code> is a JSONPath into the last answer of
+the request called <code>login</code>; <code>{{login.response.headers.X-Id}}</code> a header
+of it; <code>.request.</code> the same of what was sent; <code>body.*</code> all of it. When
+<code>login</code> hasn&#39;t been sent, it&#39;s sent first, then this one.</p>
+<h4 id="readme-tests">Tests</h4>
+<p><code># @test</code> lines, a test each: <code>status</code>, <code>time</code> (milliseconds), <code>size</code>,
+<code>body</code>, <code>header &lt;name&gt;</code> or a JSONPath, then <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>,
+<code>&gt;=</code>, <code>contains</code>, <code>!contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>exists</code> or
+<code>!exists</code>, then a value (JSON, or a word). <code>$.items.length</code> is how many.
+The status after a request says how many passed; the response&#39;s Tests
+tab says which and what was found.</p>
+<h4 id="readme-websocket">WebSocket</h4>
+<p>JetBrains&#39; way: the URL, its headers (<code>Authorization</code>,
+<code>Sec-WebSocket-Protocol</code>), then the messages, a line <code>===</code> before each:</p>
+<pre><code class="language-http">WEBSOCKET wss://echo.example.com/socket
+Authorization: Bearer {{token}}
+
+===
+{ &quot;subscribe&quot;: &quot;prices&quot; }
+=== wait-for-server
+{ &quot;ack&quot;: true }
+</code></pre>
+<p><code>=== wait-for-server</code> holds a message back until the server has said
+something. The connection stays open: what went and came, a line each
+with its time, is the response&#39;s body as it goes, and <code>SPC p r w</code> sends
+another message. It&#39;s over when the server closes it, or <code>SPC p r x</code>;
+then it&#39;s kept in the history as any answer is. Pings are answered;
+binary messages are shown as hex. Not through <code>http.proxy</code>, and without
+a client certificate.</p>
+<h4 id="readme-graphql-completion">GraphQL completion</h4>
+<p>In a GraphQL request&#39;s query, completion offers the fields of the type
+the cursor&#39;s selection is on (and their types), a field&#39;s arguments in
+its parentheses, and after <code>... on</code> the types a fragment may be on: from
+the server&#39;s schema, which the request asks for (the introspection
+query, with its URL, headers and auth) the first time you complete in
+it, and keeps for the project. <code>SPC p r g</code> asks again once the schema&#39;s
+changed.</p>
+<h4 id="readme-the-runner">The runner</h4>
+<p><code>SPC p r a</code> runs a file&#39;s requests in turn, <code>SPC p r A</code> the project&#39;s,
+and <code>x</code> on a folder in the sidebar that folder&#39;s: the report says each
+one passed -- its tests, or with none, a status under 400 -- and why
+not. <code>Enter</code> there goes to the request.</p>
+<h3 id="readme-environments">Environments</h3>
+<p><code>http-client.env.json</code> beside the <code>.http</code> files (or in a folder above
+them, up to the project), and <code>http-client.private.env.json</code> beside it
+for what isn&#39;t committed -- add that one to <code>.gitignore</code>:</p>
+<pre><code class="language-json">{
+  &quot;$shared&quot;: { &quot;version&quot;: &quot;v1&quot; },
+  &quot;dev&quot;: { &quot;baseUrl&quot;: &quot;http://localhost:8080&quot; },
+  &quot;prod&quot;: { &quot;baseUrl&quot;: &quot;https://api.example.com&quot; }
+}
+</code></pre>
+<p><code>SPC p r e</code> (or <code>e</code> on the client&#39;s page) chooses one, for the project;
+the modeline says which. <code>$shared</code> is every environment&#39;s; a private
+value wins over the public one. Each environment keeps its own cookies.</p>
+<h4 id="readme-secrets">Secrets</h4>
+<p>Kept in the system&#39;s keychain -- Windows&#39; Credential Manager, the macOS
+Keychain, the Secret Service on Linux -- not the project: <code>SPC p r k</code>
+sets one (its value typed as dots; nothing forgets it), and <code>{{name}}</code>
+reads it (<code>dev.name</code> is environment <code>dev</code>&#39;s alone). Each is a secret of
+its own, <code>http.secret.&lt;name&gt;</code>; their names, not their values, are kept
+in the extension&#39;s folder for completion. The older <code>http.secrets</code>
+setting (<code>name=value; name=value</code>, or <code>FENIX_HTTP_SECRETS</code>) is still
+read, after the keychain, and moved into it when the extension starts.
+With no keychain, Fenix keeps them in <code>settings.toml</code> as plain text, and
+says so.</p>
+<h3 id="readme-auth">Auth</h3>
+<p>The client&#39;s Auth tab writes the header: Bearer, Basic, an API key, or
+OAuth 2.0. OAuth configurations are JetBrains&#39;, in the env file&#39;s
+<code>Security.Auth</code> (the client secret in the private file):</p>
+<pre><code class="language-json">{
+  &quot;dev&quot;: {
+    &quot;Security&quot;: {
+      &quot;Auth&quot;: {
+        &quot;my-api&quot;: {
+          &quot;Type&quot;: &quot;OAuth2&quot;,
+          &quot;Grant Type&quot;: &quot;Authorization Code&quot;,
+          &quot;Auth URL&quot;: &quot;https://auth.example.com/authorize&quot;,
+          &quot;Token URL&quot;: &quot;https://auth.example.com/token&quot;,
+          &quot;Redirect URL&quot;: &quot;http://localhost/callback&quot;,
+          &quot;Client ID&quot;: &quot;my-client&quot;,
+          &quot;Scope&quot;: &quot;openid profile&quot;,
+          &quot;PKCE&quot;: true
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<p>and <code>Authorization: Bearer {{$auth.token(&quot;my-api&quot;)}}</code>. The first request
+that needs a token gets it; it&#39;s kept in the system&#39;s keychain (for the
+project and environment) and refreshed with its refresh token when it
+runs out. <code>SPC p r s</code> signs in again, <code>SPC p r S</code> forgets them.</p>
+<div class="table"><table>
+<thead><tr><th>Grant Type</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>Authorization Code</code></td><td>With PKCE (S256). The browser opens at the provider&#39;s page, and once you&#39;ve signed in it&#39;s sent back to Fenix, listening on this machine (below).</td></tr>
+<tr><td><code>Client Credentials</code></td><td>The client&#39;s ID and secret: <code>Basic</code>, or <code>&quot;Client Credentials&quot;: &quot;in body&quot;</code>.</td></tr>
+<tr><td><code>Password</code></td><td><code>Username</code>, <code>Password</code>; a password left out is asked for, as dots.</td></tr>
+<tr><td><code>Device Authorization</code></td><td><code>Device Auth URL</code>: the code to enter is copied and its page opened; it asks until you&#39;ve signed in.</td></tr>
+</tbody>
+</table></div>
+<p>The redirect is listened for on 127.0.0.1, as RFC 8252 has it: a
+<code>Redirect URL</code> of <code>http://127.0.0.1:8400/callback</code> or
+<code>http://localhost:8400/callback</code> on its port; <code>http://localhost/callback</code>,
+with no port, or no <code>Redirect URL</code> at all, on any free one, which the
+redirect then says (providers take any port on the loopback). The
+browser&#39;s page says how it went, and you go back to Fenix. A sign-in
+waits five minutes for it; <code>SPC p r x</code> stops it. A redirect elsewhere
+(<code>https://</code>, another host) can&#39;t be listened for: then you paste the
+address the browser was sent to, or just the code. The device grant
+needs no redirect. The implicit grant isn&#39;t read.</p>
+<p><code>Custom Request Parameters</code> (an <code>audience</code>) go with both requests; <code>Use ID Token</code> sends the ID token.</p>
+<h3 id="readme-the-client">The client</h3>
+<p><code>SPC p r o</code> opens the client&#39;s page:</p>
+<ul class="tight">
+<li><p><strong>Collections</strong>, in a sidebar: the project&#39;s <code>.http</code> files by folder,
+each request with its method in its colour. <code>Enter</code> shows one, <code>x</code> runs
+a file&#39;s or a folder&#39;s, <code>n</code> adds a request, <code>o</code> opens its file.</p></li>
+<li><p><strong>History</strong>, the sidebar&#39;s other tab (<code>]</code>): what was sent, newest
+first, searchable (<code>/</code>: method, URL, status, name, file). <code>Enter</code> shows
+it as it was sent, with its answer; <code>s</code> saves it to a collection (its
+variables as they were filled in); <code>r</code> sends it again.</p></li>
+<li><p><strong>The request</strong>: its method and URL, then tabs for its params,
+headers, body, auth and tests. Every field is a part of the <code>.http</code>
+file, and changing it changes those lines -- one change you can undo,
+saved (<code>http.save_edits</code>). <code>m</code> the method, <code>u</code> the URL, <code>a</code> add,
+<code>Enter</code> change, <code>d</code> delete, <code>b</code> the body&#39;s type (JSON, form, multipart,
+text, XML, a file&#39;s bytes, GraphQL). A body is edited in its file:
+<code>Enter</code> on the Body tab opens it there.</p></li>
+<li><p><strong>The response</strong>: its status, how long it took and how big it is, then
+tabs for its body (JSON, XML and HTML pretty-printed and coloured, a
+picture shown; <code>p</code> as it came), headers, cookies (what it set, and what
+the environment keeps for its host), timing (DNS, connect, TLS, first
+byte, download, total) and tests. <code>O</code> opens the body in a buffer, <code>S</code>
+saves it.</p></li>
+</ul>
+<p><code>Tab</code> goes between the sidebar, the request and the response; <code>[</code> <code>]</code>
+and <code>1</code>-<code>5</code> between tabs; <code>r</code> (or Ctrl+Enter) sends; <code>e</code> the
+environment; <code>y</code> copies as code; <code>\</code> hides the sidebar. The mouse picks
+too.</p>
+<h3 id="readme-imports-and-exports">Imports and exports</h3>
+<p><code>SPC p r i</code> imports the file selected in the explorer (or one you name):
+a Postman collection (v2.1 and v2.0), an Insomnia export (v4, JSON or
+YAML), or an OpenAPI 3 spec (JSON or YAML). It becomes a folder of
+<code>.http</code> files -- a file for each of Postman&#39;s and Insomnia&#39;s folders, or
+each of OpenAPI&#39;s tags -- and its variables go in the folder&#39;s
+<code>http-client.env.json</code> (Insomnia&#39;s environments as environments). What it
+can&#39;t bring -- Postman&#39;s scripts, OAuth set up in the collection -- is
+said in its log (<code>SPC h l</code>).</p>
+<ul class="tight">
+<li><p>Postman: requests, headers, query, <code>:id</code> path variables as <code>{{id}}</code>,
+raw, form, multipart and file bodies, GraphQL, Bearer, Basic and API
+key auth (the collection&#39;s, a folder&#39;s or the request&#39;s).</p></li>
+<li><p>Insomnia: the same; <code>{{ _.name }}</code> as <code>{{name}}</code>.</p></li>
+<li><p>OpenAPI: a request each operation, <code>{{baseUrl}}</code> its first server,
+path parameters as variables, required query parameters and headers
+with their examples, a JSON body from its example or made from its
+schema, the auth header its security scheme says.</p></li>
+</ul>
+<p><code>SPC p r c</code> imports a <code>curl</code> command from the clipboard (or one you
+type) -- Chrome&#39;s &quot;Copy as cURL&quot;, an API&#39;s docs -- at the end of the
+<code>.http</code> file you&#39;re in. <code>SPC p r y</code> copies the request under the cursor
+as <code>curl</code>, Python (requests), JavaScript (fetch), Go (net/http) or Rust
+(reqwest), and shows it beside: the request as it&#39;s sent, its variables
+filled in -- secrets too, so mind where it goes.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC p r r</code>, with standard keys also <code>Ctrl+Enter</code> in a <code>.http</code> file</td><td><code>http.send</code></td><td>Send the request under the cursor</td></tr>
+<tr><td><code>SPC p r a</code></td><td><code>http.send_all</code></td><td>Run this file&#39;s requests, and report</td></tr>
+<tr><td><code>SPC p r A</code></td><td><code>http.run_project</code></td><td>Run the project&#39;s, and report</td></tr>
+<tr><td><code>SPC p r o</code></td><td><code>http.open</code></td><td>The client</td></tr>
+<tr><td><code>SPC p r h</code></td><td><code>http.history</code></td><td>The history</td></tr>
+<tr><td><code>SPC p r v</code></td><td><code>http.response</code></td><td>The response to the request under the cursor</td></tr>
+<tr><td><code>SPC p r e</code></td><td><code>http.env</code></td><td>Choose the environment</td></tr>
+<tr><td><code>SPC p r y</code></td><td><code>http.copy_as</code></td><td>Copy as curl or code</td></tr>
+<tr><td><code>SPC p r i</code></td><td><code>http.import</code></td><td>Import a Postman, Insomnia or OpenAPI file</td></tr>
+<tr><td><code>SPC p r c</code></td><td><code>http.import_curl</code></td><td>Import a curl command</td></tr>
+<tr><td><code>SPC p r n</code></td><td><code>http.new</code></td><td>A new <code>.http</code> file</td></tr>
+<tr><td><code>SPC p r s</code></td><td><code>http.sign_in</code></td><td>Sign in with OAuth 2.0</td></tr>
+<tr><td><code>SPC p r S</code></td><td><code>http.sign_out</code></td><td>Forget the tokens</td></tr>
+<tr><td><code>SPC p r k</code></td><td><code>http.secret</code></td><td>Set a secret</td></tr>
+<tr><td><code>SPC p r w</code></td><td><code>http.ws_send</code></td><td>A message to the open WebSocket</td></tr>
+<tr><td><code>SPC p r g</code></td><td><code>http.graphql_schema</code></td><td>Ask the GraphQL server for its schema again</td></tr>
+<tr><td><code>SPC p r x</code></td><td><code>http.cancel</code></td><td>Cancel what&#39;s in flight, close WebSockets, stop a sign-in</td></tr>
+<tr><td></td><td><code>http.cookies_clear</code></td><td>Clear the environment&#39;s cookies</td></tr>
+</tbody>
+</table></div>
+<p><code>SPC m</code> in a <code>.http</code> file has the same: <code>r</code> send, <code>a</code> run the file&#39;s, <code>v</code>
+the response, <code>e</code> environment, <code>y</code> copy as, <code>o</code> the client, <code>c</code> import
+curl, <code>s</code> sign in, <code>w</code> a WebSocket message, <code>g</code> the GraphQL schema, <code>x</code>
+cancel.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>http.timeout</code></td><td>Seconds a request may take (30)</td></tr>
+<tr><td><code>http.follow_redirects</code></td><td>Follow 3xx answers</td></tr>
+<tr><td><code>http.insecure</code></td><td>Reach servers whose certificate doesn&#39;t check out</td></tr>
+<tr><td><code>http.proxy</code></td><td>An HTTP proxy, <code>http://host:port</code></td></tr>
+<tr><td><code>http.response</code></td><td><code>beside</code>: a request sent from its file shows its response beside; <code>none</code>: only its status</td></tr>
+<tr><td><code>http.save_edits</code></td><td>Save the <code>.http</code> file after each change the client makes</td></tr>
+<tr><td><code>http.send_marks</code></td><td>The <code>▶</code> before each request</td></tr>
+<tr><td><code>http.history</code></td><td>How many requests the history keeps (200)</td></tr>
+<tr><td><code>http.secrets</code></td><td>The older secrets, moved into the keychain</td></tr>
+<tr><td><code>http.env</code></td><td>The environment variables <code>{{$processEnv}}</code> may read</td></tr>
+</tbody>
+</table></div>
+<p>The first four a project may set too (<code>.fenix/settings.toml</code>). A client
+certificate is the env file&#39;s <code>SSLConfiguration</code> (<code>clientCertificate</code>,
+<code>clientCertificateKey</code>, PEM files beside it); <code>verifyHostCertificate: false</code> is <code>http.insecure</code> for that environment.</p>
+<h3 id="readme-what-it-keeps">What it keeps</h3>
+<p>In its own folder, a folder a project, outside the project so Git never
+sees it: the environment you chose, the history (bodies cut at 64 kB),
+each environment&#39;s cookies, which OAuth tokens it has (the tokens are in
+the keychain), and the GraphQL schemas read. The secrets&#39; names.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Reach any host:</strong> the requests are yours.</p></li>
+<li><p><strong>Where you are, and change it:</strong> the request under the cursor; its
+status and <code>▶</code>s drawn in the file; the client&#39;s changes made to it.</p></li>
+<li><p><strong>The project, read and changed:</strong> the <code>.http</code> and env files;
+imports written, bodies saved.</p></li>
+<li><p><strong>Your secrets:</strong> <code>http.secret.*</code> and <code>http.token.*</code> in the
+keychain, read and kept; the older <code>http.secrets</code>.</p></li>
+<li><p><strong>Listen on 127.0.0.1,</strong> any port: an OAuth redirect.</p></li>
+<li><p><strong>Open sockets</strong> to any host and port: WebSocket requests.</p></li>
+<li><p><strong>Read the environment variables <code>http.env</code> lists,</strong> none other.</p></li>
+<li><p><strong>The clipboard&#39;s text:</strong> a curl command, imported.</p></li>
+</ul>
+<h3 id="readme-not-here-yet">Not here yet</h3>
+<p>XPath into XML answers, Digest auth, JetBrains&#39; JavaScript handlers,
+<code>{{$prompt}}</code> variables, Insomnia&#39;s v5 YAML, GraphQL subscriptions over
+WebSocket (<code>graphql-transport-ws</code>), and a WebSocket through a proxy.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.5</td><td>876 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/http-v1.1.0/fenix.http-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 2ef764c3cfa162c0d66d064fc446034fc67d8864eb7ac16a3cd37d0cb566d888">2ef764c3cf…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>876 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/http-v1.0.0/fenix.http-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 2eae4923893258406345d39eb9c10353d4eb3e8e2f317b6cc741e12df842432a">2eae492389…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5: with standard keys, Ctrl+Enter in a .http file sends the
+request under the cursor.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: an HTTP client on .http files (REST Client&#39;s and JetBrains&#39;): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response&#39;s body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server&#39;s schema, and imports from Postman, Insomnia, OpenAPI and curl.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

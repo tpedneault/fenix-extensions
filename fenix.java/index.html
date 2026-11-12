@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java and Kotlin · Fenix extensions</title>
+<meta name="description" content="Java and Kotlin: Eclipse JDT LS, debugging with java-debug, kotlin-language-server and Kotlin&#39;s highlighting, google-java-format and ktlint, Gradle&#39;s and Maven&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable dependencies, snippets, and Gradle, Spring Boot and Maven projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Java and Kotlin</h1>
+<p class="id"><code>fenix.java</code></p>
+<p class="lead">Java and Kotlin: Eclipse JDT LS, debugging with java-debug, kotlin-language-server and Kotlin&#39;s highlighting, google-java-format and ktlint, Gradle&#39;s and Maven&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable dependencies, snippets, and Gradle, Spring Boot and Maven projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>777 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/java">extensions/java</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.kotlin-bundle/index.html">Kotlin</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Java and Kotlin</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/java-v1.0.0/fenix.java-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.java-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>java</code></li><li><code>javac</code></li><li><code>gradle</code></li><li><code>mvn</code></li><li><code>gradlew</code></li><li><code>mvnw</code></li><li><code>kotlin-lsp</code></li><li><code>google-java-format</code></li><li><code>ktlint</code></li><li><code>jdtls</code></li><li><code>fenix-java</code></li><li><code>${setting:java.jdk}</code> <span class="gloss">the program the setting java.jdk names</span></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li><li><code>download.eclipse.org</code></li><li><code>repo1.maven.org</code></li></ul></dd></div>
+<div><dt>Opens network connections (TCP and UDP sockets) to these addresses</dt><dd><ul class="chips"><li><code>tcp://localhost:1024-65535</code></li><li><code>tcp://127.0.0.1:1024-65535</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Java and Kotlin in Fenix: Eclipse JDT LS as Java&#39;s language server,
+debugging with java-debug, kotlin-language-server (or JetBrains&#39;
+kotlin-lsp) and Kotlin&#39;s highlighting, google-java-format and ktlint,
+Gradle&#39;s and Maven&#39;s tasks, the project doctor&#39;s checks with their
+fixes, outdated and vulnerable dependencies, snippets, and Gradle,
+Spring Boot and Maven projects in the new-project wizard. Built on
+lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It reads the build: Gradle&#39;s <code>settings.gradle(.kts)</code>, each project&#39;s
+<code>build.gradle(.kts)</code> and the conventions in <code>buildSrc</code>, or Maven&#39;s
+<code>pom.xml</code> and its modules. Each module&#39;s application plugin and main
+class, Kotlin, Spring Boot, and the Java release the build asks for (a
+toolchain, <code>jvmToolchain</code>, <code>sourceCompatibility</code>,
+<code>maven.compiler.release</code>) come from there. Gradle&#39;s files are code, so
+they&#39;re read for the forms people write, not run.</p>
+<h3 id="readme-javas-language-server">Java&#39;s language server</h3>
+<p>The pack is Java&#39;s language server to Fenix, and runs Eclipse JDT LS
+1.63.0 behind it, passing each message on. That way it gives JDT LS
+java-debug&#39;s bundle and the project&#39;s JDK (<code>java.configuration.runtimes</code>,
+Gradle&#39;s Java home) in <code>initialize</code>, and asks it things of its own:
+java-debug&#39;s port, the main classes, a main class&#39;s classpath.</p>
+<p>The doctor&#39;s fix rows install JDT LS (the milestone&#39;s tarball, its
+SHA-256 checked) and, since it runs on Java 25 or later, Temurin&#39;s JRE 25
+when the machine&#39;s Java is older. That runtime is called <code>fenix-java</code> in
+the tools folder, so that <code>java</code> is still the project&#39;s. JDT LS&#39;s
+workspace is the pack&#39;s own folder&#39;s (<code>${data}/jdtls-workspace/&lt;project&gt;</code>),
+apart from what it installs. Eclipse&#39;s <code>.project</code>, <code>.classpath</code> and
+<code>.settings</code> stay in that workspace; JDT LS&#39;s own build goes to <code>bin/</code>.</p>
+<h3 id="readme-kotlin">Kotlin</h3>
+<p>Fenix doesn&#39;t highlight Kotlin itself: the pack brings tree-sitter-kotlin&#39;s
+grammar compiled to WebAssembly (<code>grammars/</code>, its source and licence
+there), with highlighting, folds and indents (<code>queries/kotlin</code>). <code>*.kt</code> and
+<code>*.kts</code> are Kotlin, Gradle&#39;s build scripts too.</p>
+<p>The server is JetBrains&#39; <code>kotlin-lsp --stdio</code> when it&#39;s installed
+(Homebrew&#39;s, or its script on <code>PATH</code>), else kotlin-language-server 1.3.13,
+which the doctor installs. kotlin-lsp isn&#39;t installed by the pack: it&#39;s
+partly closed-source, its macOS archive is a <code>.sit</code>, and it&#39;s still
+alpha. kotlin-language-server is no longer developed; its Kotlin 2.1 can&#39;t
+run on Java 25, so it runs on the project&#39;s <code>java</code> (<code>java.jdk</code> says
+which), and the doctor says so when that&#39;s 25.</p>
+<h3 id="readme-formatting-and-linting">Formatting and linting</h3>
+<p><code>SPC c F</code> -- and saving, with <code>editor.format_on_save</code> -- runs
+google-java-format on a Java buffer (<code>google-java-format -</code>: its native
+build where there is one, else its jar) and ktlint on a Kotlin one
+(<code>ktlint --format --stdin --stdin-path=${file}</code>). Without
+google-java-format, JDT LS formats. ktlint ends badly while there&#39;s a
+problem it can&#39;t fix, but what it could fix is taken all the same; saving
+a Kotlin file runs ktlint as a linter (<code>java.ktlint_on_save</code>), which
+says what&#39;s left.
+JDT LS and the Kotlin server give their own problems.</p>
+<h3 id="readme-debugging">Debugging</h3>
+<p>java-debug is a JDT LS plugin: once JDT LS has read the project, the pack
+asks it to start java-debug (<code>vscode.java.startDebugSession</code>), and Fenix
+connects to the port it says. java-debug&#39;s launch needs the classpath,
+which a launch file can&#39;t carry, so every session attaches, on 5005:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>Java: the main class</td><td><em>Java: debug a main class</em> (<code>SPC m m</code>) runs the main class you&#39;re in (or picks one of JDT LS&#39;s) held for the debugger; an application&#39;s own main class runs by Gradle&#39;s <code>run --debug-jvm</code>, which builds the Kotlin JDT LS doesn&#39;t</td></tr>
+<tr><td>Java: the tests</td><td><em>Java: debug the tests</em> (<code>SPC m t</code>): the test class you&#39;re in, else its module&#39;s, by <code>./gradlew test --debug-jvm</code> or <code>mvn test -Dmaven.surefire.debug</code></td></tr>
+<tr><td>Java: attach (remote, port 5005)</td><td>a JVM started with <code>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</code></td></tr>
+</tbody>
+</table></div>
+<p>Each runs as a task; <code>SPC u u</code> and the launch file then attach. The
+adapter is Java&#39;s: breakpoints in Kotlin files weren&#39;t tried, and
+java-debug finds a breakpoint&#39;s class through JDT LS, which doesn&#39;t read
+Kotlin.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>: Gradle&#39;s <code>build</code>, <code>test</code>, <code>clean</code> and <code>check</code>, each project&#39;s
+<code>run</code> (<code>bootRun</code> for Spring Boot) and <code>test</code>, and -- once <code>gradle tasks --all</code> has said what there is -- the build&#39;s own (a group of its own,
+<code>bootJar</code>, <code>installDist</code>, <code>javadoc</code>). Maven&#39;s: <code>clean</code>, <code>compile</code>,
+<code>test</code>, <code>package</code>, <code>verify</code>, <code>install</code>, <code>clean install</code>, each module&#39;s
+<code>test</code> and <code>package</code>, and <code>spring-boot:run</code> or <code>exec:java</code> for one that
+runs. They run the wrapper when it&#39;s there and can run (<code>gradlew</code> with its
+jar, <code>mvnw</code>; <code>gradlew.bat</code> and <code>mvnw.cmd</code> on Windows), else Gradle or
+Maven. A task of the same name in
+<code>.fenix/tools.json</code> wins. Saving a build file reads the build again.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<ul class="tight">
+<li><p><strong>JDK</strong>: <code>javac -version</code>, held to the release the build asks for. Fix:
+Temurin&#39;s download page for it.</p></li>
+<li><p><strong>Gradle wrapper</strong> / <strong>Maven wrapper</strong>: there, and its Gradle able to
+run on the JDK (Gradle 8.14 runs on Java 24 at most, 9.1 on 25). Fix:
+<code>gradle wrapper --gradle-version 9.8.2</code>; Maven&#39;s script-only wrapper.</p></li>
+<li><p><strong>Server runtime</strong>: Java 25 for JDT LS. Fix: Temurin&#39;s JRE 25.</p></li>
+<li><p><strong>Language server</strong>: JDT LS, installed, starting or ready. Fix:
+install it.</p></li>
+<li><p><strong>Debugger</strong>: java-debug 0.53.1. Fix: install it.</p></li>
+<li><p><strong>google-java-format</strong>, and for Kotlin <strong>Kotlin server</strong> and <strong>ktlint</strong>.
+Fix: install each.</p></li>
+</ul>
+<h3 id="readme-packages">Packages</h3>
+<p><code>SPC m p</code> (or <em>Java: dependencies</em>): lang-kit&#39;s page.</p>
+<div class="table"><table>
+<thead><tr><th></th><th>Gradle</th><th>Maven</th></tr></thead>
+<tbody>
+<tr><td>list, outdated</td><td>the versions plugin&#39;s report (<code>dependencyUpdates</code>) -- the build&#39;s own plugin, or one the pack&#39;s init script applies -- as JSON</td><td><code>dependency:list</code>, <code>versions:display-dependency-updates</code></td></tr>
+<tr><td>vulnerable</td><td>OWASP dependency-check&#39;s JSON report (<code>dependencyCheckAggregate</code>)</td><td><code>dependency-check:aggregate</code></td></tr>
+<tr><td><code>u</code>, <code>U</code></td><td>the init script&#39;s <code>fenixEdit</code>: the version in the build file or the version catalog</td><td><code>versions:use-dep-version</code>, <code>update-property</code> for a property&#39;s; <code>use-latest-releases</code></td></tr>
+<tr><td><code>a</code></td><td><code>fenixEdit</code> adds it to the module you&#39;re in&#39;s <code>dependencies { }</code>, at its newest release if none is given</td><td><code>dependency:get</code>: Maven has no command that edits pom.xml, so it&#39;s fetched, for you to add</td></tr>
+<tr><td><code>d</code></td><td><code>fenixEdit</code> takes it out of the build file that declares it</td><td>--</td></tr>
+</tbody>
+</table></div>
+<p>Pre-releases aren&#39;t offered. dependency-check runs when the build has it,
+or with <code>java.dependency_check</code>: its first run downloads NVD&#39;s database,
+which takes a while.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<p>Java: <code>cls</code>, <code>rec</code>, <code>iface</code>, <code>enum</code>, <code>sealed</code>, <code>main</code>, <code>mainc</code>, <code>ctor</code>,
+<code>sout</code>, <code>fori</code>, <code>foreach</code>, <code>try</code>, <code>tryr</code>, <code>sw</code> (a switch expression),
+<code>stream</code>, <code>groupby</code>, <code>opt</code>, <code>log</code>; JUnit 5&#39;s <code>test</code>, <code>ptest</code>, <code>tclass</code>,
+<code>before</code>, <code>athrows</code>. Kotlin: <code>data</code>, <code>cls</code>, <code>sealed</code>, <code>enum</code>, <code>obj</code>,
+<code>comp</code>, <code>main</code>, <code>fun</code>, <code>ext</code>, <code>when</code>, <code>lazy</code>, <code>test</code>; coroutines&#39; <code>rb</code>,
+<code>launch</code>, <code>async</code>, <code>sfun</code>, <code>scope</code>, <code>wctx</code>, <code>flow</code>, <code>ctest</code>.</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<ul class="tight">
+<li><p><strong>Gradle application</strong>, <strong>Gradle library</strong>: Java or Kotlin, Kotlin DSL,
+a toolchain (21, 25 or 17; the foojay resolver downloads it), JUnit 5.</p></li>
+<li><p><strong>Spring Boot</strong>: Spring Boot 4.1 on Gradle, a JSON endpoint and its
+MockMvc test, Actuator if you like.</p></li>
+<li><p><strong>Maven</strong>: a Java app, its release, JUnit 5, <code>exec:java</code>, the versions
+plugin.</p></li>
+</ul>
+<p>Each makes its wrapper with the Gradle or Maven installed (<code>needs</code>), as
+the wizard can&#39;t write the wrapper&#39;s jar.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Gradle or Maven project: <code>p</code> dependencies, <code>d</code> check
+again, <code>m</code> debug a main class, <code>t</code> debug the tests, <code>r</code> read the build
+again.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p>Java&#39;s language server is the pack&#39;s, so Fenix&#39;s <code>lsp.servers</code> for Java
+doesn&#39;t replace it.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>777 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/java-v1.0.0/fenix.java-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 84f3e6ca608623106f78a05a8e68eacbc373c03fd24d0021a7a3cd36f6a40e73">84f3e6ca60…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: java and Kotlin: Eclipse JDT LS, debugging with java-debug, kotlin-language-server and Kotlin&#39;s highlighting, google-java-format and ktlint, Gradle&#39;s and Maven&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable dependencies, snippets, and Gradle, Spring Boot and Maven projects.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

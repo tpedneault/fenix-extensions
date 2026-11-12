@@ -4,10 +4,587 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fenix extensions</title>
+<meta name="description" content="Every extension and bundle in Fenix&#39;s store: what each does, what it may do, and the Fenix it needs.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/filter.js" defer></script>
 </head>
 <body>
-<h1>Fenix extensions</h1>
-<p>The catalogue will be published here. Until then, see
-<a href="https://github.com/tpedneault/fenix-extensions">the repository</a>.</p>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<section class="hero" aria-labelledby="title">
+<h1 id="title">Extensions for Fenix</h1>
+<p class="lead">Languages, tools, viewers, themes and more for the keyboard-first editor. Each one installs from inside Fenix: press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>, search for it, and install. Fenix shows what it may do first.</p>
+<p class="counts">50 extensions and 8 bundles</p>
+</section>
+<form id="filters" class="filters" role="search" aria-label="Extensions" hidden>
+<div class="search">
+<label for="q">Search</label>
+<input id="q" name="q" type="search" placeholder="Name, id or what it does" autocomplete="off" spellcheck="false" aria-describedby="shown">
+</div>
+<fieldset class="cats">
+<legend>Category</legend>
+<input type="radio" name="category" id="cat-all" value="" checked><label for="cat-all">All</label>
+<input type="radio" name="category" id="cat-languages" value="languages"><label for="cat-languages">Languages <span class="n">24</span></label>
+<input type="radio" name="category" id="cat-themes" value="themes"><label for="cat-themes">Themes <span class="n">1</span></label>
+<input type="radio" name="category" id="cat-snippets" value="snippets"><label for="cat-snippets">Snippets <span class="n">18</span></label>
+<input type="radio" name="category" id="cat-keymaps" value="keymaps"><label for="cat-keymaps">Keymaps <span class="n">1</span></label>
+<input type="radio" name="category" id="cat-templates" value="templates"><label for="cat-templates">Templates <span class="n">12</span></label>
+<input type="radio" name="category" id="cat-tools" value="tools"><label for="cat-tools">Tools <span class="n">32</span></label>
+<input type="radio" name="category" id="cat-data" value="data"><label for="cat-data">Data <span class="n">5</span></label>
+<input type="radio" name="category" id="cat-web" value="web"><label for="cat-web">Web <span class="n">3</span></label>
+<input type="radio" name="category" id="cat-mission" value="mission"><label for="cat-mission">Mission <span class="n">3</span></label>
+<input type="radio" name="category" id="cat-fun" value="fun"><label for="cat-fun">Fun <span class="n">2</span></label>
+</fieldset>
+<p id="shown" class="shown" aria-live="polite"></p>
+</form>
+<section class="group" id="bundles" aria-labelledby="bundles-h">
+<h2 id="bundles-h">Bundles</h2>
+<p class="group-lead">Extensions that go together, installed as one: what the welcome's packs offer.</p>
+<ul class="cards">
+<li class="card" data-search="jira fenix.jira-bundle jira, with the agenda kept in step tools fenix.agenda agenda fenix.jira jira" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.jira-bundle/index.html">Jira</a></h3>
+<p class="id">fenix.jira-bundle</p>
+<p class="desc">Jira, with the agenda kept in step</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>2 extensions</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="kotlin fenix.kotlin-bundle kotlin: its highlighting, kotlin-lsp or kotlin-language-server, ktlint, gradle&#39;s tasks, snippets and kotlin dsl projects -- the java and kotlin pack languages fenix.java java and kotlin" data-categories="languages">
+<div class="body">
+<h3><a href="fenix.kotlin-bundle/index.html">Kotlin</a></h3>
+<p class="id">fenix.kotlin-bundle</p>
+<p class="desc">Kotlin: its highlighting, kotlin-lsp or kotlin-language-server, ktlint, Gradle&#39;s tasks, snippets and Kotlin DSL projects -- the Java and Kotlin pack</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>1 extension</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li></ul>
+</div>
+</li>
+<li class="card" data-search="lab fenix.lab-bundle arduino, containers, vnc tools fenix.arduino arduino fenix.containers containers fenix.vnc vnc" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.lab-bundle/index.html">Lab</a></h3>
+<p class="id">fenix.lab-bundle</p>
+<p class="desc">Arduino, containers, VNC</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>3 extensions</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="mission fenix.mission-bundle scos-2000 mib, ccsds &amp; pus, tcl mission fenix.ccsds ccsds &amp; ecss fenix.mib scos-2000 mib fenix.tcl tcl" data-categories="mission">
+<div class="body">
+<h3><a href="fenix.mission-bundle/index.html">Mission</a></h3>
+<p class="id">fenix.mission-bundle</p>
+<p class="desc">SCOS-2000 MIB, CCSDS &amp; PUS, Tcl</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>3 extensions</span></p>
+<ul class="tags" aria-label="Categories"><li>Mission</li></ul>
+</div>
+</li>
+<li class="card" data-search="personal fenix.personal-bundle notebook, diagrams, agenda tools fenix.agenda agenda fenix.diagrams diagrams fenix.notebook notebook" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.personal-bundle/index.html">Personal</a></h3>
+<p class="id">fenix.personal-bundle</p>
+<p class="desc">Notebook, Diagrams, Agenda</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>3 extensions</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="python fenix.python-bundle python with jupyter notebooks: the language pack (basedpyright, ruff, debugpy, uv), .ipynb notebooks run on a kernel, and the csv table for the data they read languages fenix.csv csv table fenix.jupyter jupyter notebooks fenix.python python" data-categories="languages">
+<div class="body">
+<h3><a href="fenix.python-bundle/index.html">Python</a></h3>
+<p class="id">fenix.python-bundle</p>
+<p class="desc">Python with Jupyter notebooks: the language pack (basedpyright, ruff, debugpy, uv), .ipynb notebooks run on a kernel, and the CSV table for the data they read</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>3 extensions</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li></ul>
+</div>
+</li>
+<li class="card" data-search="reading fenix.reading-bundle the pdf reader tools fenix.pdf pdf reader" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.reading-bundle/index.html">Reading</a></h3>
+<p class="id">fenix.reading-bundle</p>
+<p class="desc">The PDF reader</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>1 extension</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="review fenix.review-bundle github pull requests, gitlab merge requests tools fenix.review review" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.review-bundle/index.html">Review</a></h3>
+<p class="id">fenix.review-bundle</p>
+<p class="desc">GitHub pull requests, GitLab merge requests</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span><span>1 extension</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+</ul>
+</section>
+<section class="group" id="extensions" aria-labelledby="extensions-h">
+<h2 id="extensions-h">Extensions</h2>
+<ul class="cards">
+<li class="card" data-search="ada and spark fenix.ada ada and spark: their grammar, the ada language server for ada and gnat project files, alire&#39;s or gprbuild&#39;s tasks, gnatprove&#39;s findings as problems, the project&#39;s checks with fixes that install alire, gnat and the server, and snippets languages snippets" data-categories="languages snippets">
+<div class="body">
+<h3><a href="fenix.ada/index.html">Ada and SPARK</a></h3>
+<p class="id">fenix.ada</p>
+<p class="desc">Ada and SPARK: their grammar, the Ada Language Server for Ada and GNAT project files, Alire&#39;s or gprbuild&#39;s tasks, GNATprove&#39;s findings as problems, the project&#39;s checks with fixes that install Alire, GNAT and the server, and snippets</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li></ul>
+</div>
+</li>
+<li class="card" data-search="agenda fenix.agenda tasks on a board, a clock for your time, and a week&#39;s timesheet -- linked to jira issues when jira is there tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.agenda/index.html">Agenda</a></h3>
+<p class="id">fenix.agenda</p>
+<p class="desc">Tasks on a board, a clock for your time, and a week&#39;s timesheet -- linked to Jira issues when Jira is there</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="agent context fenix.agent-context context for your coding agents: the project&#39;s dependencies at the versions its lockfiles hold, and each one&#39;s documentation for exactly that version -- crates.io and docs.rs, npm, pypi, pkg.go.dev -- as tools and resources they call through fenix tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.agent-context/index.html">Agent context</a></h3>
+<p class="id">fenix.agent-context</p>
+<p class="desc">Context for your coding agents: the project&#39;s dependencies at the versions its lockfiles hold, and each one&#39;s documentation for exactly that version -- crates.io and docs.rs, npm, PyPI, pkg.go.dev -- as tools and resources they call through Fenix</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.1, &lt;2">Fenix 1.1+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="arduino fenix.arduino arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server languages tools" data-categories="languages tools">
+<div class="body">
+<h3><a href="fenix.arduino/index.html">Arduino</a></h3>
+<p class="id">fenix.arduino</p>
+<p class="desc">Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="c# and .net fenix.dotnet c# and .net: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, csharpier, the solution&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable nuget packages, snippets, and dotnet new&#39;s projects languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.dotnet/index.html">C# and .NET</a></h3>
+<p class="id">fenix.dotnet</p>
+<p class="desc">C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new&#39;s projects</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="c/c++ fenix.cpp c and c++: clangd with the build&#39;s compile_commands.json, debugging each cmake target with lldb-dap or gdb, cmake&#39;s presets as tasks, clang-format, clang-tidy on save with its fixes, the project&#39;s checks with their fixes, vcpkg and conan packages, snippets, and vcpkg and conan projects languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.cpp/index.html">C/C++</a></h3>
+<p class="id">fenix.cpp</p>
+<p class="desc">C and C++: clangd with the build&#39;s compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake&#39;s presets as tasks, clang-format, clang-tidy on save with its fixes, the project&#39;s checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="ccsds &amp; ecss fenix.ccsds space packets, transfer frames and cltus decoded through the mib, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the ccsds and ecss standards mission" data-categories="mission">
+<div class="body">
+<h3><a href="fenix.ccsds/index.html">CCSDS &amp; ECSS</a></h3>
+<p class="id">fenix.ccsds</p>
+<p class="desc">Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards</p>
+<p class="meta"><span>v1.2.2</span><span title="Fenix &gt;=1.1, &lt;2">Fenix 1.1+</span></p>
+<ul class="tags" aria-label="Categories"><li>Mission</li></ul>
+</div>
+</li>
+<li class="card" data-search="ci status fenix.ci your branch&#39;s ci on the modeline -- github actions, gitlab pipelines or jenkins -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs&#39; logs for your coding agent tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.ci/index.html">CI status</a></h3>
+<p class="id">fenix.ci</p>
+<p class="desc">Your branch&#39;s CI on the modeline -- GitHub Actions, GitLab pipelines or Jenkins -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs&#39; logs for your coding agent</p>
+<p class="meta"><span>v1.1.0</span><span title="Fenix &gt;=1.2, &lt;2">Fenix 1.2+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="colours fenix.colours colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), css names, a theme&#39;s), a picker that writes it back as it was written, conversions between hex, rgb, hsl and oklch, a wcag contrast checker, and the project&#39;s palette tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.colours/index.html">Colours</a></h3>
+<p class="id">fenix.colours</p>
+<p class="desc">Colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), CSS names, a theme&#39;s), a picker that writes it back as it was written, conversions between hex, RGB, HSL and OKLCH, a WCAG contrast checker, and the project&#39;s palette</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="config &amp; shell fenix.config yaml, json, toml, dockerfiles, shell scripts and markdown: their language servers, schemastore&#39;s schemas for github actions, compose, package.json, tsconfig and the rest, taplo, shfmt and prettier formatting, shellcheck and hadolint, the project&#39;s checks with their fixes, and snippets languages snippets" data-categories="languages snippets">
+<div class="body">
+<h3><a href="fenix.config/index.html">Config &amp; Shell</a></h3>
+<p class="id">fenix.config</p>
+<p class="desc">YAML, JSON, TOML, Dockerfiles, shell scripts and Markdown: their language servers, SchemaStore&#39;s schemas for GitHub Actions, Compose, package.json, tsconfig and the rest, Taplo, shfmt and Prettier formatting, ShellCheck and hadolint, the project&#39;s checks with their fixes, and snippets</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li></ul>
+</div>
+</li>
+<li class="card" data-search="containers fenix.containers docker, podman and wslc: containers, compose, live logs, performance, images, volumes and networks tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.containers/index.html">Containers</a></h3>
+<p class="id">fenix.containers</p>
+<p class="desc">Docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="csv table fenix.csv csv and tsv files as a table: columns lined up, sorted and filtered, cells, rows and columns changed through the file&#39;s buffer, column stats, copies as csv or markdown -- a million rows as fast as ten tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.csv/index.html">CSV table</a></h3>
+<p class="id">fenix.csv</p>
+<p class="desc">CSV and TSV files as a table: columns lined up, sorted and filtered, cells, rows and columns changed through the file&#39;s buffer, column stats, copies as CSV or Markdown -- a million rows as fast as ten</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="data tools fenix.data-tools json, yaml and toml: format with the project&#39;s indent, minify, sort keys, convert between them, query with jsonpath or jq, check against a json schema (schemastore&#39;s by the file&#39;s name), escape strings, copy a key&#39;s path, and types from a sample data tools" data-categories="data tools">
+<div class="body">
+<h3><a href="fenix.data-tools/index.html">Data tools</a></h3>
+<p class="id">fenix.data-tools</p>
+<p class="desc">JSON, YAML and TOML: format with the project&#39;s indent, minify, sort keys, convert between them, query with JSONPath or jq, check against a JSON Schema (SchemaStore&#39;s by the file&#39;s name), escape strings, copy a key&#39;s path, and types from a sample</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Data</li><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="database browser fenix.database sqlite files, postgresql, mysql and mariadb, sql server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table&#39;s rows paged and changed, history, completion of the schema&#39;s names tools data" data-categories="tools data">
+<div class="body">
+<h3><a href="fenix.database/index.html">Database browser</a></h3>
+<p class="id">fenix.database</p>
+<p class="desc">SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table&#39;s rows paged and changed, history, completion of the schema&#39;s names</p>
+<p class="meta"><span>v1.2.0</span><span title="Fenix &gt;=1.1, &lt;2">Fenix 1.1+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li><li>Data</li></ul>
+</div>
+</li>
+<li class="card" data-search="diagrams fenix.diagrams mermaid diagrams drawn as you type, their errors on their lines, fenix&#39;s themes and yours, and exports tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.diagrams/index.html">Diagrams</a></h3>
+<p class="id">fenix.diagrams</p>
+<p class="desc">Mermaid diagrams drawn as you type, their errors on their lines, Fenix&#39;s themes and yours, and exports</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="discord fenix.discord discord rich presence: the project, the file and its language, what you&#39;re debugging or running, and how long you&#39;ve been at it, on your discord profile tools fun" data-categories="tools fun">
+<div class="body">
+<h3><a href="fenix.discord/index.html">Discord</a></h3>
+<p class="id">fenix.discord</p>
+<p class="desc">Discord Rich Presence: the project, the file and its language, what you&#39;re debugging or running, and how long you&#39;ve been at it, on your Discord profile</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li><li>Fun</li></ul>
+</div>
+</li>
+<li class="card" data-search="env files fenix.dotenv env files (.env): values hidden but on the cursor&#39;s line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like languages tools" data-categories="languages tools">
+<div class="body">
+<h3><a href="fenix.dotenv/index.html">Env files</a></h3>
+<p class="id">fenix.dotenv</p>
+<p class="desc">Env files (.env): values hidden but on the cursor&#39;s line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="go fenix.go go: gopls, debugging with delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable modules, snippets, and cli, http service and library projects languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.go/index.html">Go</a></h3>
+<p class="id">fenix.go</p>
+<p class="desc">Go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="haskell fenix.haskell haskell: its grammar, the haskell language server, ormolu or fourmolu, hlint on save with its rewrites as fixes, cabal&#39;s and stack&#39;s tasks for each component, the project&#39;s checks with fixes that run ghcup, snippets, and a cabal project languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.haskell/index.html">Haskell</a></h3>
+<p class="id">fenix.haskell</p>
+<p class="desc">Haskell: its grammar, the Haskell Language Server, ormolu or fourmolu, hlint on save with its rewrites as fixes, Cabal&#39;s and Stack&#39;s tasks for each component, the project&#39;s checks with fixes that run ghcup, snippets, and a Cabal project</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="hex viewer fenix.hex binary files as a hex dump: offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor&#39;s bytes read as integers and floats both ways round and as utf-8, selections copied as hex, text or code -- and any file at all shown in hex tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.hex/index.html">Hex viewer</a></h3>
+<p class="id">fenix.hex</p>
+<p class="desc">Binary files as a hex dump: offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor&#39;s bytes read as integers and floats both ways round and as UTF-8, selections copied as hex, text or code -- and any file at all shown in hex</p>
+<p class="meta"><span>v1.0.1</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="http client fenix.http an http client on .http files (rest client&#39;s and jetbrains&#39;): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response&#39;s body, headers, cookies and timing, environments and secrets, oauth 2.0, chained requests, tests and a runner, websocket requests, graphql completion from the server&#39;s schema, and imports from postman, insomnia, openapi and curl web tools languages" data-categories="web tools languages">
+<div class="body">
+<h3><a href="fenix.http/index.html">HTTP client</a></h3>
+<p class="id">fenix.http</p>
+<p class="desc">An HTTP client on .http files (REST Client&#39;s and JetBrains&#39;): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response&#39;s body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server&#39;s schema, and imports from Postman, Insomnia, OpenAPI and curl</p>
+<p class="meta"><span>v1.1.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Web</li><li>Tools</li><li>Languages</li></ul>
+</div>
+</li>
+<li class="card" data-search="image viewer fenix.images pictures in a pane: png, jpeg, gif, webp, bmp and svg, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.images/index.html">Image viewer</a></h3>
+<p class="id">fenix.images</p>
+<p class="desc">Pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="java and kotlin fenix.java java and kotlin: eclipse jdt ls, debugging with java-debug, kotlin-language-server and kotlin&#39;s highlighting, google-java-format and ktlint, gradle&#39;s and maven&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable dependencies, snippets, and gradle, spring boot and maven projects languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.java/index.html">Java and Kotlin</a></h3>
+<p class="id">fenix.java</p>
+<p class="desc">Java and Kotlin: Eclipse JDT LS, debugging with java-debug, kotlin-language-server and Kotlin&#39;s highlighting, google-java-format and ktlint, Gradle&#39;s and Maven&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable dependencies, snippets, and Gradle, Spring Boot and Maven projects</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="jetbrains keys fenix.jetbrains-keys the intellij platform&#39;s default shortcuts, over fenix&#39;s standard keys keymaps" data-categories="keymaps">
+<div class="body">
+<h3><a href="fenix.jetbrains-keys/index.html">JetBrains keys</a></h3>
+<p class="id">fenix.jetbrains-keys</p>
+<p class="desc">The IntelliJ platform&#39;s default shortcuts, over Fenix&#39;s standard keys</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.6.0, &lt;2">Fenix 1.6.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Keymaps</li></ul>
+</div>
+</li>
+<li class="card" data-search="jira fenix.jira your jira server or data center: searches, issues and their workflow, a new-issue form with the project&#39;s real fields -- and the agenda kept in step with it tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.jira/index.html">Jira</a></h3>
+<p class="id">fenix.jira</p>
+<p class="desc">Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project&#39;s real fields -- and the agenda kept in step with it</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="jupyter notebooks fenix.jupyter jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib&#39;s plots and other pictures -- cells edited beside it and changed through the file&#39;s buffer, and run on the notebook&#39;s python: ipykernel when it&#39;s there, python itself when it isn&#39;t, input() asked of you languages data tools" data-categories="languages data tools">
+<div class="body">
+<h3><a href="fenix.jupyter/index.html">Jupyter notebooks</a></h3>
+<p class="id">fenix.jupyter</p>
+<p class="desc">Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib&#39;s plots and other pictures -- cells edited beside it and changed through the file&#39;s buffer, and run on the notebook&#39;s Python: ipykernel when it&#39;s there, Python itself when it isn&#39;t, input() asked of you</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Data</li><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="log viewer fenix.logs log files read in a pane: each entry&#39;s level and time from the formats logs are written in -- json lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, python&#39;s logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.logs/index.html">Log viewer</a></h3>
+<p class="id">fenix.logs</p>
+<p class="desc">Log files read in a pane: each entry&#39;s level and time from the formats logs are written in -- JSON lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, Python&#39;s logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="lua fenix.lua lua: lua-language-server, stylua formatting, selene or luacheck on save, busted, luarocks and löve tasks, the project&#39;s checks with their fixes, snippets, and löve game and luarocks module projects languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.lua/index.html">Lua</a></h3>
+<p class="id">fenix.lua</p>
+<p class="desc">Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project&#39;s checks with their fixes, snippets, and LÖVE game and LuaRocks module projects</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="nats fenix.nats a nats client: live subjects with their rates and messages, payloads pretty-printed, filters and highlights, publish and request, jetstream&#39;s streams, consumers and key-value buckets -- at any message rate tools data" data-categories="tools data">
+<div class="body">
+<h3><a href="fenix.nats/index.html">NATS</a></h3>
+<p class="id">fenix.nats</p>
+<p class="desc">A NATS client: live subjects with their rates and messages, payloads pretty-printed, filters and highlights, publish and request, JetStream&#39;s streams, consumers and key-value buckets -- at any message rate</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.2, &lt;2">Fenix 1.2+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li><li>Data</li></ul>
+</div>
+</li>
+<li class="card" data-search="notebook fenix.notebook notes, a daily journal, links and quick captures, kept for you in one folder -- an obsidian vault works as it is tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.notebook/index.html">Notebook</a></h3>
+<p class="id">fenix.notebook</p>
+<p class="desc">Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is</p>
+<p class="meta"><span>v1.1.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="ocaml fenix.ocaml ocaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune&#39;s tasks with a dune exec for each executable, debugging bytecode with earlybird, the project&#39;s checks with fixes that run opam install, snippets, and a dune project languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.ocaml/index.html">OCaml</a></h3>
+<p class="id">fenix.ocaml</p>
+<p class="desc">OCaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune&#39;s tasks with a dune exec for each executable, debugging bytecode with earlybird, the project&#39;s checks with fixes that run opam install, snippets, and a dune project</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="original light themes fenix.original-light-themes the light themes fenix ships, in their published colours, untouched themes" data-categories="themes">
+<div class="body">
+<h3><a href="fenix.original-light-themes/index.html">Original light themes</a></h3>
+<p class="id">fenix.original-light-themes</p>
+<p class="desc">The light themes Fenix ships, in their published colours, untouched</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Themes</li></ul>
+</div>
+</li>
+<li class="card" data-search="parquet viewer fenix.parquet parquet files read in a pane: their rows as a table, read a page at a time so a billion rows open at once, and their schema with each column&#39;s type, nulls, range, size and codec -- snappy, zstd, gzip, lz4 and brotli tools data" data-categories="tools data">
+<div class="body">
+<h3><a href="fenix.parquet/index.html">Parquet viewer</a></h3>
+<p class="id">fenix.parquet</p>
+<p class="desc">Parquet files read in a pane: their rows as a table, read a page at a time so a billion rows open at once, and their schema with each column&#39;s type, nulls, range, size and codec -- snappy, zstd, gzip, LZ4 and Brotli</p>
+<p class="meta"><span>v1.0.1</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li><li>Data</li></ul>
+</div>
+</li>
+<li class="card" data-search="pdf reader fenix.pdf pdfs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.pdf/index.html">PDF reader</a></h3>
+<p class="id">fenix.pdf</p>
+<p class="desc">PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read</p>
+<p class="meta"><span>v1.0.1</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="pets fenix.pets little 3d pets on the modeline: they nap, play fetch, cheer your passing tests -- and ember burns up when one fails fun" data-categories="fun">
+<div class="body">
+<h3><a href="fenix.pets/index.html">Pets</a></h3>
+<p class="id">fenix.pets</p>
+<p class="desc">Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails</p>
+<p class="meta"><span>v1.1.0</span><span title="Fenix &gt;=1.0.1, &lt;2">Fenix 1.0.1+</span></p>
+<ul class="tags" aria-label="Categories"><li>Fun</li></ul>
+</div>
+</li>
+<li class="card" data-search="php fenix.php php: tree-sitter-php&#39;s highlighting, intelephense or phpactor, the project&#39;s pint or php cs fixer as the formatter, phpstan on save, composer&#39;s scripts and the project&#39;s tools as tasks, the project&#39;s checks with their fixes, snippets, and a composer package project languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.php/index.html">PHP</a></h3>
+<p class="id">fenix.php</p>
+<p class="desc">PHP: tree-sitter-php&#39;s highlighting, Intelephense or Phpactor, the project&#39;s Pint or PHP CS Fixer as the formatter, PHPStan on save, Composer&#39;s scripts and the project&#39;s tools as tasks, the project&#39;s checks with their fixes, snippets, and a Composer package project</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="pomodoro fenix.pomodoro a focus timer: work rounds and breaks counted down on the modeline, today&#39;s rounds and the week&#39;s -- clocked into the agenda when it&#39;s there tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.pomodoro/index.html">Pomodoro</a></h3>
+<p class="id">fenix.pomodoro</p>
+<p class="desc">A focus timer: work rounds and breaks counted down on the modeline, today&#39;s rounds and the week&#39;s -- clocked into the agenda when it&#39;s there</p>
+<p class="meta"><span>v1.0.1</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="protobuf &amp; grpc fenix.protobuf protocol buffers and grpc: the grammar, buf&#39;s language server, buf format, buf lint on save, buf breaking against the default branch, buf generate and buf build as tasks, the project&#39;s checks with fixes that install buf, protoc and grpcurl, snippets, and a grpc client -- a server&#39;s services by reflection or the project&#39;s protos, a body made from the method&#39;s message, server streams as they come, status, trailers, timing and history languages snippets web tools" data-categories="languages snippets web tools">
+<div class="body">
+<h3><a href="fenix.protobuf/index.html">Protobuf &amp; gRPC</a></h3>
+<p class="id">fenix.protobuf</p>
+<p class="desc">Protocol Buffers and gRPC: the grammar, buf&#39;s language server, buf format, buf lint on save, buf breaking against the default branch, buf generate and buf build as tasks, the project&#39;s checks with fixes that install buf, protoc and grpcurl, snippets, and a gRPC client -- a server&#39;s services by reflection or the project&#39;s protos, a body made from the method&#39;s message, server streams as they come, status, trailers, timing and history</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Web</li><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="python fenix.python python: basedpyright with ruff&#39;s server beside it, debugging with debugpy (the project&#39;s scripts, pytest, django, flask, fastapi, attaching to a process), ruff as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and django and flask projects languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.python/index.html">Python</a></h3>
+<p class="id">fenix.python</p>
+<p class="desc">Python: basedpyright with ruff&#39;s server beside it, debugging with debugpy (the project&#39;s scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="regex fenix.regex a regex playground: matches and their groups coloured as you type, the replacement&#39;s result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.regex/index.html">Regex</a></h3>
+<p class="id">fenix.regex</p>
+<p class="desc">A regex playground: matches and their groups coloured as you type, the replacement&#39;s result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="review fenix.review code review on github and gitlab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.review/index.html">Review</a></h3>
+<p class="id">fenix.review</p>
+<p class="desc">Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch</p>
+<p class="meta"><span>v1.2.0</span><span title="Fenix &gt;=1.3, &lt;2">Fenix 1.3+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="ruby fenix.ruby ruby: tree-sitter-ruby&#39;s highlighting, folding and indenting, ruby lsp or solargraph, rubocop and standard formatting and linting with their corrections, bundler&#39;s, rake&#39;s, rspec&#39;s and rails&#39; tasks, the project&#39;s checks with their fixes, and snippets languages snippets" data-categories="languages snippets">
+<div class="body">
+<h3><a href="fenix.ruby/index.html">Ruby</a></h3>
+<p class="id">fenix.ruby</p>
+<p class="desc">Ruby: tree-sitter-ruby&#39;s highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler&#39;s, Rake&#39;s, RSpec&#39;s and Rails&#39; tasks, the project&#39;s checks with their fixes, and snippets</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li></ul>
+</div>
+</li>
+<li class="card" data-search="rust fenix.rust rust: rust-analyzer, debugging with lldb-dap or codelldb (each binary and example, the tests in your file, built by cargo first), clippy on save with its suggestions as fixes, rustfmt, tasks from cargo.toml&#39;s targets, the toolchain checked with its fixes, outdated and vulnerable crates, snippets, and an axum service languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.rust/index.html">Rust</a></h3>
+<p class="id">fenix.rust</p>
+<p class="desc">Rust: rust-analyzer, debugging with lldb-dap or CodeLLDB (each binary and example, the tests in your file, built by cargo first), clippy on save with its suggestions as fixes, rustfmt, tasks from Cargo.toml&#39;s targets, the toolchain checked with its fixes, outdated and vulnerable crates, snippets, and an Axum service</p>
+<p class="meta"><span>v1.0.1</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="rust snippets fenix.rust-snippets snippets for everyday rust: functions, tests, impls, matches and more snippets" data-categories="snippets">
+<div class="body">
+<h3><a href="fenix.rust-snippets/index.html">Rust snippets</a></h3>
+<p class="id">fenix.rust-snippets</p>
+<p class="desc">Snippets for everyday Rust: functions, tests, impls, matches and more</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Snippets</li></ul>
+</div>
+</li>
+<li class="card" data-search="scos-2000 mib fenix.mib scos-2000 mibs: browse them, telecommands and parameters in your scripts (k, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two mibs compared, and xtce, c, python or a wireshark dissector generated from them mission" data-categories="mission">
+<div class="body">
+<h3><a href="fenix.mib/index.html">SCOS-2000 MIB</a></h3>
+<p class="id">fenix.mib</p>
+<p class="desc">SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them</p>
+<p class="meta"><span>v1.3.0</span><span title="Fenix &gt;=1.1, &lt;2">Fenix 1.1+</span></p>
+<ul class="tags" aria-label="Categories"><li>Mission</li></ul>
+</div>
+</li>
+<li class="card" data-search="swift fenix.swift swift on linux and macos: sourcekit-lsp, swift&#39;s highlighting, swift-format or swiftformat, swiftlint on save, swiftpm&#39;s tasks, the project&#39;s checks with their fixes, snippets for swiftui, concurrency and both test frameworks, and a command-line package languages snippets templates" data-categories="languages snippets templates">
+<div class="body">
+<h3><a href="fenix.swift/index.html">Swift</a></h3>
+<p class="id">fenix.swift</p>
+<p class="desc">Swift on Linux and macOS: sourcekit-lsp, Swift&#39;s highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM&#39;s tasks, the project&#39;s checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li></ul>
+</div>
+</li>
+<li class="card" data-search="tcl fenix.tcl tcl scripts: tcl&#39;s own usage lines on k, completion of options, subcommands, built-ins and your procs, go to definition, and the project&#39;s definitions by name languages" data-categories="languages">
+<div class="body">
+<h3><a href="fenix.tcl/index.html">Tcl</a></h3>
+<p class="id">fenix.tcl</p>
+<p class="desc">Tcl scripts: Tcl&#39;s own usage lines on K, completion of options, subcommands, built-ins and your procs, go to definition, and the project&#39;s definitions by name</p>
+<p class="meta"><span>v1.1.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li></ul>
+</div>
+</li>
+<li class="card" data-search="vnc fenix.vnc remote desktops in a pane: the vnc (rfb) machines you list, each kept connected while fenix runs tools" data-categories="tools">
+<div class="body">
+<h3><a href="fenix.vnc/index.html">VNC</a></h3>
+<p class="id">fenix.vnc</p>
+<p class="desc">Remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Tools</li></ul>
+</div>
+</li>
+<li class="card" data-search="web: javascript and typescript fenix.web javascript and typescript: typescript-language-server with the css, html, tailwind, eslint and biome servers beside it, json with its schemas from config &amp; shell, debugging with js-debug (node, each of package.json&#39;s scripts, a vite page in chrome, vitest and jest, attaching to a process), prettier or biome, package.json&#39;s scripts as tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for npm, pnpm, yarn and bun, snippets, and next.js, express, library and static site projects languages snippets templates web" data-categories="languages snippets templates web">
+<div class="body">
+<h3><a href="fenix.web/index.html">Web: JavaScript and TypeScript</a></h3>
+<p class="id">fenix.web</p>
+<p class="desc">JavaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config &amp; Shell, debugging with js-debug (Node, each of package.json&#39;s scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json&#39;s scripts as tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li><li>Templates</li><li>Web</li></ul>
+</div>
+</li>
+<li class="card" data-search="zig fenix.zig zig: its grammar, zls, zig fmt, zig ast-check on save, zig build&#39;s steps as tasks, the project&#39;s checks with fixes that install zig and zls, and snippets languages snippets" data-categories="languages snippets">
+<div class="body">
+<h3><a href="fenix.zig/index.html">Zig</a></h3>
+<p class="id">fenix.zig</p>
+<p class="desc">Zig: its grammar, ZLS, zig fmt, zig ast-check on save, zig build&#39;s steps as tasks, the project&#39;s checks with fixes that install Zig and ZLS, and snippets</p>
+<p class="meta"><span>v1.0.0</span><span title="Fenix &gt;=1.0, &lt;2">Fenix 1.0+</span></p>
+<ul class="tags" aria-label="Categories"><li>Languages</li><li>Snippets</li></ul>
+</div>
+</li>
+</ul>
+</section>
+<p id="none" class="none" hidden>Nothing matches. Try fewer words, or another category.</p>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
 </body>
 </html>

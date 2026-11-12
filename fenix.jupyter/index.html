@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jupyter notebooks · Fenix extensions</title>
+<meta name="description" content="Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib&#39;s plots and other pictures -- cells edited beside it and changed through the file&#39;s buffer, and run on the notebook&#39;s Python: ipykernel when it&#39;s there, Python itself when it isn&#39;t, input() asked of you">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Jupyter notebooks</h1>
+<p class="id"><code>fenix.jupyter</code></p>
+<p class="lead">Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib&#39;s plots and other pictures -- cells edited beside it and changed through the file&#39;s buffer, and run on the notebook&#39;s Python: ipykernel when it&#39;s there, Python itself when it isn&#39;t, input() asked of you</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=data">Data</a></li><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>183 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/jupyter">extensions/jupyter</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.python-bundle/index.html">Python</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Jupyter notebooks</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/jupyter-v1.0.0/fenix.jupyter-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.jupyter-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>python3</code></li><li><code>python</code></li><li><code>uv</code></li><li><code>${setting:jupyter.python}</code> <span class="gloss">the program the setting jupyter.python names</span></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Jupyter notebooks (<code>.ipynb</code>) in Fenix. A notebook opens in it however you
+open it -- the explorer, the file picker, <code>:e</code>, a recent file -- as its
+cells one under another: code highlighted on a panel with its <code>[n]</code>
+beside it, markdown as it reads, and each cell&#39;s outputs below it, with
+<code>Out[n]</code>, tracebacks in red and matplotlib&#39;s plots (and any other PNG,
+JPEG, GIF or WebP) drawn as pictures.</p>
+<pre><code class="language-text">hw1.ipynb  Python 3 (ipykernel) · idle · .venv · 6 cells · not saved
+
+▌         Homework 1
+▌         Read the data, greet the grader, plot it.
+
+     [1]: with open(&#39;data.txt&#39;) as f:
+              values = [int(x) for x in f.read().split()]
+          print(&#39;read&#39;, len(values), &#39;values&#39;)
+          sum(values)
+          read 8 values
+  Out[1]: 31
+
+     [2]: name = input(&#39;Your name: &#39;)
+          print(f&#39;Hello, {name}!&#39;)
+          Hello, Ada!
+</code></pre>
+<p>The keys are Jupyter&#39;s command mode&#39;s, with Vim&#39;s moves:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>j</code> <code>k</code>, the arrows</td><td>The next cell, the one before</td></tr>
+<tr><td><code>g</code> <code>G</code></td><td>The first and last cell</td></tr>
+<tr><td><code>J</code> <code>K</code>, PageDown PageUp</td><td>A screen down, up; the wheel scrolls</td></tr>
+<tr><td><code>Enter</code>, <code>e</code></td><td>Edit the cell, in a pane beside: Fenix&#39;s editor, with its keys and highlighting. What you type is the cell&#39;s source as you type it</td></tr>
+<tr><td><code>Shift+Enter</code></td><td>Run the cell and go to the next (a new one after the last)</td></tr>
+<tr><td><code>Ctrl+Enter</code>, <code>r</code></td><td>Run the cell</td></tr>
+<tr><td><code>Alt+Enter</code></td><td>Run it, and make a cell below</td></tr>
+<tr><td><code>R</code></td><td>Run every cell, from the top; an error stops the rest, as in Jupyter</td></tr>
+<tr><td><code>ii</code> <code>00</code></td><td>Interrupt the kernel; restart it (what it held is gone)</td></tr>
+<tr><td><code>a</code> <code>b</code></td><td>A new cell above, below</td></tr>
+<tr><td><code>dd</code>, <code>x</code></td><td>Delete the cell (<code>x</code> keeps it to paste)</td></tr>
+<tr><td><code>c</code> <code>v</code> <code>V</code></td><td>Copy the cell; paste it below, above</td></tr>
+<tr><td><code>m</code> <code>y</code></td><td>Make it markdown, code</td></tr>
+<tr><td><code>[</code> <code>]</code></td><td>Move it up, down</td></tr>
+<tr><td><code>o</code></td><td>Hide or show its outputs</td></tr>
+<tr><td><code>C</code></td><td>Clear its outputs</td></tr>
+<tr><td><code>Y</code></td><td>Copy its source</td></tr>
+<tr><td><code>u</code> <code>U</code>, Ctrl+Z Ctrl+Shift+Z</td><td>Undo, redo: the buffer&#39;s</td></tr>
+<tr><td><code>w</code>, Ctrl+S</td><td>Save</td></tr>
+<tr><td><code>t</code></td><td>The notebook&#39;s text, its JSON (<code>SPC f o</code> too, and back)</td></tr>
+<tr><td><code>P</code></td><td>Install ipykernel into the Python the notebook runs on</td></tr>
+<tr><td><code>q</code></td><td>Close it, and its kernel</td></tr>
+</tbody>
+</table></div>
+<p>A click focuses a cell, a double click edits it.</p>
+<p>The commands (<code>SPC :</code>) run every cell, interrupt, restart, clear every
+output, and install ipykernel, for the notebook you were last in.</p>
+<h3 id="readme-changes-go-through-the-notebooks-buffer">Changes go through the notebook&#39;s buffer</h3>
+<p>A cell edited, made, moved, deleted or run is an edit of the notebook&#39;s
+buffer, as if typed: the file changes when you save (<code>w</code>), and Fenix&#39;s
+undo has each change. Only what changed is replaced, and the notebook is
+written as Jupyter writes it -- keys in order, a space a level, sources
+and text as lines -- so a notebook from Jupyter, VS Code or Colab saved
+here differs only where you changed it, and a diff of it is small.
+Edited in its text (<code>t</code>), the page reads it again as you go.</p>
+<h3 id="readme-running-cells">Running cells</h3>
+<p>The first cell you run starts the notebook&#39;s kernel, in the notebook&#39;s
+folder (so <code>open(&#39;data.csv&#39;)</code> finds the file beside it), on its Python:</p>
+<ol class="tight">
+<li><p>the one <code>jupyter.python</code> names (<code>SPC ,</code>), when you set it;</p></li>
+<li><p>else the project&#39;s <code>.venv</code> (or <code>venv</code>);</p></li>
+<li><p>else, in a uv project (a <code>pyproject.toml</code>), <code>uv run --with ipykernel</code>;</p></li>
+<li><p>else <code>python3</code> (<code>python</code> on Windows) on <code>PATH</code>.</p></li>
+</ol>
+<p>When that Python has <strong>ipykernel</strong>, cells run on a real Jupyter kernel
+(the notebook&#39;s own, by its kernelspec, or <code>python3</code>): IPython&#39;s magics,
+<code>display()</code>, rich reprs, everything Jupyter does. When it doesn&#39;t, they
+run on that Python itself, so a notebook runs with nothing installed:</p>
+<ul class="tight">
+<li><p>the last line&#39;s value is shown as <code>Out[n]</code>, <code>print()</code>&#39;s output below the cell;</p></li>
+<li><p><code>input()</code> asks you for a line in Fenix&#39;s modeline;</p></li>
+<li><p>matplotlib&#39;s figures are drawn as pictures, on <code>plt.show()</code> and at the end of the cell;</p></li>
+<li><p><code>!command</code>, <code>%pip install</code>, <code>%cd</code>, <code>%time</code> and <code>%matplotlib</code> work; other magics say they need IPython;</p></li>
+<li><p><code>ii</code> interrupts a cell (a <code>KeyboardInterrupt</code>), <code>00</code> starts afresh.</p></li>
+</ul>
+<p>The footer says which it is; <code>P</code> (or <strong>Jupyter: install ipykernel</strong>)
+installs ipykernel as a task -- <code>uv add --dev ipykernel</code> in a uv project,
+uv&#39;s or the Python&#39;s own pip otherwise -- and <code>00</code> restarts the kernel
+with it.</p>
+<p>What a cell runs is yours: the kernel runs with your permissions, as
+Jupyter&#39;s does. Fenix&#39;s sandbox holds the extension to running Python
+(and uv) only, but not what Python then does.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>jupyter.python</code></td><td>The Python to run notebooks with; empty to find one as above. A project may set its own (<code>.fenix/settings.toml</code>)</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p>Widgets (ipywidgets) show their text, not the widget; HTML-only and
+SVG outputs say what they are, and JavaScript doesn&#39;t run.</p></li>
+<li><p>A kernel for another language (R, Julia) runs when it&#39;s installed, as
+the notebook&#39;s kernelspec names it, but only Python is highlighted.</p></li>
+<li><p>Completion and hover in a cell&#39;s editor: it&#39;s a scratch buffer, not a
+file the language server knows.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>183 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/jupyter-v1.0.0/fenix.jupyter-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 ac2e346856ff7155ee20a7fffb4c89b7cd0b4825fa1ab10932d03be95a52fa6f">ac2e346856…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: Jupyter notebooks (<code>.ipynb</code>) on a page -- cells and their outputs, plots as pictures, tracebacks -- edited in a pane beside and through the file&#39;s buffer, written as Jupyter writes them, and run on the notebook&#39;s Python: ipykernel when it&#39;s there, Python itself when it isn&#39;t, <code>input()</code> asked in Fenix.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

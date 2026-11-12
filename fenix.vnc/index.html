@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VNC · Fenix extensions</title>
+<meta name="description" content="Remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>VNC</h1>
+<p class="id"><code>fenix.vnc</code></p>
+<p class="lead">Remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>172 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/vnc">extensions/vnc</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.lab-bundle/index.html">Lab</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>VNC</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/vnc-v1.0.0/fenix.vnc-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.vnc-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Opens network connections (TCP and UDP sockets) to these addresses</dt><dd><ul class="chips"><li><code>${setting:vnc.hosts}</code> <span class="gloss">those the setting vnc.hosts holds</span></li><li><code>*:5900</code> <span class="gloss">any host, this port</span></li></ul></dd></div>
+<div><dt>Keeps files in folders of yours</dt><dd><ul class="folders"><li><code>screenshots</code>: the folder the setting <code>vnc.screenshots</code> names, else <code>vnc-screenshots</code> in Fenix's data folder</li></ul></dd></div>
+<div><dt>Reads the text on your clipboard</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Remote desktops in a pane.
+List the machines you use in <code>vnc.hosts</code>, and <code>SPC v v</code> opens one -- a
+VM&#39;s console, a lab PC -- in the pane you&#39;re in. Each stays connected in
+the background once opened, shown or not, until you close it.</p>
+<ul class="tight">
+<li><p><strong>The keyboard</strong>: its pane takes every key, Caps Lock and the
+modifiers too (Ctrl-C, Alt-Tab and Ctrl-Alt-F2 go to the guest), until
+<code>Ctrl+\</code> gives them back; a click takes them again.</p></li>
+<li><p><strong>The pointer</strong>: the guest&#39;s own, drawn by Fenix where the pointer is;
+its buttons and its wheel.</p></li>
+<li><p><strong>The clipboard</strong>: what the guest copies is on yours; yours goes to the
+guest when its pane takes the keyboard, so its own paste keys paste it.</p></li>
+<li><p><strong>Its size</strong>: a server that can be resized (ExtendedDesktopSize) is
+asked to be the pane&#39;s size, and asked again when the pane changes;
+one that can&#39;t is stretched to fill it.</p></li>
+<li><p><strong>A dropped connection</strong> says so on the pane and is dialled again,
+backing off (1, 2, 4, 8, 16 seconds), six times; then <code>SPC v v</code> on it
+tries again.</p></li>
+<li><p><strong>The bell</strong> is said in the message line.</p></li>
+</ul>
+<p>It speaks RFB 3.3, 3.7 and 3.8, with no authentication or VNC
+Authentication (with an empty password), and the ZRLE, CopyRect
+and Raw encodings.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC v v</code></td><td><code>vnc.open</code></td><td>A picker over <code>vnc.hosts</code>: connect to one, or bring it here</td></tr>
+<tr><td><code>SPC v q</code></td><td><code>vnc.close</code></td><td>Close the session you&#39;re in</td></tr>
+<tr><td><code>SPC v s</code></td><td><code>vnc.screenshot</code></td><td>Save its picture as a PNG</td></tr>
+</tbody>
+</table></div>
+<p><code>vnc.open</code> may run from outside Fenix too (<code>fenix/runCommand</code>). A
+<code>[workspaces]</code> entry <code>vnc:NAME</code> opens host <code>NAME</code>.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td><code>vnc.hosts</code></td><td><code>[[vnc.hosts]]</code> tables of <code>name</code>, <code>host</code> and <code>port</code> (5900 when it&#39;s left out)</td></tr>
+<tr><td><code>vnc.screenshots</code></td><td>Where <code>SPC v s</code> saves pictures; empty keeps them in Fenix&#39;s data folder</td></tr>
+</tbody>
+</table></div>
+<pre><code class="language-toml">[[vnc.hosts]]
+name = &quot;build-vm&quot;
+host = &quot;10.0.0.5&quot;
+
+[[vnc.hosts]]
+name = &quot;test-vm&quot;
+host = &quot;10.0.0.6&quot;
+port = 5901
+</code></pre>
+<p>No passwords: every host is taken to be on a trusted network.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Open connections to the hosts in <code>vnc.hosts</code>, and to any host on port
+5900.</p></li>
+<li><p>Read your clipboard, when one of its panes takes the keyboard.</p></li>
+<li><p>Write into its screenshots folder.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/vnc dist
+</code></pre>
+<p><code>cargo test</code> runs the decoder and the viewer against a fake RFB server
+(<code>tests/fake_server.rs</code>).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>172 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/vnc-v1.0.0/fenix.vnc-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 7aeb0fddb136dab5b03a5eb1e81a1dc30c4711ad68de74d73ab32aef5e78d639">7aeb0fddb1…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python · Fenix extensions</title>
+<meta name="description" content="Python: basedpyright with ruff&#39;s server beside it, debugging with debugpy (the project&#39;s scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Python</h1>
+<p class="id"><code>fenix.python</code></p>
+<p class="lead">Python: basedpyright with ruff&#39;s server beside it, debugging with debugpy (the project&#39;s scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>409 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/python">extensions/python</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.python-bundle/index.html">Python</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Python</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/python-v1.0.0/fenix.python-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.python-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>uv</code></li><li><code>python3</code></li><li><code>python</code></li><li><code>${setting:python.interpreter}</code> <span class="gloss">the program the setting python.interpreter names</span></li><li><code>pipx</code></li><li><code>ruff</code></li><li><code>basedpyright-langserver</code></li><li><code>pyright-langserver</code></li><li><code>basedpyright</code></li><li><code>pyright</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Python in Fenix: basedpyright as the language server with ruff&#39;s beside
+it, debugging with debugpy, ruff as the formatter, tasks, the project doctor&#39;s
+checks with their fixes, outdated and vulnerable packages, snippets, and
+Django and Flask projects in the new-project wizard. Built on lang-kit
+(<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It works for a project uv manages (a <code>uv.lock</code>, or <code>[tool.uv]</code> in
+<code>pyproject.toml</code>) and for one it doesn&#39;t: then the venv&#39;s packages are
+uv&#39;s <code>uv pip</code> when there&#39;s uv, else the <code>python3</code> on <code>PATH</code> (the venv&#39;s,
+when it&#39;s active) and its pip.</p>
+<h3 id="readme-the-language-server">The language server</h3>
+<p>basedpyright&#39;s, <code>basedpyright-langserver --stdio</code>, when it&#39;s installed;
+else pyright&#39;s. <code>python.server</code> says which to prefer when both are.
+With neither, Fenix&#39;s own <code>pyright-langserver</code> is started as before, and
+the doctor&#39;s fix row installs basedpyright (<code>uv tool install basedpyright</code>, else <code>pipx install</code>, else <code>pip install --user</code>).</p>
+<p><code>python.interpreter</code> names a Python of your own: it&#39;s checked, runs the
+tasks and debugpy where there&#39;s no uv, and is the one the server is
+given (<code>python.pythonPath</code>), over the one Fenix finds.</p>
+<h3 id="readme-linting-and-formatting">Linting and formatting</h3>
+<p>ruff&#39;s server, <code>ruff server</code>, runs beside basedpyright: its problems
+as you type, and its fixes and code actions on <code>SPC c a</code>, with the
+server&#39;s. It needs ruff 0.5.3 or later (the doctor says).</p>
+<p>With <code>python.ruff</code> = <code>save</code>, <code>ruff check --output-format json</code> runs on
+a file when it&#39;s saved instead, and its problems are shown with the
+server&#39;s: syntax errors and undefined names as errors, the rest as
+warnings, or what ruff says if milder. Its fixes are offered on <code>SPC c a</code> (one ruff calls unsafe says so); it never applies them (<code>--no-fix</code>),
+and a file the project excludes is left alone. <code>off</code> is neither.</p>
+<p><code>SPC c F</code> -- and saving, with <code>editor.format_on_save</code> -- runs <code>ruff format</code> on the buffer. The project&#39;s ruff (<code>uv run ruff</code>) when it asks
+for it, else the one installed; with none, nothing is set and the doctor
+offers to install it.</p>
+<h3 id="readme-debugging">Debugging</h3>
+<p>The adapter is debugpy over stdio. In a project uv manages it&#39;s <code>uv run --with debugpy python -m debugpy.adapter</code>: uv brings debugpy into the
+project&#39;s environment for the session, so it needn&#39;t be a dependency.
+Without uv it&#39;s the Python&#39;s own, which needs <code>pip install debugpy</code> (a
+fix row).</p>
+<p><code>SPC u u</code>, in a project with no launch configuration of its own, offers:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>Python: current file</td><td>the file you&#39;re in</td></tr>
+<tr><td>Python: current file as a module</td><td><code>python -m pkg.mod</code> for the file you&#39;re in, so relative imports work</td></tr>
+<tr><td>pytest: current file, pytest: all tests</td><td><code>python -m pytest</code>, with <code>justMyCode</code> off</td></tr>
+<tr><td>Django: runserver</td><td><code>manage.py runserver --noreload</code>, templates debugged too</td></tr>
+<tr><td>Flask: current file</td><td><code>flask --app &lt;file&gt; run</code>, without Flask&#39;s debugger and reloader</td></tr>
+<tr><td>FastAPI: current file</td><td><code>fastapi dev &lt;file&gt; --no-reload</code></td></tr>
+<tr><td>Python: attach (localhost:5678)</td><td>to <code>python -m debugpy --listen 5678 --wait-for-client app.py</code></td></tr>
+<tr><td>Python: attach to a process</td><td>to a Python running here, picked as it starts (<code>${pickProcess}</code>): debugpy is put into it by gdb (lldb on macOS)</td></tr>
+</tbody>
+</table></div>
+<p>pytest, Flask and FastAPI are debugpy&#39;s <code>module</code>, so no program is sent.
+The module one works the module out itself from the file, <code>src/</code> left
+off, which Fenix&#39;s <code>${module}</code> keeps.</p>
+<p>Beside these, each of the project&#39;s scripts (<code>[project.scripts]</code>) is a
+launch of its own, <em>Python: orbit (script)</em>, calling what it names
+(<code>orbit.cli:main</code>) as the script would; and a package with a
+<code>__main__.py</code>, <em>Python: python -m orbit</em>.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>: run, test, lint, format, typecheck, and sync for a project uv
+manages. Each runs the project&#39;s own tool when it asks for it (<code>uv run pytest</code>), else one uv brings for the run (<code>uv run --with pytest pytest</code>), else what&#39;s installed. <code>run</code> is the project&#39;s first script, a
+Django project&#39;s <code>runserver</code>, a package&#39;s <code>__main__.py</code>, or <code>main.py</code> /
+<code>app.py</code>; <code>test</code> is <code>manage.py test</code> in a Django project without
+pytest-django; <code>typecheck</code> is mypy when the project has it, else
+basedpyright (or pyright). The project&#39;s <code>.env</code> goes to each. A task of
+the same name in <code>.fenix/tools.json</code> wins. Saving <code>pyproject.toml</code>,
+<code>uv.lock</code> or a requirements file makes them again.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<ul class="tight">
+<li><p><strong>Python</strong>: the one uv would use (<code>uv python find</code>), else <code>python3</code>,
+held to <code>requires-python</code> (3.9 at least when it says none). Fix: <code>uv python install</code>.</p></li>
+<li><p><strong>uv</strong>: needed by a project it manages. Fix: <code>pipx install uv</code>, else
+<code>pip install --user uv</code>.</p></li>
+<li><p><strong>Environment</strong>: <code>.venv</code> in step with <code>uv.lock</code> (<code>uv sync --locked --dry-run --offline</code>): what differs, a lock that&#39;s out of date with
+<code>pyproject.toml</code>, or no <code>.venv</code> yet. Fix: <code>uv sync</code>.</p></li>
+<li><p><strong>Language server</strong>, <strong>ruff</strong> (unless the project has its own),
+<strong>debugpy</strong> (without uv), each with its install.</p></li>
+</ul>
+<p>A fix that installs something is checked again, and what it installed
+is used at once.</p>
+<h3 id="readme-packages">Packages</h3>
+<p><code>SPC m p</code> (or <em>Python: packages</em>): lang-kit&#39;s page -- the vulnerable
+first, then the outdated, the project&#39;s own marked with their group
+(<code>dev</code>, <code>docs</code>, an extra as <code>[web]</code>).</p>
+<div class="table"><table>
+<thead><tr><th></th><th>uv&#39;s project</th><th>otherwise</th></tr></thead>
+<tbody>
+<tr><td>list</td><td><code>uv pip list --format json</code></td><td><code>uv pip list</code>, else <code>python3 -m pip list</code></td></tr>
+<tr><td>outdated</td><td><code>uv pip list --outdated --format json</code></td><td>the same</td></tr>
+<tr><td>vulnerable</td><td><code>uv tool run pip-audit --path .venv/.../site-packages</code></td><td>the same with uv; else <code>python3 -m pip_audit</code></td></tr>
+<tr><td><code>u</code></td><td><code>uv add &#39;name&gt;=latest&#39;</code> in its group; one it doesn&#39;t ask for, <code>uv sync --upgrade-package name</code></td><td><code>pip install --upgrade name</code></td></tr>
+<tr><td><code>U</code></td><td><code>uv sync --upgrade</code></td><td><code>pip install --upgrade</code> the outdated</td></tr>
+<tr><td><code>a</code></td><td><code>uv add name</code> (<code>name@1.2</code> is <code>name==1.2</code>)</td><td><code>pip install name</code></td></tr>
+<tr><td><code>d</code></td><td><code>uv remove name</code> in its group</td><td><code>pip uninstall name</code></td></tr>
+</tbody>
+</table></div>
+<p>pip-audit says no severity, so each advisory&#39;s risk is unknown; its
+title is its CVE and the first sentence of what it says.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<p><code>cls</code>, <code>dc</code> (dataclass), <code>main</code> (<code>if __name__ == &quot;__main__&quot;</code>), <code>def</code>,
+<code>adef</code>, <code>amain</code> (<code>asyncio.run</code>), <code>tg</code> (a TaskGroup), <code>with</code>, <code>cm</code> and
+<code>acm</code> (contextlib&#39;s), <code>cmc</code> (<code>__enter__</code>/<code>__exit__</code>), <code>test</code>, <code>atest</code>,
+<code>fixture</code>, <code>param</code>, <code>raises</code>, <code>prop</code>, <code>enum</code>, <code>proto</code>, <code>td</code>
+(TypedDict), <code>try</code>, <code>ann</code> (<code>from __future__ import annotations</code>).</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>Fenix&#39;s wizard already has uv&#39;s Python, a FastAPI service, a CLI (Typer,
+Click or argparse), a data project with notebooks and a desktop app;
+this adds:</p>
+<ul class="tight">
+<li><p><strong>Django site</strong>: settings from the environment (<code>.env</code> for
+development), one app with a page and its test, migrated; tests by
+pytest-django or <code>manage.py test</code>.</p></li>
+<li><p><strong>Flask app</strong>: an app factory, a blueprint with a page and a JSON
+route, tests with Flask&#39;s client.</p></li>
+</ul>
+<h3 id="readme-files">Files</h3>
+<p><code>*.pyw</code>, <code>*.py3</code>, <code>*.wsgi</code>, <code>*.gyp</code>, <code>*.gypi</code>, <code>SConstruct</code>,
+<code>SConscript</code>, <code>wscript</code> and <code>.pythonrc</code> are read as Python.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Python project: <code>p</code> packages, <code>d</code> check again, <code>s</code>
+sync.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>409 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/python-v1.0.0/fenix.python-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 ef67b9ee63f465e70b086f435f8a8fafae8aa32f7b8daeea334f4b09fe24a9f9">ef67b9ee63…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: python: basedpyright with ruff&#39;s server beside it, debugging with debugpy (the project&#39;s scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

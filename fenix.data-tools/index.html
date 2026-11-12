@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data tools · Fenix extensions</title>
+<meta name="description" content="JSON, YAML and TOML: format with the project&#39;s indent, minify, sort keys, convert between them, query with JSONPath or jq, check against a JSON Schema (SchemaStore&#39;s by the file&#39;s name), escape strings, copy a key&#39;s path, and types from a sample">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Data tools</h1>
+<p class="id"><code>fenix.data-tools</code></p>
+<p class="lead">JSON, YAML and TOML: format with the project&#39;s indent, minify, sort keys, convert between them, query with JSONPath or jq, check against a JSON Schema (SchemaStore&#39;s by the file&#39;s name), escape strings, copy a key&#39;s path, and types from a sample</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=data">Data</a></li><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>1.1 MB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/data-tools">extensions/data-tools</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Data tools</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/data-tools-v1.0.0/fenix.data-tools-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.data-tools-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>jq</code></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>www.schemastore.org</code></li><li><code>json.schemastore.org</code></li><li><code>raw.githubusercontent.com</code></li><li><code>${setting:data-tools.schema_host}</code> <span class="gloss">those the setting data-tools.schema_host holds</span></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+<div><dt>Reads settings besides its own: those named</dt><dd><ul class="chips"><li><code>editor.*</code></li></ul></dd></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>JSON, YAML and TOML in Fenix: formatted, minified, keys sorted,
+converted, queried, checked against a JSON Schema, and types made from
+them.</p>
+<p>Each works on the selection, else the whole buffer, and is one change
+you can undo. What it works on is the file&#39;s language, or, in another
+file (a code block in Markdown), what the selection looks like.</p>
+<ul class="tight">
+<li><p><strong>Format</strong> with the project&#39;s indent: <code>data-tools.indent</code> if you set
+it, else the project&#39;s <code>.editorconfig</code>, else Fenix&#39;s indent width
+(<code>editor.indent_width</code>). A selection is indented as the line it&#39;s on.
+TOML is formatted in place, its comments kept; JSON&#39;s comments (as in
+<code>tsconfig.json</code>) and YAML&#39;s don&#39;t survive being written again, and it
+says so.</p></li>
+<li><p><strong>Minify</strong>: JSON on one line, YAML in flow style (<code>{a: 1, b: [2]}</code>).</p></li>
+<li><p><strong>Sort keys</strong>, in every object or only the top level&#39;s. JSON on one
+line stays on one line. In TOML a comment goes with the key it&#39;s above,
+and tables&#39; headers follow their keys&#39; order.</p></li>
+<li><p><strong>Convert</strong> between JSON, YAML and TOML: into a buffer beside, or in
+place. Keys stay in their order, and numbers as they were written
+(<code>1.50</code>, a 30-digit integer). TOML has no null, JSON no <code>.inf</code>: it says
+where.</p></li>
+<li><p><strong>Query</strong> with JSONPath (<code>$.servers[*].port</code>), or a jq filter when jq
+is installed. The result opens beside, in the same buffer each time.</p></li>
+<li><p><strong>Escape</strong> the selection as a JSON string, <strong>unescape</strong> one; the
+document as a string of JSON (<code>&quot;{\&quot;a\&quot;:1}&quot;</code>), and such a string back as
+its document, formatted.</p></li>
+<li><p><strong>Copy the path</strong> to the key under the cursor: <code>.servers[2].port</code>, or
+<code>$.servers[2].port</code>, or <code>/servers/2/port</code> (<code>data-tools.path_style</code>).</p></li>
+<li><p><strong>Types</strong> from a sample: TypeScript interfaces, Rust structs with
+serde, Python dataclasses, Go structs. Each list&#39;s objects make one
+type; a key some of them lack is optional, one that&#39;s sometimes null
+nullable.</p></li>
+</ul>
+<h3 id="readme-checks">Checks</h3>
+<p>JSON, YAML and TOML files are checked as you type: what doesn&#39;t parse is
+underlined, and what the file&#39;s JSON Schema says against it. Its schema
+is the first of:</p>
+<ol class="tight">
+<li><p>One you picked for the file (<code>SPC x V</code>): from SchemaStore&#39;s catalog,
+or a URL or a path typed in.</p></li>
+<li><p>One <code>data-tools.schemas</code> gives for files like it (<code>config/*.yaml</code>).</p></li>
+<li><p>The one it names: <code>&quot;$schema&quot;</code>, YAML&#39;s <code># yaml-language-server: $schema=...</code>, TOML&#39;s <code>#:schema ...</code>.</p></li>
+<li><p>SchemaStore&#39;s for its name -- <code>package.json</code>, <code>tsconfig.json</code>, a
+GitHub workflow, <code>docker-compose.yml</code> (<code>data-tools.schemastore</code>).</p></li>
+</ol>
+<p>A schema&#39;s path is from the file&#39;s folder. Schemas, what they refer to
+and the catalog are fetched once and kept in the extension&#39;s folder, and
+fetched again after a week. <code>SPC x v</code> checks the file now and says how
+it went.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC x f</code></td><td><code>data-tools.format</code></td><td>Format</td></tr>
+<tr><td><code>SPC x m</code></td><td><code>data-tools.minify</code></td><td>Minify</td></tr>
+<tr><td><code>SPC x s</code></td><td><code>data-tools.sort</code></td><td>Sort keys, everywhere</td></tr>
+<tr><td><code>SPC x S</code></td><td><code>data-tools.sort_top</code></td><td>Sort the top level&#39;s keys</td></tr>
+<tr><td><code>SPC x j</code> <code>y</code> <code>t</code></td><td><code>data-tools.to_json</code>, <code>to_yaml</code>, <code>to_toml</code></td><td>As JSON, YAML, TOML, beside</td></tr>
+<tr><td><code>SPC x c</code></td><td><code>data-tools.convert</code></td><td>Convert in place</td></tr>
+<tr><td><code>SPC x q</code></td><td><code>data-tools.query</code></td><td>Query: JSONPath, or jq</td></tr>
+<tr><td><code>SPC x v</code></td><td><code>data-tools.validate</code></td><td>Check against the schema now</td></tr>
+<tr><td><code>SPC x V</code></td><td><code>data-tools.schema</code></td><td>Pick the schema</td></tr>
+<tr><td><code>SPC x p</code></td><td><code>data-tools.copy_path</code></td><td>Copy the key&#39;s path</td></tr>
+<tr><td><code>SPC x e</code> <code>u</code></td><td><code>data-tools.escape</code>, <code>unescape</code></td><td>Escape, unescape a JSON string</td></tr>
+<tr><td><code>SPC x l</code> <code>L</code></td><td><code>data-tools.stringify</code>, <code>parse_string</code></td><td>As a string of JSON, and back</td></tr>
+<tr><td><code>SPC x g</code></td><td><code>data-tools.types</code></td><td>Types from the sample</td></tr>
+</tbody>
+</table></div>
+<p>In a JSON, YAML or TOML file the same keys are under <code>SPC m</code>.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>data-tools.indent</code></td><td>Spaces a level, or <code>tab</code>; empty follows <code>.editorconfig</code>, then Fenix</td></tr>
+<tr><td><code>data-tools.results</code></td><td>Results <code>beside</code> (a new pane) or <code>here</code></td></tr>
+<tr><td><code>data-tools.path_style</code></td><td><code>jq</code>, <code>jsonpath</code> or <code>pointer</code></td></tr>
+<tr><td><code>data-tools.check</code></td><td>Check files as you type</td></tr>
+<tr><td><code>data-tools.schemastore</code></td><td>SchemaStore&#39;s schema for a file that names none</td></tr>
+<tr><td><code>data-tools.schemas</code></td><td>Schemas for files by pattern</td></tr>
+<tr><td><code>data-tools.schema_host</code></td><td>One more host schemas come from</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Where you are, and change it:</strong> read the selection or the buffer, and
+put the result back.</p></li>
+<li><p><strong>The project, read:</strong> its <code>.editorconfig</code>, and a schema in it.</p></li>
+<li><p><strong>Fenix&#39;s settings under <code>editor</code>:</strong> its indent width.</p></li>
+<li><p><strong>Run jq</strong>, for a query that isn&#39;t JSONPath.</p></li>
+<li><p><strong>The network:</strong> <code>www.schemastore.org</code>, <code>json.schemastore.org</code> and
+<code>raw.githubusercontent.com</code>, for SchemaStore&#39;s catalog and schemas,
+and the host <code>data-tools.schema_host</code> names. A schema elsewhere can&#39;t
+be fetched: it says so.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>1.1 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/data-tools-v1.0.0/fenix.data-tools-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 41516a7588ab5423f36084a58a90bfe627c6619a50a400b3b58f171e0d052b3f">41516a7588…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: jSON, YAML and TOML: format with the project&#39;s indent, minify, sort keys, convert between them, query with JSONPath or jq, check against a JSON Schema (SchemaStore&#39;s by the file&#39;s name), escape strings, copy a key&#39;s path, and types from a sample.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

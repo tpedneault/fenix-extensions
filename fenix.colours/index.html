@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colours · Fenix extensions</title>
+<meta name="description" content="Colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), CSS names, a theme&#39;s), a picker that writes it back as it was written, conversions between hex, RGB, HSL and OKLCH, a WCAG contrast checker, and the project&#39;s palette">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Colours</h1>
+<p class="id"><code>fenix.colours</code></p>
+<p class="lead">Colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), CSS names, a theme&#39;s), a picker that writes it back as it was written, conversions between hex, RGB, HSL and OKLCH, a WCAG contrast checker, and the project&#39;s palette</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>182 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/colours">extensions/colours</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Colours</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/colours-v1.0.0/fenix.colours-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.colours-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Colour literals made visible and editable.</p>
+<ul class="tight">
+<li><p><strong>Swatches</strong>: a block of its colour beside every colour in the file
+you&#39;re in, and in the files you&#39;ve been in lately, kept up to date as
+you type. A see-through colour is shown over the editor&#39;s background,
+one out of sRGB&#39;s gamut as it maps into it. <code>SPC C t</code> turns them off
+and on.</p></li>
+<li><p><strong>The picker</strong> (<code>SPC C p</code>): the colour under the cursor by hue,
+saturation, lightness and alpha -- keys or the mouse on their bars --
+or typed in as hex (or any literal), with what it was beside what it
+is now. Enter writes it back the way it was written, as one change you
+can undo: <code>#fff</code> stays three digits while it can, <code>rgba(…, 0.5)</code> keeps
+its commas and its alpha, <code>hsl(…deg …)</code> its unit, a name stays a name
+if the colour has one. With no colour at the cursor it types one in
+there.</p></li>
+<li><p><strong>Conversions</strong> (<code>SPC C c</code>, or <code>SPC C h</code> <code>r</code> <code>s</code> <code>o</code> straight to
+hex, <code>rgb()</code>, <code>hsl()</code>, <code>oklch()</code>): the colour under the cursor, or
+every one in the selection, at once. OKLCH is Björn Ottosson&#39;s OKLab,
+as CSS Color 4 has it; a colour outside sRGB is mapped in as CSS does
+(its chroma brought down, its lightness and hue kept). Numbers are
+written with as few decimals as read back as the same colour.</p></li>
+<li><p><strong>Contrast</strong> (<code>SPC C x</code>): the colour under the cursor on another (the
+next colour on its line, else the editor&#39;s background), their WCAG 2.x
+ratio, and what it passes: AA and AAA for normal and large text, and
+3:1 for a control&#39;s parts. A preview draws big letters and a box in the
+one colour on the other. <code>f</code> moves the focused colour as little as it
+takes to pass AA (<code>F</code> AAA), its hue and chroma kept; Enter writes it
+back into its literal.</p></li>
+<li><p><strong>The palette</strong> (<code>SPC C P</code>): every colour the project&#39;s files use, read
+a few at a time (<code>.gitignore</code> kept to; binaries, pictures and files
+over 1 MB passed over), the same colours as one however they&#39;re
+written, grouped by hue -- or the near-duplicates, colours so close
+(ΔEOK under 0.03) they&#39;re likely meant to be one. Enter opens a colour
+to its uses, and a use in its file at its line.</p></li>
+</ul>
+<p>Literals: <code>#rgb</code>, <code>#rgba</code>, <code>#rrggbb</code>, <code>#rrggbbaa</code>; <code>rgb()</code>, <code>rgba()</code>,
+<code>hsl()</code>, <code>hsla()</code> and <code>oklch()</code>, in CSS&#39;s legacy syntax (commas) and its
+modern one (spaces and a <code>/</code>), with <code>none</code>, percentages and hue units;
+CSS&#39;s 148 named colours, in stylesheets and markup (<code>.css</code>, <code>.scss</code>,
+<code>.less</code>, <code>.html</code>, <code>.vue</code>, <code>.svelte</code>, <code>.svg</code> and the like); and a Fenix
+theme&#39;s <code>{ color = &quot;#rrggbb&quot;, alpha = 0.12 }</code>. In code, <code>#123</code> and
+<code>#1234</code> (all digits) are taken for issue numbers, not colours.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC C p</code></td><td><code>colours.pick</code></td><td>The picker, on the colour under the cursor</td></tr>
+<tr><td><code>SPC C c</code></td><td><code>colours.convert</code></td><td>Convert it, or those selected: a picker of the four</td></tr>
+<tr><td><code>SPC C h</code> <code>r</code> <code>s</code> <code>o</code></td><td><code>colours.to_hex</code>, <code>to_rgb</code>, <code>to_hsl</code>, <code>to_oklch</code></td><td>Straight to one</td></tr>
+<tr><td><code>SPC C x</code></td><td><code>colours.contrast</code></td><td>The contrast checker</td></tr>
+<tr><td><code>SPC C P</code></td><td><code>colours.palette</code></td><td>The project&#39;s palette</td></tr>
+<tr><td><code>SPC C t</code></td><td><code>colours.toggle_swatches</code></td><td>Swatches on or off</td></tr>
+</tbody>
+</table></div>
+<p>On the picker:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>j</code> <code>k</code></td><td>Hue, saturation, lightness, alpha</td></tr>
+<tr><td><code>h</code> <code>l</code>, <code>H</code> <code>L</code> (Shift-Left, Shift-Right, PageDown, PageUp)</td><td>A step down or up, or ten: a degree, a percent</td></tr>
+<tr><td><code>0</code> <code>$</code></td><td>Its ends</td></tr>
+<tr><td><code>x</code> <code>#</code> <code>Tab</code></td><td>Type it in: hex, or any literal (<code>rgb(…)</code>, <code>tomato</code>), shown as you type</td></tr>
+<tr><td><code>r</code></td><td>Back to what it was</td></tr>
+<tr><td><code>Enter</code></td><td>Write it, and close</td></tr>
+<tr><td>The mouse</td><td>A click or a drag on a bar sets it; the wheel steps it</td></tr>
+</tbody>
+</table></div>
+<p>On the contrast checker: <code>Tab</code> (<code>j</code> <code>k</code>) the other colour, <code>h</code> <code>l</code>
+darker and lighter (<code>H</code> <code>L</code> more), <code>s</code> swaps them, <code>f</code> <code>F</code> the nearest
+that passes AA, AAA, <code>x</code> types one in, Enter writes what changed. A
+click picks a colour, the wheel over it makes it darker or lighter.</p>
+<p>On the palette: <code>j</code> <code>k</code> <code>J</code> <code>K</code> <code>g</code> <code>G</code>, Enter or <code>l</code> opens a colour to
+its uses or goes to a use, <code>h</code> closes it, <code>Tab</code> (<code>1</code>, <code>2</code>) by hue or the
+near-duplicates, <code>y</code> copies the colour, <code>r</code> reads the project again. A
+click selects, a double click opens, the wheel scrolls.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>colours.swatches</code></td><td><code>true</code></td><td>Swatches beside colours</td></tr>
+<tr><td><code>colours.most</code></td><td><code>2000</code></td><td>The most in a file (10,000 at most); in a file of more than 10,000 lines, only those within 5,000 of the cursor</td></tr>
+<tr><td><code>colours.syntax</code></td><td><code>modern</code></td><td>How hex and names convert: <code>rgb(59 130 246 / 50%)</code>, or <code>legacy</code>, <code>rgba(59, 130, 246, 0.5)</code>. A function keeps its own</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-permissions">Permissions</h3>
+<p><code>editor = &quot;write&quot;</code> for the file you&#39;re in -- its swatches, and the
+colours written back -- and <code>filesystem = &quot;project-read&quot;</code> for the
+palette. It starts with Fenix (<code>on_startup</code>), for the swatches, and
+hears which file you&#39;re in and its changes (<code>events = [&quot;focus&quot;, &quot;changed&quot;]</code>).</p>
+<p>It uses Fenix&#39;s decorations, pages with backgrounds, the mouse and more
+keys.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>182 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/colours-v1.0.0/fenix.colours-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 40e961c7adca909fe5c70a424b578f9a0baf5ab5df9a562ce4e5351ba38c2d8d">40e961c7ad…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), CSS names, a theme&#39;s), a picker that writes it back as it was written, conversions between hex, RGB, HSL and OKLCH, a WCAG contrast checker, and the project&#39;s palette.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

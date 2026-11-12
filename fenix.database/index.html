@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database browser · Fenix extensions</title>
+<meta name="description" content="SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table&#39;s rows paged and changed, history, completion of the schema&#39;s names">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Database browser</h1>
+<p class="id"><code>fenix.database</code></p>
+<p class="lead">SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table&#39;s rows paged and changed, history, completion of the schema&#39;s names</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li><li><a href="../index.html?category=data">Data</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.2.0</dd>
+<dt>Needs Fenix</dt><dd>1.1 or later, before 2 <code>&gt;=1.1, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>3.5 MB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/database">extensions/database</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Database browser</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/database-v1.2.0/fenix.database-1.2.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.database-1.2.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Opens network connections (TCP and UDP sockets) to these addresses</dt><dd><ul class="chips"><li><code>${setting:database.connections}</code> <span class="gloss">those the setting database.connections holds</span></li><li><code>*:5432</code> <span class="gloss">any host, this port</span></li><li><code>*:3306</code> <span class="gloss">any host, this port</span></li><li><code>*:1433</code> <span class="gloss">any host, this port</span></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+<div><dt>Reads and keeps secrets in Fenix&#39;s secret store, under these keys</dt><dd><ul class="chips"><li><code>database.password.*</code></li><li><code>database.passwords</code></li></ul></dd></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Connect to a database, browse its schema and run statements without
+leaving Fenix. SQLite files, PostgreSQL, MySQL and MariaDB, and SQL
+Server.</p>
+<p><code>SPC o b</code> (<code>database.open</code>) opens the browser: your saved connections in
+a sidebar, each one&#39;s schema under it once it&#39;s connected -- schemas,
+tables and views, their columns with their types, indexes and keys --
+and beside them what the last statements you ran gave back.</p>
+<pre><code class="language-text">Connections                 │ dev  2 statements · 14 ms
+                            │ 1 Rows 2   2 Done
+● dev   PostgreSQL · ready  │
+  ▾ app                     │ id  name   email  score
+    ▾ Tables (2)            │ ─────────────────────────
+      ▾ users            6  │  1  ada    a@x     1.50
+          id   integer · PK │  2  grace  NULL    2.25
+          name text         │
+        ▸ Indexes (2)       │
+        ▸ Keys (1)          │
+○ prod  PostgreSQL · production
+○ shop.db   SQLite          │ name text  row 1 of 2
+                            │ ada
+</code></pre>
+<p>A <code>.sqlite</code>, <code>.sqlite3</code>, <code>.db</code> or <code>.db3</code> file opens straight into it,
+however you open it.</p>
+<h3 id="readme-connections">Connections</h3>
+<p><code>database.connections</code> holds them, a row each: a name, the engine
+(<code>sqlite</code>, <code>postgres</code>, <code>mysql</code> -- MariaDB too -- or <code>mssql</code>), the host
+and port (left out: the engine&#39;s own), the database (a SQLite file&#39;s
+path, in the project: <code>/project/data/app.db</code>), the user, and options:</p>
+<div class="table"><table>
+<thead><tr><th>Option</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>readonly</code></td><td>Nothing that changes what&#39;s stored runs on it -- refused here, and the session&#39;s read-only too (PostgreSQL&#39;s <code>default_transaction_read_only</code>, MySQL&#39;s <code>SET SESSION TRANSACTION READ ONLY</code>; a SQLite file opened read-only)</td></tr>
+<tr><td><code>production</code></td><td>A statement that changes what&#39;s stored is asked about first</td></tr>
+<tr><td><code>tls=prefer</code></td><td>TLS if the server offers it: PostgreSQL&#39;s and MySQL&#39;s default</td></tr>
+<tr><td><code>tls=require</code></td><td>TLS or nothing</td></tr>
+<tr><td><code>tls=strict</code></td><td>SQL Server&#39;s TDS 8: TLS from the first byte (SQL Server 2022, Azure SQL)</td></tr>
+<tr><td><code>tls=off</code></td><td>None</td></tr>
+<tr><td><code>insecure</code></td><td>A server certificate taken whoever signed it: a server of yours</td></tr>
+</tbody>
+</table></div>
+<p>A password is asked for when you connect, the prompt showing dots, and
+once it signs in it&#39;s kept in the system&#39;s keychain -- Windows&#39;
+Credential Manager, the macOS Keychain, the Secret Service on Linux --
+as <code>database.password.&lt;name&gt;</code>, and not asked for again
+(<code>database.keep_passwords</code> off: kept until Fenix closes). One the server
+refuses is forgotten and asked for again; <code>Database: forget the password kept for a connection</code> forgets one. The older map <code>database.passwords</code>
+(connection, password; <code>FENIX_DATABASE_PASSWORDS</code>, as JSON, overrides
+it) is still read, after the keychain.</p>
+<p>An UPDATE or DELETE without a WHERE is asked about on any connection.</p>
+<h3 id="readme-running-statements">Running statements</h3>
+<p>In a <code>.sql</code> buffer:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC m r</code>, with standard keys also <code>Ctrl+Enter</code></td><td>Run the statement under the cursor -- or the selection, its statements in turn</td></tr>
+<tr><td><code>SPC m R</code></td><td>Run every statement in the buffer</td></tr>
+<tr><td><code>SPC m c</code></td><td>Pick the connection the buffer runs on</td></tr>
+<tr><td><code>SPC m h</code></td><td>The history: the statements you ran, newest first, searched as you type; one picked goes in at the cursor</td></tr>
+<tr><td><code>SPC m n</code></td><td>A new query buffer</td></tr>
+<tr><td><code>SPC m b</code></td><td>The browser</td></tr>
+</tbody>
+</table></div>
+<p>A buffer runs on the connection its first lines name (<code>-- connection: dev</code>), else the one you picked for it, else the only one connected. The
+modeline says which, and how it is (<code>db dev · ready</code>).</p>
+<p>Statements are split where the engine splits them: at <code>;</code> outside
+quotes, quoted names and comments; PostgreSQL&#39;s dollar quoting
+(<code>$$ ... $$</code>, <code>$body$</code>) and nested comments; MySQL&#39;s <code>#</code> comments,
+backslashes in strings and <code>DELIMITER</code>; SQL Server&#39;s <code>[names]</code> and <code>GO</code>
+lines; SQLite&#39;s trigger bodies.</p>
+<h3 id="readme-results">Results</h3>
+<p>A statement&#39;s rows are a table, a tab a statement (<code>1</code>-<code>9</code>, <code>[</code> <code>]</code>):</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>h</code> <code>j</code> <code>k</code> <code>l</code>, the arrows</td><td>A cell; <code>J</code> <code>K</code> a screen, <code>g</code> <code>G</code> the first and last row</td></tr>
+<tr><td><code>s</code></td><td>Sort by the column: up, down, as they came. Numbers sort as numbers, NULLs last</td></tr>
+<tr><td><code>v</code> <code>V</code></td><td>Select cells, rows</td></tr>
+<tr><td><code>y</code></td><td>Copy the cell, or the selection (a tab between cells)</td></tr>
+<tr><td><code>Y</code></td><td>Copy the row, or the selected rows, as CSV with the header</td></tr>
+<tr><td><code>x</code> <code>X</code></td><td>Every row as CSV, as JSON, in a buffer beside</td></tr>
+<tr><td><code>w</code> <code>W</code></td><td>Every row to a file in the project, CSV or JSON</td></tr>
+<tr><td><code>Tab</code></td><td>The sidebar, and back</td></tr>
+<tr><td><code>H</code></td><td>The history</td></tr>
+</tbody>
+</table></div>
+<p>The focused cell is shown whole below the table, its column&#39;s type
+beside its name.</p>
+<h3 id="readme-table-view">Table view</h3>
+<p><code>Enter</code> on a table in the sidebar pages through its rows, by its key&#39;s
+order:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>n</code> <code>p</code>, PageDown PageUp</td><td>The next page, the last</td></tr>
+<tr><td><code>/</code></td><td>Filter: a WHERE&#39;s condition (<code>score &gt; 1 AND name LIKE &#39;a%&#39;</code>); Enter on nothing, every row</td></tr>
+<tr><td><code>e</code>, <code>Enter</code>, a double click</td><td>Change the cell: the UPDATE it makes, keyed by the row&#39;s primary key (SQLite&#39;s rowid when there&#39;s none), is shown, and runs on <code>y</code></td></tr>
+<tr><td><code>D</code></td><td>Set the cell NULL, the same way</td></tr>
+<tr><td><code>r</code></td><td>Read the page again</td></tr>
+<tr><td><code>s</code> <code>v</code> <code>V</code> <code>y</code> <code>Y</code></td><td>As in the results</td></tr>
+</tbody>
+</table></div>
+<p>A table without a primary key isn&#39;t changed here: there&#39;s no telling
+its rows apart.</p>
+<h3 id="readme-completion">Completion</h3>
+<p>In a <code>.sql</code> buffer, from the connected schema: tables (and schemas)
+after <code>FROM</code>, <code>JOIN</code>, <code>INTO</code> and <code>UPDATE</code>; a table&#39;s columns after
+<code>table.</code> or <code>alias.</code>; the statement&#39;s tables&#39; columns elsewhere; and
+keywords.</p>
+<h3 id="readme-engines">Engines</h3>
+<ul class="tight">
+<li><p><strong>SQLite</strong>, through <a href="https://github.com/tursodatabase/turso">Turso</a>&#39;s
+engine: SQLite in Rust, which builds for WebAssembly with no C
+compiler and reads and writes the file itself. A file in the project
+is opened where it is; one elsewhere is copied and opened read-only.
+Turso writes through a WAL: a file that kept a rollback journal is put
+back as it was once a change is written (the log checkpointed into it
+and removed, its header saying so again). Turso is still in beta;
+what it doesn&#39;t do yet it says.</p></li>
+<li><p><strong>PostgreSQL</strong>: its protocol (v3), TLS asked for with an SSLRequest,
+SCRAM-SHA-256, md5 or a cleartext password; statements you run go as
+one simple query, a table view&#39;s as an extended one (Parse, Bind,
+Execute), which the server holds to one statement.</p></li>
+<li><p><strong>MySQL and MariaDB</strong>: the handshake, TLS asked for with an
+SSLRequest, caching_sha2_password (fast, or in full: over TLS, or to
+the server&#39;s RSA key) and mysql_native_password, auth switches;
+COM_QUERY, several statements at once.</p></li>
+<li><p><strong>SQL Server</strong>: TDS 7.4 -- PRELOGIN, LOGIN7 with SQL Server&#39;s own
+sign-in, SQL batches, a batch a statement -- and TDS 8 with
+<code>tls=strict</code>.</p></li>
+</ul>
+<p>Checked against real servers: PostgreSQL 16, MariaDB 10.11, MySQL 8.4
+(caching_sha2_password in full to the RSA key and fast, plain and with
+TLS) and SQL Server 2022 (TDS 7.4 unencrypted: the schema, every common
+type, a table view&#39;s pages and changes). TDS 8 hasn&#39;t been: the test
+server wouldn&#39;t take a strict connection with its self-signed
+certificate.</p>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p>Two tools for your coding agents (Fenix 1.1), in the <code>database</code>
+toolset:</p>
+<div class="table"><table>
+<thead><tr><th>Tool</th><th>Class</th><th>What it answers</th></tr></thead>
+<tbody>
+<tr><td><code>database_schema</code></td><td>read</td><td>A connection&#39;s schemas, tables and views, each column&#39;s type and whether it&#39;s nullable, primary, unique and foreign keys, indexes -- or one table&#39;s (<code>table</code>)</td></tr>
+<tr><td><code>database_query</code></td><td>read</td><td>The rows of one statement that only reads (<code>SELECT</code>, <code>WITH</code>, <code>VALUES</code>, <code>TABLE</code>, <code>SHOW</code>, <code>DESCRIBE</code>, <code>EXPLAIN</code>), as JSON: at most <code>limit</code> (100, up to 1000)</td></tr>
+</tbody>
+</table></div>
+<p>Both take <code>connection</code>, a name from <code>database.connections</code> or an open
+SQLite file&#39;s; left out, it&#39;s the one the <code>.sql</code> buffer you&#39;re in runs
+on, the one you ran on last, or the only one there is. A connection
+that needs a password asks you for it, as the browser does.</p>
+<p><code>database_query</code> refuses whatever it can&#39;t tell only reads: more than
+one statement, anything but those above, <code>SELECT ... INTO</code>, a <code>WITH</code>
+that changes rows, <code>EXPLAIN ANALYZE</code>, <code>FOR UPDATE</code>, and functions with
+effects (<code>nextval</code>, <code>pg_terminate_backend</code>, advisory locks, large
+objects, <code>dblink</code>, <code>sleep</code>, <code>load_file</code>, <code>OPENROWSET</code>, <code>xp_</code> and <code>sp_</code>
+procedures). What passes runs on a session of its own, opened
+read-only -- PostgreSQL&#39;s <code>default_transaction_read_only</code>, MySQL&#39;s <code>SET SESSION TRANSACTION READ ONLY</code>, a SQLite file opened read-only -- so a
+transaction you have open is never touched, and the server refuses a
+write all the same. Each one is in the history, marked as a coding
+agent&#39;s.</p>
+<p>SQL Server has no read-only session, and it needs no <code>;</code> between
+statements, so there the check is the only safeguard and it&#39;s stricter:
+every word that starts a statement (<code>DECLARE</code>, <code>SET</code>, <code>BEGIN</code>, <code>IF</code>,
+<code>UPDATETEXT</code>...) is refused, unless it&#39;s a name in <code>[brackets]</code>, as are
+a second <code>SELECT</code> outside a <code>UNION</code>, <code>EXCEPT</code> or <code>INTERSECT</code>, and <code>NEXT VALUE FOR</code>. For more certainty, give an agent&#39;s connection a login that
+can only read.</p>
+<h3 id="readme-limits">Limits</h3>
+<ul class="tight">
+<li><p><strong>TLS on SQL Server</strong> is TDS 8&#39;s only. TDS 7 carries TLS inside its
+PRELOGIN packets, which Fenix&#39;s sockets, which do TLS themselves,
+can&#39;t; a server that forces encryption is reached with <code>tls=strict</code>
+(SQL Server 2022 and Azure SQL), or not. Windows sign-in (SSPI,
+Kerberos) isn&#39;t spoken, nor is Entra ID.</p></li>
+<li><p><strong>PostgreSQL</strong>: SCRAM-SHA-256-PLUS (channel binding), GSSAPI and SSPI
+aren&#39;t spoken; a password isn&#39;t SASLprep&#39;d.</p></li>
+<li><p><strong>MySQL</strong>: MariaDB&#39;s ed25519 and other plugins aren&#39;t spoken.</p></li>
+<li><p><strong>A SQLite statement</strong> runs inside the call Fenix gives it, which its
+manifest makes a minute: one that takes longer than
+<code>database.timeout</code> (30 seconds; 55 at most) is stopped, and the
+browser waits meanwhile. A file outside the
+project is a copy, read-only, and its <code>-wal</code> isn&#39;t read with it.</p></li>
+<li><p><strong>Rows kept</strong>: <code>database.max_rows</code> (5,000) a result; a table view&#39;s
+page, <code>database.page_rows</code> (200).</p></li>
+<li><p><strong>No keychain</strong> (Linux without the Secret Service): a password kept
+goes to <code>settings.toml</code> as plain text, which Fenix says on its output
+page. On Linux the first one read may wait on the keychain&#39;s unlock
+prompt.</p></li>
+</ul>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Open sockets to the servers in <code>database.connections</code>, and to any
+host on 5432, 3306 and 1433, for a row that leaves its port out.</p></li>
+<li><p>Read and keep secrets <code>database.password.*</code>, a connection&#39;s password
+each, in the system&#39;s keychain; read the older <code>database.passwords</code>.</p></li>
+<li><p>Take up to a minute a call (<code>limits.call_ms</code>), for a SQLite statement.</p></li>
+<li><p>Read and write the project&#39;s files: a SQLite file in it, an export.</p></li>
+<li><p>Read and change the buffer you&#39;re in: a <code>.sql</code> buffer&#39;s text, the
+cursor and the selection; a statement from the history typed at the
+cursor (<code>editor = &quot;write&quot;</code>).</p></li>
+<li><p>Be told which buffer has the focus (<code>events = [&quot;focus&quot;]</code>), for the
+modeline.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/database dist
+cargo test --manifest-path extensions/database/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> checks statement splitting and the kinds of statements the
+safety rules go by, the rules themselves, each engine&#39;s protocol against
+byte sequences -- hand-made from the protocol&#39;s documents, and captured
+from PostgreSQL 16 and MariaDB 10.11 (<code>src/testdata</code>) -- SCRAM-SHA-256
+against RFC 7677&#39;s example, the scrambles, TDS&#39;s types, the catalog put
+together into a schema and its tree, SQLite files made by SQLite itself
+(Python&#39;s <code>sqlite3</code>) read and written and their journal put back, the
+UPDATE builder and table pages, completion, history, the pages&#39;
+keys and layout, and what agents are given: the read-only guard, the
+schema and rows as JSON.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.2.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.5</td><td>3.5 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/database-v1.2.0/fenix.database-1.2.0.fenixext">Download<span class="visually-hidden"> 1.2.0</span></a><code class="sha" title="SHA-256 2353d5cfbc88229b7e7ca4daa7bd30caadfc6737f51c4f945494946e3d2883f9">2353d5cfbc…</code></td></tr>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>3.5 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/database-v1.1.0/fenix.database-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 958096b61f6080be44d064f6c9296940b6e5dce6206c3d46b6278815976d9f88">958096b61f…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>3.5 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/database-v1.0.0/fenix.database-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 792b2234f9f2426cae8925dd2d2b9127d244b69790e4d490604f7c1b4776b7a8">792b2234f9…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<p>For Fenix 1.5: with standard keys, Ctrl+Enter in a .sql buffer runs the
+statement under the cursor (or the selection).</p>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.1: tools for your coding agents.</p>
+<ul class="tight">
+<li><p><code>database_schema</code> (read): a connection&#39;s schema -- tables and views,
+columns with their types and nullability, primary, unique and foreign
+keys, indexes -- or one table&#39;s; the connection named, else the one
+the <code>.sql</code> buffer you&#39;re in runs on.</p></li>
+<li><p><code>database_query</code> (read): the rows of one statement that only reads,
+as JSON, at most 1000. Anything else is refused before it&#39;s sent --
+more than one statement, writes, <code>SELECT ... INTO</code>, <code>EXPLAIN ANALYZE</code>, <code>FOR UPDATE</code>, functions with effects -- and it runs on a
+session of its own, opened read-only, so the server refuses a write
+too and your own transaction is left alone. It&#39;s kept in the history.
+SQL Server has no read-only session and needs no <code>;</code> between
+statements, so there the check refuses every word that starts another
+statement, a second <code>SELECT</code> outside a <code>UNION</code>, and <code>NEXT VALUE FOR</code>.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: sQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table&#39;s rows paged and changed, history, completion of the schema&#39;s names.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

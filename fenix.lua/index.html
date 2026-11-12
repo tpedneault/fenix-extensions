@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lua · Fenix extensions</title>
+<meta name="description" content="Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project&#39;s checks with their fixes, snippets, and LÖVE game and LuaRocks module projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Lua</h1>
+<p class="id"><code>fenix.lua</code></p>
+<p class="lead">Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project&#39;s checks with their fixes, snippets, and LÖVE game and LuaRocks module projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>325 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/lua">extensions/lua</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Lua</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/lua-v1.0.0/fenix.lua-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.lua-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>lua</code></li><li><code>luajit</code></li><li><code>luarocks</code></li><li><code>busted</code></li><li><code>love</code></li><li><code>lua-language-server</code></li><li><code>stylua</code></li><li><code>selene</code></li><li><code>luacheck</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Lua in Fenix: lua-language-server, StyLua formatting, selene or luacheck
+on save, tasks for scripts, busted, LuaRocks and LÖVE, the project
+doctor&#39;s checks with their fixes, snippets, and LÖVE game and LuaRocks
+module projects in the new-project wizard. Built on lang-kit (<code>crates/lang-kit</code>), as each language
+pack is.</p>
+<p>Fenix highlights Lua itself and knows its comment, so the pack brings no
+grammar. It starts with Fenix: the server is set for every Lua file, and
+the doctor and the tasks are there in a project with Lua in it (a <code>.lua</code>
+file, a rockspec or a <code>.luarc.json</code>).</p>
+<h3 id="readme-the-server">The server</h3>
+<p><a href="https://luals.github.io">lua-language-server</a> (LuaLS), in place of
+Fenix&#39;s own, when it&#39;s found. Its fix row installs LuaLS 3.19.2&#39;s release
+for this machine (Linux and macOS on x86_64 and arm64, Windows on
+x86_64), checked against the SHA-256 the pack knows and unpacked into the
+pack&#39;s tools folder, where only the pack looks. One you installed
+yourself is used instead: the pack looks on <code>PATH</code> and in Neovim&#39;s Mason
+folder, Homebrew&#39;s, LuaRocks&#39; and Scoop&#39;s.</p>
+<p>It&#39;s given:</p>
+<ul class="tight">
+<li><p><code>workspace.checkThirdParty = &quot;ApplyInMemory&quot;</code>: LuaLS&#39;s own definitions
+for LÖVE, busted, luassert, OpenResty and the rest are used when your
+code uses them, without the question Fenix can&#39;t answer.</p></li>
+<li><p>In a LÖVE game or a Neovim config or plugin, <code>runtime.version = &quot;LuaJIT&quot;</code>; in Neovim&#39;s, <code>vim</code> as a known global.</p></li>
+</ul>
+<p>A <code>.luarc.json</code> wins over all of it: the place for the Lua version, more
+globals, or Neovim&#39;s runtime as a library.</p>
+<h3 id="readme-formatting">Formatting</h3>
+<p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: StyLua in a project
+with a <code>stylua.toml</code> or <code>.stylua.toml</code> (found from the file&#39;s folder up),
+else the server&#39;s own formatting, which reads <code>.editorconfig</code>. The
+doctor&#39;s fix row installs StyLua 2.6.0. <code>lua.formatter</code> is <code>auto</code>,
+<code>stylua</code> (StyLua everywhere it&#39;s installed) or <code>server</code>.</p>
+<h3 id="readme-linting">Linting</h3>
+<p>The server&#39;s checks as you type, and when a Lua file is saved:</p>
+<ul class="tight">
+<li><p><strong>selene</strong> in a project with a <code>selene.toml</code>. Its fix row installs
+selene 0.31.0 (Linux and Windows on x86_64, macOS on arm64).</p></li>
+<li><p><strong>luacheck</strong> in a project with a <code>.luacheckrc</code>. Its fix row runs
+<code>luarocks install --local luacheck</code>.</p></li>
+</ul>
+<p><code>lua.linter</code> is <code>auto</code>, <code>selene</code>, <code>luacheck</code> or <code>off</code>.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>, as the project has them; <code>.env</code>&#39;s values go to each.</p>
+<div class="table"><table>
+<thead><tr><th>Task</th><th>Runs</th><th>When</th></tr></thead>
+<tbody>
+<tr><td>run</td><td><code>lua main.lua</code> (LuaJIT without Lua)</td><td>a <code>main.lua</code> that isn&#39;t a game</td></tr>
+<tr><td>love</td><td><code>love .</code></td><td>a LÖVE game: <code>main.lua</code> with <code>conf.lua</code>, or <code>love.</code> callbacks</td></tr>
+<tr><td>test</td><td><code>busted</code></td><td>a <code>.busted</code> or a <code>spec</code> folder</td></tr>
+<tr><td>luarocks make, luarocks test</td><td><code>luarocks make</code>, <code>luarocks test</code> with the rockspec</td><td>a rockspec at the top; a pair each, by name, for several</td></tr>
+<tr><td>lint</td><td><code>selene .</code> or <code>luacheck .</code></td><td>the linter in use, installed</td></tr>
+<tr><td>format</td><td><code>stylua .</code></td><td>StyLua in use, installed</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Lua (or LuaJIT)</td><td><code>lua -v</code>; only a suggestion in a LÖVE game or a Neovim config</td><td></td></tr>
+<tr><td>LuaRocks</td><td>with a rockspec</td><td></td></tr>
+<tr><td>lua-language-server</td><td></td><td>its release</td></tr>
+<tr><td>StyLua</td><td>when it formats</td><td>its release</td></tr>
+<tr><td>selene, luacheck</td><td>the linter in use</td><td>its release; <code>luarocks install --local luacheck</code></td></tr>
+<tr><td>busted</td><td>with specs</td><td><code>luarocks install --local busted</code></td></tr>
+<tr><td>LÖVE</td><td>for a game</td><td></td></tr>
+</tbody>
+</table></div>
+<p><code>SPC m d</code> checks again.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>lua.formatter</code></td><td><code>auto</code></td><td>StyLua with its config, else the server</td></tr>
+<tr><td><code>lua.linter</code></td><td><code>auto</code></td><td>selene with <code>selene.toml</code>, luacheck with <code>.luacheckrc</code></td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-files">Files</h3>
+<p>Besides <code>*.lua</code>, read as Lua: <code>*.rockspec</code>, <code>*.wlua</code> (wxLua), <code>*.nse</code>
+(Nmap&#39;s scripts), <code>.luacheckrc</code>, <code>.busted</code> and <code>config.ld</code> (LDoc&#39;s).</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Keys</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>fn</code>, <code>lfn</code>, <code>fun</code></td><td>function, local function, anonymous function</td></tr>
+<tr><td><code>mod</code>, <code>req</code>, <code>class</code></td><td>module table, <code>require</code>, a class with a metatable</td></tr>
+<tr><td><code>for</code>, <code>fori</code>, <code>forp</code>, <code>while</code></td><td>numeric <code>for</code>, <code>ipairs</code>, <code>pairs</code>, <code>while</code></td></tr>
+<tr><td><code>if</code>, <code>ife</code></td><td><code>if</code>; <code>if</code>, <code>elseif</code>, <code>else</code></td></tr>
+<tr><td><code>pcall</code></td><td><code>pcall</code>, its error given back</td></tr>
+<tr><td><code>describe</code>, <code>it</code></td><td>busted</td></tr>
+<tr><td><code>love</code>, <code>conf</code></td><td>LÖVE&#39;s callbacks, <code>love.conf</code></td></tr>
+<tr><td><code>keymap</code>, <code>autocmd</code></td><td>Neovim&#39;s <code>vim.keymap.set</code>, <code>nvim_create_autocmd</code></td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>Two in the new-project wizard, under Lua:</p>
+<ul class="tight">
+<li><p><strong>LÖVE game</strong>: <code>main.lua</code> with <code>load</code>, <code>update</code> and <code>draw</code>, <code>conf.lua</code>,
+<code>stylua.toml</code>, and a <code>.luarc.json</code> giving the server LÖVE&#39;s API.</p></li>
+<li><p><strong>LuaRocks module</strong>: a rockspec (<code>luarocks make</code>, <code>luarocks test</code>),
+the module in <code>src/</code>, busted specs with their <code>.busted</code>, <code>stylua.toml</code>
+and <code>.luarc.json</code>.</p></li>
+</ul>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Lua file or project: <code>d</code> checks the project again, <code>s</code>
+installs lua-language-server, <code>f</code> StyLua.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>Debugging</strong>: there&#39;s no Lua debug adapter Fenix can start on its
+own yet.</p></li>
+<li><p><strong>Neovim&#39;s runtime</strong>: the server isn&#39;t given <code>$VIMRUNTIME</code> as a library
+(the pack can&#39;t read your Neovim&#39;s); a <code>.luarc.json</code> can.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>325 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/lua-v1.0.0/fenix.lua-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 5e1e9291618d5571f2a05b3dc691c29d6856e2dc33423a9f66a46fef7925d807">5e1e929161…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project&#39;s checks with their fixes, snippets, and LÖVE game and LuaRocks module projects.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

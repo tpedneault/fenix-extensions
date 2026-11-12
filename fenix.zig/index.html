@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zig · Fenix extensions</title>
+<meta name="description" content="Zig: its grammar, ZLS, zig fmt, zig ast-check on save, zig build&#39;s steps as tasks, the project&#39;s checks with fixes that install Zig and ZLS, and snippets">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Zig</h1>
+<p class="id"><code>fenix.zig</code></p>
+<p class="lead">Zig: its grammar, ZLS, zig fmt, zig ast-check on save, zig build&#39;s steps as tasks, the project&#39;s checks with fixes that install Zig and ZLS, and snippets</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>375 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/zig">extensions/zig</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Zig</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/zig-v1.0.0/fenix.zig-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.zig-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>zig</code></li><li><code>zls</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li><li><code>files.pythonhosted.org</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Zig in Fenix: its grammar (Fenix has none of its own), ZLS, <code>zig fmt</code>,
+<code>zig ast-check</code> on save, <code>zig build</code>&#39;s steps as tasks, the project
+doctor&#39;s checks with fixes that install Zig and ZLS, and snippets. Built
+on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It starts with Fenix. ZLS is set for Zig files whenever it&#39;s found; the
+doctor checks Zig and ZLS in every project.</p>
+<h3 id="readme-the-grammar">The grammar</h3>
+<p><code>*.zig</code> and <code>*.zon</code> files are read with tree-sitter-zig 1.1.2&#39;s grammar
+(<code>grammars/</code>, MIT): highlighted, folded (functions, tests, structs,
+enums, unions, <code>switch</code>es), with Enter indenting inside a block and the
+breadcrumbs and <code>SPC c s</code> listing the declarations. <code>//</code> comments a line.</p>
+<h3 id="readme-the-server">The server</h3>
+<p>ZLS (<code>zls</code>), the Zig language server: completion, go to definition,
+hover, references, rename, inlay hints, and its own problems. It&#39;s told
+the Zig the pack found (<code>zig_exe_path</code>), so a Zig in the pack&#39;s tools
+folder, not on <code>PATH</code>, is the one it reads the standard library and
+<code>build.zig</code> with.</p>
+<p>A ZLS knows the Zig of its own version: ZLS 0.17 for Zig 0.17. The
+doctor says when the two don&#39;t go together.</p>
+<h3 id="readme-formatting-and-checks">Formatting and checks</h3>
+<ul class="tight">
+<li><p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <code>zig fmt --stdin</code>.</p></li>
+<li><p>On save: <code>zig ast-check</code> on the file (<code>zig.ast_check</code>), in a few
+milliseconds -- syntax errors, unused locals and parameters, a <code>var</code>
+never changed, shadowing -- shown with ZLS&#39;s problems. What needs a
+build (types, comptime) is ZLS&#39;s, or <code>zig build</code>&#39;s.</p></li>
+</ul>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>build</code></td><td><code>zig build</code></td></tr>
+<tr><td><code>build &lt;step&gt;</code></td><td><code>zig build &lt;step&gt;</code>, for each step <code>zig build -l</code> lists (<code>test</code>, <code>run</code> and the project&#39;s own); <code>test</code> and <code>run</code> until it has answered</td></tr>
+<tr><td><code>run &lt;file&gt;</code>, <code>test &lt;file&gt;</code></td><td><code>zig run</code> and <code>zig test</code> on each Zig file at the top of a project without <code>build.zig</code> (<code>run</code> for one with a <code>pub fn main</code>)</td></tr>
+<tr><td><code>fmt</code></td><td><code>zig fmt .</code></td></tr>
+</tbody>
+</table></div>
+<p><code>zig build -l</code> runs the project&#39;s <code>build.zig</code>, so it runs in the
+background when the project opens and when <code>build.zig</code> or
+<code>build.zig.zon</code> is saved (<code>SPC m s</code> runs it again). A <code>build.zig</code> that
+doesn&#39;t build keeps the steps it had; the output page says why.
+<code>zig.build_steps</code> off leaves <code>build</code>, <code>build test</code> and <code>build run</code>. The
+project&#39;s <code>.env</code> goes to each task.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>Zig</td><td><code>zig version</code>, held to <code>build.zig.zon</code>&#39;s <code>minimum_zig_version</code>; needed</td><td>Zig 0.17.0 (Linux, macOS 13 and later)</td></tr>
+<tr><td>ZLS</td><td><code>zls --version</code>, held to Zig&#39;s version</td><td>ZLS 0.17.0 (Linux, macOS, Windows; x86_64 and arm64)</td></tr>
+</tbody>
+</table></div>
+<p>ZLS&#39;s release comes from GitHub; Zig&#39;s from the wheels Zig&#39;s own project
+puts on PyPI (<code>pip install ziglang</code>, https://codeberg.org/ziglang/zig-pypi),
+the same Zig as ziglang.org&#39;s. Each is checked against the SHA-256 the
+pack knows, unpacked into the pack&#39;s tools folder, where only the pack
+looks, and used at once. One you installed yourself is used instead: the
+pack looks on <code>PATH</code>, and in zvm&#39;s, zigup&#39;s and anyzig&#39;s folders,
+Homebrew&#39;s, Snap&#39;s and winget&#39;s. On Windows, Zig comes from
+https://ziglang.org/download/ or <code>winget install zig.zig</code>.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>main</code></td><td><code>std</code> imported, <code>pub fn main() !void</code></td></tr>
+<tr><td><code>fn</code>, <code>pfn</code></td><td>a function, a public one</td></tr>
+<tr><td><code>test</code>, <code>teq</code></td><td>a test block; <code>std.testing.expectEqual</code></td></tr>
+<tr><td><code>struct</code>, <code>enum</code>, <code>union</code>, <code>err</code></td><td>a struct with <code>init</code>, an enum, a tagged <code>union(enum)</code>, an error set</td></tr>
+<tr><td><code>sw</code>, <code>for</code>, <code>while</code></td><td><code>switch</code>; <code>for</code> with its index (<code>0..</code>); <code>while</code> with its continue expression</td></tr>
+<tr><td><code>errdefer</code>, <code>catch</code></td><td><code>errdefer</code>; <code>catch |err|</code>, logged and returned</td></tr>
+<tr><td><code>gpa</code>, <code>list</code></td><td>a <code>DebugAllocator</code> and its leak check; an <code>ArrayList</code> given its allocator</td></tr>
+<tr><td><code>print</code></td><td><code>std.debug.print</code></td></tr>
+<tr><td><code>gen</code></td><td>a generic type: a function of a <code>comptime T: type</code></td></tr>
+<tr><td><code>imp</code></td><td><code>@import</code></td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>zig.ast_check</code></td><td>on</td><td><code>zig ast-check</code> on a saved file</td></tr>
+<tr><td><code>zig.build_steps</code></td><td>on</td><td><code>zig build -l</code>&#39;s steps as tasks</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Zig project or file: <code>d</code> checks the project again, <code>s</code>
+lists <code>zig build</code>&#39;s steps again.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>Debugging</strong>: a Zig program debugs with lldb-dap or GDB, as C&#39;s
+does; the pack doesn&#39;t set an adapter or launches for <code>zig build</code>&#39;s
+artifacts yet.</p></li>
+<li><p><strong>ZON</strong>: the grammar has no ZON of its own; <code>build.zig.zon</code> reads as
+Zig, which colours it all.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>375 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/zig-v1.0.0/fenix.zig-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 a4b9afaf8df9e652b4c8e477238194ffc6c2046c836695be0a85077bdf77ba14">a4b9afaf8d…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: zig: its grammar, ZLS, zig fmt, zig ast-check on save, zig build&#39;s steps as tasks, the project&#39;s checks with fixes that install Zig and ZLS, and snippets.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

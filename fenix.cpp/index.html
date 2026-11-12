@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C/C++ · Fenix extensions</title>
+<meta name="description" content="C and C++: clangd with the build&#39;s compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake&#39;s presets as tasks, clang-format, clang-tidy on save with its fixes, the project&#39;s checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>C/C++</h1>
+<p class="id"><code>fenix.cpp</code></p>
+<p class="lead">C and C++: clangd with the build&#39;s compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake&#39;s presets as tasks, clang-format, clang-tidy on save with its fixes, the project&#39;s checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>399 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/cpp">extensions/cpp</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>C/C++</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/cpp-v1.0.0/fenix.cpp-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.cpp-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>cmake</code></li><li><code>ctest</code></li><li><code>ninja</code></li><li><code>c++</code></li><li><code>cc</code></li><li><code>g++</code></li><li><code>gcc</code></li><li><code>clang++</code></li><li><code>clang</code></li><li><code>cl</code></li><li><code>clangd</code></li><li><code>clang-format</code></li><li><code>clang-tidy</code></li><li><code>lldb-dap</code></li><li><code>lldb-vscode</code></li><li><code>gdb</code></li><li><code>vcpkg</code></li><li><code>conan</code></li><li><code>uv</code></li><li><code>pipx</code></li><li><code>python3</code></li><li><code>python</code></li><li><code>brew</code></li><li><code>winget</code></li><li><code>xcode-select</code></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>C and C++ in Fenix: clangd as the language server, with the build&#39;s
+<code>compile_commands.json</code>; debugging with lldb-dap or GDB; CMake&#39;s presets
+as tasks; clang-format as the formatter and clang-tidy on save; the
+project doctor&#39;s checks with their fixes; vcpkg&#39;s and Conan&#39;s packages;
+snippets; and vcpkg and Conan projects in the new-project wizard. Built
+on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It&#39;s for a folder with a <code>CMakeLists.txt</code>, CMake presets, a
+<code>compile_commands.json</code>, a <code>.clangd</code>, a <code>vcpkg.json</code> or a conanfile, or
+C or C++ files at the top or in <code>src/</code>. An Arduino sketch (a <code>.ino</code>) is
+left to the Arduino extension.</p>
+<h3 id="readme-the-language-server">The language server</h3>
+<p><code>clangd</code>, found on <code>PATH</code> or in LLVM&#39;s folders (<code>/usr/lib/llvm-N/bin</code>,
+Homebrew&#39;s, <code>C:\Program Files\LLVM\bin</code>). clangd finds a
+<code>compile_commands.json</code> in the project or its <code>build/</code> itself; one in a
+preset&#39;s folder (<code>build/debug</code>) is given to it with
+<code>--compile-commands-dir</code>, unless <code>.clangd</code> says where. Until the build
+writes one, the pack looks for it every few seconds, and clangd is
+started again when it&#39;s there. Without clangd, Fenix&#39;s own <code>clangd</code> is
+started as before, and the doctor&#39;s fix row installs it.</p>
+<h3 id="readme-the-build">The build</h3>
+<p>The configure preset used is <code>cpp.preset</code>, else the one called <code>debug</code>,
+else the first (one with no <code>condition</code> first). Presets are read from
+<code>CMakePresets.json</code> and <code>CMakeUserPresets.json</code>, with their <code>include</code>s
+(Conan&#39;s, which name its generated presets) and <code>inherits</code>, the earlier
+parent winning as CMake has it.</p>
+<p><code>SPC p t</code>:</p>
+<div class="table"><table>
+<thead><tr><th></th><th>with presets</th><th>without</th></tr></thead>
+<tbody>
+<tr><td>configure</td><td><code>cmake --preset debug</code></td><td><code>cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug [-G Ninja]</code></td></tr>
+<tr><td>build</td><td><code>cmake --build --preset debug</code> (its folder without a build preset)</td><td><code>cmake --build build</code></td></tr>
+<tr><td>test</td><td><code>ctest --preset debug</code> (<code>ctest --test-dir</code> without a test preset)</td><td><code>ctest --test-dir build --output-on-failure</code></td></tr>
+<tr><td>clean</td><td><code>--target clean</code></td><td>the same</td></tr>
+<tr><td>configure/build/test <code>&lt;preset&gt;</code></td><td>each other preset&#39;s</td><td></td></tr>
+<tr><td>run <code>&lt;target&gt;</code></td><td>each program the build makes, by <code>cmake -E env</code></td><td>the same</td></tr>
+<tr><td>conan install</td><td><code>conan install . --build=missing -s build_type=Debug</code></td><td>into <code>build</code> without a layout</td></tr>
+</tbody>
+</table></div>
+<p>Configuring asks for <code>-DCMAKE_EXPORT_COMPILE_COMMANDS=ON</code> when the
+preset doesn&#39;t. Without presets, vcpkg&#39;s toolchain is given in a vcpkg
+project (<code>VCPKG_ROOT</code> is where vcpkg is), and Conan&#39;s in a Conan project
+without a layout. A task of the same name in <code>.fenix/tools.json</code> wins.</p>
+<p>The pack leaves CMake&#39;s file API query in each build folder
+(<code>.cmake/api/v1/query/client-fenix/codemodel-v2</code>), so the next configure
+writes its code model: each target&#39;s program, by its full path.</p>
+<h3 id="readme-debugging">Debugging</h3>
+<p>The adapter is <code>lldb-dap</code> (<code>lldb-vscode</code> before LLVM 18), else <code>gdb --interpreter=dap</code> -- GDB 14 or later -- as <code>cpp.debugger</code> prefers.
+Both speak DAP over stdio; both were run here with what Fenix sends
+(a program, its arguments, folder and environment): breakpoints, the
+stack, continuing to the end.</p>
+<p><code>SPC u u</code>, in a project with no launch configuration of its own, offers
+what CMake&#39;s code model says the build makes, once it has configured:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>CMake: <em>target</em></td><td>each program, <code>build &lt;target&gt;</code> first (<code>cmake --build ... --target &lt;target&gt;</code>)</td></tr>
+<tr><td>C/C++: a CMake target, picked</td><td>the one you pick as it starts (<code>${cmakeTarget}</code>), the preset&#39;s <code>build</code> first</td></tr>
+<tr><td>C/C++: attach to a process</td><td>a program running here, picked as it starts (<code>pid</code>)</td></tr>
+</tbody>
+</table></div>
+<p>On Linux, attaching needs ptrace: <code>kernel.yama.ptrace_scope</code> at 0, or
+the debugger run as root.</p>
+<h3 id="readme-formatting-and-linting">Formatting and linting</h3>
+<p><code>SPC c F</code> -- and saving, with <code>editor.format_on_save</code> -- runs
+<code>clang-format --assume-filename=&lt;file&gt;</code> on the buffer: the project&#39;s
+<code>.clang-format</code>, else LLVM&#39;s style.</p>
+<p>When a source file is saved and the build has a <code>compile_commands.json</code>,
+<code>clang-tidy -p &lt;its folder&gt; --quiet &lt;file&gt;</code> runs on it, and its warnings
+and errors are shown with clangd&#39;s, each with its check, its notes as
+hints. What clang-tidy can fix (<code>--export-fixes</code>, written beside the
+database and read back) <code>SPC c a</code> offers on its line. The project&#39;s <code>.clang-tidy</code> says the checks; <code>cpp.tidy_on_save</code>
+turns it off. Headers aren&#39;t linted on their own: the database has no
+command for them.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<ul class="tight">
+<li><p><strong>Compiler</strong>: the first of <code>c++</code>, <code>cc</code>, <code>g++</code>, <code>gcc</code>, <code>clang++</code>,
+<code>clang</code>, <code>cl</code>. Fix: Apple&#39;s command line tools (<code>xcode-select --install</code>) on macOS, Visual Studio&#39;s build tools (winget) on Windows.</p></li>
+<li><p><strong>CMake</strong>, held to <code>cmake_minimum_required</code> and to what the presets&#39;
+schema version needs, and <strong>Ninja</strong>, needed when the preset uses it --
+and on Windows without a preset, where CMake would otherwise make a
+Visual Studio solution, which writes no <code>compile_commands.json</code>.</p></li>
+<li><p><strong>clangd</strong>, <strong>clang-format</strong>, <strong>clang-tidy</strong>.</p></li>
+<li><p><strong>Debugger</strong>: lldb-dap (only found), else GDB, 14 at least. Fix: LLVM
+from Homebrew or winget.</p></li>
+<li><p><strong>vcpkg</strong> and <strong>Conan</strong> when the project uses them, and Conan&#39;s
+default profile (fix: <code>conan profile detect</code>).</p></li>
+<li><p><strong>compile_commands.json</strong>, where the preset builds. Fix: configure.</p></li>
+</ul>
+<p>CMake, Ninja, clangd, clang-format, clang-tidy and Conan are installed
+from PyPI: <code>uv tool install</code>, else <code>pipx install</code>, else <code>pip install --user</code>. A fix that installs something is checked again, and what it
+installed is used at once.</p>
+<h3 id="readme-packages">Packages</h3>
+<p><code>SPC m p</code> (<em>C/C++: packages</em>): vcpkg&#39;s when there&#39;s a <code>vcpkg.json</code>,
+else Conan&#39;s.</p>
+<div class="table"><table>
+<thead><tr><th></th><th>vcpkg</th><th>Conan</th></tr></thead>
+<tbody>
+<tr><td>list</td><td><code>vcpkg list --x-json</code> (the build&#39;s <code>vcpkg_installed</code>)</td><td><code>conan graph info . --format=json</code></td></tr>
+<tr><td>outdated</td><td><code>vcpkg search --x-json</code>: the newest in vcpkg&#39;s tree</td><td><code>conan graph outdated . --format=json</code></td></tr>
+<tr><td>vulnerable</td><td>--</td><td><code>conan audit scan . --format=json</code></td></tr>
+<tr><td><code>u</code></td><td>--</td><td>within the ranges: <code>conan lock upgrade --update-requires</code> with a <code>conan.lock</code>, else <code>conan install --update=name</code></td></tr>
+<tr><td><code>U</code></td><td><code>vcpkg x-update-baseline</code></td><td>the same, for all</td></tr>
+<tr><td><code>a</code></td><td><code>vcpkg add port name</code></td><td><code>conan install --requires=name/version</code>: into Conan&#39;s cache</td></tr>
+<tr><td><code>d</code></td><td>--</td><td>--</td></tr>
+</tbody>
+</table></div>
+<p>What vcpkg&#39;s and Conan&#39;s command lines can&#39;t do: vcpkg can&#39;t take a port
+out of <code>vcpkg.json</code> or move one up alone (the baseline says every
+version; an <code>overrides</code> entry, by hand, would), and has no audit. Conan
+can&#39;t add a requirement to a conanfile or take one out, and a pinned
+version (<code>fmt/10.2.1</code>) moves only when you change it; <code>conan audit</code>
+needs a token from conan.io (<code>conan audit provider auth</code>), and says so
+on the page until it has one.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<p>C++: <code>guard</code>, <code>once</code>, <code>cls</code> (the rule of five), <code>st</code>, <code>raii</code> (a
+move-only handle), <code>uptr</code>, <code>forr</code> (range-for), <code>forkv</code> (a map&#39;s keys and
+values), <code>fori</code>, <code>main</code>, <code>mainv</code> (its arguments as a vector), <code>ns</code>,
+<code>enumc</code>, <code>tmpl</code>, <code>lam</code>, <code>try</code>, <code>test</code> (GoogleTest), <code>tcase</code> (Catch2).
+C: <code>guard</code>, <code>main</code>, <code>mainv</code>, <code>fori</code>, <code>st</code>, <code>sw</code>.</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>Fenix&#39;s wizard already has a CMake project (an executable, a static or
+shared library, with GoogleTest, Catch2 or CTest); this adds:</p>
+<ul class="tight">
+<li><p><strong>C++ · CMake with vcpkg</strong>: <code>vcpkg.json</code> with fmt (and Catch2),
+presets with vcpkg&#39;s toolchain, and the manifest&#39;s baseline set.</p></li>
+<li><p><strong>C++ · CMake with Conan</strong>: <code>conanfile.txt</code> with fmt (and Catch2),
+<code>cmake_layout</code>, a profile made if there&#39;s none, and Conan&#39;s presets.</p></li>
+</ul>
+<h3 id="readme-files">Files</h3>
+<p><code>*.cppm</code>, <code>*.ccm</code>, <code>*.cxxm</code>, <code>*.ixx</code>, <code>*.mpp</code> (modules), and <code>*.ipp</code>,
+<code>*.tpp</code>, <code>*.txx</code>, <code>*.tcc</code> are read as C++, <code>//</code> its line comment.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a C or C++ project: <code>p</code> packages, <code>d</code> check again, <code>c</code>
+configure.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>399 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/cpp-v1.0.0/fenix.cpp-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 41462786cbee690ea16e8c45e00ab6ebddc7a738d28cf6d5307128fcf72fffe7">41462786cb…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: c and C++: clangd with the build&#39;s compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake&#39;s presets as tasks, clang-format, clang-tidy on save with its fixes, the project&#39;s checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

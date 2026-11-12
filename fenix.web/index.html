@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web: JavaScript and TypeScript · Fenix extensions</title>
+<meta name="description" content="JavaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config &amp; Shell, debugging with js-debug (Node, each of package.json&#39;s scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json&#39;s scripts as tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Web: JavaScript and TypeScript</h1>
+<p class="id"><code>fenix.web</code></p>
+<p class="lead">JavaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config &amp; Shell, debugging with js-debug (Node, each of package.json&#39;s scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json&#39;s scripts as tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li><li><a href="../index.html?category=web">Web</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>398 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/web">extensions/web</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Web: JavaScript and TypeScript</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/web-v1.0.0/fenix.web-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.web-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>node</code></li><li><code>${setting:web.node}</code> <span class="gloss">the program the setting web.node names</span></li><li><code>npm</code></li><li><code>pnpm</code></li><li><code>yarn</code></li><li><code>bun</code></li><li><code>corepack</code></li><li><code>fnm</code></li><li><code>volta</code></li><li><code>typescript-language-server</code></li><li><code>vscode-eslint-language-server</code></li><li><code>tailwindcss-language-server</code></li><li><code>vscode-css-language-server</code></li><li><code>vscode-html-language-server</code></li><li><code>prettier</code></li><li><code>biome</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section aria-labelledby="dependencies">
+<h2 id="dependencies">What it needs</h2>
+<p>Installing it installs these too.</p>
+<ul class="deps">
+<li><a href="../fenix.config/index.html">Config &amp; Shell</a> <code>fenix.config</code> <span class="gloss">^1</span></li>
+</ul>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>JavaScript and TypeScript in Fenix: typescript-language-server with the
+CSS, HTML, Tailwind CSS, ESLint and Biome servers beside it,
+debugging with js-debug, Prettier or Biome as the formatter,
+<code>package.json</code>&#39;s scripts as tasks, the project doctor&#39;s checks with
+their fixes, outdated and vulnerable packages, snippets, and Next.js,
+Express, library and static site projects in the new-project wizard.
+Built on lang-kit (<code>crates/lang-kit</code>), as each language pack is.
+It depends on Config &amp; Shell (<code>fenix.config</code>), installed with it, which
+serves JSON: <code>package.json</code>, <code>tsconfig.json</code> and the rest get
+SchemaStore&#39;s schemas.</p>
+<p>Its package manager is the one the lockfile says: <code>package-lock.json</code>
+npm, <code>pnpm-lock.yaml</code> pnpm, <code>yarn.lock</code> Yarn (2 and later, berry, when
+there&#39;s a <code>.yarnrc.yml</code> or the lockfile says so), <code>bun.lock</code> bun; with
+none, corepack&#39;s <code>packageManager</code>, else npm.</p>
+<h3 id="readme-the-language-servers">The language servers</h3>
+<p>Fenix&#39;s own typescript-language-server stays the one for JavaScript,
+TypeScript and TSX; when it&#39;s found somewhere Fenix&#39;s <code>PATH</code> may not
+have (npm&#39;s global prefix, Volta&#39;s, pnpm&#39;s), it&#39;s started from there.
+Beside it (<code>language-server-add</code>), their completions,
+problems and code actions merged with its:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>vscode-css-language-server</code>, <code>-html-</code></td><td>CSS and HTML, in any project (vscode-langservers-extracted)</td></tr>
+<tr><td><code>tailwindcss-language-server</code></td><td>HTML, CSS and scripts, when the project uses Tailwind (<code>tailwindcss</code>, <code>@tailwindcss/vite</code>, a <code>tailwind.config.*</code>)</td></tr>
+<tr><td><code>vscode-eslint-language-server</code></td><td>scripts, when the project uses ESLint (<code>web.eslint</code> = <code>server</code>, the default)</td></tr>
+<tr><td><code>biome lsp-proxy</code></td><td>scripts, CSS and JSON, when the project uses Biome: its lints as you type</td></tr>
+</tbody>
+</table></div>
+<p>ESLint&#39;s server gives its problems when Fenix asks for them (pull
+diagnostics), and is given the settings it asks for
+(<code>workspace/configuration</code>): VS Code&#39;s, with flat config when the
+project has an <code>eslint.config.*</code> and the project&#39;s package manager. Its
+fixes, <em>Disable no-var for this line</em> and <em>Fix all auto-fixable
+problems</em> are on <code>SPC c a</code>. A project&#39;s <code>.fenix/lsp/eslint.json</code> is
+read under them. Tailwind&#39;s server gets its answers too, and starts.</p>
+<h3 id="readme-linting-and-formatting">Linting and formatting</h3>
+<p>With <code>web.eslint</code> = <code>save</code>, or while ESLint&#39;s server isn&#39;t installed,
+the project&#39;s ESLint (<code>node node_modules/eslint/bin/eslint.js --format json &lt;file&gt;</code>) runs on a script when it&#39;s saved, its problems shown with
+the server&#39;s: its errors as errors, its warnings as warnings, a file it
+ignores left alone. <code>web.eslint</code> = <code>off</code> is neither.</p>
+<p><code>SPC c F</code> -- and saving, with <code>editor.format_on_save</code> -- runs Biome
+(<code>biome format --stdin-file-path=&lt;file&gt;</code>) in a project with a
+<code>biome.json</code> or <code>@biomejs/biome</code>, else Prettier (<code>prettier --stdin-filepath &lt;file&gt;</code>) in one that uses it (<code>prettier</code> a dependency,
+a <code>.prettierrc</code>, <code>package.json</code>&#39;s <code>prettier</code>): the project&#39;s own from
+<code>node_modules</code>, run by <code>node</code>, else the one installed. A project that
+uses neither isn&#39;t formatted by it.</p>
+<h3 id="readme-debugging">Debugging</h3>
+<p>The adapter is js-debug&#39;s DAP server, installed into Fenix&#39;s tools
+folder from its release (<code>js-debug-dap-v1.140.0.tar.gz</code>, the same on
+every machine, its SHA-256 checked) by the doctor&#39;s fix row or <em>Web:
+install js-debug</em>, and run as <code>node dapDebugServer.js ${port} 127.0.0.1</code>:
+Fenix starts it on a free port and connects (<code>debug-adapter-connect</code>,
+API).</p>
+<p><code>SPC u u</code>, in a project with no launch configuration of its own, offers:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>Node: current file</td><td>the file you&#39;re in (TypeScript by Node 22.18 and later, which strips its types)</td></tr>
+<tr><td>Node: attach (localhost:9229)</td><td>to <code>node --inspect app.js</code></td></tr>
+<tr><td>Node: attach to a process</td><td>to a Node running here, picked as it starts (<code>${pickProcess}</code>)</td></tr>
+<tr><td>Vite: dev server in Chrome (localhost:5173)</td><td>Chrome on the dev server&#39;s page (<code>pwa-chrome</code>); start the server first</td></tr>
+<tr><td>Vitest: current file, Vitest: all tests</td><td><code>vitest run</code>, the file or all</td></tr>
+<tr><td>Jest: current file, Jest: all tests</td><td><code>jest --runInBand</code></td></tr>
+</tbody>
+</table></div>
+<p>Beside these, each of <code>package.json</code>&#39;s scripts is a launch of its own,
+run by the project&#39;s manager with child processes debugged too (<em>Node:
+pnpm run dev</em>, <em>Node: pnpm run test</em>).</p>
+<p>js-debug debugs each program in a session of its own, which it asks the
+editor to start (DAP&#39;s reverse request <code>startDebugging</code>, a second
+connection to it with the target&#39;s id); Fenix opens it, and
+shows it under the session it came from.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>: each of <code>package.json</code>&#39;s scripts, run with the project&#39;s
+manager (<code>pnpm run dev</code>) -- dev, start, build, test, lint, format,
+typecheck and preview first -- and <code>install</code>. A <code>pre</code> or <code>post</code> script
+runs with the one it&#39;s named for, so it isn&#39;t listed. A task of the
+same name in <code>.fenix/tools.json</code> wins. Saving <code>package.json</code> makes them
+again.</p>
+<p><em>Web: start the dev server</em> runs the dev (or start) script in the
+background, beside the task pane, so the browser launch has
+its server; run again, it shows its output; <em>Web: stop the dev server</em>
+stops it.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<ul class="tight">
+<li><p><strong>Node</strong>: held to <code>.nvmrc</code> or <code>.node-version</code> (<code>20.11.0</code> is that or a
+later 20; <code>lts/iron</code> is 20), else <code>engines.node</code>, else 18 at least;
+<code>web.node</code> names the one to use. Fix: <code>fnm install</code>, else <code>volta install node@&lt;version&gt;</code>.</p></li>
+<li><p><strong>Package manager</strong>: the lockfile&#39;s, at corepack&#39;s <code>packageManager</code>
+major. Fix: <code>corepack enable &lt;manager&gt;</code> when <code>packageManager</code> names
+it, else <code>npm install -g &lt;manager&gt;</code>.</p></li>
+<li><p><strong>node_modules</strong>: in step with the lockfile, by what each manager
+leaves there -- npm&#39;s <code>node_modules/.package-lock.json</code>, pnpm&#39;s
+<code>node_modules/.pnpm/lock.yaml</code>, Yarn 1&#39;s <code>.yarn-integrity</code>; for berry
+and bun, the lockfile not changed since the last install. Fix: the
+manager&#39;s <code>install</code>.</p></li>
+<li><p><strong>ESLint</strong>, <strong>Prettier</strong> or <strong>Biome</strong>: the project&#39;s, in
+<code>node_modules</code>. Fix: the install.</p></li>
+<li><p><strong>TypeScript server</strong>, <strong>CSS and HTML servers</strong>, <strong>Tailwind CSS
+server</strong> (in a Tailwind project), <strong>ESLint server</strong> (with <code>web.eslint</code>
+= <code>server</code>): each with its <code>npm install -g</code>.</p></li>
+<li><p><strong>Debugger</strong>: js-debug, with its install.</p></li>
+</ul>
+<p>typescript-language-server runs TypeScript&#39;s <code>tsserver</code>: the project&#39;s
+own, else the one installed beside it. TypeScript 7, the native
+compiler, has none, and the server then never gets past &quot;starting&quot;. In
+a project without its own TypeScript, install 5 beside the server: <code>npm install -g typescript-language-server typescript@5</code>.</p>
+<p>A fix that installs something is checked again, and what it installed
+is used at once. The checks are made in a project with a <code>package.json</code>
+only.</p>
+<h3 id="readme-packages">Packages</h3>
+<p><code>SPC m p</code> (or <em>Web: packages</em>): lang-kit&#39;s page -- the vulnerable first,
+then the outdated, the project&#39;s own marked with their group (<code>dev</code>,
+<code>optional</code>, <code>peer</code>).</p>
+<div class="table"><table>
+<thead><tr><th></th><th>npm</th><th>pnpm</th><th>Yarn 1</th><th>berry</th><th>bun</th></tr></thead>
+<tbody>
+<tr><td>list</td><td><code>ls --all --json</code></td><td><code>list --json --depth Infinity</code></td><td><code>list --json</code></td><td><code>info --all --recursive --json</code></td><td><code>pm ls --all</code></td></tr>
+<tr><td>outdated</td><td><code>outdated --json</code></td><td><code>outdated --format json</code></td><td><code>outdated --json</code></td><td>--</td><td><code>outdated</code></td></tr>
+<tr><td>vulnerable</td><td><code>audit --json</code></td><td><code>audit --json</code></td><td><code>audit --json</code></td><td><code>npm audit --all --recursive --json</code></td><td><code>audit --json</code></td></tr>
+<tr><td><code>u</code></td><td><code>install name@latest</code> (<code>--save-dev</code>)</td><td><code>add name@latest</code> (<code>--dev</code>)</td><td><code>add name@latest</code></td><td><code>up name@latest</code></td><td><code>add name@latest</code></td></tr>
+<tr><td><code>U</code></td><td><code>update</code></td><td><code>update</code></td><td><code>upgrade</code></td><td><code>up -R</code> the outdated</td><td><code>update</code></td></tr>
+<tr><td><code>a</code></td><td><code>install name</code></td><td><code>add name</code></td><td><code>add name</code></td><td><code>add name</code></td><td><code>add name</code></td></tr>
+<tr><td><code>d</code></td><td><code>uninstall name</code></td><td><code>remove name</code></td><td><code>remove name</code></td><td><code>remove name</code></td><td><code>remove name</code></td></tr>
+</tbody>
+</table></div>
+<p>One the project doesn&#39;t ask for is upgraded within the ranges that bring
+it (<code>npm update name</code>, <code>yarn up -R name</code>). What&#39;s typed after <code>a</code> goes
+as typed (<code>vitest -D</code>, <code>zod@3</code>), and <code>npm search</code> finds it. Berry has no
+<code>outdated</code>, so its page shows what&#39;s installed and vulnerable only.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<p>Scripts: <code>imp</code>, <code>impd</code>, <code>impa</code> (imports), <code>exf</code>, <code>exd</code>, <code>af</code>, <code>afn</code>,
+<code>aaf</code> (functions, async), <code>tryc</code> (await in try), <code>pall</code> (<code>Promise.all</code>),
+<code>fetchj</code>, <code>forof</code>, <code>cl</code>; tests: <code>desc</code>, <code>it</code>, <code>ait</code>, <code>bfe</code>, <code>afe</code>, <code>vt</code>
+(a Vitest file), <code>vmock</code>, <code>jmock</code>. React, in <code>.jsx</code> and <code>.tsx</code>: <code>rfc</code>,
+<code>rfce</code>, <code>us</code>, <code>ue</code>, <code>um</code>, <code>uc</code>, <code>ur</code>, <code>hook</code>, <code>ctx</code>, and in <code>.tsx</code>
+<code>rfct</code> (its props typed). TypeScript: <code>int</code>, <code>type</code>, <code>union</code>,
+<code>asconst</code>, <code>guard</code>, <code>gfn</code>, <code>atfn</code>.</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>Fenix&#39;s wizard already has a Vite app (React, Vue, Svelte, Preact, Solid,
+Lit or vanilla, in TypeScript); this adds:</p>
+<ul class="tight">
+<li><p><strong>Next.js app</strong>: create-next-app&#39;s, TypeScript, the App Router and
+ESLint, Tailwind and <code>src/</code> if you like, with the manager you pick.</p></li>
+<li><p><strong>Express API</strong>: in TypeScript, the app apart from its server so the
+tests call it on a port of their own, run by tsx as you edit, built
+by tsc.</p></li>
+<li><p><strong>TypeScript library</strong>: ES modules with their types, built into
+<code>dist/</code>, tested by Vitest, Prettier or Biome.</p></li>
+<li><p><strong>Static site</strong>: a page, its styles and a module, and a small Node
+server for development; nothing to install.</p></li>
+</ul>
+<h3 id="readme-files">Files</h3>
+<p><code>*.jsonc</code>, <code>*.webmanifest</code>, <code>*.code-workspace</code>, <code>.babelrc</code>, <code>.eslintrc</code>,
+<code>.prettierrc</code>, <code>.swcrc</code> and the like are read as JSON; <code>*.pcss</code> and
+<code>*.postcss</code> as CSS.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a project with a <code>package.json</code>: <code>p</code> packages, <code>d</code>
+check again, <code>i</code> install, <code>s</code> start the dev server, <code>S</code> stop it.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>398 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/web-v1.0.0/fenix.web-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 5c45613ac6d74fb370d331ead3be13e1bfed8c6a491cf8f2640c8dbfa2e9d56e">5c45613ac6…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: javaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config &amp; Shell, debugging with js-debug (Node, each of package.json&#39;s scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json&#39;s scripts as tasks, the project&#39;s checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

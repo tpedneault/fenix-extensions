@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review · Fenix extensions</title>
+<meta name="description" content="Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Review</h1>
+<p class="id"><code>fenix.review</code></p>
+<p class="lead">Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.2.0</dd>
+<dt>Needs Fenix</dt><dd>1.3 or later, before 2 <code>&gt;=1.3, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.4 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>254 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/review">extensions/review</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.review-bundle/index.html">Review</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Review</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/review-v1.2.0/fenix.review-1.2.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.review-1.2.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>git</code></li><li><code>gh</code></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>api.github.com</code></li><li><code>*.actions.githubusercontent.com</code></li><li><code>*.blob.core.windows.net</code></li><li><code>${setting:gitlab.base_url}</code> <span class="gloss">those the setting gitlab.base_url holds</span></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+<div><dt>Reads and keeps secrets in Fenix&#39;s secret store, under these keys</dt><dd><ul class="chips"><li><code>github.token</code></li><li><code>gitlab.token</code></li></ul></dd></div>
+<div><dt>Reads settings besides its own: those named</dt><dd><ul class="chips"><li><code>git.*</code></li><li><code>gitlab.*</code></li></ul></dd></div>
+<div><dt>Asks your coding agents for help, and hears what they say when their turns end</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Code review on GitHub and GitLab, without leaving Fenix: the pull and
+merge requests waiting, one under review with its files, threads, checks
+and the comments you&#39;re holding for it, sent with a verdict -- and a new
+pull request for the branch, prefilled from its commits.</p>
+<p>It&#39;s the forge for Fenix&#39;s Git pages too: the Git status page&#39;s header
+says how the branch&#39;s request stands (its checks, approvals and open
+threads), and <code>o</code> there reviews it, or opens a new one.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC g M</code></td><td>The reviews: open requests, yours, those waiting on you</td></tr>
+<tr><td><code>SPC g P</code></td><td>A pull request for the branch</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-the-reviews">The reviews</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>Enter</code></td><td>Review it</td></tr>
+<tr><td><code>w</code>, <code>c</code></td><td>Review it in a worktree of its own beside the repository; check it out here (<code>mr-N</code>)</td></tr>
+<tr><td><code>Tab</code></td><td>Which requests: open, yours, waiting on you</td></tr>
+<tr><td><code>o</code>, <code>u</code>, <code>q</code></td><td>The browser, read again, close</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-a-review">A review</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>Tab</code>, <code>v</code></td><td>Open a file&#39;s diff; mark it viewed</td></tr>
+<tr><td><code>C</code>, <code>S</code></td><td>Comment on the line or the lines marked, suggest a change -- held until you submit</td></tr>
+<tr><td><code>r</code>, <code>R</code></td><td>Reply to a thread, resolve it</td></tr>
+<tr><td><code>]t</code></td><td>The next thread</td></tr>
+<tr><td><code>i</code></td><td>Only what changed since your last review</td></tr>
+<tr><td><code>s</code></td><td>Submit: <code>a</code> approve, <code>r</code> request changes, <code>c</code> comment, <code>e</code> a summary, <code>S S</code> sends it. In the summary&#39;s box, <code>A</code> in Normal mode (<code>Ctrl+Shift+A</code> with standard keys) has your coding agent write it while the box is empty</td></tr>
+<tr><td><code>m</code></td><td>Merge: squash, rebase, delete the branch, when the checks pass; <code>m m</code></td></tr>
+<tr><td><code>w</code>, <code>o</code>, <code>q</code></td><td>A worktree, the browser, close</td></tr>
+</tbody>
+</table></div>
+<p>A check&#39;s log opens as text; a failed one can run again. Your held
+comments and what you&#39;ve seen are kept in the extension&#39;s data folder, so
+they wait for you across restarts.</p>
+<h3 id="readme-a-new-request">A new request</h3>
+<p>The branch&#39;s commits against its base, whether it&#39;s pushed and merges
+cleanly, and the title, description (the repository&#39;s template, or the
+commits), reviewers and draft: <code>Enter</code> edits a field, <code>e</code> the
+description, <code>S S</code> pushes the branch if it has to and opens it. A branch
+named after a Jira issue puts the key in the title.</p>
+<p><code>A</code> in the description&#39;s box, in Normal mode (<code>Ctrl+Shift+A</code> with standard
+keys), has your coding agent write
+it, from the branch&#39;s change against its base and its commits, filling in
+the repository&#39;s template heading by heading. It works while the box is
+empty or still the template; with your text in it, <code>A</code> is Vim&#39;s. It&#39;s
+yours to edit before <code>S S</code>. The first time, Fenix asks whether the Review
+extension may send the branch&#39;s diff to that agent.</p>
+<h3 id="readme-settings">Settings</h3>
+<p>Fenix&#39;s own, under Git and Forges (<code>SPC ,</code>):</p>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>git.base_branch</code></td><td>The branch requests go into (else the remote&#39;s default, main or master)</td></tr>
+<tr><td><code>git.reviewers</code></td><td>Who&#39;s asked to review a new request</td></tr>
+<tr><td><code>gitlab.base_url</code>, <code>gitlab.token</code></td><td>Your GitLab server, and a personal access token with the <code>api</code> scope</td></tr>
+<tr><td><code>github.token</code></td><td>GitHub&#39;s token, when the GitHub CLI isn&#39;t signed in (<code>gh auth login</code>)</td></tr>
+</tbody>
+</table></div>
+<p>A GitHub <code>origin</code> is GitHub&#39;s; any other is taken to be your GitLab.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.2.0</th><td><code>&gt;=1.3, &lt;2</code></td><td>1.4</td><td>254 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/review-v1.2.0/fenix.review-1.2.0.fenixext">Download<span class="visually-hidden"> 1.2.0</span></a><code class="sha" title="SHA-256 4668b786a63f23e13d63f6531fc314498571adce80f74b981dc783ac0033168c">4668b786a6…</code></td></tr>
+<tr><th scope="row">1.1.1</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.2</td><td>258 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/review-v1.1.1/fenix.review-1.1.1.fenixext">Download<span class="visually-hidden"> 1.1.1</span></a><code class="sha" title="SHA-256 e27cf98ac76909f07c184a092aaa59a7d3d5cfd141b66d0f0bd8de303cb1500e">e27cf98ac7…</code></td></tr>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.2</td><td>258 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/review-v1.1.0/fenix.review-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 28fa43aeb232cd3e5f8b60aacfcae88ef48ff7ad031f4b6eb1c259abf2ffdab0">28fa43aeb2…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>248 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/review-v1.0.0/fenix.review-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 750a36a835e938e6435d323cfd5c2f664f682dde7214b40d26b1405bea788ebf">750a36a835…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<p>For Fenix 1.3 (extension API 1.4):</p>
+<ul class="tight">
+<li><p><code>A</code> in the box for your review&#39;s summary (<code>s</code>, <code>e</code>), in Normal mode while
+the box is empty, has your coding agent write it, going by the request,
+its diff and the comments you&#39;re holding. It&#39;s yours to edit before
+<code>S S</code>. With text in the box, <code>A</code> is Vim&#39;s.</p></li>
+<li><p><code>A</code> in a new request&#39;s description box does the same, from the branch&#39;s
+change and commits, in the repository&#39;s template. It writes over the
+template while that&#39;s untouched.</p></li>
+<li><p><code>A</code> on the review page is gone, and with it the agent&#39;s summary at the
+top of the page. So is <code>a</code> on a new request: the agent no longer writes
+the title.</p></li>
+</ul>
+<h3 id="changelog-111">1.1.1</h3>
+<p>Built against Fenix v1.1.0&#39;s released extension API, rather than the
+branch it was on before the release. Nothing changes in what it does.</p>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.1 (extension API 1.2):</p>
+<ul class="tight">
+<li><p><code>a</code> on a new request has your coding agent draft its title and
+description from the branch&#39;s change and commits, in the repository&#39;s
+template, for you to edit before you open it.</p></li>
+<li><p><code>A</code> on a review has your coding agent summarize the request: what it
+changes, what&#39;s risky, which files to read first. It&#39;s asked once per
+head while Fenix runs.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

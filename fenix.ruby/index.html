@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruby · Fenix extensions</title>
+<meta name="description" content="Ruby: tree-sitter-ruby&#39;s highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler&#39;s, Rake&#39;s, RSpec&#39;s and Rails&#39; tasks, the project&#39;s checks with their fixes, and snippets">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Ruby</h1>
+<p class="id"><code>fenix.ruby</code></p>
+<p class="lead">Ruby: tree-sitter-ruby&#39;s highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler&#39;s, Rake&#39;s, RSpec&#39;s and Rails&#39; tasks, the project&#39;s checks with their fixes, and snippets</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>496 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/ruby">extensions/ruby</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Ruby</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/ruby-v1.0.0/fenix.ruby-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.ruby-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>ruby</code></li><li><code>gem</code></li><li><code>bundle</code></li><li><code>rake</code></li><li><code>rspec</code></li><li><code>ruby-lsp</code></li><li><code>solargraph</code></li><li><code>rubocop</code></li><li><code>standardrb</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Ruby in Fenix: tree-sitter-ruby&#39;s highlighting, folding and indenting,
+Ruby LSP (or Solargraph) as the language server, RuboCop -- or Standard
+-- as the formatter and the linter on save with its corrections,
+Bundler&#39;s, Rake&#39;s and the tests&#39; tasks, the project doctor&#39;s checks with
+their fixes, and snippets. Built on lang-kit (<code>crates/lang-kit</code>), as each
+language pack is.</p>
+<p>Fenix has no Ruby of its own, so the pack brings the grammar
+(<code>languages/ruby.toml</code>, <code>grammars/</code>, <code>queries/ruby/</code>). It works for a
+project Bundler manages (a Gemfile) and for a folder of scripts: a gem
+the project&#39;s Gemfile.lock pins runs as the project&#39;s, through <code>bundle exec</code>; anything else, as it&#39;s installed.</p>
+<h3 id="readme-files">Files</h3>
+<p>Besides <code>*.rb</code>, these are Ruby: <code>*.rbw</code>, <code>*.rake</code>, <code>*.gemspec</code>, <code>*.ru</code>
+(<code>config.ru</code>), <code>*.jbuilder</code>, <code>*.builder</code>, <code>*.thor</code>, <code>*.podspec</code>, and
+<code>Gemfile</code>, <code>gems.rb</code>, <code>Rakefile</code>, <code>Guardfile</code>, <code>Capfile</code>, <code>Vagrantfile</code>,
+<code>Podfile</code>, <code>Fastfile</code>, <code>Appfile</code>, <code>Dangerfile</code>, <code>Berksfile</code>, <code>Brewfile</code>,
+<code>Steepfile</code>, <code>Thorfile</code>, <code>.irbrc</code>, <code>.pryrc</code>, <code>.simplecov</code>. <code>gcc</code> comments
+with <code>#</code>.</p>
+<p>A <code>def</code>, a <code>class</code> or a <code>module</code>, a block, an <code>if</code>, a <code>case</code>, a loop and
+a <code>begin</code> fold, and are the scopes <code>SPC c s</code> and the breadcrumbs list.
+Enter after a line that opens one indents, and after an <code>else</code>, a <code>when</code>
+or a <code>rescue</code>.</p>
+<h3 id="readme-the-language-server">The language server</h3>
+<p>Ruby LSP, <code>ruby-lsp</code>, when it&#39;s installed; else Solargraph, <code>solargraph stdio</code>. <code>ruby.server</code> says which to prefer when both are. Ruby LSP runs as
+it&#39;s installed, never through <code>bundle exec</code>: it makes a bundle of its own
+with the project&#39;s gems in it (<code>.ruby-lsp/</code>), and gives RuboCop&#39;s
+problems itself when the project&#39;s bundle has RuboCop. Solargraph runs as
+the project&#39;s when its Gemfile.lock pins it.</p>
+<p>With neither, the doctor&#39;s fix row installs Ruby LSP (<code>gem install ruby-lsp</code>). The pack looks where rbenv&#39;s, asdf&#39;s and mise&#39;s shims are,
+Homebrew&#39;s Ruby and the gems it installs, and RubyInstaller&#39;s, as well as
+on <code>PATH</code>.</p>
+<h3 id="readme-linting-and-formatting">Linting and formatting</h3>
+<p><code>SPC c F</code> -- and saving, with <code>editor.format_on_save</code> -- runs <code>rubocop --fix-layout --stdin</code> on the buffer: its layout corrections only, so a
+variable it thinks useless isn&#39;t taken out of a method half written.
+What&#39;s left that isn&#39;t layout makes it exit 1; its text is kept.
+<code>ruby.format</code> off leaves formatting to the server.</p>
+<p>On save (<code>ruby.lint</code>), <code>rubocop --format json --force-exclusion</code> runs on
+the file and its problems are shown with the server&#39;s: a syntax error as
+an error, <code>Lint/</code> as warnings, the rest as notes. RuboCop 1.92&#39;s
+corrections are offered on <code>SPC c a</code> (one it makes only with <code>-A</code> says
+&quot;unsafe&quot;). <code>auto</code> does this unless Ruby LSP is the server and the
+project&#39;s bundle has RuboCop, whose problems Ruby LSP gives as you type;
+<code>save</code> does it whatever the server; <code>off</code> never.</p>
+<p>A project that uses Standard (its gem in Gemfile.lock, or a
+<code>.standard.yml</code>) gets <code>standardrb</code> in place of <code>rubocop</code> for each.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>:</p>
+<div class="table"><table>
+<thead><tr><th>Task</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td>bundle install</td><td><code>bundle install</code>, with a Gemfile</td></tr>
+<tr><td>test</td><td><code>bin/rails test</code> in a Rails app with <code>test/</code>; else <code>bundle exec rspec</code> with <code>spec/</code> or RSpec in the lock; else <code>rake test</code> with a Rakefile and <code>test/</code></td></tr>
+<tr><td>rubocop, rubocop: correct</td><td>over the project, and with <code>--autocorrect</code> (<code>standardrb</code> and <code>--fix</code> with Standard)</td></tr>
+<tr><td>rails server</td><td><code>bin/rails server</code></td></tr>
+<tr><td>rake <em>task</em></td><td>each task <code>rake -T</code> lists (sixty at most), the project&#39;s Rake when the lock pins it</td></tr>
+</tbody>
+</table></div>
+<p><code>rake -T</code> is asked in the background when the pack starts and when the
+Gemfile, its lock, the Rakefile or a <code>.rake</code> file is saved; <code>SPC m r</code>
+asks again. The project&#39;s <code>.env</code> goes to each task. A task of the same
+name in <code>.fenix/tools.json</code> wins.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>Ruby</td><td>held to <code>.ruby-version</code>, else <code>.tool-versions</code>, else the Gemfile&#39;s <code>ruby</code> (<code>~&gt; 3.3</code> is <code>&gt;=3.3,&lt;4</code>); 3.0 at least when none says</td><td>-- your version manager&#39;s</td></tr>
+<tr><td>Bundler</td><td>with a Gemfile</td><td><code>gem install bundler</code></td></tr>
+<tr><td>Gems</td><td>with Gemfile.lock, <code>bundle check --dry-run</code>: which of its gems aren&#39;t installed</td><td><code>bundle install</code> (<code>SPC m b</code>)</td></tr>
+<tr><td>Language server</td><td>Ruby LSP or Solargraph, found</td><td><code>gem install ruby-lsp</code> (or <code>solargraph</code>)</td></tr>
+<tr><td>RuboCop, or Standard</td><td>the project&#39;s (<code>bundle exec rubocop --version</code>), else the one installed</td><td><code>gem install rubocop</code> (or <code>standard</code>); the project&#39;s comes with <code>bundle install</code></td></tr>
+</tbody>
+</table></div>
+<p>A fix runs as a task; what it installed is checked again and used at
+once. Saving the Gemfile, its lock, <code>.ruby-version</code> or the Rakefile
+checks again.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>frozen</code></td><td><code># frozen_string_literal: true</code></td></tr>
+<tr><td><code>class</code>, <code>module</code>, <code>def</code>, <code>defs</code>, <code>attr</code></td><td>a class with <code>initialize</code>, a module, a method, a class method, <code>attr_reader</code></td></tr>
+<tr><td><code>each</code>, <code>do</code></td><td>a block</td></tr>
+<tr><td><code>struct</code>, <code>data</code></td><td><code>Struct.new</code>, <code>Data.define</code></td></tr>
+<tr><td><code>case</code>, <code>casein</code></td><td><code>case</code>/<code>when</code>, <code>case</code>/<code>in</code> pattern matching</td></tr>
+<tr><td><code>begin</code></td><td><code>begin</code>/<code>rescue</code>/<code>ensure</code></td></tr>
+<tr><td><code>main</code></td><td><code>if $PROGRAM_NAME == __FILE__</code></td></tr>
+<tr><td><code>describe</code>, <code>context</code>, <code>it</code>, <code>let</code></td><td>RSpec</td></tr>
+<tr><td><code>test</code></td><td>a Minitest test case</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>ruby.server</code></td><td><code>ruby-lsp</code></td><td><code>solargraph</code> to prefer Solargraph</td></tr>
+<tr><td><code>ruby.lint</code></td><td><code>auto</code></td><td>RuboCop on save: <code>auto</code>, <code>save</code>, <code>off</code></td></tr>
+<tr><td><code>ruby.format</code></td><td>on</td><td>RuboCop&#39;s layout corrections as the formatter</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Ruby file: <code>d</code> checks the project again, <code>b</code> installs
+the gems (<code>bundle install</code>), <code>r</code> reads the project again and asks Rake for
+its tasks.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>Ruby installed for you</strong>: the doctor says which Ruby the project
+wants; rbenv, asdf, mise or RubyInstaller installs it.</p></li>
+<li><p><strong>Gems from releases</strong>: gems aren&#39;t single programs with a release to
+download and check, so the fix rows run <code>gem install</code>, into the Ruby
+that&#39;s found. A system Ruby&#39;s (<code>/usr/bin/ruby</code>) may need <code>sudo</code>, which
+a task can&#39;t give: a version manager&#39;s Ruby doesn&#39;t.</p></li>
+<li><p><strong>ERB</strong>: <code>*.erb</code> is HTML with Ruby in it, which Fenix doesn&#39;t highlight
+one inside the other.</p></li>
+<li><p><strong>Debugging</strong>: rdbg&#39;s adapter, in a later version.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>496 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ruby-v1.0.0/fenix.ruby-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 a6a5c1e7753b1b2d03d60a8656bb3b3acf97d11bd0530d6bea6a79f9aa3df6b6">a6a5c1e775…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: ruby: tree-sitter-ruby&#39;s highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler&#39;s, Rake&#39;s, RSpec&#39;s and Rails&#39; tasks, the project&#39;s checks with their fixes, and snippets.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

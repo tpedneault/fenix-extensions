@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discord · Fenix extensions</title>
+<meta name="description" content="Discord Rich Presence: the project, the file and its language, what you&#39;re debugging or running, and how long you&#39;ve been at it, on your Discord profile">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Discord</h1>
+<p class="id"><code>fenix.discord</code></p>
+<p class="lead">Discord Rich Presence: the project, the file and its language, what you&#39;re debugging or running, and how long you&#39;ve been at it, on your Discord profile</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li><li><a href="../index.html?category=fun">Fun</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>84 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/discord">extensions/discord</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Discord</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/discord-v1.0.0/fenix.discord-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.discord-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Talks to other programs on this computer through local sockets with these names</dt><dd><ul class="chips"><li><code>discord-ipc-*</code></li><li><code>app/com.discordapp.Discord/discord-ipc-*</code></li><li><code>snap.discord/discord-ipc-*</code></li></ul></dd></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Discord Rich Presence for Fenix: your Discord profile shows the file
+you&#39;re in, its language&#39;s picture, the project, what you&#39;re debugging
+or the task that&#39;s running, and how long you&#39;ve been at it.</p>
+<pre><code class="language-text">Fenix
+Editing main.rs
+In fenix-extensions
+00:42 elapsed
+</code></pre>
+<p>It talks to Discord&#39;s desktop app on this machine, by its local socket
+-- <code>discord-ipc-0</code> to <code>-9</code>: a named pipe on Windows, a Unix socket in
+<code>$XDG_RUNTIME_DIR</code>, <code>$TMPDIR</code> or <code>/tmp</code> elsewhere, and on Linux in
+Discord&#39;s Flatpak and Snap folders too. Started before Discord, it
+looks for it every few seconds, then every minute; when Discord quits
+it looks again. The browser&#39;s Discord has no socket, so it can&#39;t be
+reached.</p>
+<h3 id="readme-your-discord-application">Your Discord application</h3>
+<p>What a profile shows comes from a Discord application: its name is what
+you&#39;re &quot;playing&quot;, and its pictures are its art assets. Fenix has none
+registered, so you make one, once:</p>
+<ol class="tight">
+<li><p>At <a href="https://discord.com/developers/applications">discord.com/developers/applications</a>,
+<strong>New Application</strong>, named <code>Fenix</code> (or what you&#39;d like it to say).</p></li>
+<li><p>Copy its <strong>Application ID</strong> (General Information) into
+<code>discord.client_id</code> (<code>SPC h s</code>, or <code>discord.client_id = &quot;...&quot;</code> in
+your settings).</p></li>
+<li><p>Under <strong>Rich Presence → Art Assets</strong>, upload the pictures, named by
+the keys below (512 x 512 or larger, PNG or JPEG). One you don&#39;t
+upload is left blank; Discord can take a few minutes to show a new
+one.</p></li>
+</ol>
+<p>Until <code>discord.client_id</code> is set it does nothing but say so.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What</th></tr></thead>
+<tbody>
+<tr><td><code>fenix</code></td><td>Fenix&#39;s own picture: the small one, and the large one before you&#39;ve opened a file (Fenix&#39;s <code>docs/brand/fenix-icon-256.png</code>, scaled up)</td></tr>
+<tr><td><code>idle</code></td><td>The small one while you&#39;re idle</td></tr>
+<tr><td><code>debug</code></td><td>The small one while you&#39;re debugging</td></tr>
+<tr><td><code>task</code></td><td>The small one while a task runs</td></tr>
+<tr><td><code>text</code></td><td>A file of a language not below</td></tr>
+<tr><td><code>rust</code> <code>python</code> <code>javascript</code> <code>typescript</code> <code>c</code> <code>cpp</code> <code>csharp</code> <code>go</code> <code>java</code> <code>kotlin</code> <code>swift</code> <code>ruby</code> <code>php</code> <code>lua</code> <code>zig</code> <code>haskell</code> <code>ocaml</code> <code>elixir</code> <code>erlang</code> <code>clojure</code> <code>scala</code> <code>dart</code> <code>r</code> <code>julia</code> <code>shell</code> <code>powershell</code> <code>tcl</code></td><td>The file&#39;s language, the large one</td></tr>
+<tr><td><code>html</code> <code>css</code> <code>sass</code> <code>vue</code> <code>svelte</code> <code>json</code> <code>yaml</code> <code>toml</code> <code>xml</code> <code>markdown</code> <code>latex</code> <code>sql</code> <code>nix</code> <code>arduino</code> <code>mermaid</code> <code>cmake</code> <code>docker</code> <code>make</code> <code>csv</code></td><td>The same</td></tr>
+</tbody>
+</table></div>
+<p>A language is known by the file&#39;s extension (<code>.rs</code>, <code>.hpp</code>), or its
+name for those that have none (<code>Dockerfile</code>, <code>Makefile</code>,
+<code>CMakeLists.txt</code>).</p>
+<h3 id="readme-what-it-shows">What it shows</h3>
+<ul class="tight">
+<li><p><strong>Editing main.rs</strong>, the language&#39;s picture (<code>rust</code>) and name, with
+Fenix&#39;s picture small beside it.</p></li>
+<li><p><strong>In fenix-extensions</strong>: the project&#39;s folder&#39;s name. A file in no
+project shows none.</p></li>
+<li><p><strong>Elapsed</strong>: since you came to the project (<code>discord.elapsed = &quot;project&quot;</code>), to the file (<code>&quot;file&quot;</code>), or not shown (<code>&quot;none&quot;</code>).</p></li>
+<li><p><strong>Debugging app.py</strong>, the <code>debug</code> picture small (its text <code>Paused (breakpoint)</code> while it&#39;s stopped), the time since the session started:
+while a debug session runs, by its program or its launch&#39;s name. An
+adapter&#39;s child sessions (js-debug&#39;s) show as the one you started.</p></li>
+<li><p><strong>Running cargo build</strong>, the <code>task</code> picture small, the time since it
+started: while a task runs in the task pane, when you aren&#39;t
+debugging.</p></li>
+<li><p><strong>Idle</strong>, Fenix&#39;s <code>idle</code> picture small and no time, after
+<code>discord.idle</code> minutes without a key (5; 0 never). A key anywhere
+brings it back.</p></li>
+</ul>
+<p>On a page, a terminal or the explorer, the file you were last in stays.</p>
+<h3 id="readme-privacy">Privacy</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>discord.hide_files</code></td><td>&quot;Editing Rust&quot;, not the file&#39;s name; &quot;Debugging Rust&quot;, not the program&#39;s; &quot;Running a task&quot;, not its name</td></tr>
+<tr><td><code>discord.hide_projects</code></td><td>No project&#39;s name</td></tr>
+<tr><td><code>discord.private</code></td><td>Projects nothing is shown for while you&#39;re in them: names or folders, <code>*</code> for any characters (<code>work-*</code>, <code>/home/me/clients/*</code>)</td></tr>
+</tbody>
+</table></div>
+<p><code>Discord: toggle</code> (<code>discord.toggle</code>) clears it and disconnects for the
+rest of this session; run again, it shows it again. <code>Discord: look for Discord now</code> (<code>discord.reconnect</code>) doesn&#39;t wait for the next try, and
+says how it went.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>discord.client_id</code></td><td>Your Discord application&#39;s ID (empty: nothing shown)</td></tr>
+<tr><td><code>discord.idle</code></td><td>Minutes without a key before you&#39;re idle (5)</td></tr>
+<tr><td><code>discord.elapsed</code></td><td><code>project</code>, <code>file</code> or <code>none</code></td></tr>
+<tr><td><code>discord.hide_files</code></td><td>Hide file names (off)</td></tr>
+<tr><td><code>discord.hide_projects</code></td><td>Hide project names (off)</td></tr>
+<tr><td><code>discord.private</code></td><td>Projects that show nothing</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Talk to Discord&#39;s local socket (<code>ipc</code>): <code>discord-ipc-*</code>, and
+<code>app/com.discordapp.Discord/discord-ipc-*</code> and
+<code>snap.discord/discord-ipc-*</code> for Flatpak&#39;s and Snap&#39;s. Nothing else on
+the machine, and nothing on the network.</p></li>
+<li><p>Know the file you&#39;re in and its project (<code>editor = &quot;read&quot;</code>); it reads
+no file&#39;s text.</p></li>
+<li><p>Be told what has the focus, that you&#39;re typing, that a key was
+pressed, that a task started and ended, and that a debug session
+started, stopped, ran on and ended (<code>events = [&quot;focus&quot;, &quot;typing&quot;, &quot;active&quot;, &quot;tasks&quot;, &quot;debug&quot;]</code>).</p></li>
+</ul>
+<p>What it sends Discord is only the activity above, as Discord&#39;s
+<code>SET_ACTIVITY</code>, at most once every 4 seconds, with Fenix&#39;s process id
+(<code>pid</code>): Discord clears the activity once Fenix is gone.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>84 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/discord-v1.0.0/fenix.discord-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 bed812fc3dd4638ac75b3091085b1244144d1bf6088f66b6a6bf508543d82c75">bed812fc3d…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: discord Rich Presence: the project, the file and its language, what you&#39;re debugging or running, and how long you&#39;ve been at it, on your Discord profile.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

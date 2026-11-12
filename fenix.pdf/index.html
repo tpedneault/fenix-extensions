@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF reader · Fenix extensions</title>
+<meta name="description" content="PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>PDF reader</h1>
+<p class="id"><code>fenix.pdf</code></p>
+<p class="lead">PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.1</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>184 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/pdf">extensions/pdf</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.reading-bundle/index.html">Reading</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>PDF reader</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/pdf-v1.0.1/fenix.pdf-1.0.1.fenixext">download the package</a> and run <code>fenix --install-extension fenix.pdf-1.0.1.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>fenix-pdfium</code></li></ul></dd></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>PDFs read in a pane. A
+<code>.pdf</code> opens in it however you open it -- the explorer, the file picker,
+<code>:e</code>, a recent file, the command line, <code>gf</code> (with standard keys, Ctrl+click or <code>Alt+F12</code>) on <code>spec.pdf#page=38</code> -- on a
+surface in the pane you&#39;re in: every page one under the other, fitted to
+the pane&#39;s width the first time, and where you left it after that.</p>
+<p>The pages are rendered by <strong><code>fenix-pdfium</code></strong>, a small program that comes
+with Fenix, beside <code>fenix.exe</code>, with the PDFium library it uses. If you
+built Fenix yourself, docs/BUILDING.md says where to put it. PDFium isn&#39;t
+compiled to
+WebAssembly (docs/adr/0001-wasm-runtime.md), so the extension sends it
+requests over a pipe and draws what comes back: only the parts of pages in
+sight, and only the strip that scrolled into view as you read on.</p>
+<h3 id="readme-reading">Reading</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>j</code> <code>k</code>, <code>h</code> <code>l</code></td><td>Scroll down and up, pan sideways; a count repeats (<code>5j</code>)</td></tr>
+<tr><td><code>Ctrl-d</code> <code>Ctrl-u</code>, <code>Ctrl-f</code> <code>Ctrl-b</code>, <code>PageDown</code> <code>PageUp</code></td><td>Half a screen, a screen</td></tr>
+<tr><td><code>J</code> <code>K</code></td><td>The next and previous page, at its top</td></tr>
+<tr><td><code>gg</code> <code>G</code>, <code>{n}G</code></td><td>The first and last page, page n</td></tr>
+<tr><td><code>+</code> <code>-</code>, <code>=</code>, <code>zw</code> <code>zp</code> <code>z0</code></td><td>Zoom in and out; fit width and fit page in turn; fit width, fit page, 100%</td></tr>
+<tr><td><code>Ctrl</code> and the wheel</td><td>Zoom</td></tr>
+<tr><td><code>/</code>, <code>n</code> <code>N</code></td><td>Search (smart case: a capital makes it exact); the next and previous match</td></tr>
+<tr><td><code>o</code></td><td>The outline, the matches and the marks, beside the pages (<code>Tab</code> switches; <code>za</code> <code>zM</code> <code>zR</code> fold; <code>Enter</code> goes there)</td></tr>
+<tr><td><code>m{a}</code>, <code>&#39;{a}</code></td><td>A mark here; back to it</td></tr>
+<tr><td><code>Ctrl-o</code> <code>Ctrl-i</code></td><td>Back where a jump came from, and on again</td></tr>
+<tr><td><code>v</code>, then <code>w</code> <code>b</code> <code>e</code> <code>0</code> <code>$</code> <code>j</code> <code>k</code> <code>h</code> <code>l</code>, <code>y</code></td><td>Select text with the keys, and copy it</td></tr>
+<tr><td>A drag, then <code>y</code></td><td>Select text with the pointer, and copy it</td></tr>
+<tr><td>A click on a link, <code>f</code></td><td>Follow it; label every link in sight, and follow the one you type</td></tr>
+<tr><td><code>yp</code></td><td>Copy a link to this page, <code>specs/x.pdf#page=38</code></td></tr>
+<tr><td><code>Esc</code></td><td>Clear a selection, hide the search&#39;s highlights, close the outline</td></tr>
+<tr><td><code>q</code></td><td>Close it</td></tr>
+</tbody>
+</table></div>
+<p><code>SPC r</code> has the same, for the PDF read last, from anywhere:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC r f</code></td><td><code>pdf.documents</code></td><td>The shelf: <code>reader.documents</code>, a project&#39;s own, the PDFs read lately</td></tr>
+<tr><td><code>SPC r n</code> <code>SPC r p</code></td><td><code>pdf.next_page</code> <code>pdf.prev_page</code></td><td>The next and previous page</td></tr>
+<tr><td><code>SPC r [</code> <code>SPC r ]</code></td><td><code>pdf.first_page</code> <code>pdf.last_page</code></td><td>The first and last page</td></tr>
+<tr><td><code>SPC r g</code></td><td><code>pdf.goto_page</code></td><td>A page, by number</td></tr>
+<tr><td><code>SPC r =</code> <code>SPC r -</code></td><td><code>pdf.zoom_in</code> <code>pdf.zoom_out</code></td><td>Zoom</td></tr>
+<tr><td><code>SPC r 0</code> <code>SPC r w</code></td><td><code>pdf.fit_page</code> <code>pdf.fit_width</code></td><td>Fit the page, fit the width</td></tr>
+<tr><td><code>SPC r o</code></td><td><code>pdf.toggle_outline</code></td><td>The outline</td></tr>
+<tr><td><code>SPC r t</code></td><td><code>pdf.headings</code></td><td>A heading, picked by name</td></tr>
+<tr><td><code>SPC r /</code></td><td><code>pdf.search</code></td><td>Search</td></tr>
+<tr><td><code>SPC r c</code></td><td><code>pdf.colors</code></td><td>The pages as printed, or in the theme&#39;s colours</td></tr>
+<tr><td><code>SPC r y</code></td><td><code>pdf.copy_link</code></td><td>A link to the page</td></tr>
+</tbody>
+</table></div>
+<p><code>SPC m</code> on a PDF has them too. <code>pdf.documents</code> may run from outside Fenix
+(<code>fenix/runCommand</code>). The modeline says where you are: <code>PDF p. 38/212  Fit width  /packet 2/5</code>. Home&#39;s <strong>reading</strong> lists the PDFs read lately, with
+the page you were on.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td><code>reader.colors</code></td><td><code>paper</code> (as printed) or <code>theme</code> (its colours)</td></tr>
+<tr><td><code>reader.zoom</code></td><td>How a PDF opens the first time: <code>width</code> or <code>page</code></td></tr>
+<tr><td><code>reader.page_gap</code></td><td>Pixels between pages, 0 to 40</td></tr>
+<tr><td><code>reader.remember</code></td><td>Reopen each PDF where you left it, with its zoom and marks</td></tr>
+<tr><td><code>reader.sidebar</code></td><td>Where <code>o</code> opens the outline: <code>beside</code>, <code>over</code> (in the PDF&#39;s pane, closing when it takes you somewhere), or <code>auto</code></td></tr>
+<tr><td><code>reader.documents</code></td><td>The shelf, <code>name = &quot;file&quot;</code>; a project may have its own (its paths relative to it)</td></tr>
+</tbody>
+</table></div>
+<pre><code class="language-toml">[reader.documents]
+&quot;Space Packet Protocol&quot; = &#39;C:\refs\133x0b2e2.pdf&#39;
+&quot;Time Code Formats&quot; = &#39;C:\refs\301x0b4.pdf&#39;
+</code></pre>
+<h3 id="readme-fenix-asks-it-too">Fenix asks it too</h3>
+<ul class="tight">
+<li><p><code>pdf.open</code>: a PDF at a page or a heading -- <code>gf</code> on <code>x.pdf#page=38</code>, a
+standard&#39;s clause from the CCSDS toolkit.</p></li>
+<li><p><code>pdf.search</code>: a PDF searched -- the standards library&#39;s search.</p></li>
+</ul>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Run <code>fenix-pdfium</code>, which comes with Fenix. It reads the PDFs you open.</p></li>
+<li><p>Know where you are in the editor: a project&#39;s own shelf, and links from
+it (<code>yp</code>).</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/pdf dist
+</code></pre>
+<p><code>cargo test</code> runs the reader against a fake <code>fenix-pdfium</code> and a fake
+Fenix (<code>tests/reader.rs</code>), checking what the pane shows pixel by pixel as
+you scroll, zoom and jump. Fenix&#39;s own tests drive the real program on a
+real PDF.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.1</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>184 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/pdf-v1.0.1/fenix.pdf-1.0.1.fenixext">Download<span class="visually-hidden"> 1.0.1</span></a><code class="sha" title="SHA-256 3a56c1379d095d3b3f60ce1f5473cc61884689ec530add9288cf450113ef4705">3a56c1379d…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>184 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/pdf-v1.0.0/fenix.pdf-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 ed52b41eaf22dbc6aa11685075c40beb7cb2dfbd5861b881e4233481df82c01a">ed52b41eaf…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-101">1.0.1</h3>
+<ul class="tight">
+<li><p>The modeline no longer shows a PDF&#39;s page on other files when the PDF came back with the session, in a tab behind them.</p></li>
+<li><p><code>PDF opening...</code> leaves the modeline when a PDF can&#39;t be opened.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: pDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

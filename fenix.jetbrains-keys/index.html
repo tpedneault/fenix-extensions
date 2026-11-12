@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JetBrains keys · Fenix extensions</title>
+<meta name="description" content="The IntelliJ platform&#39;s default shortcuts, over Fenix&#39;s standard keys">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>JetBrains keys</h1>
+<p class="id"><code>fenix.jetbrains-keys</code></p>
+<p class="lead">The IntelliJ platform&#39;s default shortcuts, over Fenix&#39;s standard keys</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=keymaps">Keymaps</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.6.0 or later, before 2 <code>&gt;=1.6.0, &lt;2</code></dd>
+<dt>What it is</dt><dd>Data: no code of its own</dd>
+<dt>Download</dt><dd>7 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/jetbrains-keys">extensions/jetbrains-keys</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>JetBrains keys</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/jetbrains-keys-v1.0.0/fenix.jetbrains-keys-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.jetbrains-keys-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Nothing: it's data (themes, snippets, keymaps, templates) and runs no code.</p>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>The IntelliJ platform&#39;s default shortcuts -- the Windows and Linux
+keymap IntelliJ IDEA, PyCharm, CLion, Rider and the rest share -- laid
+over Fenix&#39;s standard keys. It&#39;s data alone: one keymap file, no code.</p>
+<p>Fenix&#39;s standard keys are VS Code&#39;s. This only names the shortcuts where
+IntelliJ&#39;s differ, and only for commands Fenix has; everything else
+stays Fenix&#39;s. Vim keys are left as they are.</p>
+<h3 id="readme-on-and-off">On and off</h3>
+<p>Install it from the store (<code>Ctrl+K h x</code>), with standard keys on
+(<code>Ctrl+K t k</code> switches between them and Vim keys). It&#39;s in use at once.
+Switching it off on the same page brings Fenix&#39;s own keys back.</p>
+<p><code>Ctrl+K h ?</code> lists the chords in use, each of this extension&#39;s marked
+<code>from jetbrains</code>. <code>Ctrl+K h K</code> lists anything wrong with a keymap.
+Your own <code>keybindings.toml</code> goes over this one, so a chord you&#39;d rather
+have as it was is a <code>[[keys]]</code> entry there.</p>
+<p>It needs Fenix 1.6 (the nightly counts): before that, the debugger kept <code>F9</code> for
+its breakpoint, whatever a keymap said.</p>
+<h3 id="readme-the-keys">The keys</h3>
+<p>In a file&#39;s text unless it says anywhere.</p>
+<h4 id="readme-navigation">Navigation</h4>
+<div class="table"><table>
+<thead><tr><th>IntelliJ</th><th>Shortcut</th><th>In Fenix</th></tr></thead>
+<tbody>
+<tr><td>Go to declaration</td><td><code>Ctrl+B</code></td><td><code>code.goto_definition</code></td></tr>
+<tr><td>Go to implementation</td><td><code>Ctrl+Alt+B</code></td><td><code>code.implementations</code></td></tr>
+<tr><td>Find usages</td><td><code>Alt+F7</code></td><td><code>code.references</code>: the list of uses</td></tr>
+<tr><td>Show usages</td><td><code>Ctrl+Alt+F7</code></td><td><code>code.references</code></td></tr>
+<tr><td>Call hierarchy</td><td><code>Ctrl+Alt+H</code></td><td><code>code.callers</code></td></tr>
+<tr><td>Go to class</td><td><code>Ctrl+N</code></td><td><code>code.project_symbols</code>, anywhere</td></tr>
+<tr><td>Go to symbol</td><td><code>Ctrl+Alt+Shift+N</code></td><td><code>code.project_symbols</code>, anywhere</td></tr>
+<tr><td>Go to file</td><td><code>Ctrl+Shift+N</code></td><td><code>project.find_file</code>, anywhere</td></tr>
+<tr><td>File structure</td><td><code>Ctrl+F12</code></td><td><code>code.breadcrumbs</code>: this file&#39;s scopes</td></tr>
+<tr><td>Back / forward</td><td><code>Ctrl+Alt+Left</code> / <code>Ctrl+Alt+Right</code></td><td><code>nav.jump_back</code> / <code>nav.jump_forward</code>, anywhere</td></tr>
+<tr><td>Previous / next tab</td><td><code>Alt+Left</code> / <code>Alt+Right</code></td><td><code>tab.prev</code> / <code>tab.next</code>, anywhere</td></tr>
+<tr><td>Close tab</td><td><code>Ctrl+F4</code></td><td><code>tab.close</code>, anywhere</td></tr>
+<tr><td>Next / previous error</td><td><code>F2</code> / <code>Shift+F2</code></td><td><code>nav.next_problem</code> / <code>nav.prev_problem</code></td></tr>
+<tr><td>Next / previous occurrence</td><td><code>Ctrl+Alt+Down</code> / <code>Ctrl+Alt+Up</code></td><td><code>project.quickfix_next</code> / <code>project.quickfix_prev</code>: the search&#39;s or the references&#39; list, anywhere</td></tr>
+<tr><td>Matching brace</td><td><code>Ctrl+Shift+M</code></td><td><code>nav.matching_bracket</code></td></tr>
+</tbody>
+</table></div>
+<h4 id="readme-editing">Editing</h4>
+<div class="table"><table>
+<thead><tr><th>IntelliJ</th><th>Shortcut</th><th>In Fenix</th></tr></thead>
+<tbody>
+<tr><td>Duplicate line</td><td><code>Ctrl+D</code></td><td><code>edit.copy_lines_down</code></td></tr>
+<tr><td>Delete line</td><td><code>Ctrl+Y</code></td><td><code>edit.delete_line</code></td></tr>
+<tr><td>Move line up / down</td><td><code>Alt+Shift+Up</code> / <code>Alt+Shift+Down</code></td><td><code>edit.move_lines_up</code> / <code>edit.move_lines_down</code></td></tr>
+<tr><td>Move statement up / down</td><td><code>Ctrl+Shift+Up</code> / <code>Ctrl+Shift+Down</code></td><td><code>edit.move_lines_up</code> / <code>edit.move_lines_down</code>: lines, not statements</td></tr>
+<tr><td>Join lines</td><td><code>Ctrl+Shift+J</code></td><td><code>edit.join_lines</code></td></tr>
+<tr><td>Start new line</td><td><code>Shift+Enter</code></td><td><code>edit.new_line_below</code></td></tr>
+<tr><td>Start new line before current</td><td><code>Ctrl+Alt+Enter</code></td><td><code>edit.new_line_above</code></td></tr>
+<tr><td>Add selection for next occurrence</td><td><code>Alt+J</code></td><td><code>edit.add_next_occurrence</code></td></tr>
+<tr><td>Select all occurrences</td><td><code>Ctrl+Alt+Shift+J</code></td><td><code>edit.select_all_occurrences</code></td></tr>
+<tr><td>Collapse / expand</td><td><code>Ctrl+Minus</code> / <code>Ctrl+=</code> (or <code>Ctrl++</code>)</td><td><code>code.fold</code> / <code>code.unfold</code></td></tr>
+<tr><td>Insert live template</td><td><code>Ctrl+J</code></td><td><code>insert.snippet</code>: Fenix&#39;s snippets</td></tr>
+<tr><td>Copy path</td><td><code>Ctrl+Shift+C</code></td><td><code>file.yank_path</code></td></tr>
+</tbody>
+</table></div>
+<h4 id="readme-code-and-refactoring">Code and refactoring</h4>
+<div class="table"><table>
+<thead><tr><th>IntelliJ</th><th>Shortcut</th><th>In Fenix</th></tr></thead>
+<tbody>
+<tr><td>Show context actions</td><td><code>Alt+Enter</code></td><td><code>code.lsp_code_action</code></td></tr>
+<tr><td>Reformat code</td><td><code>Ctrl+Alt+L</code></td><td><code>code.format_buffer</code>: the extension&#39;s or language server&#39;s formatter, else a reindent</td></tr>
+<tr><td>Rename</td><td><code>Shift+F6</code></td><td><code>code.lsp_rename</code></td></tr>
+<tr><td>Quick documentation</td><td><code>Ctrl+Q</code></td><td><code>code.hover</code></td></tr>
+</tbody>
+</table></div>
+<h4 id="readme-search">Search</h4>
+<div class="table"><table>
+<thead><tr><th>IntelliJ</th><th>Shortcut</th><th>In Fenix</th></tr></thead>
+<tbody>
+<tr><td>Replace</td><td><code>Ctrl+R</code></td><td><code>search.replace_buffer</code>, anywhere</td></tr>
+<tr><td>Replace in files</td><td><code>Ctrl+Shift+R</code></td><td><code>search.replace_project</code>, anywhere</td></tr>
+<tr><td>Find action</td><td><code>Ctrl+Shift+A</code></td><td><code>commands.palette</code>, anywhere</td></tr>
+</tbody>
+</table></div>
+<p><code>Ctrl+F</code>, <code>Ctrl+Shift+F</code>, <code>F3</code>, <code>Shift+F3</code>, <code>Ctrl+G</code>, <code>Ctrl+E</code>,
+<code>Ctrl+/</code>, <code>Ctrl+Tab</code> and <code>Ctrl+Shift+Z</code> are the same in both, and stay
+Fenix&#39;s.</p>
+<h4 id="readme-run-and-debug">Run and debug</h4>
+<p>Anywhere.</p>
+<div class="table"><table>
+<thead><tr><th>IntelliJ</th><th>Shortcut</th><th>In Fenix</th></tr></thead>
+<tbody>
+<tr><td>Run</td><td><code>Shift+F10</code></td><td><code>task.rerun_last</code>: the last task again</td></tr>
+<tr><td>Run...</td><td><code>Alt+Shift+F10</code></td><td><code>task.run</code>: pick a task</td></tr>
+<tr><td>Run context configuration</td><td><code>Ctrl+Shift+F10</code></td><td><code>task.run_test_at_cursor</code>, in a file&#39;s text</td></tr>
+<tr><td>Debug</td><td><code>Shift+F9</code></td><td><code>debug.start_or_continue</code></td></tr>
+<tr><td>Debug...</td><td><code>Alt+Shift+F9</code></td><td><code>debug.pick_launch</code></td></tr>
+<tr><td>Resume</td><td><code>F9</code></td><td><code>debug.start_or_continue</code></td></tr>
+<tr><td>Step over</td><td><code>F8</code></td><td><code>debug.step_over</code></td></tr>
+<tr><td>Step into</td><td><code>F7</code></td><td><code>debug.step_into</code></td></tr>
+<tr><td>Step out</td><td><code>Shift+F8</code></td><td><code>debug.step_out</code></td></tr>
+<tr><td>Run to cursor</td><td><code>Alt+F9</code></td><td><code>debug.run_to_cursor</code></td></tr>
+<tr><td>Evaluate expression</td><td><code>Alt+F8</code></td><td><code>debug.evaluate</code></td></tr>
+<tr><td>Toggle line breakpoint</td><td><code>Ctrl+F8</code></td><td><code>debug.toggle_breakpoint</code></td></tr>
+<tr><td>Stop</td><td><code>Ctrl+F2</code></td><td><code>debug.stop</code>: the debug session (a task is <code>task.kill</code>, which has no key here)</td></tr>
+<tr><td>Rerun</td><td><code>Ctrl+F5</code></td><td><code>debug.restart</code></td></tr>
+</tbody>
+</table></div>
+<h4 id="readme-tool-windows">Tool windows</h4>
+<p>Anywhere.</p>
+<div class="table"><table>
+<thead><tr><th>IntelliJ</th><th>Shortcut</th><th>In Fenix</th></tr></thead>
+<tbody>
+<tr><td>Project</td><td><code>Alt+1</code></td><td><code>explorer.toggle_sidebar</code></td></tr>
+<tr><td>Select in</td><td><code>Alt+F1</code></td><td><code>explorer.reveal_current</code>: the file, in the sidebar</td></tr>
+<tr><td>Find</td><td><code>Alt+3</code></td><td><code>search.last</code>: the Search page as you left it</td></tr>
+<tr><td>Debug</td><td><code>Alt+5</code></td><td><code>debug.toggle_dock</code></td></tr>
+<tr><td>Problems</td><td><code>Alt+6</code></td><td><code>code.problems</code></td></tr>
+<tr><td>Git</td><td><code>Alt+9</code></td><td><code>git.log</code></td></tr>
+<tr><td>Commit</td><td><code>Alt+0</code></td><td><code>git.open</code>: Git&#39;s page, where you stage and commit</td></tr>
+<tr><td>Terminal</td><td><code>Alt+F12</code></td><td><code>terminal.toggle</code></td></tr>
+<tr><td>Settings</td><td><code>Ctrl+Alt+S</code></td><td><code>settings.open</code></td></tr>
+<tr><td>Project structure</td><td><code>Ctrl+Alt+Shift+S</code></td><td><code>project.settings</code></td></tr>
+</tbody>
+</table></div>
+<h4 id="readme-version-control">Version control</h4>
+<div class="table"><table>
+<thead><tr><th>IntelliJ</th><th>Shortcut</th><th>In Fenix</th></tr></thead>
+<tbody>
+<tr><td>Update project</td><td><code>Ctrl+T</code></td><td><code>git.pull_rebase</code>, anywhere: it pulls at once, rebasing your commits, with no dialog first</td></tr>
+<tr><td>Rollback lines</td><td><code>Ctrl+Alt+Z</code></td><td><code>git.hunk_discard</code>: the changed hunk at the cursor</td></tr>
+<tr><td>Next / previous change</td><td><code>Ctrl+Alt+Shift+Down</code> / <code>Ctrl+Alt+Shift+Up</code></td><td><code>nav.next_hunk</code> / <code>nav.prev_hunk</code></td></tr>
+</tbody>
+</table></div>
+<h4 id="readme-taken-away">Taken away</h4>
+<p>These are Fenix&#39;s standard keys, which IntelliJ uses for something Fenix
+has no command for. Left as they were they&#39;d do something else, and
+most would edit your text, so with this on they do nothing:</p>
+<div class="table"><table>
+<thead><tr><th>Shortcut</th><th>IntelliJ</th><th>Fenix&#39;s, without this</th></tr></thead>
+<tbody>
+<tr><td><code>Ctrl+W</code></td><td>Extend selection</td><td>Close the tab (<code>Ctrl+F4</code> here)</td></tr>
+<tr><td><code>Alt+Up</code> / <code>Alt+Down</code></td><td>Previous / next method</td><td>Move lines (<code>Alt+Shift+Up</code> / <code>Alt+Shift+Down</code> here)</td></tr>
+<tr><td><code>Ctrl+[</code> / <code>Ctrl+]</code></td><td>Code block start / end</td><td>Outdent / indent</td></tr>
+<tr><td><code>Ctrl+Shift+K</code></td><td>Push</td><td>Delete the line (<code>Ctrl+Y</code> here)</td></tr>
+<tr><td><code>Ctrl+Q</code> outside a file&#39;s text</td><td>Quick documentation</td><td>Quit Fenix</td></tr>
+</tbody>
+</table></div>
+<p>A few of Fenix&#39;s standard keys move to make room: next occurrence is
+<code>Alt+J</code> rather than <code>Ctrl+D</code>, the sidebar is <code>Alt+1</code> rather than
+<code>Ctrl+B</code> in a file&#39;s text, the terminal <code>Alt+F12</code> rather than <code>Ctrl+J</code>
+there, the next problem <code>F2</code> rather than <code>F8</code>, rename <code>Shift+F6</code> rather
+than <code>F2</code>, adding a cursor above or below has no key (Fenix&#39;s is
+<code>Ctrl+Alt+Up</code> / <code>Ctrl+Alt+Down</code>, which go through the list here), and
+the text size is <code>Ctrl+=</code> and <code>Ctrl+Minus</code> only outside a file&#39;s text.
+Everything is still in the palette and under <code>Ctrl+K</code>.</p>
+<h3 id="readme-what-it-doesnt-have">What it doesn&#39;t have</h3>
+<p>IntelliJ shortcuts with nothing in Fenix to run, which keep whatever
+Fenix&#39;s standard keys give them (often nothing):</p>
+<ul class="tight">
+<li><p>Search everywhere (<code>Shift</code> twice): a key pressed twice isn&#39;t a chord.
+<code>Ctrl+Shift+A</code> and <code>Ctrl+Shift+N</code> cover much of it.</p></li>
+<li><p>Clone caret above / below (<code>Ctrl</code> twice, then an arrow), and adding a
+caret with <code>Alt+Shift+Click</code>.</p></li>
+<li><p>Basic and smart completion (<code>Ctrl+Space</code>, <code>Ctrl+Shift+Space</code>), and
+complete current statement (<code>Ctrl+Shift+Enter</code>, which stays Fenix&#39;s new
+line above).</p></li>
+<li><p>Parameter info (<code>Ctrl+P</code>, which stays Fenix&#39;s go to file), quick
+definition (<code>Ctrl+Shift+I</code>), expression type (<code>Ctrl+Shift+P</code>, Fenix&#39;s
+palette).</p></li>
+<li><p>Go to type declaration (<code>Ctrl+Shift+B</code>), super method (<code>Ctrl+U</code>,
+which stays Fenix&#39;s cursor undo), test (<code>Ctrl+Shift+T</code>, which stays
+Fenix&#39;s reopen tab), last edit location (<code>Ctrl+Shift+Backspace</code>),
+recent locations (<code>Ctrl+Shift+E</code>, which stays Fenix&#39;s file in the
+sidebar).</p></li>
+<li><p>Type and method hierarchy (<code>Ctrl+H</code>, <code>Ctrl+Shift+H</code>, which stay
+Fenix&#39;s replace and replace in the project).</p></li>
+<li><p>Highlight usages in file (<code>Ctrl+Shift+F7</code>).</p></li>
+<li><p>Shrink selection (<code>Ctrl+Shift+W</code>), as there&#39;s no extend selection.</p></li>
+<li><p>Block comment (<code>Ctrl+Shift+/</code>), toggle case (<code>Ctrl+Shift+U</code>: Fenix has
+upper and lower case apart), auto-indent lines (<code>Ctrl+Alt+I</code>), optimize
+imports (<code>Ctrl+Alt+O</code>), surround with (<code>Ctrl+Alt+T</code>), generate
+(<code>Alt+Insert</code>), override and implement methods (<code>Ctrl+O</code>, which stays
+Fenix&#39;s open a file by path, and <code>Ctrl+I</code>).</p></li>
+<li><p>Refactor this, extract variable, method, field, constant and
+parameter, inline, move, copy, change signature, safe delete. A
+language server may offer some of them as code actions (<code>Alt+Enter</code>).</p></li>
+<li><p>View breakpoints (<code>Ctrl+Shift+F8</code>), smart step into (<code>Shift+F7</code>), and
+debug the context&#39;s configuration (<code>Ctrl+Shift+F9</code>).</p></li>
+<li><p>Bookmarks (<code>F11</code>, <code>Ctrl+F11</code>, <code>Shift+F11</code>, <code>Ctrl+1</code> to <code>Ctrl+9</code>, which
+stay Fenix&#39;s panes).</p></li>
+<li><p>Push (<code>Ctrl+Shift+K</code>), the VCS operations popup (<code>Alt+`</code>), and
+show diff.</p></li>
+<li><p>New scratch file (<code>Ctrl+Alt+Shift+Insert</code>): Fenix&#39;s keymaps can&#39;t
+name <code>Insert</code>. <code>Ctrl+N</code> was Fenix&#39;s new scratch buffer; it&#39;s in the
+palette (<code>buffer.scratch</code>).</p></li>
+<li><p>Synchronize (<code>Ctrl+Alt+Y</code>): Fenix&#39;s reload throws away unsaved edits,
+which IntelliJ&#39;s doesn&#39;t, so it isn&#39;t bound.</p></li>
+<li><p>Hide all tool windows (<code>Ctrl+Shift+F12</code>), jump to the last tool
+window (<code>F12</code>, which stays Fenix&#39;s go to definition).</p></li>
+</ul>
+<h3 id="readme-what-a-keymap-cant-take">What a keymap can&#39;t take</h3>
+<ul class="tight">
+<li><p><strong><code>Ctrl+K</code></strong> is Fenix&#39;s leader, so IntelliJ&#39;s commit isn&#39;t there:
+<code>Alt+0</code> opens Git&#39;s page to commit from. <strong><code>Ctrl+Shift+P</code></strong>, <strong><code>Ctrl+\</code></strong>
+and <strong><code>Alt+X</code></strong> are Fenix&#39;s too.</p></li>
+<li><p><strong>The debugger&#39;s own F-keys.</strong> Fenix&#39;s debugger has <code>F5</code> (start or
+continue), <code>Shift+F5</code> (stop), <code>Ctrl+Shift+F5</code> (restart), <code>F6</code> (pause),
+<code>F10</code> (step over), <code>F11</code> (step into) and <code>Shift+F11</code> (step out) in
+every mode. A keymap can bind one, but taking one away gives it back
+to the debugger. So IntelliJ&#39;s copy (<code>F5</code>), move (<code>F6</code>) and bookmark
+(<code>F11</code>) keys run the debugger&#39;s instead.</p></li>
+<li><p><strong>A terminal that has the keyboard.</strong> Only Fenix&#39;s chords and your own
+reach past it, so <code>Alt+F12</code> opens the terminal but doesn&#39;t close it
+from inside; Fenix&#39;s <code>Ctrl+J</code> and <code>Ctrl+` </code> still do.</p></li>
+<li><p><strong>Your desktop&#39;s keys.</strong> On Linux the desktop often takes <code>Ctrl+Alt+L</code>
+(lock the screen), <code>Ctrl+Alt+Left</code> and <code>Ctrl+Alt+Right</code> (workspaces)
+and <code>Ctrl+Alt+F1</code> to <code>F12</code> (consoles) before any program sees them, as
+it does with IntelliJ.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.6.0, &lt;2</code></td><td>--</td><td>7 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/jetbrains-keys-v1.0.0/fenix.jetbrains-keys-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 c43f0a8c787491ce46f28480f04f6fbba0ad56d33d4807b91df23ec54233f0e3">c43f0a8c78…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.6: the IntelliJ platform&#39;s default shortcuts over standard keys, for every command Fenix has -- navigation, editing, refactoring, search, run and debug (F7, F8, F9 included), tool windows and version control -- and seven of Fenix&#39;s standard keys taken away where IntelliJ&#39;s would do something else.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

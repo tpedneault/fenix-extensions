@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swift · Fenix extensions</title>
+<meta name="description" content="Swift on Linux and macOS: sourcekit-lsp, Swift&#39;s highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM&#39;s tasks, the project&#39;s checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Swift</h1>
+<p class="id"><code>fenix.swift</code></p>
+<p class="lead">Swift on Linux and macOS: sourcekit-lsp, Swift&#39;s highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM&#39;s tasks, the project&#39;s checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>636 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/swift">extensions/swift</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Swift</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/swift-v1.0.0/fenix.swift-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.swift-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>swift</code></li><li><code>sourcekit-lsp</code></li><li><code>swift-format</code></li><li><code>swiftformat</code></li><li><code>swiftlint</code></li><li><code>xcrun</code></li><li><code>brew</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Swift in Fenix, on Linux and macOS: highlighting, folding and indenting
+from tree-sitter-swift (Fenix has no Swift of its own), sourcekit-lsp as
+the language server, swift-format or SwiftFormat as the formatter,
+SwiftLint on save, SwiftPM&#39;s tasks, the project doctor&#39;s checks with
+their fixes, snippets, and a command-line package to start from. Built
+on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It starts with Fenix. The server and the formatter are set whenever
+they&#39;re found; the doctor checks, and the tasks run, in a Swift project:
+one with a <code>Package.swift</code>, an Xcode project, or Swift files at its top
+or in <code>Sources/</code>. The first Swift file saved in a folder makes it one.</p>
+<h3 id="readme-swift-itself">Swift itself</h3>
+<p>The pack doesn&#39;t install Swift: a toolchain is the platform&#39;s. The
+doctor&#39;s fix row (<code>SPC m g</code>, <code>swift.get-swift</code>) opens swift.org&#39;s page
+for this machine, which says how: swiftly (<code>swiftly install latest</code>) on
+Linux and macOS, Xcode or its command line tools on macOS, the installer
+on Windows.</p>
+<p>Swift is looked for on the <code>PATH</code>, and where swiftly puts it
+(<code>~/.local/share/swiftly/bin</code> on Linux, <code>~/.swiftly/bin</code> on macOS),
+where the tarballs usually go (<code>/opt/swift/usr/bin</code>), the command line
+tools&#39; and Xcode&#39;s folders, and Homebrew&#39;s. sourcekit-lsp and
+swift-format are looked for beside the <code>swift</code> found first, so they&#39;re
+its toolchain&#39;s.</p>
+<h3 id="readme-the-server">The server</h3>
+<p><code>sourcekit-lsp</code>, which ships with every toolchain. On macOS without one
+found, Xcode&#39;s: <code>xcrun sourcekit-lsp</code>. It reads a package by itself; an
+Xcode project needs a <code>compile_commands.json</code> or a Build Server Protocol
+config (xcode-build-server) for its cross-file features.</p>
+<h3 id="readme-formatting">Formatting</h3>
+<p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>. <code>swift.formatter</code>:</p>
+<ul class="tight">
+<li><p><strong>auto</strong> (the default): SwiftFormat in a project with a <code>.swiftformat</code>
+(and no <code>.swift-format</code>), else swift-format.</p></li>
+<li><p><strong>swift-format</strong>: <code>swift-format format --assume-filename &lt;file&gt;</code>, its
+<code>.swift-format</code> found from the file&#39;s folder up. The one installed, or
+Swift 6&#39;s own <code>swift format</code> (Swift 5 has none).</p></li>
+<li><p><strong>SwiftFormat</strong>: Nick Lockwood&#39;s, <code>swiftformat --stdinpath &lt;file&gt;</code>,
+its <code>.swiftformat</code> found from the file&#39;s path.</p></li>
+<li><p><strong>off</strong>: Fenix&#39;s own.</p></li>
+</ul>
+<p>On macOS the doctor&#39;s fix rows install either with Homebrew.</p>
+<h3 id="readme-swiftlint">SwiftLint</h3>
+<p>On a saved Swift file, in a project with a <code>.swiftlint.yml</code>
+(<code>swift.swiftlint</code> = <code>project</code>), or with SwiftLint&#39;s default rules
+anywhere (<code>always</code>). It runs in the project, so its config (and those
+nested beside the file) is read, and a file the config excludes stays
+unlinted. Its rule is each problem&#39;s code.</p>
+<p>The doctor&#39;s fix row installs SwiftLint 0.65.1&#39;s release into the pack&#39;s
+tools folder, checked against its SHA-256: Linux on x86_64 and arm64
+(which links libcurl and libxml2, as Swift itself does), and macOS&#39;s
+universal binary. One you installed yourself (Homebrew, Mint) is used
+instead.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p>In a package (<code>SPC p t</code>): <em>build</em>, <em>build release</em>, <em>run</em> (<em>run
+&lt;product&gt;</em> for each executable product, or each executable target where
+it names none), <em>test</em>, <em>resolve</em> and <em>update</em> (<code>swift package</code>), <em>lint</em>
+(SwiftLint, when it lints the project), and <em>format</em> (the formatter, in
+place, on <code>Package.swift</code>, <code>Sources</code>, <code>Tests</code> and <code>Plugins</code>). The
+project&#39;s <code>.env</code> goes to each; a task of the same name in
+<code>.fenix/tools.json</code> wins.</p>
+<p><code>Package.swift</code> is read lightly, without running it: its first line&#39;s
+<code>swift-tools-version</code> and the products it names.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Swift</td><td><code>swift --version</code>, at least <code>Package.swift</code>&#39;s tools version; needed in a package</td><td>swift.org&#39;s page for this OS</td></tr>
+<tr><td>sourcekit-lsp</td><td>found beside Swift, or Xcode&#39;s (<code>xcrun --find</code>)</td><td>swift.org&#39;s page</td></tr>
+<tr><td>swift-format</td><td>when it formats: the program, or <code>swift format --version</code></td><td>Homebrew, on macOS</td></tr>
+<tr><td>SwiftFormat</td><td>when it formats</td><td>Homebrew, on macOS</td></tr>
+<tr><td>SwiftLint</td><td>when it lints</td><td>SwiftLint 0.65.1&#39;s release</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>swift.formatter</code></td><td><code>auto</code></td><td><code>auto</code>, <code>swift-format</code>, <code>SwiftFormat</code> or <code>off</code></td></tr>
+<tr><td><code>swift.swiftlint</code></td><td><code>project</code></td><td><code>project</code>, <code>always</code> or <code>off</code></td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-files">Files</h3>
+<p><code>*.swift</code> and <code>*.swiftinterface</code> are Swift; <code>.swift-format</code> and
+<code>Package.resolved</code> are JSON. <code>gcc</code> comments with <code>//</code>.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Keys</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>struct</code>, <code>class</code>, <code>enum</code>, <code>protocol</code>, <code>ext</code>, <code>codable</code>, <code>actor</code></td><td>types: an enum with associated values, an extension conforming to a protocol</td></tr>
+<tr><td><code>func</code>, <code>afunc</code>, <code>closure</code>, <code>main</code></td><td>functions: async throwing, <code>@main</code></td></tr>
+<tr><td><code>guard</code>, <code>iflet</code>, <code>switch</code>, <code>docatch</code></td><td>control flow</td></tr>
+<tr><td><code>task</code></td><td><code>Task { }</code></td></tr>
+<tr><td><code>view</code>, <code>observable</code></td><td>a SwiftUI view with its <code>#Preview</code>, an <code>@Observable</code> model</td></tr>
+<tr><td><code>test</code>, <code>suite</code>, <code>xctest</code></td><td>Swift Testing&#39;s <code>@Test</code> and <code>#expect</code>, a parameterized <code>@Suite</code>, an XCTest case</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-project-template">Project template</h3>
+<p><strong>Swift · command-line tool</strong>: a package with a library target that does
+the work, an executable over it, Swift Testing tests, and a <code>.gitignore</code>.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a package or a Swift file: <code>d</code> checks the project
+again, <code>g</code> says how to get Swift.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>Debugging</strong>: lldb-dap (Swift 6&#39;s toolchain has it) as the debug
+adapter.</p></li>
+<li><p><strong>Xcode projects&#39; tasks</strong>: xcodebuild&#39;s schemes.</p></li>
+<li><p><strong>SwiftFormat on Linux</strong> from its release; it&#39;s found if you&#39;ve built
+or installed it.</p></li>
+<li><p><strong>Typed throws</strong> (<code>throws(MyError)</code>): the grammar doesn&#39;t read them yet.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>636 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/swift-v1.0.0/fenix.swift-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 c3a5afb6039b3310b5dfb93c6c4775bac36f9cda047d4bc4e3b22cfaf08c1b4a">c3a5afb603…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: swift on Linux and macOS: sourcekit-lsp, Swift&#39;s highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM&#39;s tasks, the project&#39;s checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

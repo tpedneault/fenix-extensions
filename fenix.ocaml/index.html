@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCaml · Fenix extensions</title>
+<meta name="description" content="OCaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune&#39;s tasks with a dune exec for each executable, debugging bytecode with earlybird, the project&#39;s checks with fixes that run opam install, snippets, and a dune project">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>OCaml</h1>
+<p class="id"><code>fenix.ocaml</code></p>
+<p class="lead">OCaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune&#39;s tasks with a dune exec for each executable, debugging bytecode with earlybird, the project&#39;s checks with fixes that run opam install, snippets, and a dune project</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>1.4 MB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/ocaml">extensions/ocaml</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>OCaml</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/ocaml-v1.0.0/fenix.ocaml-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.ocaml-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>opam</code></li><li><code>ocaml</code></li><li><code>dune</code></li><li><code>ocamllsp</code></li><li><code>ocamlformat</code></li><li><code>ocamlearlybird</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>OCaml in Fenix: its grammars (Fenix has none of its own), one for
+implementations and one for interfaces, ocaml-lsp-server, ocamlformat
+where the project has an <code>.ocamlformat</code>, dune&#39;s tasks with a <code>dune exec</code>
+for each executable, debugging bytecode with earlybird, the project
+doctor&#39;s checks with fixes that run <code>opam install</code>, snippets, and a dune
+project. Built on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It works for a dune project (<code>dune-project</code>, or <code>dune</code> files) and for a
+folder of scripts.</p>
+<h3 id="readme-opams-switch">opam&#39;s switch</h3>
+<p>OCaml&#39;s tools live in an opam switch -- the project&#39;s own (<code>_opam</code>), or
+the one opam has chosen -- which an editor started from the desktop
+rarely has on its <code>PATH</code>. Each tool is looked for on <code>PATH</code>, in the
+project&#39;s <code>_opam/bin</code>, opam&#39;s <code>default</code> switch, Homebrew&#39;s and Nix&#39;s
+folders; one that isn&#39;t there, while opam is, runs through <code>opam exec --</code>, in the switch opam picks for the project, once the doctor has seen
+it answer there. The tasks run dune that way too.</p>
+<h3 id="readme-the-grammars">The grammars</h3>
+<p><code>*.ml</code> files are read with tree-sitter-ocaml 0.24.2&#39;s grammar for
+implementations, <code>*.mli</code> with its grammar for interfaces (<code>grammars/</code>,
+MIT), a language of its own (<code>ocaml_interface</code>) with the same queries:
+highlighted (doc comments, <code>(** ... *)</code>, apart), folded (each <code>let</code>, at
+the top or in an expression, a type, a module and its signature, a
+class, a <code>match</code>), with Enter indenting after a line that ends in a
+binding&#39;s <code>=</code>, a case&#39;s or a <code>fun</code>&#39;s <code>-&gt;</code>, <code>struct</code>, <code>sig</code>, <code>object</code>,
+<code>begin</code>, <code>do</code>, <code>then</code>, <code>else</code> or a bracket, and the breadcrumbs and <code>SPC c s</code> listing the definitions. OCaml has no line comment, so <code>gcc</code> does
+nothing in it.</p>
+<h3 id="readme-the-server">The server</h3>
+<p>ocaml-lsp-server (<code>ocamllsp</code>), for both: completion, types on hover, go
+to definition, references, rename, and dune&#39;s and the compiler&#39;s
+problems as you type. It asks dune how the project builds (<code>dune ocaml-merlin</code>), so its libraries&#39; types are there once <code>dune build</code> has
+run.</p>
+<h3 id="readme-formatting">Formatting</h3>
+<p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <code>ocamlformat --name &lt;file&gt; -</code>, only in a project with an <code>.ocamlformat</code> at its top -- as
+dune&#39;s <code>dune fmt</code> does, and as dune&#39;s users expect: one without isn&#39;t
+formatted (<code>ocaml.ocamlformat</code> off never is). An <code>.ocamlformat</code> that pins
+a <code>version</code> is held to it by the doctor, whose fix installs that version:
+ocamlformat of another refuses to format.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>:</p>
+<div class="table"><table>
+<thead><tr><th>Task</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td>build</td><td><code>dune build</code></td></tr>
+<tr><td>test</td><td><code>dune test</code>; <code>test &lt;dir&gt;</code> for each folder with tests, when there are several</td></tr>
+<tr><td>exec <em>name</em></td><td><code>dune exec &lt;public name&gt;</code>, or <code>dune exec ./&lt;dir&gt;/&lt;name&gt;.exe</code>, for each executable the <code>dune</code> files name</td></tr>
+<tr><td>build <em>dir/name</em>.bc</td><td>the bytecode a launch debugs, with earlybird</td></tr>
+<tr><td>fmt, clean</td><td><code>dune fmt</code>, <code>dune clean</code></td></tr>
+<tr><td>opam: install dependencies</td><td><code>opam install . --deps-only --with-test</code>, with <code>.opam</code> files</td></tr>
+<tr><td>run <em>file</em></td><td><code>ocaml &lt;file&gt;</code>, for each OCaml file at the top of a folder without dune</td></tr>
+</tbody>
+</table></div>
+<p>The executables are the <code>executable</code> and <code>executables</code> stanzas of the
+project&#39;s <code>dune</code> files (five folders down, never <code>_build</code> or <code>_opam</code>),
+read by the pack&#39;s own S-expression reader. The project&#39;s <code>.env</code> goes to
+each task; a task of the same name in <code>.fenix/tools.json</code> wins. Saving a
+<code>dune</code> file, <code>dune-project</code>, an <code>.opam</code> file or <code>.ocamlformat</code> reads them
+again (<code>SPC m r</code> too).</p>
+<h3 id="readme-debugging">Debugging</h3>
+<p>earlybird (<code>ocamlearlybird debug</code>), OCaml&#39;s debug adapter, debugs
+bytecode: an executable whose <code>dune</code> file says <code>(modes byte exe)</code> has a
+launch of its own on <code>SPC u u</code> (<em>OCaml: debug &lt;name&gt;</em>), its <code>.bc</code> built
+first and run from <code>_build/default</code>. A native-only executable has none:
+earlybird can&#39;t debug one. <code>ocaml.debug</code> off sets neither the adapter
+nor the launches.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>opam</td><td>found</td><td>opam&#39;s page (https://opam.ocaml.org/doc/Install.html, <code>SPC m g</code>)</td></tr>
+<tr><td>OCaml</td><td><code>ocaml -vnum</code>; needed</td><td>-- <code>opam switch create</code> makes one</td></tr>
+<tr><td>dune</td><td>held to <code>dune-project</code>&#39;s <code>(lang dune ...)</code>; in a dune project</td><td><code>opam install dune</code></td></tr>
+<tr><td>ocaml-lsp-server</td><td><code>ocamllsp --version</code></td><td><code>opam install ocaml-lsp-server</code></td></tr>
+<tr><td>ocamlformat</td><td>held to <code>.ocamlformat</code>&#39;s <code>version</code>; where it formats</td><td><code>opam install ocamlformat.&lt;version&gt;</code></td></tr>
+<tr><td>earlybird</td><td>with executables, while it debugs</td><td><code>opam install earlybird</code></td></tr>
+</tbody>
+</table></div>
+<p>Without opam, each fix row opens opam&#39;s page. A fix runs as a task; the
+doctor checks again after it, and what it installed is used at once.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>let</code>, <code>letin</code>, <code>fn</code>, <code>rec</code>, <code>fun</code></td><td>a binding, <code>let ... in</code>, a function, a recursive one over a list, <code>fun</code></td></tr>
+<tr><td><code>match</code>, <code>if</code>, <code>try</code>, <code>for</code></td><td>the expressions</td></tr>
+<tr><td><code>mod</code>, <code>modtype</code>, <code>functor</code></td><td>a module, a module type, a functor</td></tr>
+<tr><td><code>type</code>, <code>record</code>, <code>exn</code></td><td>a variant, a record, an exception</td></tr>
+<tr><td><code>main</code>, <code>printf</code></td><td><code>let () =</code>; <code>Printf.printf</code></td></tr>
+<tr><td><code>alcotest</code>, <code>expect</code></td><td>an Alcotest suite; a ppx_expect test</td></tr>
+</tbody>
+</table></div>
+<p>In an interface: <code>val</code> (with its doc comment), <code>type</code> (abstract), <code>mod</code>
+(a module&#39;s signature).</p>
+<h3 id="readme-the-project-template">The project template</h3>
+<p><em>OCaml · dune project</em> (<code>SPC p n</code>): as <code>dune init project</code> makes one --
+a library (unwrapped: its module is <code>Greeting</code>), an executable over it
+built as bytecode too, for earlybird, a test on the standard library
+alone, an <code>.ocamlformat</code>, and the <code>.opam</code> file dune writes -- with <code>dune exec</code> as its run task.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>ocaml.ocamlformat</code></td><td>on</td><td>ocamlformat, in a project with an <code>.ocamlformat</code></td></tr>
+<tr><td><code>ocaml.debug</code></td><td>on</td><td>earlybird, and the launches</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in an OCaml project or file: <code>d</code> checks the project again,
+<code>r</code> reads it again, <code>g</code> opens opam&#39;s page.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>dune&#39;s own files</strong>: Fenix has no grammar for <code>dune</code>, <code>dune-project</code>
+or <code>.opam</code> files; ocamllex&#39;s <code>.mll</code> and Menhir&#39;s <code>.mly</code> aren&#39;t read as
+OCaml either.</p></li>
+<li><p><strong>Native debugging</strong>: a native executable debugs with GDB or LLDB, as
+C&#39;s does; the pack sets no launches for it.</p></li>
+<li><p><strong>Reason and <code>.mlx</code></strong>: not read.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>1.4 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ocaml-v1.0.0/fenix.ocaml-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 f456259b75d0d311a54dc82da7a93e170726909361a59c6ae66d9ee82e685ffc">f456259b75…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: ocaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune&#39;s tasks with a dune exec for each executable, debugging bytecode with earlybird, the project&#39;s checks with fixes that run opam install, snippets, and a dune project.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

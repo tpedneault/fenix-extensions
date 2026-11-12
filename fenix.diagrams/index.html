@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagrams · Fenix extensions</title>
+<meta name="description" content="Mermaid diagrams drawn as you type, their errors on their lines, Fenix&#39;s themes and yours, and exports">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Diagrams</h1>
+<p class="id"><code>fenix.diagrams</code></p>
+<p class="lead">Mermaid diagrams drawn as you type, their errors on their lines, Fenix&#39;s themes and yours, and exports</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>1.7 MB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/diagrams">extensions/diagrams</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.personal-bundle/index.html">Personal</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Diagrams</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/diagrams-v1.0.0/fenix.diagrams-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.diagrams-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+<div><dt>Reads your system&#39;s fonts</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Mermaid diagrams in Fenix:</p>
+<ul class="tight">
+<li><p><strong>Drawn as you type.</strong> <code>SPC m p</code> in a <code>.mmd</code> file opens the drawing beside it, and each change redraws it. An error shows on its line, while the last drawing that worked stays up.</p></li>
+<li><p><strong>On their own.</strong> <code>SPC m v</code> opens the viewer. <code>+</code> <code>-</code> <code>0</code> zoom, <code>h</code> <code>j</code> <code>k</code> <code>l</code> pan, <code>Tab</code> walks the nodes (the one you&#39;re on is outlined), <code>Enter</code> goes to a node&#39;s line, and <code>/</code> finds a node.</p></li>
+<li><p><strong>Themes.</strong> <code>fenix</code> follows the editor theme. Mermaid&#39;s own are there too, and so are yours (<code>diagrams.themes</code>). <code>SPC m t</code> writes one into the diagram; <code>T</code> on its page tries one without writing it.</p></li>
+<li><p><strong>Exports.</strong> <code>SPC m e</code> writes an SVG or PNG beside the diagram, in the project.</p></li>
+</ul>
+<p>Flowchart edges are drawn straight, with square corners; set <code>diagrams.edges</code> to <code>rounded</code> for Mermaid&#39;s rounded corners.</p>
+<p>Fenix&#39;s reading view and the notebook draw their diagrams through its services (<code>diagrams.render</code>, <code>diagrams.svg</code>, <code>diagrams.export</code>).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>1.7 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/diagrams-v1.0.0/fenix.diagrams-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 5a3a82e5f174bd3ad11a0e686ad76802c7ddff581ea7d0afd21cf2ad798893d3">5a3a82e5f1…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: mermaid diagrams drawn as you type, their errors on their lines, Fenix&#39;s themes and yours, and exports.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

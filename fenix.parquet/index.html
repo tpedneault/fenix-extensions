@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parquet viewer · Fenix extensions</title>
+<meta name="description" content="Parquet files read in a pane: their rows as a table, read a page at a time so a billion rows open at once, and their schema with each column&#39;s type, nulls, range, size and codec -- snappy, zstd, gzip, LZ4 and Brotli">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Parquet viewer</h1>
+<p class="id"><code>fenix.parquet</code></p>
+<p class="lead">Parquet files read in a pane: their rows as a table, read a page at a time so a billion rows open at once, and their schema with each column&#39;s type, nulls, range, size and codec -- snappy, zstd, gzip, LZ4 and Brotli</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li><li><a href="../index.html?category=data">Data</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.1</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>2.3 MB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/parquet">extensions/parquet</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Parquet viewer</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/parquet-v1.0.1/fenix.parquet-1.0.1.fenixext">download the package</a> and run <code>fenix --install-extension fenix.parquet-1.0.1.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Parquet files read in a pane. A <code>.parquet</code> (or <code>.parq</code>) opens in it
+however you open it -- the explorer, the file picker, <code>:e</code>, a recent
+file -- its rows as a table, columns fitted to what they hold, numbers
+on the right, nulls dimmed, and the focused value shown whole below.</p>
+<pre><code class="language-text">trips.parquet  48,211,004 rows · 9 columns · 47 row groups · zstd · 1.9 GB
+Rows  Schema  Tab switches
+
+id   name      score  ok     day         at                    price
+──────────────────────────────────────────────────────────────────────
+  1  null        0.0  true   2026-01-01  2026-10-31T12:00:00Z   0.00
+  2  craft-1     0.5  false  2026-01-02  2026-10-31T12:00:01Z   0.01
+──────────────────────────────────────────────────────────────────────
+row 2 of 48,211,004 · name Utf8
+craft-1
+</code></pre>
+<p>Only the footer is read when it opens. Rows are read as they&#39;re shown,
+from the row groups that hold them -- and, when the file has a page
+index, only the pages that do -- so <code>G</code> goes to the last of a billion
+rows as fast as to the tenth.</p>
+<p>The <strong>Schema</strong> view lists each column with its Arrow type, how it&#39;s
+stored, whether it may be null, its nulls, smallest and largest values
+(from the file&#39;s statistics), its size on disk and its codec; below it,
+the Parquet version, what wrote the file, and its metadata&#39;s keys
+(<code>pandas</code>, <code>ARROW:schema</code>).</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>h</code> <code>j</code> <code>k</code> <code>l</code>, the arrows</td><td>A cell</td></tr>
+<tr><td><code>J</code> <code>K</code>, PageDown PageUp</td><td>A screen down, up</td></tr>
+<tr><td><code>g</code> <code>G</code></td><td>The first and last row</td></tr>
+<tr><td><code>0</code> <code>$</code></td><td>The first and last column</td></tr>
+<tr><td>Tab</td><td>Rows, Schema</td></tr>
+<tr><td><code>Enter</code></td><td>In the schema, that column&#39;s rows</td></tr>
+<tr><td><code>y</code></td><td>Copy the value (in the schema, the column&#39;s name)</td></tr>
+<tr><td><code>Y</code></td><td>Copy the row as CSV, with its header (in the schema, the schema)</td></tr>
+<tr><td><code>R</code></td><td>Read the file again</td></tr>
+<tr><td><code>q</code></td><td>Close it</td></tr>
+</tbody>
+</table></div>
+<p>With the mouse: a click focuses a cell, and the wheel moves the focused
+row.</p>
+<p>Values are written as their types write them: dates and times in ISO
+form (timestamps in their zone), decimals at their scale, lists as
+<code>[a, b]</code>, structs as <code>{x: 1, y: 2}</code>, binary as hex.</p>
+<p>Snappy, zstd, gzip, LZ4 (and LZ4 raw) and Brotli are all read, every one
+in pure Rust; zstd&#39;s is <a href="https://crates.io/crates/ruzstd">ruzstd</a>.</p>
+<p>A file in the project is read where it is, a part at a time, whatever
+its size. One elsewhere is read whole, up to the 64 MiB Fenix gives an
+extension; open a bigger one from its project.</p>
+<h3 id="readme-permissions">Permissions</h3>
+<div class="table"><table>
+<thead><tr><th>Permission</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>filesystem = &quot;project-read&quot;</code></td><td>A file in the project is read where it is, as far as each read needs</td></tr>
+<tr><td><code>editor = &quot;read&quot;</code></td><td>Which project is open: whether a file is in it</td></tr>
+</tbody>
+</table></div>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.1</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>2.3 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/parquet-v1.0.1/fenix.parquet-1.0.1.fenixext">Download<span class="visually-hidden"> 1.0.1</span></a><code class="sha" title="SHA-256 63e20fa5d0e52a5ec69804c63d205f335eddf0c2468e2fe2691889fe44965227">63e20fa5d0…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>2.3 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/parquet-v1.0.0/fenix.parquet-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 3452e2ca42fbd262bef3e7394922f943b692096c11e4546448426a01e366bea8">3452e2ca42…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-101">1.0.1</h3>
+<ul class="tight">
+<li><p>A file in the open project is read where it is, whatever its size: 1.0.0 couldn&#39;t tell which project was open (it lacked <code>editor = &quot;read&quot;</code>), so it read every file whole and refused one over 64 MiB.</p></li>
+<li><p>Why a file wasn&#39;t read is wrapped onto the lines below, not cut off after a long path.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: Parquet files read in a pane -- their rows as a table, read a page at a time, and their schema with each column&#39;s type, nulls, range, size and codec.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

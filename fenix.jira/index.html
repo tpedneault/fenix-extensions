@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jira · Fenix extensions</title>
+<meta name="description" content="Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project&#39;s real fields -- and the agenda kept in step with it">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Jira</h1>
+<p class="id"><code>fenix.jira</code></p>
+<p class="lead">Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project&#39;s real fields -- and the agenda kept in step with it</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>199 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/jira">extensions/jira</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.jira-bundle/index.html">Jira</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Jira</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/jira-v1.0.0/fenix.jira-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.jira-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>${setting:jira.base_url}</code> <span class="gloss">those the setting jira.base_url holds</span></li></ul></dd></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+<div><dt>Reads and keeps secrets in Fenix&#39;s secret store, under these keys</dt><dd><ul class="chips"><li><code>jira.token</code></li></ul></dd></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Your Jira Server or Data Center in Fenix. Its page (<code>SPC j j</code>) lists your
+searches on the left -- assigned to you, reported by you, watching,
+recently updated, each tracked project&#39;s open issues and sprint, each
+tracked person&#39;s, and your saved JQL -- with the selected search&#39;s issues
+in the middle and a preview on the right.</p>
+<p><code>SPC j g</code> opens an issue by key, <code>SPC j /</code> searches (words, or JQL after
+<code>:</code>), and <code>SPC j n</code> makes an issue with the project&#39;s real types and
+fields.</p>
+<h3 id="readme-an-issues-keys">An issue&#39;s keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>s</code></td><td>Move it through its workflow</td></tr>
+<tr><td><code>p</code> <code>A</code> <code>u</code></td><td>Priority, assignee, due date</td></tr>
+<tr><td><code>e</code> <code>E</code></td><td>Title, description</td></tr>
+<tr><td><code>C</code></td><td>Comment</td></tr>
+<tr><td><code>T</code></td><td>Log time</td></tr>
+<tr><td><code>a</code> <code>t</code></td><td>Add it to the agenda (and start the clock)</td></tr>
+<tr><td><code>y</code> <code>o</code></td><td>Copy its link, open it in the browser</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-setting-it-up">Setting it up</h3>
+<p>Its server is <code>jira.base_url</code> and its token <code>jira.token</code>, both on the
+settings page (<code>SPC ,</code>); <code>FENIX_JIRA_TOKEN</code> overrides the token. The
+token is a personal access token, sent as a bearer token.</p>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>jira.projects</code></td><td>Projects whose open issues and sprint are listed</td></tr>
+<tr><td><code>jira.users</code></td><td>People whose issues are listed</td></tr>
+<tr><td><code>jira.queries</code></td><td>Saved searches</td></tr>
+<tr><td><code>jira.blocked</code></td><td>Per project, what Blocked means: a status, the Flagged field, or nothing</td></tr>
+<tr><td><code>jira.priorities</code></td><td>How Jira&#39;s priorities map onto the agenda&#39;s</td></tr>
+<tr><td><code>jira.sync_minutes</code></td><td>How often the agenda&#39;s linked tasks are brought up to date</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-for-the-agenda">For the agenda</h3>
+<p>The agenda extension reaches Jira through this one&#39;s services:
+<code>jira.request</code>, <code>jira.config</code>, <code>jira.set_blocked</code> and <code>jira.new_issue</code>.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>199 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/jira-v1.0.0/fenix.jira-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 f5f0ec589d746d94c268a97ca525a8be6f47b64b68e7200a98b290f018dc3537">f5f0ec589d…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project&#39;s real fields -- and the agenda kept in step with it.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

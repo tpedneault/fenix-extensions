@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hex viewer · Fenix extensions</title>
+<meta name="description" content="Binary files as a hex dump: offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor&#39;s bytes read as integers and floats both ways round and as UTF-8, selections copied as hex, text or code -- and any file at all shown in hex">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Hex viewer</h1>
+<p class="id"><code>fenix.hex</code></p>
+<p class="lead">Binary files as a hex dump: offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor&#39;s bytes read as integers and floats both ways round and as UTF-8, selections copied as hex, text or code -- and any file at all shown in hex</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.1</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>132 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/hex">extensions/hex</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Hex viewer</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/hex-v1.0.1/fenix.hex-1.0.1.fenixext">download the package</a> and run <code>fenix --install-extension fenix.hex-1.0.1.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Binary files as a hex dump in a pane: a row each 16 bytes, its offset,
+its bytes in hex, and the same bytes as text, what isn&#39;t printable ASCII
+as <code>.</code>. The bytes under the cursor are read beside the dump as numbers
+and as UTF-8.</p>
+<pre><code class="language-text">firmware.bin  1,048,576 bytes (1.0 MiB) · 16 a row
+offset    00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f  0123456789abcdef         little-endian         big-endian
+00000000  7f 45 4c 46 02 01 01 00  00 00 00 00 00 00 00 00  .ELF............   u8    127
+00000010  02 00 3e 00 01 00 00 00  c5 48 40 00 00 00 00 00  ..&gt;......H@.....   i8    127
+00000020  40 00 00 00 00 00 00 00  70 0b 10 00 00 00 00 00  @.......p.......   bits  0111 1111
+                                                                                 u16   17791                 32581
+                                                                                 ...
+                                                                                 UTF-8 U+007F · 1 byte
+0x0 · 0 of 1,048,576 · 0%
+</code></pre>
+<p>What&#39;s only ever bytes opens in it however you open it -- the explorer,
+the file picker, <code>:e</code>: <code>*.bin</code>, <code>*.img</code>, <code>*.rom</code>, <code>*.iso</code>, <code>*.dmp</code>,
+<code>*.exe</code>, <code>*.dll</code>, <code>*.so</code>, <code>*.dylib</code>, <code>*.o</code>, <code>*.obj</code>, <code>*.a</code>, <code>*.lib</code>,
+<code>*.elf</code>, <code>*.class</code>, <code>*.pyc</code> and <code>*.wasm</code>. Not <code>*.hex</code>: that&#39;s mostly
+Intel HEX, which is text, and so are <code>*.dat</code> and <code>*.srec</code> more often than
+not. Any file at all, those too, is shown in hex with <strong>Hex: show this
+file as a hex dump</strong> (<code>hex.open</code>) from the command palette.</p>
+<p>A file in the project is read where it is, a block at a time as it&#39;s
+shown, so a file of gigabytes opens, and goes to its end, at once. One
+elsewhere is read whole, up to the 64 MiB Fenix gives an extension; open
+a bigger one from its project.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>h</code> <code>l</code>, Left Right</td><td>A byte back, on</td></tr>
+<tr><td><code>j</code> <code>k</code>, Down Up</td><td>A row down, up</td></tr>
+<tr><td><code>w</code> <code>b</code></td><td>On to the next 8 bytes, back to the last</td></tr>
+<tr><td><code>0</code> <code>$</code>, Home End</td><td>The row&#39;s first and last byte</td></tr>
+<tr><td><code>g</code> <code>G</code></td><td>The file&#39;s first and last byte</td></tr>
+<tr><td><code>J</code> <code>K</code>, PageDown PageUp, Ctrl+F Ctrl+B</td><td>A screen down, up</td></tr>
+<tr><td>Ctrl+D Ctrl+U</td><td>Half a screen down, up</td></tr>
+<tr><td><code>o</code></td><td>Go to an offset: <code>0x1f0</code> or <code>1f0h</code> hex (a hex letter makes it hex too), <code>496</code> decimal, <code>50%</code>, <code>+16</code> or <code>-0x10</code> from the cursor</td></tr>
+<tr><td><code>/</code></td><td>Search: hex bytes (<code>de ad be ef</code>, <code>0xdeadbeef</code>, <code>??</code> for any byte), or <code>&quot;text&quot;</code> quoted; with the cursor in the text column, what&#39;s typed is text</td></tr>
+<tr><td><code>n</code> <code>N</code></td><td>The next match, the one before -- round the file&#39;s end</td></tr>
+<tr><td><code>*</code></td><td>Search for the selected bytes, or the cursor&#39;s</td></tr>
+<tr><td>Tab</td><td>The cursor to the text column and back</td></tr>
+<tr><td><code>v</code></td><td>Start selecting, or stop</td></tr>
+<tr><td>Shift with a move</td><td>Select as it moves</td></tr>
+<tr><td><code>y</code></td><td>Copy the selection (or the cursor&#39;s byte) as hex: <code>de ad be ef</code></td></tr>
+<tr><td><code>Y</code></td><td>Copy it as text; what isn&#39;t UTF-8 as <code>�</code></td></tr>
+<tr><td><code>c</code></td><td>Copy it as code: <code>0xde, 0xad, 0xbe, 0xef</code></td></tr>
+<tr><td><code>i</code></td><td>Show or hide the inspector</td></tr>
+<tr><td><code>x</code></td><td>Clear the selection and the match</td></tr>
+<tr><td><code>R</code></td><td>Read the file again</td></tr>
+<tr><td><code>q</code>, Esc</td><td>Close it</td></tr>
+</tbody>
+</table></div>
+<p>With the mouse: a click puts the cursor on a byte (in hex or in the
+text), a drag selects, Shift with a click selects to it, and the wheel
+scrolls.</p>
+<p>The <strong>inspector</strong> reads the bytes from the cursor as <code>u8</code>, <code>i8</code> and its
+bits, then <code>u16</code>, <code>i16</code>, <code>u32</code>, <code>i32</code>, <code>u64</code>, <code>i64</code>, <code>f32</code> and <code>f64</code> both
+little- and big-endian, and the UTF-8 character they start. It&#39;s beside
+the dump when the pane is wide enough, else below it.</p>
+<p>Bytes are coloured by what they are: nul dimmed, printable ASCII plain,
+control characters and bytes past ASCII picked out.</p>
+<p>A copy takes up to 1 MiB.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>hex.bytesPerRow</code></td><td>Bytes on each row, up to 64; <code>0</code> fits as many as the pane takes (8, 16 or 32). 16 unless set</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-permissions">Permissions</h3>
+<div class="table"><table>
+<thead><tr><th>Permission</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>filesystem = &quot;project-read&quot;</code></td><td>A file in the project is read where it is, as far as each read needs</td></tr>
+<tr><td><code>editor = &quot;read&quot;</code></td><td>Which file <code>hex.open</code> shows, and where the project is</td></tr>
+</tbody>
+</table></div>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.1</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>132 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/hex-v1.0.1/fenix.hex-1.0.1.fenixext">Download<span class="visually-hidden"> 1.0.1</span></a><code class="sha" title="SHA-256 7d89f5aec706b0b40239eae8164e284f064aa628e31149e62ac5c8dc9a465ccf">7d89f5aec7…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>132 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/hex-v1.0.0/fenix.hex-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 6b8ebe0b837eda2bec5f8add6359714187b0534e77ed5d4fe74c9bfb3004e385">6b8ebe0b83…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-101">1.0.1</h3>
+<ul class="tight">
+<li><p>Go to an offset is on <code>o</code>: <code>:</code> never reached the page, since Fenix keeps it for its command line.</p></li>
+<li><p><code>x</code> clears the selection and the match. Esc closes the page, as on every page, so it couldn&#39;t.</p></li>
+<li><p>The search prompt opens empty, so what you type isn&#39;t added to the last search.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: binary files as a hex dump -- offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor&#39;s bytes read as integers and floats both ways round and as UTF-8, selections copied as hex, text or code -- and any file at all shown in hex with <code>hex.open</code>.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

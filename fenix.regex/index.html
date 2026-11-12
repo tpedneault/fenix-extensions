@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regex · Fenix extensions</title>
+<meta name="description" content="A regex playground: matches and their groups coloured as you type, the replacement&#39;s result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Regex</h1>
+<p class="id"><code>fenix.regex</code></p>
+<p class="lead">A regex playground: matches and their groups coloured as you type, the replacement&#39;s result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>581 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/regex">extensions/regex</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Regex</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/regex-v1.0.0/fenix.regex-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.regex-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>A playground for regular expressions (<code>SPC s x</code>): a pattern, a text to
+try it on and a replacement, matched as you type.</p>
+<ul class="tight">
+<li><p><strong>Matches</strong>, on a background in the text: the whole match the
+selection&#39;s, each capture group its own colour from the theme&#39;s
+palette, the same colours on the groups in the pattern; an empty match
+underlines the character after it. Under them every match, its line
+and column, and its groups -- numbered and named -- with where each
+matched.</p></li>
+<li><p><strong>In the file you&#39;re in, too</strong>: it opens beside it, and while it&#39;s
+open the matches are marked there the same way, as you type the
+pattern or the file. Go to another file and they move to it; close the
+playground and they go.</p></li>
+<li><p><strong>The replacement&#39;s result</strong>, live: <code>$1</code>, <code>${name}</code>, <code>$$</code> for a <code>$</code>.</p></li>
+<li><p><strong>Flags</strong> as toggles: <code>i</code> case-insensitive, <code>m</code> multi-line, <code>s</code> dot
+matches newline, <code>x</code> extended, <code>u</code> Unicode.</p></li>
+<li><p><strong>The pattern explained</strong>, a piece a row, nested as it nests: <code>\d{4}</code>
+&quot;a digit, exactly 4 times&quot;.</p></li>
+<li><p><strong>Errors</strong> marked under the pattern where they are, with what&#39;s wrong.</p></li>
+<li><p><strong>Flavours</strong>: Rust&#39;s <code>regex</code>, or <code>fancy-regex</code> (<code>f</code>) for lookaround,
+atomic groups and backreferences. A note says where JavaScript, Python
+and PCRE read the pattern otherwise: lookbehind, named groups, <code>\d</code> and
+Unicode, <code>$</code>, inline flags.</p></li>
+<li><p><strong>Copies</strong> for Rust, Python, JavaScript, Go, Java and C# (<code>y</code>): the
+string literal each wants, its flags with it, named groups written its
+way. Or the result, or the matches, a line each.</p></li>
+<li><p><strong>Saved patterns</strong> (<code>w</code>): by name, for the project you&#39;re in, or for
+every project (<code>W</code>). <code>o</code> opens one, <code>D</code> forgets one. They&#39;re kept in
+the extension&#39;s own folder.</p></li>
+<li><p><strong>The cheatsheet</strong> (<code>Tab</code>, or <code>SPC s X</code>): classes, anchors, quantifiers
+greedy and lazy, groups, lookaround, backreferences, flags, and recipes
+-- email, URL, IPv4, dates, times, semantic versions, UUIDs, log lines.
+<code>Enter</code> loads an example into the playground; <code>/</code> filters.</p></li>
+</ul>
+<p>It opens on the regex under the cursor -- a Rust <code>Regex::new(r&quot;...&quot;)</code>,
+a Python <code>re.compile(r&quot;...&quot;)</code>, a JavaScript <code>/.../i</code>, Go, Java or C#;
+the nearest when the cursor&#39;s on none -- or with the selection as the
+text. A line with no regex on it is the text. Open already, the
+playground is brought forward with the regex or the selection you&#39;re
+on; a line with no regex leaves its text as it was.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC s x</code></td><td><code>regex.open</code></td><td>The playground</td></tr>
+<tr><td><code>SPC s X</code></td><td><code>regex.cheatsheet</code></td><td>The cheatsheet</td></tr>
+</tbody>
+</table></div>
+<p>On the playground:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>j</code> <code>k</code></td><td>Move between the fields and the matches</td></tr>
+<tr><td><code>Enter</code> <code>e</code> <code>a</code></td><td>Type in the field (<code>a</code> at its end); on a match, copy it</td></tr>
+<tr><td><code>c</code> <code>d</code></td><td>Clear the field and type in it; clear it</td></tr>
+<tr><td><code>Tab</code> <code>Shift-Tab</code></td><td>While typing: the next field, the last</td></tr>
+<tr><td><code>Esc</code></td><td>Stop typing</td></tr>
+<tr><td><code>i</code> <code>m</code> <code>s</code> <code>x</code> <code>u</code></td><td>Flags</td></tr>
+<tr><td><code>f</code></td><td>Rust <code>regex</code> or <code>fancy-regex</code></td></tr>
+<tr><td><code>y</code></td><td>Copy the pattern for a language, the result or the matches</td></tr>
+<tr><td><code>w</code> <code>W</code></td><td>Save the pattern for the project, for every project</td></tr>
+<tr><td><code>o</code> <code>D</code></td><td>Open a saved pattern, forget one</td></tr>
+<tr><td><code>Tab</code> <code>?</code></td><td>Not typing: the cheatsheet, and back</td></tr>
+<tr><td>PageUp PageDown</td><td>A screen of the page; typing the text, of its lines</td></tr>
+<tr><td>Ctrl+Z, Ctrl+Shift+Z (Ctrl+Y)</td><td>Undo, redo in the fields: characters typed on in one field are one step</td></tr>
+</tbody>
+</table></div>
+<p>With the mouse: a click in a field types there, where you clicked; on a
+match picks it, and a double click copies it; on a flag, the flavour or
+a tab, that. In the cheatsheet a click picks an entry and a double click
+tries it. The wheel scrolls the page.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Where you are:</strong> read the line or selection you open it on, where
+the cursor is on it, the file&#39;s language and its project.</p></li>
+<li><p><strong>The file you&#39;re in:</strong> be told which it is and when it&#39;s typed in
+(<code>events = [&quot;focus&quot;, &quot;changed&quot;]</code>), read its text, and mark its
+matches in it while the playground&#39;s open.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>581 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/regex-v1.0.0/fenix.regex-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 b1da357bd3e835290f652c5c8ae9c425df062745bb51d668dc6757b2a29ee008">b1da357bd3…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: a regex playground: matches and their groups coloured as you type, the replacement&#39;s result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

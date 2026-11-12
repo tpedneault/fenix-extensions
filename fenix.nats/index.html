@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NATS · Fenix extensions</title>
+<meta name="description" content="A NATS client: live subjects with their rates and messages, payloads pretty-printed, filters and highlights, publish and request, JetStream&#39;s streams, consumers and key-value buckets -- at any message rate">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>NATS</h1>
+<p class="id"><code>fenix.nats</code></p>
+<p class="lead">A NATS client: live subjects with their rates and messages, payloads pretty-printed, filters and highlights, publish and request, JetStream&#39;s streams, consumers and key-value buckets -- at any message rate</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li><li><a href="../index.html?category=data">Data</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.2 or later, before 2 <code>&gt;=1.2, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.3 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>647 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/nats">extensions/nats</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>NATS</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/nats-v1.0.0/fenix.nats-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.nats-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Opens network connections (TCP and UDP sockets) to these addresses</dt><dd><ul class="chips"><li><code>${setting:nats.servers}</code> <span class="gloss">those the setting nats.servers holds</span></li><li><code>*:4222</code> <span class="gloss">any host, this port</span></li></ul></dd></div>
+<div><dt>Keeps files in folders of yours</dt><dd><ul class="folders"><li><code>creds</code>: the folder the setting <code>nats.creds_folder</code> names, else <code>nats-creds</code> in Fenix's data folder</li><li><code>exports</code>: the folder the setting <code>nats.exports</code> names, else <code>nats-exports</code> in Fenix's data folder</li></ul></dd></div>
+<div><dt>Reads and keeps secrets in Fenix&#39;s secret store, under these keys</dt><dd><ul class="chips"><li><code>nats.auth.*</code></li></ul></dd></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>A NATS client in Fenix: what&#39;s on your servers, live, a section a
+subject -- how many, how fast, how big, the last minute&#39;s rate drawn --
+opened to its messages, newest first, and a message opened to its
+headers and its payload, JSON pretty-printed. Publish and request from a
+buffer, send a message again or edit it first, and browse JetStream&#39;s
+streams, consumers and key-value buckets. It keeps up with a busy
+server: at hundreds of thousands of messages a second Fenix stays as
+quick as it was, and the server never sees a slow consumer.</p>
+<p><code>SPC o m m</code> opens it and connects to the servers in <code>nats.servers</code>.</p>
+<pre><code class="language-toml">[nats]
+servers = [&quot;nats://localhost:4222&quot;, &quot;tls://prod.example.com:4443&quot;]
+subjects = [&quot;&gt;&quot;]
+</code></pre>
+<h3 id="readme-the-live-page">The live page</h3>
+<pre><code class="language-text">NATS  localhost:4222  ● up  v2.10.22 · n1 · cluster lab · JetStream on · RTT 0.6 ms
+2.0k msg/s · 1.2M messages · 13 subjects · stored 3.1 MiB / 64.0 MiB
+subscribed &gt;
+/ find in subjects and payloads
+ SUBJECT                              MESSAGES   RATE/S   LAST  AVG SIZE  LAST 30 S
+▾ orders.created                          4.2k     35.7    now     158 B  ▅▆▆▅▇█▆▅▆▆▅
+    05:37:44.253    159 B  h2  {&quot;order&quot;: 183443, &quot;customer&quot;: &quot;c-16&quot;, &quot;total&quot;: 155.99 …
+  ▾ 05:37:44.203    158 B  h2  {&quot;order&quot;: 183381, &quot;customer&quot;: &quot;c-51&quot;, &quot;total&quot;: 98.98, …
+      orders.created  05:37:44.203 · 158 B · json · #29043
+      Nats-Msg-Id: 183381
+      {
+        &quot;order&quot;: 183381,
+        …
+▸ orders.failed                            830        5    now     157 B  ▁▃▂▁▁▅▁▂▁▃▁
+</code></pre>
+<ul class="tight">
+<li><p><strong>A subject</strong> is a row: its messages, its rate a second (the last three
+seconds&#39;), when it was last seen, its average size and a sparkline of
+the last 30 seconds. <code>Enter</code> opens it to its messages, newest first:
+the time, the size, how many headers, the reply subject and the start
+of the payload. <code>Enter</code> on a message opens it: its headers, then its
+payload -- JSON indented and coloured, text as it is, anything else as
+a hex dump. <code>o</code> opens it whole in a buffer.</p></li>
+<li><p><strong>The focus stays put.</strong> New messages come in above the one you&#39;re on;
+it stays where it is on screen, and so does the message.</p></li>
+<li><p><strong>A tree</strong> (<code>t</code>): subjects grouped by their tokens, <code>telemetry.*</code> with
+its subjects&#39; totals, opened a token at a time.</p></li>
+<li><p><strong>Sorted</strong> (<code>s</code>) by name, rate, count or when last seen.</p></li>
+<li><p><strong>Subscriptions</strong>: <code>a</code> subscribes to a subject (<code>*</code> a token, <code>&gt;</code> the
+rest), <code>d</code> unsubscribes, live, on every server; they&#39;re
+<code>nats.subjects</code>.</p></li>
+<li><p><strong>Pause</strong> (<code>P</code>): nothing new is stored, so what you&#39;re reading stays;
+counting goes on.</p></li>
+<li><p><strong>Several servers</strong>: each of <code>nats.servers</code> is a connection of its own;
+<code>c</code> shows the next one&#39;s subjects, <code>C</code> connects or disconnects the one
+shown.</p></li>
+</ul>
+<h3 id="readme-filters">Filters</h3>
+<ul>
+<li><p><code>/</code> finds words in subjects and payloads, as you type.</p></li>
+<li><p><code>f</code> writes a filter: each word a condition, all of which hold.</p>
+<div class="table"><table>
+<thead><tr><th>Word</th><th>Holds when</th></tr></thead>
+<tbody>
+<tr><td><code>orders.&gt;</code>, <code>subject:orders.*.eu</code></td><td>the subject matches (wildcards)</td></tr>
+<tr><td><code>h:Nats-Msg-Id</code>, <code>header:region=eu</code></td><td>it has the header, with that value</td></tr>
+<tr><td><code>re:&quot;time(out)?&quot;</code></td><td>its payload matches the regular expression</td></tr>
+<tr><td><code>json:.status=failed</code>, <code>json:$.items[0].qty=2</code></td><td>its payload is JSON with that value there</td></tr>
+<tr><td><code>size:100..2k</code>, <code>size:&gt;64k</code></td><td>its size, headers and payload</td></tr>
+<tr><td>any other word</td><td>it&#39;s in the subject or the payload, any case</td></tr>
+</tbody>
+</table></div>
+<p>The filter&#39;s subjects become the subscriptions on the server: with
+<code>orders.*</code> in the filter, a <code>&gt;</code> subscription is narrowed to <code>orders.*</code>,
+so what you&#39;d hide isn&#39;t even sent. Its line under the subscriptions
+says so.</p></li>
+<li><p><code>F</code> keeps filters by name, and uses them again.</p></li>
+<li><p><code>H</code> writes highlight rules: what a rule matches is coloured, not
+hidden. A rule starting with <code>!</code> also notifies, once a rule every 30
+seconds at most, with how many matched meanwhile.</p>
+<pre><code class="language-text">warn  orders.* json:.status=failed
+!bad  re:panic|fatal
+#4a90d9 h:Nats-Msg-Id size:&gt;64k
+</code></pre></li>
+</ul>
+<h3 id="readme-keeping-up">Keeping up</h3>
+<p>The extension runs on a thread of its own, and Fenix lays a page out
+between its calls; a socket is read on another thread, 64 KiB at a time,
+and stops being read when 8 MiB wait for the extension -- at which point
+the server would see a slow consumer, and cut it off. So every message
+costs as little as it can:</p>
+<ul class="tight">
+<li><p><strong>Each message is counted and added to its subject&#39;s rate</strong>: a few
+additions. Counts are exact, always.</p></li>
+<li><p><strong>Its bytes are copied once</strong>, as they are, into blocks of 1 MiB that
+are reused: no allocation per message. They&#39;re only read when a row
+shows them, and only decoded when you open one.</p></li>
+<li><p><strong>Memory is a budget</strong> (<code>nats.budget_mib</code>, 64 MiB): every subject of
+every server together; the oldest messages go first when it&#39;s spent.
+A subject also keeps at most <code>nats.per_subject</code> messages and
+<code>nats.per_subject_kib</code>.</p></li>
+<li><p><strong>The page is drawn on a timer</strong> (<code>nats.refresh_hz</code>, 10 a second),
+only when something changed and it&#39;s on screen -- never for a
+message -- and only the rows on screen are laid out.</p></li>
+<li><p><strong>Filters that read payloads</strong> (a word, a regular expression, a JSON
+path, a header) read them on the subjects you&#39;re looking at, a few
+milliseconds a frame, newest first, and remember what they found; the
+subject and the size are checked from what&#39;s kept of every message
+without reading it.</p></li>
+<li><p><strong>It watches its own load</strong>: the share of its time spent on what came,
+and how late its own timer is (a timer behind a queue of data comes as
+late as the queue). When either is high it stores 1 message in N of a
+busy subject&#39;s (<code>sampling 1:2</code>, <code>1:4</code>, ... on the page, with how many
+weren&#39;t stored) while a quiet subject (under 20 a second) keeps every
+message, and it goes back down when it&#39;s been calm for three seconds.
+At the extreme it only counts.</p></li>
+</ul>
+<p>On a laptop-class machine the path from socket to store takes about 3
+million messages a second of 16 B to 1 KiB, 5 million of 16 to 64 B,
+natively, 99% of 64 KiB chunks in under 0.3 ms and the longest a few
+milliseconds, one in thousands (<code>tests/throughput.rs</code>). Inside Fenix, as
+WebAssembly, a local server sending as fast as it could was taken at
+590,000 messages a second, busy 40% of the time, the page as quick to
+answer as an idle one.</p>
+<h3 id="readme-publishing">Publishing</h3>
+<p><code>p</code> (or <code>SPC o m p</code>) opens a buffer to write a message in, as JSON:</p>
+<pre><code class="language-json">{
+  &quot;subject&quot;: &quot;orders.created&quot;,
+  &quot;server&quot;: &quot;localhost:4222&quot;,
+  &quot;headers&quot;: { &quot;Nats-Msg-Id&quot;: &quot;42&quot; },
+  &quot;reply&quot;: &quot;&quot;,
+  &quot;payload&quot;: { &quot;order&quot;: 42 }
+}
+</code></pre>
+<p>A string payload is sent as its text, any other JSON as compact JSON,
+<code>payload_base64</code> as bytes. <code>SPC o m s</code> sends it; <code>SPC o m r</code> (or <code>r</code> on
+the page) sends it as a request, and the reply opens beside, with how
+long it took -- or says no one answers.</p>
+<p>The server can only say no one answers when nothing is subscribed to the
+subject, and a <code>&gt;</code> subscription is interested in everything. So with the
+default <code>nats.subjects</code>, a request no one answers waits for its timeout,
+and that goes for <strong>every client of the server</strong> while Fenix is connected.
+Fenix says so once on a server that isn&#39;t this machine. On a shared
+server, narrow <code>nats.subjects</code>, or a filter, to the subjects you want.</p>
+<p>On a message: <code>R</code> sends it again as it was, <code>e</code> opens it in the buffer to
+change first, <code>y</code> copies its payload, <code>Y</code> copies it as a <code>nats pub</code>
+command line, headers and all. <code>x</code> writes a subject&#39;s stored messages to
+a JSONL file, <code>X</code> every message the filter lets through
+(<code>nats.exports</code>).</p>
+<h3 id="readme-jetstream">JetStream</h3>
+<p><code>J</code> (or <code>SPC o m j</code>): the account&#39;s streams and key-value buckets.</p>
+<ul class="tight">
+<li><p><strong>A stream</strong> opens to its configuration, its sequence range and
+subjects, its consumers -- pending, waiting for an ack, redelivered, push
+or pull -- and its messages: <code>b</code> reads them from the first, <code>n</code> the next
+page, <code>g</code> from a sequence, <code>t</code> from a time (<code>10:00</code>, <code>2024-05-01 10:00</code>,
+<code>15m ago</code>; NATS 2.11). <code>P</code> purges it (you type its name), <code>d</code> deletes
+the message you&#39;re on.</p></li>
+<li><p><strong>A bucket</strong> opens to its keys; a key to its value and its history. <code>p</code>
+puts a value, <code>d</code> deletes a key, <code>w</code> watches the bucket&#39;s changes as
+they come.</p></li>
+</ul>
+<h3 id="readme-credentials">Credentials</h3>
+<p><code>SPC o m a</code> sets how a server is signed in to: a user and password, a
+token, an NKey seed (signing the server&#39;s nonce), or a <code>.creds</code> file (a
+JWT and its seed, read from <code>nats.creds_folder</code>). They&#39;re kept in the
+system&#39;s keychain (<code>nats.auth.&lt;host:port&gt;</code>), never in the URL or the
+settings. A sign-in the server refuses is said once, and tried again
+every 30 seconds until the credentials change.</p>
+<p>Connections are dialled again when they drop, after 0.25, 0.5, 1, 2, 4,
+8, 15, then every 30 seconds, and their subscriptions made again. A PING
+every 20 seconds keeps each alive and measures its round trip; three
+unanswered and it&#39;s taken for dead. A server that wants TLS on a
+<code>nats://</code> URL gets it after its <code>INFO</code>; <code>tls://</code> is TLS from the start.
+The modeline says how they are: <code>NATS ● up 2.0k/s</code>.</p>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p>Four tools for your coding agents, in the <code>nats</code> toolset:</p>
+<div class="table"><table>
+<thead><tr><th>Tool</th><th>Class</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>nats_sample</code></td><td>read</td><td>Recent messages on a subject (wildcards): from what&#39;s stored, else it waits up to <code>wait_ms</code> for new ones</td></tr>
+<tr><td><code>nats_subjects</code></td><td>read</td><td>The subjects, busiest first: messages, rate, average size, last seen</td></tr>
+<tr><td><code>nats_publish</code></td><td>run</td><td>Publishes a message, with headers</td></tr>
+<tr><td><code>nats_request</code></td><td>run</td><td>Sends a request and gives back the reply and its latency</td></tr>
+</tbody>
+</table></div>
+<p>Payloads are cut at 4 KiB, binary ones in base64.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>j</code> <code>k</code>, <code>PgUp</code> <code>PgDn</code>, <code>g</code> <code>G</code></td><td>Move</td></tr>
+<tr><td><code>Enter</code> <code>l</code>, <code>h</code></td><td>Open, close (a subject, a node, a message)</td></tr>
+<tr><td><code>/</code>, <code>f</code>, <code>F</code>, <code>H</code></td><td>Find, filter, saved filters, highlight rules</td></tr>
+<tr><td><code>t</code>, <code>s</code></td><td>The tree, the sort</td></tr>
+<tr><td><code>a</code>, <code>d</code></td><td>Subscribe, unsubscribe</td></tr>
+<tr><td><code>P</code></td><td>Pause storing</td></tr>
+<tr><td><code>p</code>, <code>r</code></td><td>Publish, request</td></tr>
+<tr><td><code>R</code>, <code>e</code>, <code>y</code>, <code>Y</code>, <code>o</code></td><td>A message: send again, edit and send, copy, as <code>nats pub</code>, open whole</td></tr>
+<tr><td><code>x</code>, <code>X</code></td><td>Export the subject, the view, as JSONL</td></tr>
+<tr><td><code>c</code>, <code>C</code></td><td>The next connection; connect or disconnect it</td></tr>
+<tr><td><code>J</code></td><td>JetStream</td></tr>
+<tr><td><code>D</code></td><td>Forget what&#39;s stored</td></tr>
+<tr><td><code>?</code></td><td>The keys</td></tr>
+</tbody>
+</table></div>
+<div class="table"><table>
+<thead><tr><th>Leader</th><th>Command</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>SPC o m m</code></td><td><code>nats.open</code></td><td>The live page</td></tr>
+<tr><td><code>SPC o m j</code></td><td><code>nats.jetstream</code></td><td>JetStream</td></tr>
+<tr><td><code>SPC o m p</code></td><td><code>nats.publish</code></td><td>A message to write</td></tr>
+<tr><td><code>SPC o m s</code></td><td><code>nats.send</code></td><td>Send it</td></tr>
+<tr><td><code>SPC o m r</code></td><td><code>nats.request</code></td><td>Send it as a request</td></tr>
+<tr><td><code>SPC o m a</code></td><td><code>nats.credentials</code></td><td>A server&#39;s credentials</td></tr>
+<tr><td><code>SPC o m c</code></td><td><code>nats.connect</code></td><td>Connect to a server, or disconnect</td></tr>
+<tr><td><code>SPC o m f</code>, <code>SPC o m h</code></td><td><code>nats.filter</code>, <code>nats.rules</code></td><td>The filter, the highlight rules</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td><code>nats.servers</code></td><td>The servers, <code>nats://host:port</code> or <code>tls://host:port</code></td></tr>
+<tr><td><code>nats.subjects</code></td><td>What&#39;s subscribed to (<code>&gt;</code>, which stops the server saying a request has no one to answer it)</td></tr>
+<tr><td><code>nats.budget_mib</code></td><td>Memory for stored messages, 4 to 80 MiB (64)</td></tr>
+<tr><td><code>nats.per_subject</code>, <code>nats.per_subject_kib</code></td><td>What a subject keeps at most (2,000 messages, 4 MiB)</td></tr>
+<tr><td><code>nats.max_subjects</code></td><td>Subjects counted one by one on a server (5,000); the rest together</td></tr>
+<tr><td><code>nats.refresh_hz</code></td><td>Redraws a second while messages come (10)</td></tr>
+<tr><td><code>nats.notify</code></td><td>Whether <code>!</code> rules notify</td></tr>
+<tr><td><code>nats.client_name</code></td><td>The name servers know the connection by (<code>fenix</code>)</td></tr>
+<tr><td><code>nats.accept_invalid_certs</code></td><td>Take a TLS certificate unchecked</td></tr>
+<tr><td><code>nats.exports</code>, <code>nats.creds_folder</code></td><td>Where exports go, where <code>.creds</code> files are</td></tr>
+</tbody>
+</table></div>
+<p>Filters and rules are kept in its data folder (<code>nats.json</code>).</p>
+<h3 id="readme-limits">Limits</h3>
+<ul class="tight">
+<li><p>A message keeps at most its first 1 MiB; it says so when it&#39;s cut.
+One bigger than 64 MiB (more than a server&#39;s <code>max_payload</code> can be) ends
+the connection.</p></li>
+<li><p>Times are kept to the millisecond for 49 days after Fenix starts.</p></li>
+<li><p>The extension&#39;s memory is capped at 128 MiB, so the budget at 80.</p></li>
+<li><p><code>connect_urls</code> (a cluster&#39;s other servers) aren&#39;t followed: each server
+is one you list, which is what its permission lets it reach.</p></li>
+<li><p>Reading a stream by time asks JetStream for <code>start_time</code>: NATS 2.11.</p></li>
+<li><p>Its own replies are left out of the live view; everyone else&#39;s
+<code>_INBOX</code> traffic a <code>&gt;</code> sees is shown, as it is.</p></li>
+</ul>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Open sockets to the servers in <code>nats.servers</code>, and to any host on 4222,
+for one whose port is left out.</p></li>
+<li><p>Read and keep secrets <code>nats.auth.*</code>, a server&#39;s credentials each, in
+the system&#39;s keychain.</p></li>
+<li><p>Write exports to its exports folder, and read <code>.creds</code> files from its
+credentials folder.</p></li>
+<li><p>Notify (Fenix 1.2&#39;s API 1.3), when a rule marked <code>!</code> matches.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/nats dist
+cargo test --manifest-path extensions/nats/Cargo.toml
+cargo test --release --manifest-path extensions/nats/Cargo.toml --test throughput -- --ignored --nocapture
+cargo test --manifest-path crates/nats/Cargo.toml
+</code></pre>
+<p>The protocol is <code>crates/nats</code> (<code>fenix-nats</code>): the parser, read with the
+stream cut at every byte and every pair of bytes; <code>CONNECT</code>, <code>SUB</code>,
+<code>PUB</code> and <code>HPUB</code>; headers; subjects and wildcards; NKeys against RFC
+8032&#39;s Ed25519 vector and <code>.creds</code> files; inboxes; JetStream&#39;s and KV&#39;s
+API. The extension&#39;s tests drive its connections, store, filters and
+pages with a fake network; the throughput test feeds a million synthetic
+messages through the same path.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.2, &lt;2</code></td><td>1.3</td><td>647 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/nats-v1.0.0/fenix.nats-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 457641d54e165b1835748dc84549cb6289ef5a72b6eabad02685e16c359179d1">457641d54e…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.2: a NATS client -- live subjects with their rates and messages, payloads pretty-printed, a subject tree, filters that become the server&#39;s subscriptions, highlight rules that notify, publish and request from a JSON buffer, messages sent again or exported as JSONL, JetStream&#39;s streams, consumers and key-value buckets, credentials in the keychain (user, token, NKey, .creds), and tools for coding agents -- storing within a memory budget and sampling under load, so a busy server never finds Fenix slow.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

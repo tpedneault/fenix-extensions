@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenda · Fenix extensions</title>
+<meta name="description" content="Tasks on a board, a clock for your time, and a week&#39;s timesheet -- linked to Jira issues when Jira is there">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Agenda</h1>
+<p class="id"><code>fenix.agenda</code></p>
+<p class="lead">Tasks on a board, a clock for your time, and a week&#39;s timesheet -- linked to Jira issues when Jira is there</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>309 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/agenda">extensions/agenda</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.jira-bundle/index.html">Jira</a>, <a href="../fenix.personal-bundle/index.html">Personal</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Agenda</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/agenda-v1.0.0/fenix.agenda-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.agenda-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Your tasks on a board, a clock for your time, and a week&#39;s timesheet --
+each task linked to a Jira issue when the Jira extension is there. Its
+keys are under <code>SPC A</code>, and your tasks are kept in <code>agenda.json</code>.</p>
+<p><code>SPC A a</code> opens it where it was left; <code>SPC A b</code>, <code>SPC A l</code> and <code>SPC A r</code>
+open the board, the list and this week&#39;s time. <code>SPC A n</code> adds a task,
+<code>SPC A h</code> adds one about the selection or line you&#39;re on, and <code>SPC A t</code>
+stops the clock, resumes it or switches it.</p>
+<h3 id="readme-the-page">The page</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>1</code>-<code>4</code>, <code>Tab</code></td><td>Today, Board, List, Time</td></tr>
+<tr><td><code>j</code> <code>k</code> <code>g</code> <code>G</code></td><td>Move; <code>h</code> <code>l</code> across the board, <code>H</code> <code>L</code> move a card</td></tr>
+<tr><td><code>Enter</code>, <code>Esc</code></td><td>Open the task, back</td></tr>
+<tr><td><code>n</code></td><td>A new task</td></tr>
+<tr><td><code>s</code> <code>p</code> <code>c</code> <code>u</code></td><td>Status, priority, category, due date</td></tr>
+<tr><td><code>e</code> <code>E</code></td><td>Title, description</td></tr>
+<tr><td><code>t</code> <code>T</code></td><td>Start or stop its clock, log time</td></tr>
+<tr><td><code>N</code> <code>C</code></td><td>A private note, a Jira comment</td></tr>
+<tr><td><code>I</code> <code>A</code></td><td>Link it to Jira, assign it</td></tr>
+<tr><td><code>x</code> <code>D</code></td><td>Archive, delete</td></tr>
+<tr><td><code>/</code> <code>f</code> <code>P</code></td><td>Search, filters, this project only</td></tr>
+<tr><td><code>?</code></td><td>Every key</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-with-jira">With Jira</h3>
+<p>With the Jira extension installed and set up, a linked task&#39;s edits go to
+Jira, and Jira&#39;s come back every <code>jira.sync_minutes</code>:</p>
+<ul class="tight">
+<li><p><code>SPC A i</code> imports issues assigned to you</p></li>
+<li><p><code>SPC A s</code> syncs now</p></li>
+<li><p><code>SPC A w</code> reviews the week&#39;s unsent time and sends it as worklogs</p></li>
+</ul>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>agenda.categories</code></td><td>Categories offered when you file a task</td></tr>
+<tr><td><code>agenda.worklog_round</code></td><td>Time sent to Jira is rounded to this many minutes</td></tr>
+<tr><td><code>agenda.idle_minutes</code></td><td>With the clock running, how long without a key before it asks what time to keep</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-outside-fenix">Outside Fenix</h3>
+<p>The control channel&#39;s <code>fenix/agenda.tasks</code>, <code>fenix/agenda.clockIn</code> and
+<code>fenix/agenda.clockOut</code>, and the clock in <code>fenix/state</code>, are answered by
+this extension.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>309 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/agenda-v1.0.0/fenix.agenda-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 09344d4e5b6639f823b2e400cc681eea39014ebd0818721d818944a1ebb300a1">09344d4e5b…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: tasks on a board, a clock for your time, and a week&#39;s timesheet -- linked to Jira issues when Jira is there.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

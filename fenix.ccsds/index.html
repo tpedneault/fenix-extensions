@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCSDS &amp; ECSS · Fenix extensions</title>
+<meta name="description" content="Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>CCSDS &amp; ECSS</h1>
+<p class="id"><code>fenix.ccsds</code></p>
+<p class="lead">Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=mission">Mission</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.2.2</dd>
+<dt>Needs Fenix</dt><dd>1.1 or later, before 2 <code>&gt;=1.1, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>487 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/ccsds">extensions/ccsds</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.mission-bundle/index.html">Mission</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>CCSDS &amp; ECSS</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.2.2/fenix.ccsds-1.2.2.fenixext">download the package</a> and run <code>fenix --install-extension fenix.ccsds-1.2.2.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Opens network connections (TCP and UDP sockets) to these addresses</dt><dd><ul class="chips"><li><code>${setting:ccsds.sources}</code> <span class="gloss">those the setting ccsds.sources holds</span></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Keeps files in folders of yours</dt><dd><ul class="folders"><li><code>mib</code>: the folder the setting <code>mib.roots</code> names</li><li><code>standards</code>: the folder the setting <code>ccsds.library</code> names</li></ul></dd></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+<div><dt>Reads settings besides its own: those named</dt><dd><ul class="chips"><li><code>mib.*</code></li></ul></dd></div>
+<div><dt>Reads the text on your clipboard</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Space packets, transfer frames and CLTUs in Fenix.</p>
+<ul>
+<li><p><strong>Decode</strong> (<code>SPC k d</code>). The hex under the cursor, selected or on the
+clipboard, as a tree:</p>
+<ul class="tight">
+<li><p>a space packet, through the MIB;</p></li>
+<li><p>a TM, AOS or USLP frame with its packets, Reed-Solomon corrected and
+de-randomized as the mission says;</p></li>
+<li><p>a CLTU with its TC frame;</p></li>
+<li><p>a CLCW, an on-board time, or a CFDP PDU.</p></li>
+</ul>
+<p>Every field has its raw bytes, value and check. <code>a</code> reads the bytes
+as something else, and a field names what&#39;s behind it: a MIB
+definition (with the MIB extension) or a standard&#39;s heading.</p></li>
+<li><p><strong>Recordings</strong> (<code>SPC k f</code>). A file of packets, frames, CLTUs or records,
+or a text log of hex lines, as a list of packets:</p>
+<ul class="tight">
+<li><p>each one named through the MIB, with lost frames and bad packets;</p></li>
+<li><p>by APID;</p></li>
+<li><p>a TM parameter followed through them (<code>t</code>), with its curve and its
+limit crossings;</p></li>
+<li><p>what&#39;s wrong.</p></li>
+</ul>
+<p><code>w</code> writes the filtered packets or the parameter&#39;s samples.</p></li>
+<li><p><strong>Live sources</strong> (<code>SPC k l</code>). The same list, filled as telemetry
+arrives from a source <code>ccsds.sources</code> lists:</p>
+<ul class="tight">
+<li><p><code>tcp://host:port</code>, <code>udp://:port</code>;</p></li>
+<li><p><code>nats://host:port</code> with a subject;</p></li>
+<li><p><code>file://path</code>, a recording still being written, in the project.</p></li>
+</ul>
+<p>A followed parameter says when it crosses a limit.</p></li>
+<li><p><strong>The time converter</strong> (<code>SPC k T</code>): an on-board time code, UTC, TAI,
+GPS, CDS, from the mission&#39;s epoch and its time correlation.</p></li>
+<li><p><strong>Hex view</strong> (<code>SPC f x</code>), and Fenix shows a binary file with it.</p></li>
+<li><p><strong>The standards</strong> (<code>SPC k ?</code>): the CCSDS and ECSS standards, which of
+them the <code>ccsds.library</code> folder has, and a search through all of them
+(with the PDF extension).</p></li>
+<li><p><strong><code>K</code></strong> (with standard keys, <code>Ctrl+K Ctrl+I</code> or the pointer resting) on hex or an on-board time, in any file: what it is, in short.</p></li>
+<li><p><strong>The mission clock</strong> (<code>ccsds.clock</code>): the time now as the mission
+writes it on board, in the modeline.</p></li>
+</ul>
+<h3 id="readme-the-mission">The mission</h3>
+<p>How the mission&#39;s bytes are laid out is its <code>ccsds.*</code> settings:</p>
+<ul class="tight">
+<li><p>the PUS edition, time format, epoch and time correlation, checksum;</p></li>
+<li><p>its frames and TC frames;</p></li>
+<li><p>its virtual channels&#39; names, live sources and checks.</p></li>
+</ul>
+<p>A project&#39;s own settings come first. Packets are named through the MIBs
+the MIB extension reads (<code>mib.roots</code>).</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC k d</code></td><td><code>ccsds.decode</code></td><td>Decode the hex here</td></tr>
+<tr><td><code>SPC k f</code></td><td><code>ccsds.recording</code></td><td>Open the recording selected in the explorer, or the file you&#39;re in</td></tr>
+<tr><td><code>SPC k l</code></td><td><code>ccsds.live</code></td><td>Follow a live source</td></tr>
+<tr><td><code>SPC k T</code></td><td><code>ccsds.time</code></td><td>The time converter</td></tr>
+<tr><td><code>SPC k ?</code></td><td><code>ccsds.standards</code></td><td>The standards</td></tr>
+<tr><td><code>SPC f x</code></td><td><code>ccsds.hex</code></td><td>The file as hex</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p><code>ccsds_decode</code> (read, Fenix 1.1) decodes bytes your coding agent gives
+as hex -- <code>1BF2C0070009</code>, <code>1B F2 C0 07</code>, <code>0x1B,0xF2</code>, a hex dump with
+offsets -- as the packet inspector does (<code>as</code> says how to read them;
+left out, by what they look like), through the MIBs <code>mib.roots</code> names
+and against the project&#39;s mission profile. It answers the inspector&#39;s
+tree as JSON: each field&#39;s byte (and bit) offset, size, raw value,
+meaning and check, the telecommand or TM packet the MIB identified, the
+checks that fail and those that warn.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Where you are:</strong> know where you are, and type into the file you&#39;re in
+(the time converter&#39;s <code>i</code>).</p></li>
+<li><p><strong>Files:</strong> read the project, and write into it what a stream page
+writes.</p></li>
+<li><p><strong>Network:</strong> connect to the live sources <code>ccsds.sources</code> lists. It
+only receives.</p></li>
+<li><p><strong>Your folders and settings:</strong> read the MIB folders, the standards
+folder and the MIB settings.</p></li>
+<li><p><strong>Clipboard:</strong> read the clipboard (<code>SPC k d</code> on copied hex).</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.2.2</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>487 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.2.2/fenix.ccsds-1.2.2.fenixext">Download<span class="visually-hidden"> 1.2.2</span></a><code class="sha" title="SHA-256 a392b90c1d25121eef4b7b1467bd3c9de0985476318ef610b73ab7689fea188e">a392b90c1d…</code></td></tr>
+<tr><th scope="row">1.2.1</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>485 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.2.1/fenix.ccsds-1.2.1.fenixext">Download<span class="visually-hidden"> 1.2.1</span></a><code class="sha" title="SHA-256 6c8179926a6377159f1005e793611de1401cc002e6f0c3e6fff2e88ab1b74941">6c8179926a…</code></td></tr>
+<tr><th scope="row">1.2.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>484 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.2.0/fenix.ccsds-1.2.0.fenixext">Download<span class="visually-hidden"> 1.2.0</span></a><code class="sha" title="SHA-256 055ea31f57caa408c8cba8bccfcb320fc8dea7d9c618799f921bed85ea247556">055ea31f57…</code></td></tr>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>455 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.1.0/fenix.ccsds-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 524bc362ecead6ea8b282a06bf98647ad3cf2b7899a74416e95396a4100f1fc6">524bc362ec…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>450 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ccsds-v1.0.0/fenix.ccsds-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 2b7fc4f1142ed45c94d1685afbb52d00444301269c4acce0d3689a88107be104">2b7fc4f114…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-122">1.2.2</h3>
+<ul class="tight">
+<li><p>A command that reads a large MIB may take up to a minute, rather than
+being stopped after 5 seconds.</p></li>
+</ul>
+<h3 id="changelog-121">1.2.1</h3>
+<ul class="tight">
+<li><p>A large MIB takes about a third of the memory it did (the SCOS-2000
+MIB extension&#39;s 1.2.1 reading of it), so the extension is no longer
+stopped for running out of memory reading one.</p></li>
+</ul>
+<h3 id="changelog-120">1.2.0</h3>
+<p>The MIB is read with the SCOS-2000 MIB extension&#39;s 1.2 reading of it:</p>
+<ul class="tight">
+<li><p>Telecommands with repeated groups decode with each repetition where
+it is; one whose editable argument has a default in <code>CDF_VALUE</code> is
+still identified when another value was sent.</p></li>
+<li><p>Variable TM packets (<code>VPD</code>) decode entry by entry, their groups
+repeated as their counters say; a parameter&#39;s calibration is chosen
+by its <code>CUR</code> rows when it has some.</p></li>
+<li><p>Telecommand arguments are shown as their status texts and through
+their numeric calibrations; times as the UTC time or duration they
+are.</p></li>
+<li><p>A new MIB check, <code>layout</code> (<code>ccsds.checks</code>): telecommand definitions
+the ICD&#39;s rules disagree with.</p></li>
+<li><p>A MIB table that isn&#39;t UTF-8 is read as Latin-1 instead of being lost.</p></li>
+<li><p>An XTCE file in the project can be one of its MIBs (<code>mib.roots</code>).</p></li>
+<li><p><code>SPC k d</code> on a line that starts with a name ending in digits
+(<code>TTYP0001 18 64 ...</code>, a line of the MIB&#39;s <code>tc_vectors.txt</code>) no longer
+takes the name&#39;s digits for hex.</p></li>
+</ul>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.1: <code>ccsds_decode</code>, a tool for your coding agents (read).
+Given bytes as hex, it decodes them as the packet inspector does --
+a space packet through the MIB, a transfer frame or a CLTU with the
+packets it carries, a CLCW, an on-board time, a CFDP PDU -- against the
+project&#39;s mission profile, and answers the whole tree as JSON: each
+field&#39;s offset, raw value, meaning and check, the definition the MIB
+identified, and the checks that fail.</p>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

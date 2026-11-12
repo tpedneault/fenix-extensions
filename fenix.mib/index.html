@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCOS-2000 MIB · Fenix extensions</title>
+<meta name="description" content="SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>SCOS-2000 MIB</h1>
+<p class="id"><code>fenix.mib</code></p>
+<p class="lead">SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=mission">Mission</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.3.0</dd>
+<dt>Needs Fenix</dt><dd>1.1 or later, before 2 <code>&gt;=1.1, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>612 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/mib">extensions/mib</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.mission-bundle/index.html">Mission</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>SCOS-2000 MIB</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.3.0/fenix.mib-1.3.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.mib-1.3.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Keeps files in folders of yours</dt><dd><ul class="folders"><li><code>mib</code>: the folder the setting <code>mib.roots</code> names</li></ul></dd></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+<div><dt>Reads settings besides its own: those named</dt><dd><ul class="chips"><li><code>ccsds.*</code></li></ul></dd></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>SCOS-2000 MIBs in Fenix. Browse
+a MIB, look a definition up by kind, write telecommand calls into your
+scripts with a form for their arguments, have the MIB check the calls
+you wrote, and generate code from it.</p>
+<ul class="tight">
+<li><p><strong>The MIB page</strong> (<code>SPC k k</code>). A tab for each kind of definition:</p>
+<ul class="tight">
+<li><p><code>1</code> telecommands, <code>2</code> TC parameters, <code>3</code> TM packets, <code>4</code> TM
+parameters, <code>5</code> calibrations.</p></li>
+<li><p><code>/</code> narrows the list by words and <code>field:value</code> filters, and <code>f</code>
+opens the filters as a form.</p></li>
+<li><p><code>!</code> lists what&#39;s wrong in the MIBs&#39; files, and <code>6</code> groups everything
+by PUS service.</p></li>
+<li><p><code>Enter</code> opens a definition&#39;s own page, <code>i</code> a telecommand&#39;s insert
+form.</p></li>
+</ul></li>
+<li><p><strong>A definition&#39;s page.</strong> Every name on it is a link: <code>Enter</code> follows
+it, and <code>H</code>/<code>L</code> (or Backspace) go back and forward.</p></li>
+<li><p><strong>The insert form</strong> (<code>SPC k i</code>, or <code>i</code> on a telecommand).</p>
+<ul class="tight">
+<li><p>Every argument at once (<code>CDF_ELTYPE</code> <code>E</code>), each with its default
+(<code>CDF_VALUE</code>, else <code>CPC_DEFVAL</code>), type, unit and what it may be.</p></li>
+<li><p>A counter (<code>CDF_GRPSIZE</code>) repeats the elements after it as often as
+its value says, each repetition numbered (<code>PT[2]</code>); <code>+</code>/<code>-</code> change
+the counter of the group the cursor is in.</p></li>
+<li><p><code>v</code> fills the form from the MIB&#39;s value sets, its default set
+first; a telecommand sent only while the TM shows something
+(<code>PTV</code>) says so.</p></li>
+<li><p>The command is written with the project&#39;s templates, and a value
+outside what the MIB allows is flagged beside it.</p></li>
+<li><p><code>I</code> inserts it where your cursor was. <code>SPC k e</code> reads the call on
+the cursor&#39;s line back into the form, and inserting puts it back in
+its place.</p></li>
+<li><p><code>b</code> shows the packet&#39;s bytes and where each value went, <code>y</code> copies
+them and <code>D</code> decodes them (with the CCSDS extension).</p></li>
+</ul></li>
+<li><p><strong>In your scripts</strong>, through a language server:</p>
+<ul class="tight">
+<li><p><code>K</code> on a MIB name shows its card, and <code>gd</code> opens its page (with
+standard keys, <code>Ctrl+K Ctrl+I</code> and <code>F12</code>, or Ctrl+click).</p></li>
+<li><p>Completion offers telecommands and parameters.</p></li>
+<li><p>Telecommand calls the MIB disagrees with are underlined: unknown
+mnemonics, missing or out-of-range arguments, and repetitions that
+don&#39;t match their counter (<code>mib.check_scripts</code>).</p></li>
+<li><p><code>mib.editor_files</code> narrows which files; none listed means every
+file.</p></li>
+</ul></li>
+<li><p><strong>Command sequences</strong> (<code>SPC k q</code>): a sequence inserted as the
+telecommands it sends, with its formal parameters&#39; defaults, its
+timing and comments as comments.</p></li>
+<li><p><strong>Two MIBs compared</strong> (<code>SPC k D</code>): what was added, removed and changed
+between two of the project&#39;s MIBs, as Markdown in <code>generated/</code>.</p></li>
+<li><p><strong>Generated from the MIB</strong> (<code>SPC k g</code>): XTCE, a Wireshark dissector, C,
+Python, an ICD, or TC test vectors, written to the project&#39;s
+<code>generated/</code> -- repeated groups included.</p></li>
+</ul>
+<h3 id="readme-how-telecommands-are-read">How telecommands are read</h3>
+<p>As the SCOS-2000 Database Import ICD lays them out:</p>
+<ul class="tight">
+<li><p><code>CDF_ELTYPE</code> says what&#39;s asked: <code>E</code> elements are, <code>F</code> (a fixed
+parameter) and <code>A</code> (a fixed area) aren&#39;t. An <code>E</code> element&#39;s
+<code>CDF_VALUE</code> is its default, read raw or engineering as <code>CDF_INTER</code>
+says; <code>D</code>/<code>T</code> take it from the TM parameter <code>CDF_TMID</code> when it&#39;s sent.</p></li>
+<li><p>A counter&#39;s <code>CDF_GRPSIZE</code> counts every element after it in its group
+-- fixed and spare ones, and a nested group&#39;s elements too.</p></li>
+<li><p><code>CDF_BIT</code> places each element as if every group were there once:
+with more repetitions, what follows moves by them; with none, back by
+the group&#39;s length. A variable-length value moves what follows by how
+much longer it is than <code>CDF_ELLEN</code>.</p></li>
+<li><p>Raw values are in <code>CPC_RADIX</code>&#39;s radix; ranges in raw or engineering
+units as <code>PRF_INTER</code> says; a <code>PRV</code> row with no maximum allows one
+value. A deduced parameter (<code>PTC 11</code>) takes the type of the TM
+parameter an earlier argument (<code>CPC_CATEG</code> <code>P</code>) names.</p></li>
+</ul>
+<h3 id="readme-which-mibs">Which MIBs</h3>
+<ol class="tight">
+<li><p>The folders <code>mib.roots</code> names: the project&#39;s own list (in its
+<code>.fenix/settings.toml</code>, folders relative to it) in place of yours.
+In a project&#39;s list, an XTCE file relative to it is a MIB too
+(<code>XTCE = &quot;generated/xtce-OPS.xml&quot;</code>).</p></li>
+<li><p>Else the project itself, when it&#39;s a MIB (<code>.dat</code> tables in it or in
+its <code>mib/</code>).</p></li>
+</ol>
+<p>They&#39;re read when first needed, and again when one of their files
+changes (<code>mib.watch</code>).</p>
+<p>The mission profile they&#39;re read and packets built against is the
+CCSDS settings (<code>ccsds.pus</code>, <code>ccsds.tm_time</code>, ...). The CCSDS extension
+keeps those; the MIB reads them.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC k k</code></td><td><code>mib.page</code></td><td>The MIB page</td></tr>
+<tr><td><code>SPC k /</code></td><td><code>mib.search</code></td><td>Every kind of definition, by name or description</td></tr>
+<tr><td><code>SPC k t</code> <code>p</code> <code>m</code> <code>n</code> <code>c</code></td><td><code>mib.telecommand</code>, <code>mib.tc_parameter</code>, <code>mib.tm_packet</code>, <code>mib.tm_parameter</code>, <code>mib.calibration</code></td><td>One kind, by name</td></tr>
+<tr><td><code>SPC k i</code></td><td><code>mib.insert</code></td><td>A telecommand, then its insert form</td></tr>
+<tr><td><code>SPC k e</code></td><td><code>mib.edit_call</code></td><td>The call on this line, in the insert form</td></tr>
+<tr><td><code>SPC k b</code></td><td><code>mib.copy_bytes</code></td><td>The call on this line, as its packet&#39;s bytes</td></tr>
+<tr><td><code>SPC k g</code></td><td><code>mib.generate</code></td><td>Generate from the MIB</td></tr>
+<tr><td><code>SPC k q</code></td><td><code>mib.insert_sequence</code></td><td>A command sequence, as the telecommands it sends</td></tr>
+<tr><td><code>SPC k D</code></td><td><code>mib.diff</code></td><td>Two of the project&#39;s MIBs, compared</td></tr>
+<tr><td><code>SPC k r</code></td><td><code>mib.reload</code></td><td>Read the MIBs again</td></tr>
+<tr><td><code>SPC k ,</code></td><td><code>mib.settings</code></td><td>This project&#39;s settings</td></tr>
+</tbody>
+</table></div>
+<p>In a Tcl file, <code>SPC m</code> has <code>i</code>, <code>e</code>, <code>q</code>, <code>t</code>, <code>k</code>, <code>p</code>, <code>c</code>, <code>m</code> and <code>r</code>,
+beside the Tcl extension&#39;s keys.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<p>In a project that&#39;s a MIB, the doctor lists:</p>
+<ul class="tight">
+<li><p>its tables and rows, and their layout (ICD issue);</p></li>
+<li><p>the rows with problems;</p></li>
+<li><p>tables the ICD doesn&#39;t know;</p></li>
+<li><p>the mission profile, and whether the MIB agrees with it and the
+standards;</p></li>
+<li><p>its recordings.</p></li>
+</ul>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p><code>mib_lookup</code> (read, Fenix 1.1) gives your coding agents the MIBs here:
+a definition by name -- a telecommand&#39;s mnemonic, a TM packet&#39;s SPID or
+name, a calibration&#39;s id -- or by the words of its description, as <code>/</code>
+on the MIB page finds them (<code>kind</code> narrows it to one kind). It answers
+what the definition&#39;s page shows, as JSON: a telecommand&#39;s PUS type,
+APID and arguments, each with its kind (editable, fixed, area), bits,
+type, default, what it may be, its calibration and the groups it
+repeats in, and its value sets, pre-transmission validation and
+verification stages; a parameter&#39;s type, unit, calibration, limits and
+the packets that carry it; a packet&#39;s parameters by position; a
+calibration&#39;s points, texts, ranges or coefficients. When words match
+several, the best is answered in full and the next twenty are listed.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Know where you are, and type into the file you&#39;re in (the insert form,
+<code>SPC k e</code>).</p></li>
+<li><p>Read the project, and write what it generates into its <code>generated/</code>.</p></li>
+<li><p>Read and change the MIB folders <code>mib.roots</code> names.</p></li>
+<li><p>Read the CCSDS settings.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.3.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.5</td><td>612 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.3.0/fenix.mib-1.3.0.fenixext">Download<span class="visually-hidden"> 1.3.0</span></a><code class="sha" title="SHA-256 6fd32ef379efabe957053c57c2704fbf429221f332493a9b3e21c37488866e6a">6fd32ef379…</code></td></tr>
+<tr><th scope="row">1.2.2</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>612 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.2.2/fenix.mib-1.2.2.fenixext">Download<span class="visually-hidden"> 1.2.2</span></a><code class="sha" title="SHA-256 bb250653e2c0a58d83d2d3042b69feef8b17cb416cd4dd71690419b32404def1">bb250653e2…</code></td></tr>
+<tr><th scope="row">1.2.1</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>611 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.2.1/fenix.mib-1.2.1.fenixext">Download<span class="visually-hidden"> 1.2.1</span></a><code class="sha" title="SHA-256 9abb7a10886dfc21244d3d4c60e341b8ed5b39bfbcbff2349bd74b22abb839b1">9abb7a1088…</code></td></tr>
+<tr><th scope="row">1.2.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>610 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.2.0/fenix.mib-1.2.0.fenixext">Download<span class="visually-hidden"> 1.2.0</span></a><code class="sha" title="SHA-256 a6896e446a9af3cf41cdb30fbdfdf86e3b0eca30df388bd28949f18a587e3347">a6896e446a…</code></td></tr>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>521 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.1.0/fenix.mib-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 7e18dbea33de6ec1bb53069fdfd679f83838d673796c58d1a2dd0a27b21ebb92">7e18dbea33…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>507 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.0.0/fenix.mib-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 2e78ab4868c8d0ae8cf4c947f7e40bf0612eb7f519011cc445353f97ac3a9471">2e78ab4868…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): a name&#39;s card says the keys of the
+key scheme in use for going to its page -- <code>F12</code> with standard keys,
+<code>gd</code> with Vim keys. The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
+<h3 id="changelog-122">1.2.2</h3>
+<ul class="tight">
+<li><p><strong>The MIB page opens on a large MIB.</strong> <code>SPC k k</code> read the MIB and ran
+its checks within the 5 seconds a command has, and a large MIB took
+longer: the extension was stopped (&quot;it took too long&quot;). A command may
+now take up to a minute, the checks take about a third less time (a
+telecommand parameter&#39;s type and calibrations are read once, not for
+every element using it), and a page whose MIB isn&#39;t read yet reads it
+in a call of its own rather than within the second a page is laid out
+in.</p></li>
+</ul>
+<h3 id="changelog-121">1.2.1</h3>
+<ul class="tight">
+<li><p><strong>Large MIBs no longer run it out of memory.</strong> Every field of every
+row was its own string: a 20 MiB mission MIB took about 300 MiB once
+read, past the 128 MiB Fenix gives an extension, and the extension
+was stopped. Rows now point into their table file&#39;s text, kept once:
+the same MIB takes about 115 MiB, its tables alone about 40 MiB.</p></li>
+</ul>
+<h3 id="changelog-120">1.2.0</h3>
+<p>Telecommands are read the way the SCOS-2000 Database Import ICD lays
+them out, and the insert form, the scripts&#39; checks and the packets
+built from them follow it.</p>
+<ul class="tight">
+<li><p><strong>Every parameter is asked for.</strong> Whether an element is fixed is
+<code>CDF_ELTYPE</code>&#39;s (<code>A</code> area, <code>F</code> fixed, <code>E</code> editable): an editable
+parameter with a default in <code>CDF_VALUE</code> used to be taken for a fixed
+one, left out of the form, the checks, completion, <code>mib_lookup</code> and
+the generators, and built into the packet with its default whatever
+was typed. <code>CDF_VALUE</code> is now its default, before <code>CPC_DEFVAL</code>, read
+raw or engineering as <code>CDF_INTER</code> / <code>CPC_INTER</code> say; a dynamic
+default names the TM parameter it comes from.</p></li>
+<li><p><strong>Repeated groups.</strong> A counter (<code>CDF_GRPSIZE</code>) repeats every element
+after it -- fixed and spare ones and nested groups included, as the
+ICD counts them -- so what follows a group is no longer pulled into
+it, the form and the packet agree, and elements are in <code>CDF_BIT</code>
+order. After a group, positions move by its extra repetitions (or
+back by its length when it&#39;s repeated no times); packets with groups
+decode with each repetition where it is, and identify by the fixed
+values before the first group.</p></li>
+<li><p><strong>The form</strong>: repetitions numbered (<code>PT[2]</code>, <code>PN · 2 of 3</code>), <code>+</code>/<code>-</code>
+change the counter of the group you&#39;re in, <code>v</code> fills it from the
+MIB&#39;s value sets (<code>CCF_DEFSET</code> first; <code>PST</code>/<code>PSV</code>/<code>PVS</code>/<code>PSM</code>), a
+telecommand with pre-transmission validation (<code>PTV</code>) says what it
+waits for, and Bytes lists where each value went and where the
+packet disagrees with the MIB&#39;s <code>TCP</code>/<code>PCDF</code> header.</p></li>
+<li><p><strong>Values</strong>: raw values in <code>CPC_RADIX</code>&#39;s radix (hex without <code>0x</code>),
+ranges in raw or engineering units as <code>PRF_INTER</code> says, <code>PRV</code> rows
+that allow a single value, floats checked as numbers, octets, strings
+(variable-length ones with their length), absolute and relative
+times, and deduced parameters (<code>PTC 11</code>) typed by the TM parameter an
+earlier argument names (<code>CPC_CATEG</code> <code>P</code>).</p></li>
+<li><p><strong>The scripts&#39; checks</strong> follow the counters: a missing repetition,
+one value too many, a value given twice; a deduced value is checked as
+the parameter it names (the form shows that type too); and a note on a
+telecommand sent only while the TM shows something.</p></li>
+<li><p><strong>The MIB&#39;s own checks</strong> (<code>layout</code>, in <code>ccsds.checks</code>): <code>CCF_NPARS</code>
+against <code>cdf.dat</code>, a group running past its elements, a counter that
+isn&#39;t an unsigned integer, a fixed element with no value, a default
+or fixed value that doesn&#39;t encode or is outside its range, an
+element&#39;s width against its type; overlaps on telecommands with
+groups too.</p></li>
+<li><p><strong>A telecommand&#39;s page and <code>K</code></strong>: group members under their counter,
+pre-transmission validation, value sets, verification stages
+(<code>CVP</code>/<code>CVS</code>/<code>CVE</code>, or the reports the acknowledgement flags ask for)
+and its packet header. <code>mib_lookup</code> answers them too.</p></li>
+<li><p><strong>Command sequences</strong> (<code>SPC k q</code>): a sequence inserted as the
+telecommands it sends, through the project&#39;s templates, with its
+formal parameters&#39; defaults and its timing as comments.</p></li>
+<li><p><strong>Two MIBs compared</strong> (<code>SPC k D</code>): what was added, removed and
+changed between two of the project&#39;s MIBs, into <code>generated/</code>.</p></li>
+<li><p><strong>Variable TM packets</strong> (<code>VPD</code>) and <strong>calibration selection</strong>
+(<code>CUR</code>) when packets are decoded.</p></li>
+<li><p><strong>XTCE</strong>: groups export as repeated command containers and import
+back (and arrays whose length an argument gives); a MIB&#39;s own type
+codes, categories, radix and parameter ids go as ancillary data, so
+a MIB exported and read back builds the same packets, offers the same
+defaults (an <code>initialValue</code> is no longer read in the MIB&#39;s radix) and
+tells packets apart by their PI1/PI2 values as the MIB does. The
+Python, Wireshark, C and ICD generators know groups. With several MIBs,
+<code>SPC k g</code> generates from one of them, into its own file
+(<code>xtce-OPS.xml</code>): they used to go into one file, every name twice. An
+XTCE file in the project can be one of its MIBs (<code>mib.roots</code>), to read
+an export back. Test vectors build telecommands with octets or a
+parameter id and no default.</p></li>
+<li><p>A <code>.dat</code> file that isn&#39;t UTF-8 is read as Latin-1, with a problem
+saying where, instead of losing the whole table; <code>mib.columns</code> may
+name the TC parameter column <code>CPC_PNAME</code>, as the ICD does.</p></li>
+</ul>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.1: <code>mib_lookup</code>, a tool for your coding agents (read). It
+finds a definition by name -- a mnemonic, a SPID, a calibration&#39;s id --
+or by the words of its description, as <code>/</code> on the MIB page does, and
+answers what its page shows: a telecommand&#39;s arguments with their bits,
+types, defaults, allowed values and calibrations; a parameter&#39;s type,
+calibration, limits and the packets carrying it; a packet&#39;s parameters
+by position; a calibration&#39;s points or texts. Other matches are listed.</p>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: sCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form, and XTCE, C, Python or a Wireshark dissector generated from them.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

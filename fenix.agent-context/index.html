@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent context · Fenix extensions</title>
+<meta name="description" content="Context for your coding agents: the project&#39;s dependencies at the versions its lockfiles hold, and each one&#39;s documentation for exactly that version -- crates.io and docs.rs, npm, PyPI, pkg.go.dev -- as tools and resources they call through Fenix">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Agent context</h1>
+<p class="id"><code>fenix.agent-context</code></p>
+<p class="lead">Context for your coding agents: the project&#39;s dependencies at the versions its lockfiles hold, and each one&#39;s documentation for exactly that version -- crates.io and docs.rs, npm, PyPI, pkg.go.dev -- as tools and resources they call through Fenix</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.1 or later, before 2 <code>&gt;=1.1, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.2 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>244 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/agent-context">extensions/agent-context</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Agent context</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/agent-context-v1.0.0/fenix.agent-context-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.agent-context-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>crates.io</code></li><li><code>static.crates.io</code></li><li><code>docs.rs</code></li><li><code>registry.npmjs.org</code></li><li><code>cdn.jsdelivr.net</code></li><li><code>pypi.org</code></li><li><code>pkg.go.dev</code></li><li><code>proxy.golang.org</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Context for your coding agents (Claude Code, Codex, any agent talking to
+Fenix over MCP) that Fenix itself doesn&#39;t give them: what the project
+depends on, at the versions its lockfiles hold, and the documentation
+for exactly those versions -- so an agent reads the API it&#39;s calling, not
+the one it remembers.</p>
+<h3 id="readme-tools">Tools</h3>
+<p>They&#39;re in the <code>agent_context</code> toolset, offered to agents by default.</p>
+<div class="table"><table>
+<thead><tr><th>Tool</th><th>Class</th><th>What it answers</th></tr></thead>
+<tbody>
+<tr><td><code>agent_context_dependencies</code></td><td>read</td><td>The direct dependencies of each manifest in the project (its top folder, and the folders right under it): what each asks for, the version locked, and whether it&#39;s a dev, build, optional or peer one</td></tr>
+<tr><td><code>agent_context_dependency_docs</code></td><td>external</td><td>A dependency&#39;s documentation for the version locked: its README, or one item&#39;s docs</td></tr>
+</tbody>
+</table></div>
+<p><code>dependency_docs</code> takes <code>package</code> (as the manifest names it), and
+optionally <code>item</code>, <code>ecosystem</code>, <code>version</code> (only for a package the
+project doesn&#39;t lock) and <code>max_chars</code>.</p>
+<div class="table"><table>
+<thead><tr><th>Ecosystem</th><th>Manifests and lockfiles</th><th>Documentation</th></tr></thead>
+<tbody>
+<tr><td>Cargo</td><td><code>Cargo.toml</code> (a workspace&#39;s members, <code>workspace = true</code>), <code>Cargo.lock</code></td><td>crates.io&#39;s README for that version; an item (<code>sync::Mutex</code>) from docs.rs&#39;s rustdoc for it; the crate&#39;s docs.rs front page when it has no README</td></tr>
+<tr><td>npm</td><td><code>package.json</code> with <code>package-lock.json</code>, <code>npm-shrinkwrap.json</code>, <code>pnpm-lock.yaml</code> or <code>yarn.lock</code></td><td>The npm registry&#39;s README for that version, else the one published in the package (jsDelivr)</td></tr>
+<tr><td>Python</td><td><code>pyproject.toml</code> (PEP 621, dependency groups, Poetry) or <code>requirements*.txt</code>, with <code>uv.lock</code>, <code>poetry.lock</code>, <code>pdm.lock</code>, <code>Pipfile.lock</code> or <code>==</code> pins</td><td>PyPI&#39;s description of that release</td></tr>
+<tr><td>Go</td><td><code>go.mod</code>, checked against <code>go.sum</code></td><td>pkg.go.dev at that version, a package or symbol of it (<code>cobra.Command</code>); the module proxy&#39;s <code>.info</code> and <code>go.mod</code> when pkg.go.dev hasn&#39;t got it</td></tr>
+</tbody>
+</table></div>
+<p>A package a dependency pulls in is found in the lockfile too. HTML is
+made plain text -- headings as <code>#</code>, lists as <code>-</code>, code as it&#39;s laid out,
+badges, navigation and scripts left out -- and cut at
+<code>agent-context.max_chars</code> (20000), saying so. What&#39;s fetched is kept in
+the extension&#39;s folder, since a version&#39;s documentation doesn&#39;t change;
+<strong>Agent context: forget the documentation kept</strong> clears it.</p>
+<h3 id="readme-resources">Resources</h3>
+<p>For an agent whose client reads MCP resources:
+<code>fenix://ext/agent_context/dependencies</code>, and
+<code>fenix://ext/agent_context/docs/{package}</code> (a scoped npm name as
+<code>%40scope%2Fname</code>).</p>
+<h3 id="readme-permissions">Permissions</h3>
+<p>It reads the project&#39;s manifests and lockfiles, and reaches only the
+registries above. Fenix&#39;s own tools already give agents the problems,
+the language servers, the debugger, Git, search and tasks; this adds
+nothing of those.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.2</td><td>244 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/agent-context-v1.0.0/fenix.agent-context-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 7b5b655517d6da31c090330be39c2a13a7dee09814098539380eb3a884dd1d96">7b5b655517…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<p>The first release, for Fenix 1.1 (extension API 1.2): tools for your
+coding agents, in the <code>agent_context</code> toolset, offered by default.</p>
+<ul class="tight">
+<li><p><code>agent_context_dependencies</code> (read): the project&#39;s direct dependencies
+per ecosystem -- Cargo (a workspace&#39;s members too), npm with
+<code>package-lock.json</code>, <code>pnpm-lock.yaml</code> or <code>yarn.lock</code> (classic and
+Berry), Python with <code>uv.lock</code>, <code>poetry.lock</code>, <code>pdm.lock</code>,
+<code>Pipfile.lock</code> or <code>==</code> pins, and Go&#39;s <code>go.mod</code> checked against
+<code>go.sum</code> -- with what each asks for and the version locked.</p></li>
+<li><p><code>agent_context_dependency_docs</code> (external): a dependency&#39;s
+documentation for exactly the version locked (a package a dependency
+pulls in, too): its README from crates.io, the npm registry, PyPI or
+pkg.go.dev, or one item&#39;s page -- a docs.rs path, a Go symbol, a
+README&#39;s section -- as plain text, cut to <code>agent-context.max_chars</code>
+and kept under the extension&#39;s folder.</p></li>
+<li><p>Both as MCP resources: <code>fenix://ext/agent_context/dependencies</code> and
+<code>fenix://ext/agent_context/docs/{package}</code>.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

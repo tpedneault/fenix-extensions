@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image viewer · Fenix extensions</title>
+<meta name="description" content="Pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Image viewer</h1>
+<p class="id"><code>fenix.images</code></p>
+<p class="lead">Pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>1.1 MB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/images">extensions/images</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Image viewer</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/images-v1.0.0/fenix.images-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.images-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+<div><dt>Reads your system&#39;s fonts</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Pictures in a pane. A PNG, JPEG, GIF, WebP, BMP or SVG opens in it however
+you open it -- the explorer, the file picker, <code>:e</code>, a recent file, the
+command line, <code>gf</code> (with standard keys, Ctrl+click or <code>Alt+F12</code>) -- fitted to the pane, over the theme&#39;s background,
+with a checkerboard under what&#39;s transparent and a details line below:
+its name, format, size in pixels and on disk, how big it&#39;s shown, and its
+place in its folder.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>+</code> <code>-</code></td><td>Zoom in and out (no smaller than fitted)</td></tr>
+<tr><td><code>0</code> <code>=</code></td><td>Fit the pane</td></tr>
+<tr><td><code>1</code></td><td>Actual size: a point a pixel, as the system shows pictures</td></tr>
+<tr><td><code>h</code> <code>j</code> <code>k</code> <code>l</code>, the arrows</td><td>Pan</td></tr>
+<tr><td>A drag, the wheel</td><td>Pan; zoom about the pointer</td></tr>
+<tr><td><code>]</code> <code>[</code></td><td>The next and previous picture in its folder, round from the last to the first</td></tr>
+<tr><td><code>p</code>, <code>.</code></td><td>Play or pause a moving picture; the next frame, paused</td></tr>
+<tr><td><code>s</code></td><td>An SVG&#39;s source: its text, to edit</td></tr>
+<tr><td><code>d</code></td><td>Hide or show the details line</td></tr>
+<tr><td><code>r</code></td><td>Read it again (it changed on disk)</td></tr>
+<tr><td><code>q</code></td><td>Close it</td></tr>
+</tbody>
+</table></div>
+<p>These are the diagram viewer&#39;s keys (<code>SPC m v</code> in a Mermaid file). Zoomed
+in three times or more, each pixel is drawn as a square, to see them;
+shown smaller, it&#39;s drawn from a picture halved as often as it takes, so
+fine detail doesn&#39;t shimmer. An SVG is drawn again at every zoom, so it&#39;s
+sharp however close you look, and it fits the pane whatever its size;
+its text is set in the system&#39;s fonts.</p>
+<p>GIFs, animated WebPs and APNGs play, a frame at a time, at their own
+pace (a frame asking for 10 ms or less is shown for 100 ms, as browsers
+do), and stop while they&#39;re out of sight.</p>
+<p><code>SPC m</code> on a picture has the same, and <code>SPC f i</code> from anywhere previews
+the picture the line you&#39;re on names -- <code>![plot](img/plot.png)</code>,
+<code>src=&quot;logo.svg&quot;</code>, <code>&quot;sprites/cat.gif&quot;</code>; the one under the cursor, when it
+names more -- in a pane beside it, the focus staying in your code. Again
+on the same picture closes it. A picture in Markdown&#39;s reading view opens
+here too (<code>Enter</code> on it).</p>
+<p><code>SPC f o</code> goes from a picture to its file&#39;s text, and back.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC f i</code></td><td><code>images.preview</code></td><td>The picture this line names, beside it</td></tr>
+<tr><td><code>SPC m ]</code> <code>SPC m [</code></td><td><code>images.next</code> <code>images.previous</code></td><td>The next and previous picture in its folder</td></tr>
+<tr><td><code>SPC m 0</code> <code>SPC m 1</code></td><td><code>images.fit</code> <code>images.actual_size</code></td><td>Fit, actual size</td></tr>
+<tr><td><code>SPC m s</code></td><td><code>images.source</code></td><td>An SVG&#39;s source, to edit</td></tr>
+<tr><td><code>SPC m p</code></td><td><code>images.play</code></td><td>Play or pause</td></tr>
+<tr><td><code>SPC m d</code></td><td><code>images.details</code></td><td>The details line</td></tr>
+</tbody>
+</table></div>
+<p>The modeline says the same as the details line, for the picture looked at
+last: <code>IMG cat.gif · GIF · 640 × 480 · 1.2 MB · playing, 12 frames · fit 50% · 3/12</code>.</p>
+<h3 id="readme-limits">Limits</h3>
+<ul class="tight">
+<li><p><strong>Big pictures.</strong> An extension has 128 MiB, so a picture is decoded
+whole up to about 8.4 megapixels (a 4K screenshot). A bigger JPEG is
+decoded at a half, a quarter or an eighth of its size (the details line
+says so), which the pane doesn&#39;t miss until you zoom in past fitted; a
+bigger picture of another kind isn&#39;t shown, and says why.</p></li>
+<li><p><strong>Its folder.</strong> <code>]</code> and <code>[</code> go through the folder a picture&#39;s in. One
+outside the project Fenix lists for it, and only the pictures in it.</p></li>
+<li><p><strong>The session.</strong> A picture opens again with the session, at the zoom
+you left it: Fenix gives the extension again the files its pages show,
+outside the project too.</p></li>
+<li><p><strong>SVG source.</strong> <code>s</code> opens the file&#39;s own text, to edit; <code>r</code> on the
+picture reads it again once it&#39;s saved. An SVGZ is compressed, so its
+<code>s</code> is a copy, read-only. <code>SPC f o</code> goes to the text of the file the
+pane was opened on, not the one <code>]</code> went to.</p></li>
+<li><p><strong>The preview</strong> reads pictures in the project.</p></li>
+</ul>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Read the project you&#39;re in: a picture&#39;s folder, for <code>]</code> and <code>[</code>, and
+the pictures a line names, for the preview. Outside it, the pictures
+beside one you opened, which Fenix lists for it.</p></li>
+<li><p>Know where you are in the editor, for the preview: the file, the line,
+the cursor and its project.</p></li>
+<li><p>Read the system&#39;s fonts, for an SVG&#39;s text and the details line.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/images dist
+</code></pre>
+<p><code>cargo test</code> checks the arithmetic of zooming and panning, the folder&#39;s
+order, what a file is from its bytes, the pictures a line names, and the
+pixels drawn: the checks, the theme, squares and halving, an SVG&#39;s edges.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>1.1 MB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/images-v1.0.0/fenix.images-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 e5e391e94f5abea0d96b6fadd64dcc15d4d435c2037ac2d059c4347d34c73512">e5e391e94f…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tcl · Fenix extensions</title>
+<meta name="description" content="Tcl scripts: Tcl&#39;s own usage lines on K, completion of options, subcommands, built-ins and your procs, go to definition, and the project&#39;s definitions by name">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Tcl</h1>
+<p class="id"><code>fenix.tcl</code></p>
+<p class="lead">Tcl scripts: Tcl&#39;s own usage lines on K, completion of options, subcommands, built-ins and your procs, go to definition, and the project&#39;s definitions by name</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.1.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>170 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/tcl">extensions/tcl</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.mission-bundle/index.html">Mission</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Tcl</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/tcl-v1.1.0/fenix.tcl-1.1.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.tcl-1.1.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>ctags</code></li><li><code>tclsh</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Tcl scripts in Fenix, as an extension and a language server for Tcl
+files. Its answers join any other Tcl language
+server&#39;s. Tcl&#39;s highlighting stays in Fenix.</p>
+<ul class="tight">
+<li><p><code>K</code> (with standard keys, <code>Ctrl+K Ctrl+I</code> or the pointer resting) on a
+built-in shows Tcl&#39;s own usage line for it -- on one of its arguments
+too (on the <code>$s</code> in <code>string compare $s $t</code> it names <code>string compare</code>)
+-- and an ensemble&#39;s subcommands.</p></li>
+<li><p>Completion: a command&#39;s <code>-options</code> once you type a <code>-</code> (<code>lsort -u</code>),
+an ensemble&#39;s subcommands after its name (<code>string co</code>, <code>binary encode </code>), and otherwise Tcl&#39;s built-ins and the project&#39;s own procs and
+namespaces by their fully-qualified names (<code>myns::greet</code>). Nothing in
+a comment or a string.</p></li>
+<li><p><code>gd</code> (with standard keys, <code>F12</code> or Ctrl+click) on a proc goes to where
+it&#39;s defined: in the file, else in the project.</p></li>
+<li><p>A call to one of the project&#39;s procs is colored as a call, wherever
+it&#39;s defined: Fenix asks its language server for them.</p></li>
+</ul>
+<p>The project&#39;s definitions come from <a href="https://ctags.io">Universal
+Ctags</a> (<code>ctags</code> on <code>PATH</code>), which scans the project in
+the background when a Tcl file opens; until it lands, completion offers
+the built-ins.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>In a Tcl file, under <code>SPC m</code> (<code>Ctrl+K m</code> with standard keys; beside the
+MIB&#39;s, when it&#39;s on):</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC m s</code></td><td><code>code.symbols</code></td><td>Fuzzy-find a definition by its fully-qualified name and jump to it</td></tr>
+<tr><td><code>SPC m T</code></td><td><code>completion.refresh_tags</code></td><td>Scan the project with ctags again, and say how many definitions it found</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<p>In a Tcl project (a <code>pkgIndex.tcl</code> or a <code>.tcl</code> file at its top, or
+<code>kind = &quot;tcl&quot;</code> in <code>.fenix/project.toml</code>), the doctor checks for <code>tclsh</code>
+(warns when Tcl isn&#39;t installed) and <code>ctags</code>.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Run <code>ctags</code> and look for <code>tclsh</code>.</p></li>
+<li><p>Read the project (to tell whether it&#39;s a Tcl one), and open its files.</p></li>
+<li><p>Know the file you&#39;re in when its commands run, for its project.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/tcl dist
+</code></pre>
+<p><code>src/signatures.rs</code> is generated from a real Tcl interpreter:
+<code>tclsh tools/gen_tcl_signatures.tcl src/signatures.rs</code>.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.5</td><td>170 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/tcl-v1.1.0/fenix.tcl-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 69962dd7d4dfb4ce18eef34476862614f424601cce2539ceb9206a652638a848">69962dd7d4…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>170 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/tcl-v1.0.0/fenix.tcl-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 cb028d68f684c87f2482223f8dddb25d20b017254338357da763bfc77077a6a2">cb028d68f6…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use -- <code>F12</code> for go to definition with standard keys,
+<code>gd</code> with Vim keys. The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: tcl scripts: Tcl&#39;s own usage lines on K, completion of options, subcommands, built-ins and your procs, go to definition, and the project&#39;s definitions by name.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

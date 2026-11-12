@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pomodoro · Fenix extensions</title>
+<meta name="description" content="A focus timer: work rounds and breaks counted down on the modeline, today&#39;s rounds and the week&#39;s -- clocked into the agenda when it&#39;s there">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Pomodoro</h1>
+<p class="id"><code>fenix.pomodoro</code></p>
+<p class="lead">A focus timer: work rounds and breaks counted down on the modeline, today&#39;s rounds and the week&#39;s -- clocked into the agenda when it&#39;s there</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.1</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>144 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/pomodoro">extensions/pomodoro</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Pomodoro</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/pomodoro-v1.0.1/fenix.pomodoro-1.0.1.fenixext">download the package</a> and run <code>fenix --install-extension fenix.pomodoro-1.0.1.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Plays sounds of its own</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>A focus timer for Fenix: a work round, then a break, and a long break
+every few rounds. The round counts down on the modeline -- <code>🍅 18:42</code>
+while you work, <code>☕ 04:12</code> on a break -- and Fenix chimes when it&#39;s
+over and says what comes next.</p>
+<p><code>SPC o p s</code> starts a round. A break starts by itself when the work
+before it ends (<code>pomodoro.auto_breaks</code>); the next work round waits for
+you. Rounds are kept against the clock, so one carries on while Fenix is
+closed, and one that ran out meanwhile is counted.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC o p s</code></td><td>Start the round, or go on with a paused one</td></tr>
+<tr><td><code>SPC o p p</code></td><td>Pause it</td></tr>
+<tr><td><code>SPC o p n</code></td><td>Skip to the next round (a skipped work round isn&#39;t counted)</td></tr>
+<tr><td><code>SPC o p r</code></td><td>Back to the first round</td></tr>
+<tr><td><code>SPC o p o</code></td><td>The page: the round, today&#39;s rounds, the week&#39;s</td></tr>
+<tr><td><code>SPC o p t</code></td><td>The agenda task work rounds clock into</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-the-page">The page</h3>
+<p>The round under way and how far it&#39;s gone, what comes after it, today&#39;s
+work rounds (when each ended, how long, the task), and the last seven
+days. Four weeks are kept, in <code>pomodoro.json</code>.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>s</code></td><td>Start, or pause</td></tr>
+<tr><td><code>n</code></td><td>Skip</td></tr>
+<tr><td><code>r</code></td><td>Reset</td></tr>
+<tr><td><code>t</code></td><td>Pick the agenda task</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-with-the-agenda">With the agenda</h3>
+<p>With the Agenda extension, a work round runs the agenda&#39;s clock:</p>
+<ul class="tight">
+<li><p>If its clock is already running, the round is for that task, and the
+clock is left as it is.</p></li>
+<li><p>If it isn&#39;t, the round clocks into the task picked with <code>SPC o p t</code>
+(in progress or to do), and the clock stops when the round ends, is
+paused or reset.</p></li>
+</ul>
+<p>Today&#39;s rounds on the page name the task each was for.
+<code>pomodoro.agenda</code> turns it off.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>pomodoro.work</code></td><td>A work round, in minutes (25)</td></tr>
+<tr><td><code>pomodoro.short_break</code></td><td>A short break (5)</td></tr>
+<tr><td><code>pomodoro.long_break</code></td><td>A long break (15)</td></tr>
+<tr><td><code>pomodoro.long_every</code></td><td>Work rounds to a long break (4)</td></tr>
+<tr><td><code>pomodoro.auto_breaks</code></td><td>Whether a break starts by itself when work ends</td></tr>
+<tr><td><code>pomodoro.agenda</code></td><td>Whether work rounds clock into the agenda</td></tr>
+<tr><td><code>pomodoro.sound</code></td><td>Whether a round that runs out chimes (on)</td></tr>
+<tr><td><code>pomodoro.unfocused</code></td><td>Whether to warn when you wander off during work (off)</td></tr>
+</tbody>
+</table></div>
+<p>A setting changed mid-round applies from the next round.</p>
+<h3 id="readme-the-unfocused-warning">The &quot;unfocused&quot; warning</h3>
+<p>With <code>pomodoro.unfocused</code> on, going to a page during a work round -- another
+extension&#39;s, Fenix&#39;s settings or Home -- says so on the message line,
+once a round: <code>Round 2 has 18:42 to go -- this page isn&#39;t your work</code>.
+Files are your work, whichever project they&#39;re in (it isn&#39;t told which
+file, only that it&#39;s one), and so are terminals, the explorer and its own
+page. A break, or a round paused, never warns.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Play its own chime (<code>sound = true</code>), <code>sounds/chime.wav</code>: two sine
+tones, made for it.</p></li>
+<li><p>Be told what has the focus (<code>events = [&quot;focus&quot;]</code>): a file, text, or a
+page and its kind -- not which file.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.1</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>144 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/pomodoro-v1.0.1/fenix.pomodoro-1.0.1.fenixext">Download<span class="visually-hidden"> 1.0.1</span></a><code class="sha" title="SHA-256 295617fba8daf7bbbc0b637a7d065d9083376fa006e726d387c88beeb784b769">295617fba8…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>144 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/pomodoro-v1.0.0/fenix.pomodoro-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 ba03051a587f7e03c02348bb756195e70718c57b77a292acc6b5985fbca1166b">ba03051a58…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-101">1.0.1</h3>
+<ul class="tight">
+<li><p><code>pomodoro.state</code>, a service other extensions read the timer through: <code>{&quot;phase&quot;: &quot;work&quot;}</code>, <code>&quot;break&quot;</code> or <code>&quot;off&quot;</code>. The pets keep still while you work and play in the break.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: a focus timer: work rounds and breaks counted down on the modeline, today&#39;s rounds and the week&#39;s -- clocked into the agenda when it&#39;s there.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

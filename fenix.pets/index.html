@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pets · Fenix extensions</title>
+<meta name="description" content="Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Pets</h1>
+<p class="id"><code>fenix.pets</code></p>
+<p class="lead">Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=fun">Fun</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.1.0</dd>
+<dt>Needs Fenix</dt><dd>1.0.1 or later, before 2 <code>&gt;=1.0.1, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.1 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>666 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/pets">extensions/pets</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Pets</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/pets-v1.1.0/fenix.pets-1.1.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.pets-1.1.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Draws over the editor</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Little 3D pets that live on Fenix&#39;s modeline: Ember (Fenix&#39;s phoenix),
+Ferris the crab, a cat, a rubber duck, an owl, a fox and a snail. They&#39;re low-poly toys, drawn
+toon-shaded and outlined in your theme&#39;s light -- chunky pixel style by
+default, or smooth.</p>
+<p>They wander, sit, look about and stretch; hop up onto the edges of your
+panes; and nap together when you&#39;ve stopped typing for a while. Now and
+then one comes up to sit in the margin beside the line you&#39;re on, and
+follows you from line to line, or trots over to where you&#39;re working.
+Each has its ways: the owl hoots, turning its head right round, and is up
+when you&#39;re up late; the fox creeps up on something in the grass and
+leaps; the snail takes its time, and hides right inside its shell; the cat
+bats its yarn about and pounces on it.</p>
+<p>They notice what you do:</p>
+<ul class="tight">
+<li><p><strong>Save</strong> and the one nearest the caret hops.</p></li>
+<li><p><strong>Errors</strong> in the file send them into hiding until they&#39;re fixed.</p></li>
+<li><p><strong>A passing task</strong> and they all celebrate.</p></li>
+<li><p><strong>A failing task</strong>: Ember bursts into flame and burns down to ash, and
+rises again the next time a task passes. The rubber duck comes over to
+listen. The cat sits it out.</p></li>
+<li><p><strong>Type for a while without stopping</strong> and Ember catches fire, running
+along the modeline trailing flames.</p></li>
+<li><p><strong>Debug</strong> and the rubber duck comes to sit by the line you&#39;re on and
+listens until the session&#39;s over. It quacks at each breakpoint, and the
+others start.</p></li>
+<li><p><strong>Come back after a while away</strong> and they look up and greet you.</p></li>
+<li><p><strong>Open another file</strong> and the one nearest the caret looks round.</p></li>
+<li><p><strong>Click one</strong> for a heart.</p></li>
+<li><p>They play together, too: the cat stalks the duck, and they chase each
+other, race, and get the zoomies when they&#39;re happy. In the snow they
+gather round Ember to keep warm.</p></li>
+<li><p><strong>New warnings</strong> get a tilt of the head from the one nearest the caret.</p></li>
+<li><p><strong>Late at night</strong> they nap after a minute without typing -- all but the
+owl.</p></li>
+<li><p><strong>With the Pomodoro extension</strong>, they keep still and quiet in a work
+round, and stretch and play when the break comes.</p></li>
+<li><p><strong>Commit</strong> and the one nearest the caret throws confetti; <strong>push</strong> and
+they hop to see it off; a <strong>merge conflict</strong> sends them into hiding until
+it&#39;s resolved.</p></li>
+<li><p><strong>A task starts</strong> and one sits down to watch it, dozing off if it drags.
+<strong>100 tests or more passed</strong> is a party.</p></li>
+<li><p><strong>A coding agent finishes</strong> and one cheers; an error, and Ember singes.
+They hear only that it finished, never what it said.</p></li>
+</ul>
+<h3 id="readme-looking-after-them">Looking after them</h3>
+<p>Saving, passing tests, petting and playing fetch teach them things. Each
+level unlocks something to wear: a bow at level 2, a scarf at 3,
+sunglasses at 4, a party hat at 5, a crown at 7. Happiness drifts down a
+little while nobody plays with them, never below content, and never while
+you&#39;re away: a day off costs nothing.</p>
+<p>In December they wear Santa hats and it snows; for Halloween, pumpkins;
+on New Year&#39;s Day, and on the day you adopted each of them (a year or more
+on), party hats.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC P a</code></td><td>Adopt a pet</td></tr>
+<tr><td><code>SPC P b</code></td><td>Throw the ball: it bounces along, and the nearest pet fetches it back to the caret</td></tr>
+<tr><td><code>SPC P p</code></td><td>Their home: levels, happiness, what they wear; pet, dress, rename or rehome one</td></tr>
+<tr><td><code>SPC P w</code></td><td>Dress one up</td></tr>
+<tr><td><code>SPC P h</code></td><td>Hide them, or bring them back</td></tr>
+<tr><td><code>SPC P r</code></td><td>Rehome one</td></tr>
+</tbody>
+</table></div>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>pets.place</code></td><td><code>modeline</code>, or the foot of the pane you&#39;re in (<code>panes</code>)</td></tr>
+<tr><td><code>pets.size</code></td><td><code>small</code>, <code>medium</code> or <code>large</code></td></tr>
+<tr><td><code>pets.style</code></td><td><code>pixel</code> or <code>smooth</code></td></tr>
+<tr><td><code>pets.most</code></td><td>How many you may have at once</td></tr>
+<tr><td><code>pets.liveliness</code></td><td><code>calm</code>, <code>normal</code> or <code>lively</code></td></tr>
+<tr><td><code>pets.visits</code></td><td>Whether one comes up to sit beside your line now and then</td></tr>
+<tr><td><code>pets.seasons</code></td><td>Snow and seasonal hats</td></tr>
+</tbody>
+</table></div>
+<p>They fade while they pass the line you&#39;re on and never take a key. With
+Fenix&#39;s animations off they stand still.</p>
+<h3 id="readme-making-them">Making them</h3>
+<p>The models are built in code, from simple shapes jointed like toys:
+<code>src/modeler</code> (<code>cargo run --release</code> there) writes <code>models/*.glb</code>. The
+effects are pixel art: <code>python src/fx.py</code> writes <code>sprites/fx.png</code>. To see
+the models as Fenix draws them, every clip, use Fenix&#39;s model preview
+(<code>FENIX_MODEL_PREVIEW=models cargo test -p fenix-gui preview -- --ignored</code>
+in Fenix).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.0.1, &lt;2</code></td><td>1.1</td><td>666 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/pets-v1.1.0/fenix.pets-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 20452e199f6f7d8226dff064434de46c9feb776239d02c819dfbe6178d40f56c">20452e199f…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>432 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/pets-v1.0.0/fenix.pets-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 e0a4604f21f98ed4f12df16b79db70b6bf30887d151192d1f085681721ee8c28">e0a4604f21…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.0.1 (extension API 1.1).</p>
+<ul>
+<li><p>New friends: an owl that&#39;s up when you&#39;re up late and turns its head right round to hoot, a fox that creeps up on something in the grass and leaps on it, and a snail in no hurry that hides right inside its shell.</p></li>
+<li><p>The cat has a ball of yarn: it bats it, creeps after it, and pounces.</p></li>
+<li><p>Rubber duck debugging: while you debug, the rubber duck sits by the line you&#39;re on and listens. It quacks at each breakpoint, the others start, and it&#39;s pleased when the session ends.</p></li>
+<li><p>They notice more: back after a while away, they look up and greet you; another file gets a look round from the one nearest the caret; new warnings get a tilt of the head.</p></li>
+<li><p>Livelier: they walk more, linger less, play together more often, get the zoomies when they&#39;re happy, race each other, and now and then the one nearest the caret trots over to where you&#39;re working. In the snow, they gather round Ember to keep warm.</p></li>
+<li><p>How busy they are is up to you: <code>pets.liveliness</code>, calm, normal or lively.</p></li>
+<li><p>Late at night (22:00 to 06:00) they nap after a minute without typing, not three -- all but the owl.</p></li>
+<li><p>With the Pomodoro extension (1.0.1), they keep still and quiet in a work round, and stretch and play when the break comes.</p></li>
+<li><p>They draw only when something&#39;s changed: an unchanged layer isn&#39;t sent again, so Fenix doesn&#39;t redraw five times a second for pets that are asleep.</p></li>
+<li><p>They move as smoothly as their style asks: Fenix 1.0.0 drew a model&#39;s next frame only when something else redrew.</p></li>
+<li><p>Commits get confetti from the pet nearest the caret. A push and they all hop to see it off; a pull, or another branch, and they look round. A merge conflict sends them into hiding until it&#39;s resolved, and then they cheer.</p></li>
+<li><p>A big test run is a party: 100 or more tests passed and none failed, and there&#39;s confetti from every one of them.</p></li>
+<li><p>A build or a test run starting gets a watcher: the pet nearest the caret sits down to watch, and dozes off if it drags on past two minutes.</p></li>
+<li><p>A coding agent finishing its turn gets a cheer; an error, and Ember singes and the others look round. They&#39;re told only that a turn ended and how, never what was said.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

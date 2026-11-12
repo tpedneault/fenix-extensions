@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log viewer · Fenix extensions</title>
+<meta name="description" content="Log files read in a pane: each entry&#39;s level and time from the formats logs are written in -- JSON lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, Python&#39;s logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Log viewer</h1>
+<p class="id"><code>fenix.logs</code></p>
+<p class="lead">Log files read in a pane: each entry&#39;s level and time from the formats logs are written in -- JSON lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, Python&#39;s logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>569 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/logs">extensions/logs</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Log viewer</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/logs-v1.0.0/fenix.logs-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.logs-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Log files in a pane: an entry a row, its line number, its level and its
+text, coloured by level -- errors red, warnings yellow, debug and trace
+dim. A stack trace, a traceback, a message over several lines is folded
+into the entry that starts it; Enter opens it, a JSON line
+pretty-printed.</p>
+<pre><code class="language-text">app.log  212.4 MiB · 2,394,391 entries · 2,793,055 lines · indexing 42%
+e 1,203 error   w 15,233 warn   i 1,904,112 info   d 12,000 debug   t 0 trace   o 0 other
+3,017 of 2,394,391 shown · /timeout/ -healthcheck user=bob · ?db 12 found
+ ▂▃▃▂▂█▃▂▂▂▃▃▂▂▃▂▂▂▂▂▃▂▂▂▅▃▂▂▂▂▃▂▂▂▂▃▃▂▂▂
+ 2024-03-01 00:00:00          6 min a column           2024-03-01 16:37:39
+────────────────────────────────────────────────────────────────────────────
+   1 I  2024-03-01 12:00:01,100 [main] INFO  com.acme.App - Starting on port 8080
+   2 E▸ 2024-03-01 12:00:02,250 [http-1] ERROR com.acme.web.Handler - Request failed +6 lines
+   9 W  2024-03-01 12:00:03,000 [pool-2] WARN  com.acme.db.Pool - 9 of 10 connections in use
+row 2 of 3,017 · line 2-8 · error · 2024-03-01 12:00:02.250
+</code></pre>
+<p><code>*.log</code>, a rotated <code>*.log.1</code> to <code>*.log.99</code>, and <code>*.out</code> open in it however
+you open them -- the explorer, the file picker, <code>:e</code>. So does a
+journalctl export: <code>journalctl -o export &gt; boot.export</code>, or <code>-o json</code>
+saved as <code>.json</code> (only one that starts as journald&#39;s does; any other
+JSON opens as text). Any file at all opens as a log with <strong>Logs: open this
+file as a log</strong> (<code>logs.open</code>) from the command palette.</p>
+<h3 id="readme-formats">Formats</h3>
+<p>Each line&#39;s level and time are read from how it&#39;s written:</p>
+<div class="table"><table>
+<thead><tr><th>Format</th><th>For example</th></tr></thead>
+<tbody>
+<tr><td>JSON lines</td><td><code>{&quot;time&quot;:&quot;…&quot;,&quot;level&quot;:&quot;warn&quot;,…}</code>, pino&#39;s and bunyan&#39;s <code>&quot;level&quot;:40</code>, Serilog&#39;s <code>&quot;@l&quot;</code>, <code>&quot;severity&quot;</code>, ECS&#39;s <code>&quot;log.level&quot;</code>, journald&#39;s <code>PRIORITY</code> and <code>__REALTIME_TIMESTAMP</code></td></tr>
+<tr><td>logfmt</td><td><code>time=… level=error msg=&quot;…&quot;</code>, <code>lvl=</code>, <code>ts=</code></td></tr>
+<tr><td>Bracketed</td><td><code>[WARN] …</code>, <code>[error]</code>, <code>&lt;debug&gt;</code>, Apache&#39;s <code>[core:error]</code></td></tr>
+<tr><td>Rust</td><td>env_logger&#39;s <code>[2024-… INFO  my_crate] …</code>, tracing&#39;s <code>2024-…Z  WARN my_crate: …</code>, a panic</td></tr>
+<tr><td>Java</td><td>log4j&#39;s and logback&#39;s <code>2024-… [main] ERROR com.acme.App - …</code>, Spring&#39;s, a stack trace with <code>Caused by:</code> and <code>... 12 more</code></td></tr>
+<tr><td>Python</td><td>logging&#39;s <code>2024-… - app - WARNING - …</code>, <code>WARNING:root:…</code>, a traceback</td></tr>
+<tr><td>syslog</td><td><code>&lt;34&gt;1 2024-…</code> (RFC 5424), <code>&lt;14&gt;Mar  1 12:00:03 …</code> and journalctl&#39;s <code>Mar  1 12:00:03 host unit[42]: …</code></td></tr>
+<tr><td>journalctl</td><td><code>-o json</code>, <code>-o export</code> (a row is its <code>SYSLOG_IDENTIFIER[_PID]: MESSAGE</code>), <code>-o short</code>, <code>-o short-iso</code></td></tr>
+<tr><td>Others</td><td>logcat, glog, .NET&#39;s <code>info:</code> and <code>fail:</code>, logrus&#39;s <code>ERRO[0005]</code>, nginx, Apache&#39;s access logs (5xx an error, 4xx a warning)</td></tr>
+</tbody>
+</table></div>
+<p>The levels are fatal (critical, emerg, alert, panic), error (severe,
+fail), warn, info (notice), debug, trace (verbose, finer) and other, for a
+line that says none. A time is read from the line&#39;s start (ISO 8601 with
+or without its zone, syslog&#39;s, ctime&#39;s, logcat&#39;s, a time of day alone),
+from the brackets near its start (<code>[10/Oct/2000:13:55:36 -0700]</code>), or from
+a JSON or logfmt field (text, or a number since 1970 in seconds,
+milliseconds, microseconds or nanoseconds).</p>
+<p>An entry is a line with a time or a level at its start, and the lines
+after it that have neither. A log where few lines have one (under one in
+five) goes by indentation instead: only an indented line, <code>Caused by:</code> or
+<code>... 12 more</code> goes with the one before. Either way an entry takes at most
+2,000 lines or 1 MiB; past that the next line starts another. A panic and
+<code>Exception in thread</code> start an entry of their own. An entry whose first
+line says no level takes the first its other lines say (a traceback&#39;s).</p>
+<p><code>logs.patterns</code> adds formats of your own: a regular expression and the
+level a line matching it has, checked first.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>j</code> <code>k</code>, Down Up</td><td>An entry down, up; through an open entry taller than the pane first</td></tr>
+<tr><td><code>J</code> <code>K</code>, PageDown PageUp, Ctrl+F Ctrl+B</td><td>A screen down, up</td></tr>
+<tr><td>Ctrl+D Ctrl+U</td><td>Half a screen down, up</td></tr>
+<tr><td><code>g</code> <code>G</code>, Home End</td><td>The first and last entry shown</td></tr>
+<tr><td>Enter, Tab</td><td>Open the entry, or fold it: all its lines, a JSON line pretty-printed</td></tr>
+<tr><td><code>C</code></td><td>Fold every entry</td></tr>
+<tr><td><code>e</code> <code>w</code> <code>i</code> <code>d</code> <code>t</code> <code>o</code></td><td>Show or hide errors (and fatal), warnings, info, debug, trace, other</td></tr>
+<tr><td><code>a</code></td><td>Show every level</td></tr>
+<tr><td><code>/</code></td><td>Filter: only entries with a text (in lower case, any case; with a capital, its own), or <code>re:</code> a regular expression</td></tr>
+<tr><td><code>+</code></td><td>Only entries with one of these patterns (each <code>+</code> adds one)</td></tr>
+<tr><td><code>-</code></td><td>No entry with any of these patterns</td></tr>
+<tr><td><code>=</code></td><td>A field of a JSON or logfmt line: <code>user=bob</code>, <code>status!=200</code>, <code>msg~timeout</code>, <code>user.id=7</code>, <code>path=/api*</code></td></tr>
+<tr><td><code>@</code></td><td>A time range: <code>12:00..12:30</code>, <code>2024-03-01 12:00..</code>, <code>..2024-03-02</code>, <code>-15m</code> (the log&#39;s last 15 minutes: <code>s</code>, <code>m</code>, <code>h</code>, <code>d</code>)</td></tr>
+<tr><td><code>?</code></td><td>Search: what it finds is marked, and counted</td></tr>
+<tr><td><code>n</code> <code>N</code></td><td>The next entry the search found, the one before -- round the end; with no search, the next error, the one before</td></tr>
+<tr><td><code>]</code> <code>[</code></td><td>The next error (or fatal) shown, the one before</td></tr>
+<tr><td><code>x</code></td><td>Clear the filters and the search (the levels stay)</td></tr>
+<tr><td><code>F</code></td><td>Follow the log as it grows, as <code>tail -f</code> does: the cursor stays at the end while it&#39;s there</td></tr>
+<tr><td><code>y</code></td><td>Copy the entry&#39;s first line</td></tr>
+<tr><td><code>Y</code></td><td>Copy the whole entry; a JSON line pretty-printed</td></tr>
+<tr><td><code>r</code></td><td>The file&#39;s text, at the entry&#39;s line (<code>SPC f o</code> comes back)</td></tr>
+<tr><td><code>h</code> <code>l</code>, Left Right</td><td>Scroll across; <code>0</code> back</td></tr>
+<tr><td><code>R</code></td><td>Read the file again from its start</td></tr>
+<tr><td><code>q</code>, Esc</td><td>Close it</td></tr>
+</tbody>
+</table></div>
+<p>An empty answer to <code>/</code>, <code>?</code>, <code>@</code> clears it; to <code>+</code>, <code>-</code> or <code>=</code>, all of
+them. Every filter goes with the levels shown: an entry is shown when its
+level is, its text has the <code>/</code> text, one of the <code>+</code> patterns and none of
+the <code>-</code> ones, its fields are so, and its time is in the range (one with
+no time stays). The counts on the second line are the whole log&#39;s; the
+third says how many are shown.</p>
+<p>With the mouse: a click picks a row, a double click opens it, a click on
+the bars goes to the first entry at that time, and the wheel scrolls.</p>
+<p>The <strong>bars</strong> count the entries over the log&#39;s time, a column each few
+minutes (as the pane&#39;s width and the log&#39;s span make it): red where the
+errors are -- every one while they&#39;re rare, else where there are more
+than usual -- yellow for warnings. With a filter that reads the entries
+(any but the levels), they count what&#39;s shown.</p>
+<h3 id="readme-big-logs">Big logs</h3>
+<p>A log in the project is read where it is, a block at a time: it opens at
+once, its first screen shown while the rest is indexed, a slice of the
+file each few milliseconds, the page answering and drawn again as it
+goes. What&#39;s kept is small -- where each 64 KiB of entries starts, and
+each entry&#39;s level in half a byte -- and an entry&#39;s text is read again
+when it&#39;s shown, so a log of gigabytes takes a few MiB (a 200 MB log,
+2.4 million entries: about 3.5 MiB). A filter is worked out the same way,
+a slice at a time, a bit for each entry. A line longer than 64 KiB is
+read only that far for its level, the filters and the search.</p>
+<p>One outside the project is read whole by Fenix, up to the 64 MiB it gives
+an extension; open a bigger one from its project.</p>
+<p><strong>Following</strong> (<code>F</code>, or <code>logs.follow</code>) looks at the file&#39;s length every
+second (<code>logs.poll</code>) and reads what was added. A log that got shorter, or
+whose start is another&#39;s -- truncated, or rotated and started again under
+its name -- is read again from its start. One from outside the project
+is read whole again each time.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>logs.levels</code></td><td>The levels a log opens with shown: <code>error, warn</code> (error takes fatal with it), <code>info</code>, <code>debug</code>, <code>trace</code>, <code>other</code>. All of them when empty</td></tr>
+<tr><td><code>logs.follow</code></td><td>Follow a log from when it opens. Off unless set</td></tr>
+<tr><td><code>logs.patterns</code></td><td>Formats of your own: a regular expression (<code>^!!</code>, <code>| CRIT |</code>) and its level (fatal, error, warn, info, debug, trace, other)</td></tr>
+<tr><td><code>logs.poll</code></td><td>How often a followed log is looked at, in milliseconds: 200 to 60,000. 1,000 unless set</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-permissions">Permissions</h3>
+<div class="table"><table>
+<thead><tr><th>Permission</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>filesystem = &quot;project-read&quot;</code></td><td>A log in the project is read where it is, as far as each step needs</td></tr>
+<tr><td><code>editor = &quot;read&quot;</code></td><td>Which file <code>logs.open</code> shows, and where the project is</td></tr>
+</tbody>
+</table></div>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>569 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/logs-v1.0.0/fenix.logs-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 eb8dfeb497691b8b40df94fd010eeca61935dde1b08b003021f729d2adbde4f4">eb8dfeb497…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: log files read in a pane -- each entry&#39;s level and time from the formats logs are written in (JSON lines, logfmt, bracketed levels, env_logger and tracing, log4j and logback, Python&#39;s logging, syslog, journalctl&#39;s text, JSON and export, logcat, glog, .NET, logrus, Apache and nginx, and patterns of your own), stack traces folded into the entry they follow and opened with Enter, a JSON line pretty-printed, filtered by level, text or regular expression, patterns in and out, a field&#39;s value and a time range, searched, counted over time in a row of bars, followed as they grow (truncated and rotated logs read again), and read a block at a time, indexed and filtered in steps, so a log of gigabytes opens at once.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

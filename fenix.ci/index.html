@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CI status · Fenix extensions</title>
+<meta name="description" content="Your branch&#39;s CI on the modeline -- GitHub Actions, GitLab pipelines or Jenkins -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs&#39; logs for your coding agent">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>CI status</h1>
+<p class="id"><code>fenix.ci</code></p>
+<p class="lead">Your branch&#39;s CI on the modeline -- GitHub Actions, GitLab pipelines or Jenkins -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs&#39; logs for your coding agent</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.1.0</dd>
+<dt>Needs Fenix</dt><dd>1.2 or later, before 2 <code>&gt;=1.2, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.3 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>176 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/ci">extensions/ci</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>CI status</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/ci-v1.1.0/fenix.ci-1.1.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.ci-1.1.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>git</code></li><li><code>gh</code></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>api.github.com</code></li><li><code>*.actions.githubusercontent.com</code></li><li><code>*.blob.core.windows.net</code></li><li><code>gitlab.com</code></li><li><code>${setting:ci.github_url}</code> <span class="gloss">those the setting ci.github_url holds</span></li><li><code>${setting:ci.gitlab_url}</code> <span class="gloss">those the setting ci.gitlab_url holds</span></li><li><code>${setting:gitlab.base_url}</code> <span class="gloss">those the setting gitlab.base_url holds</span></li><li><code>${setting:ci.jenkins_url}</code> <span class="gloss">those the setting ci.jenkins_url holds</span></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Reads and keeps secrets in Fenix&#39;s secret store, under these keys</dt><dd><ul class="chips"><li><code>github.token</code></li><li><code>gitlab.token</code></li><li><code>ci.jenkins_token</code></li></ul></dd></div>
+<div><dt>Reads settings besides its own: those named</dt><dd><ul class="chips"><li><code>gitlab.*</code></li></ul></dd></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Your branch&#39;s CI, without leaving Fenix: GitHub Actions, GitLab
+pipelines or Jenkins on the modeline, a page of the branch&#39;s runs with
+their jobs, steps and logs, a notification when a run finishes -- and the
+failing jobs&#39; logs for your coding agent, so it can fix them.</p>
+<div class="table"><table>
+<thead><tr><th>Modeline</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td><code>CI ✓</code></td><td>The runs for <code>HEAD</code> passed</td></tr>
+<tr><td><code>CI ● 3/7</code></td><td>Running: 3 of 7 jobs done (<code>✗1</code> when one has failed already)</td></tr>
+<tr><td><code>CI ○ queued</code></td><td>Waiting for a runner</td></tr>
+<tr><td><code>CI ✗ 2 failed</code></td><td>Finished, two jobs failed</td></tr>
+<tr><td><code>CI ⊘ cancelled</code></td><td>Cancelled</td></tr>
+<tr><td><code>CI ✓ (prev)</code></td><td><code>HEAD</code> has no runs (not pushed yet): the newest commit&#39;s that has</td></tr>
+<tr><td><code>CI –</code></td><td>The branch has no runs</td></tr>
+<tr><td><code>… ?</code></td><td>The last look failed: the page says why</td></tr>
+</tbody>
+</table></div>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC g C</code></td><td>The CI page</td></tr>
+<tr><td><code>SPC g F</code></td><td>The log of the job that failed</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-the-page">The page</h3>
+<p>The branch&#39;s latest runs (GitHub&#39;s workflow runs, GitLab&#39;s pipelines),
+newest first, the first opened on its jobs. A job opens on its steps
+(GitHub&#39;s), each with its state and how long it took.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>j</code>, <code>k</code>, <code>g</code>, <code>G</code></td><td>Move</td></tr>
+<tr><td><code>Enter</code></td><td>A run: its jobs. A job or a step: its log, read-only, highlighted as a log</td></tr>
+<tr><td><code>l</code>, <code>h</code></td><td>Open a run or a job, close it</td></tr>
+<tr><td><code>r</code></td><td>A run: re-run its failed jobs (GitLab: retry the pipeline). A job: re-run it</td></tr>
+<tr><td><code>c</code></td><td>Cancel the run (GitLab: the job), asked first</td></tr>
+<tr><td><code>o</code></td><td>The run or the job in the browser</td></tr>
+<tr><td><code>R</code></td><td>Ask again</td></tr>
+</tbody>
+</table></div>
+<p>A log is its end when it&#39;s big (the last 512 KiB): the colours, GitLab&#39;s
+section markers and GitHub&#39;s timestamps taken off.</p>
+<h3 id="readme-jenkins">Jenkins</h3>
+<p>Jenkins doesn&#39;t know a repository by its remote, so you name the job:</p>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What to put</th></tr></thead>
+<tbody>
+<tr><td><code>ci.jenkins_url</code></td><td>Your Jenkins, <code>https://ci.example.com</code></td></tr>
+<tr><td><code>ci.jenkins_job</code></td><td>The project&#39;s job: its folders and its name (<code>space/rocket</code>), or its address</td></tr>
+<tr><td><code>ci.jenkins_user</code>, <code>ci.jenkins_token</code></td><td>Your user there and one of its API tokens (your name, Security, Add new token)</td></tr>
+</tbody>
+</table></div>
+<p>The first two are per project (<code>SPC ,</code>, CI status). With a job named and
+no <code>ci.provider</code> chosen, the CI is Jenkins.</p>
+<p>The page then shows the branch&#39;s <strong>builds</strong>. For a multibranch pipeline
+(or a folder of jobs) they&#39;re the builds of the job named after your
+branch; for any other job, the builds Git made of your branch
+(<code>origin/&lt;branch&gt;</code>), or all of them when Git has no part in the job. A
+build waiting in the queue shows as queued.</p>
+<p>A build opens on its <strong>stages</strong>, each with its state and how long it
+took; a stage that failed opens on its <strong>steps</strong> and what each ran. That
+comes from the Pipeline Stage View plugin, which most Jenkins have: where
+it&#39;s missing, or the job isn&#39;t a pipeline, a build has one row, its
+console. <code>Enter</code> on a stage opens its part of the build&#39;s console, on a
+step its stage&#39;s.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>On Jenkins</th></tr></thead>
+<tbody>
+<tr><td><code>r</code></td><td>Build the job again (a job with parameters, with their defaults)</td></tr>
+<tr><td><code>c</code></td><td>Stop the build, asked first</td></tr>
+</tbody>
+</table></div>
+<p>Unstable builds count as failed, and a stage waiting for input shows as
+manual (<code>▷</code>). Anonymous reading works where your Jenkins allows it;
+building and stopping want the user and the token.</p>
+<h3 id="readme-when-it-asks">When it asks</h3>
+<p>It looks at the repository every 3 seconds (Fenix&#39;s <code>git_state</code>). A new
+branch, a new <code>HEAD</code> or a push asks the forge at once, and after a push
+again every few seconds until its runs show up. Otherwise it asks every
+30 seconds while something runs and every 2 minutes when nothing does;
+failures back off, doubling up to 15 minutes. Every listing is asked with
+the <code>ETag</code> it last came with, so an answer with nothing new is a <code>304</code>
+that costs GitHub&#39;s rate limit nothing; a rate limit&#39;s reset
+(<code>x-ratelimit-*</code>, <code>ratelimit-*</code>, <code>retry-after</code>) holds it back until it
+lifts.</p>
+<h3 id="readme-notifications">Notifications</h3>
+<p>When the runs for your branch finish -- having been seen running -- a
+notification says so, tagged by the branch so the next replaces it: a
+pass quietly, a failure loudly (<code>critical</code>, or <code>normal</code>), with <strong>Open the
+log</strong> (the failed job&#39;s) and <strong>Open in the browser</strong>.</p>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p>Its tool <code>ci_failures</code> gives an agent the branch&#39;s status, the failing
+jobs, the steps that failed, the lines in their logs that say what went
+wrong, and the end of each log (<code>lines</code>, 80 by default). It reads only;
+it&#39;s offered by default.</p>
+<h3 id="readme-where-the-ci-is">Where the CI is</h3>
+<p>The remote, <code>origin</code> (else the first), from <code>.git/config</code> (or <code>git remote get-url origin</code> in a worktree): <code>github.com</code> is GitHub, <code>gitlab.com</code>
+GitLab, the addresses in the settings theirs, and anything else a GitLab
+at the remote&#39;s host, as the Review extension takes it. A Jenkins is
+where the settings say (above), whatever the remote.</p>
+<p>The tokens are Fenix&#39;s own (<code>SPC ,</code>, Forges): <code>github.token</code>, else the
+GitHub CLI&#39;s (<code>gh auth token</code>, <code>--hostname</code> for an Enterprise Server);
+<code>gitlab.token</code> (the <code>read_api</code> scope to read, <code>api</code> to re-run and cancel).
+A public repository on GitHub needs none.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>ci.provider</code></td><td><code>github</code>, <code>gitlab</code> or <code>jenkins</code>; empty is Jenkins when a job is named, else tells by the remote</td></tr>
+<tr><td><code>ci.jenkins_url</code>, <code>ci.jenkins_job</code></td><td>Your Jenkins and the project&#39;s job on it</td></tr>
+<tr><td><code>ci.jenkins_user</code>, <code>ci.jenkins_token</code></td><td>Your user on Jenkins and its API token</td></tr>
+<tr><td><code>ci.github_url</code></td><td>Your GitHub Enterprise Server (<code>https://github.example.com</code>)</td></tr>
+<tr><td><code>ci.gitlab_url</code></td><td>Your GitLab; empty uses Fenix&#39;s GitLab server (<code>gitlab.base_url</code>)</td></tr>
+<tr><td><code>ci.poll_running</code>, <code>ci.poll_idle</code></td><td>Seconds between looks while something runs (30), when nothing does (120)</td></tr>
+<tr><td><code>ci.notify_success</code>, <code>ci.notify_failure</code></td><td>Whether to notify of a pass, a failure</td></tr>
+<tr><td><code>ci.failure_urgency</code></td><td><code>critical</code> or <code>normal</code></td></tr>
+</tbody>
+</table></div>
+<p>An Enterprise Server&#39;s logs come from wherever it keeps them: when that&#39;s
+another host than its own, the log can&#39;t be read (the browser can).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.2, &lt;2</code></td><td>1.3</td><td>176 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ci-v1.1.0/fenix.ci-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 083b9b9ee8d259a931197092e3593cacb79643eff323939167b826b8332c5121">083b9b9ee8…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.2, &lt;2</code></td><td>1.3</td><td>161 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ci-v1.0.0/fenix.ci-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 75a44e89bea14626e6f53253bec29bfdcbade0190365b5e4b264623d80826c2e">75a44e89be…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>Jenkins: name your server and the project&#39;s job (<code>ci.jenkins_url</code>, <code>ci.jenkins_job</code>) and the branch&#39;s builds are on the modeline and the page as GitHub&#39;s runs and GitLab&#39;s pipelines are -- a multibranch pipeline&#39;s by the branch you&#39;re on, any other job&#39;s by the branch Git built. A build opens on its stages, a failed stage on its steps, and <code>Enter</code> on its part of the console; <code>r</code> builds the job again, <code>c</code> stops the build. Notifications and the agents&#39; <code>ci_failures</code> tool work as they do for the others.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.2 (API 1.3): the branch&#39;s GitHub Actions runs or GitLab pipelines on the modeline, a page of their jobs, steps and logs with re-runs and cancels, notifications when they finish, and the failing jobs&#39; logs as a tool for coding agents.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

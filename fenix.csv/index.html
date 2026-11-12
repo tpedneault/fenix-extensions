@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSV table · Fenix extensions</title>
+<meta name="description" content="CSV and TSV files as a table: columns lined up, sorted and filtered, cells, rows and columns changed through the file&#39;s buffer, column stats, copies as CSV or Markdown -- a million rows as fast as ten">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>CSV table</h1>
+<p class="id"><code>fenix.csv</code></p>
+<p class="lead">CSV and TSV files as a table: columns lined up, sorted and filtered, cells, rows and columns changed through the file&#39;s buffer, column stats, copies as CSV or Markdown -- a million rows as fast as ten</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>213 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/csv">extensions/csv</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.python-bundle/index.html">Python</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>CSV table</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/csv-v1.0.0/fenix.csv-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.csv-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>CSV and TSV files as a table. A <code>.csv</code> or <code>.tsv</code> opens in it however you
+open it -- the explorer, the file picker, <code>:e</code>, a recent file -- its
+columns lined up and fitted to what they hold, numbers on the right, the
+rows fitted to the pane with the header kept above them as they scroll,
+and the focused cell, on the accent, shown whole below them.</p>
+<pre><code class="language-text">people.csv  1,204 rows · 4 columns · , &quot; · header · sorted by age ↓
+
+name       age ↓  city       note
+──────────────────────────────────────────────────────
+grace         85  Arlington  wrote the first compiler…
+alan          41  london
+ada           36  London     &quot;the Analytical Engine…
+──────────────────────────────────────────────────────
+note  row 1 of 1,204 (row 2 in the file)
+wrote the first compiler, and found the first bug
+</code></pre>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>h</code> <code>j</code> <code>k</code> <code>l</code>, the arrows</td><td>A cell</td></tr>
+<tr><td><code>J</code> <code>K</code>, PageDown PageUp</td><td>A screen down, up</td></tr>
+<tr><td><code>g</code> <code>G</code></td><td>The first and last row</td></tr>
+<tr><td><code>0</code> <code>$</code></td><td>The first and last column</td></tr>
+<tr><td><code>s</code></td><td>Sort by the focused column: up, down, as the file has it. Numbers sort as numbers, text without case, blanks last</td></tr>
+<tr><td><code>/</code></td><td>Filter the rows: by a text in any cell, or by conditions on columns</td></tr>
+<tr><td><code>e</code>, <code>Enter</code></td><td>Change the focused cell (<code>Enter</code> keeps it, <code>Esc</code> drops it; a cell of several lines keeps them, and <code>Tab</code> keeps it)</td></tr>
+<tr><td><code>E</code></td><td>Change the column&#39;s name</td></tr>
+<tr><td><code>o</code> <code>O</code></td><td>A row below, above</td></tr>
+<tr><td><code>a</code> <code>A</code></td><td>A column after, before</td></tr>
+<tr><td><code>dd</code> <code>dc</code></td><td>Delete the row, the column</td></tr>
+<tr><td><code>u</code> <code>U</code></td><td>Undo, redo the table&#39;s changes</td></tr>
+<tr><td>Ctrl+Z, Ctrl+Shift+Z (Ctrl+Y)</td><td>The buffer&#39;s undo and redo, as <code>u</code> and Ctrl+R in its text: its changes and the table&#39;s. In a field, its typing</td></tr>
+<tr><td><code>w</code></td><td>Save -- with the rows in the sort&#39;s order, if it&#39;s sorted</td></tr>
+<tr><td><code>v</code> <code>V</code></td><td>Select cells, rows (again stops)</td></tr>
+<tr><td><code>y</code></td><td>Copy the cell&#39;s value, or the selection as CSV</td></tr>
+<tr><td><code>Y</code></td><td>Copy the row (or the selection) as CSV</td></tr>
+<tr><td><code>m</code></td><td>Copy the row (or the selection) as a Markdown table</td></tr>
+<tr><td><code>c</code></td><td>The focused column&#39;s stats: count, distinct, blank, min, max, mean</td></tr>
+<tr><td><code>;</code> <code>&quot;</code> <code>H</code></td><td>Fields split by <code>,</code> <code>;</code> tab <code>|</code>; quotes <code>&quot;</code> <code>&#39;</code> none; a header or not</td></tr>
+<tr><td><code>t</code></td><td>The file&#39;s text, to edit (<code>SPC f o</code> too, and back to the table)</td></tr>
+<tr><td><code>q</code></td><td>Close it</td></tr>
+</tbody>
+</table></div>
+<p>With the mouse: a click focuses a cell (a column&#39;s name, its column), a
+double click changes it (a column&#39;s name, the name), a drag selects
+cells, and the wheel moves the focused row, three a notch.</p>
+<p>A filter is a text, found in any cell without case, or conditions on
+columns, by name (any case) or number (<code>3</code>, <code>#3</code>), with <code>&amp;</code> between
+them:</p>
+<pre><code class="language-text">price &gt; 3.5
+name ~ ada            the name holds &quot;ada&quot;
+city !~ lon           it doesn&#39;t
+status = done         any case; != for not
+age &gt;= 18 &amp; city = paris
+</code></pre>
+<p>Numbers compare as numbers (<code>price &gt; 3</code> passes <code>12</code>, which as text
+doesn&#39;t), the rest as text. <code>/</code> then Enter on nothing shows every row
+again.</p>
+<p>The delimiter, the quotes and whether the first row is a header are
+guessed from the file&#39;s first lines: the delimiter that splits them into
+the same number of fields, and a first row of names over values that
+aren&#39;t. <code>;</code>, <code>&quot;</code> and <code>H</code> change them, and what you chose is kept for
+that file (<code>dialects.json</code> in the extension&#39;s folder); changed back to
+the guess, it&#39;s forgotten.</p>
+<h3 id="readme-changes-go-through-the-files-buffer">Changes go through the file&#39;s buffer</h3>
+<p>A cell, a row or a column changed is an edit of the file&#39;s buffer, as
+if typed: the buffer is changed, not the file, until <code>w</code> saves it, and
+Fenix&#39;s undo has each change. <code>u</code> and <code>U</code> undo and redo here. Edited in
+its text (<code>t</code>), or by a replace across files, the buffer is read again
+as you go, once it&#39;s been still a moment. Before each change it checks
+the buffer still has what the table shows, and if something else
+changed it, reads it again instead.</p>
+<p>A sort is the view&#39;s until you save: <code>w</code> writes the rows in its order,
+one change you can undo, and the table is then in the file&#39;s order
+again. A filter is only ever the view&#39;s.</p>
+<p>Cells are written back as the csv crate writes them: quoted when they
+hold the delimiter, a quote or a line break, the quote doubled. The
+rest of the file -- its line breaks (<code>\n</code> or <code>\r\n</code>), a byte-order
+mark, how other cells are quoted -- is left as it is.</p>
+<h3 id="readme-big-files">Big files</h3>
+<p>The file&#39;s records are found once, and a row&#39;s cells are read only when
+it&#39;s shown, sorted on, filtered or summed up. A million rows (37 MiB)
+open in about a tenth of a second and scroll at once; sorting them, a
+filter or the stats take a fifth of a second or less (natively; the
+sandbox is slower, within a key&#39;s second).</p>
+<ul class="tight">
+<li><p><strong>The size.</strong> Fenix gives an extension a file of 64 MiB at most, and
+an extension has 128 MiB.</p></li>
+<li><p><strong>Changes to every row</strong> -- a column added or deleted, a sort saved --
+are refused in a file over 20 MiB: the old text, the new and what
+undoes them don&#39;t fit. Change it as text. A change over 32 MiB is made
+but can&#39;t be undone here (Fenix&#39;s undo in the buffer still has it).</p></li>
+<li><p><strong>The check</strong> that the buffer still holds what the table shows is
+skipped over 16 MiB.</p></li>
+</ul>
+<h3 id="readme-limits">Limits</h3>
+<ul class="tight">
+<li><p><strong>Rows shown.</strong> As many as the pane has room for, so the header stays
+in view; <code>csv.rows</code> sets how many instead, and the page then scrolls
+in a short pane.</p></li>
+<li><p><strong>The wheel</strong> moves the focused row, and the table scrolls with it.</p></li>
+<li><p><strong>Not UTF-8.</strong> A file that isn&#39;t is shown, and not changed.</p></li>
+<li><p><strong>The session.</strong> A table opens again with the session, where you were
+in it: one in the project is read from there, one from elsewhere
+because Fenix gives the extension again the files its pages show.</p></li>
+</ul>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Read, change and save the buffer of a file it shows, and know where
+you are in the editor (<code>editor = &quot;write&quot;</code>).</p></li>
+<li><p>Be told when a file&#39;s buffer changes (<code>events = [&quot;changed&quot;]</code>), to read
+its tables&#39; again.</p></li>
+<li><p>Read the project you&#39;re in, to open a table kept in the session again.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/csv dist
+cargo run --release --example million --manifest-path extensions/csv/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> checks the dialect guess, records and fields as the csv
+crate reads them, changes as splices of the text and the buffer&#39;s
+edits they become (lines and columns as Fenix counts them), undo,
+filters, sorts, stats, copies, and the page: its keys and how it&#39;s laid
+out. The example times a million rows.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>213 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/csv-v1.0.0/fenix.csv-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 61ceafb54d039a521e374a3636ff944dda23aa230e28f318aa1306124907e6f2">61ceafb54d…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: cSV and TSV files as a table: columns lined up, sorted and filtered, cells, rows and columns changed through the file&#39;s buffer, column stats, copies as CSV or Markdown -- a million rows as fast as ten.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

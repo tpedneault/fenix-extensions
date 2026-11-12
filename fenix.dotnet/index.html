@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C# and .NET · Fenix extensions</title>
+<meta name="description" content="C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new&#39;s projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>C# and .NET</h1>
+<p class="id"><code>fenix.dotnet</code></p>
+<p class="lead">C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new&#39;s projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>393 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/dotnet">extensions/dotnet</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>C# and .NET</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/dotnet-v1.0.0/fenix.dotnet-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.dotnet-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>dotnet</code></li><li><code>csharp-ls</code></li><li><code>netcoredbg</code></li><li><code>csharpier</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>C# and .NET in Fenix: csharp-ls as the language server, debugging with
+netcoredbg, the build&#39;s warnings and errors on save where there&#39;s no
+csharp-ls, CSharpier as the
+formatter, the solution&#39;s tasks, the project doctor&#39;s checks with their
+fixes, outdated and vulnerable NuGet packages, snippets, and <code>dotnet new</code>&#39;s projects in the new-project wizard. Built on lang-kit
+(<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It reads the solution at the project&#39;s top (<code>.sln</code> or <code>.slnx</code>) and its
+projects; without one, the project files three folders down. Each
+project&#39;s SDK, output type, frameworks, assembly name, packages and
+where its build goes come from its file and the <code>Directory.Build.props</code>
+above it (<code>OutputPath</code>, <code>BaseOutputPath</code>, <code>UseArtifactsOutput</code>,
+<code>RuntimeIdentifier</code>, when they&#39;re plain paths).</p>
+<h3 id="readme-the-language-server">The language server</h3>
+<p><code>csharp-ls</code>, given the solution (<code>--solution</code>), when it&#39;s installed
+(<code>~/.dotnet/tools</code> is looked in). Roslyn&#39;s own server isn&#39;t used: it
+isn&#39;t on nuget.org, talks over a named pipe, and loads a solution only
+when its client asks in a message of its own. The doctor&#39;s fix row
+installs csharp-ls with <code>dotnet tool update -g</code>, at the newest version
+the SDK can run: 0.16.0 on .NET 8, 0.20.0 on .NET 9, the latest on 10.</p>
+<p>csharp-ls gives its problems only when asked for them (LSP&#39;s pull
+diagnostics), which Fenix does as a file opens and changes.</p>
+<h3 id="readme-problems-on-save">Problems on save</h3>
+<p>Where csharp-ls isn&#39;t found, or with <code>dotnet.lint_on_save</code> on, when a
+C# file (or a project file) is saved, its project is built
+(<code>dotnet build &lt;project&gt; -v:q -clp:NoSummary</code>) and MSBuild&#39;s warnings
+and errors about that file are shown with the server&#39;s: <code>CS0168</code>,
+<code>CS8602</code>, an analyzer&#39;s. A project file gets its own on its first line
+(<code>NU1903</code>, a vulnerable package). <code>dotnet.lint_on_save</code> off turns it
+off even then.</p>
+<h3 id="readme-formatting">Formatting</h3>
+<p><code>SPC c F</code> -- and saving, with <code>editor.format_on_save</code> -- runs CSharpier
+on the buffer (<code>csharpier format --write-stdout --stdin-path ${file}</code>):
+the project&#39;s own when its tools manifest has it (<code>dotnet csharpier</code>),
+else the one installed. With neither, csharp-ls formats. <code>dotnet format</code> can&#39;t take a buffer on stdin -- it changes the files -- so it&#39;s
+the <code>format</code> task instead.</p>
+<h3 id="readme-debugging">Debugging</h3>
+<p>netcoredbg (<code>netcoredbg --interpreter=vscode</code>), from the tools folder or
+<code>PATH</code>; the fix row downloads Samsung&#39;s release for this machine
+(Linux x64 and arm64, Intel macOS, Windows x64) into the tools folder.</p>
+<p><code>SPC u u</code>, in a project with no launch configuration of its own, offers
+each program of the solution, its project built first (<code>build &lt;project&gt;</code>, or <code>build</code> for a project alone):</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>.NET: <em>project</em></td><td><code>dotnet</code> with its Debug build&#39;s dll, in its own folder, in Development with its launch profile&#39;s variables and URL, as <code>dotnet run</code> would</td></tr>
+<tr><td>.NET: <em>project</em>, stopped at its start</td><td>the same, <code>stopAtEntry</code></td></tr>
+<tr><td>.NET: attach to a process</td><td>the process picked as the session starts (<code>${pickProcess}</code>)</td></tr>
+<tr><td>.NET: the tests dotnet test holds</td><td>once <em>.NET: debug the tests</em> has them</td></tr>
+</tbody>
+</table></div>
+<p>The dll&#39;s path comes from the project file and <code>Directory.Build.props</code>;
+the doctor says whether the program you were in last is built, with a
+row that builds it.</p>
+<p><em>.NET: debug the tests</em> (<code>SPC m t</code>) runs <code>dotnet test</code> with
+<code>VSTEST_HOST_DEBUG=1</code> -- the test project you&#39;re in, else the
+solution&#39;s -- which builds and then holds the test host for the
+debugger; its process is then a launch of its own, which attaches to it.
+Its output opens beside when it ends. A test project that&#39;s a program
+(xunit.v3, TUnit, the MSTest runner) is debugged as a project.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>: <code>build</code>, <code>test</code>, <code>restore</code>, <code>clean</code> and <code>format</code> for the
+solution (<code>tool restore</code> with a tools manifest), then <code>build &lt;project&gt;</code>
+for each, <code>run &lt;project&gt;</code> for each program, <code>watch &lt;project&gt;</code> for a web
+project and <code>test &lt;project&gt;</code> for each test project. A task of the same
+name in <code>.fenix/tools.json</code> wins. Saving the solution, a project file,
+<code>Directory.Build.props</code>, <code>global.json</code> or the tools manifest makes them
+again.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<ul class="tight">
+<li><p><strong>.NET SDK</strong>: <code>dotnet --version</code> in the project, which <code>global.json</code>
+steers: the SDK it asks for, or, without one, one at least as new as
+the newest framework a project targets. Fix: the download page.</p></li>
+<li><p><strong>Language server</strong>: csharp-ls. Fix: <code>dotnet tool update -g csharp-ls</code>.</p></li>
+<li><p><strong>Debugger</strong>: netcoredbg. Fix: its release, into the tools folder.</p></li>
+<li><p><strong>CSharpier</strong>, unless the project has its own. Fix: <code>dotnet tool update -g csharpier</code>.</p></li>
+<li><p><strong>Debugging</strong>: the project to debug, built or not. Fix: build it.</p></li>
+</ul>
+<h3 id="readme-packages">Packages</h3>
+<p><code>SPC m p</code> (or <em>.NET: packages</em>): lang-kit&#39;s page, each package once for
+each project that has it, its project as its group; those another
+package brings are listed too.</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>list</td><td><code>dotnet list &lt;solution&gt; package --include-transitive --format json</code></td></tr>
+<tr><td>outdated</td><td>the same, <code>--outdated</code></td></tr>
+<tr><td>vulnerable</td><td>the same, <code>--vulnerable</code>: NuGet&#39;s severity, the GitHub advisory</td></tr>
+<tr><td><code>u</code></td><td><code>dotnet add &lt;project&gt; package &lt;name&gt; --version &lt;latest&gt;</code>; a transitive one is asked for, which is NuGet&#39;s way to move one up</td></tr>
+<tr><td><code>U</code></td><td>the same, when there&#39;s one to do: <code>dotnet add package</code> takes one</td></tr>
+<tr><td><code>a</code></td><td><code>dotnet add &lt;project&gt; package &lt;name&gt;</code> (<code>name@1.2.3</code> for a version), to the project you&#39;re in</td></tr>
+<tr><td><code>d</code></td><td><code>dotnet remove &lt;project&gt; package &lt;name&gt;</code></td></tr>
+</tbody>
+</table></div>
+<p>A project not restored yet says so (<code>dotnet restore</code>, the <code>restore</code>
+task).</p>
+<h3 id="readme-snippets">Snippets</h3>
+<p><code>cls</code>, <code>rec</code>, <code>recs</code> (record struct), <code>iface</code>, <code>enum</code>, <code>prop</code>, <code>propi</code>
+(init), <code>propr</code> (required), <code>propf</code> (a backing field), <code>ctor</code>, <code>am</code> (an
+async method), <code>aw</code> (<code>ConfigureAwait(false)</code>), <code>linq</code> (a query), <code>ws</code>
+(<code>Where</code>/<code>Select</code>), <code>gb</code> (<code>GroupBy</code>, counted), <code>foreach</code>, <code>usingv</code>, <code>try</code>,
+<code>ex</code> (an exception type), <code>cw</code>, <code>ns</code> (file-scoped); xUnit&#39;s <code>fact</code>,
+<code>afact</code>, <code>theory</code>, <code>xclass</code>; NUnit&#39;s <code>test</code>, <code>tcase</code>, <code>fixture</code>; <code>mapget</code>
+(a minimal API endpoint).</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>Each runs <code>dotnet new</code>, with the SDK&#39;s framework or the one you pick:</p>
+<ul class="tight">
+<li><p><strong>Console app</strong>, <strong>Class library</strong>, <strong>Web API</strong>, <strong>Worker service</strong>:
+a solution with the project in <code>src/</code> and, if you like, xUnit tests in
+<code>tests/</code> that reference it; a <code>.gitignore</code> and an <code>.editorconfig</code>.</p></li>
+<li><p><strong>xUnit tests</strong>: a test project on its own.</p></li>
+</ul>
+<h3 id="readme-files">Files</h3>
+<p><code>*.cake</code> is read as C#.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a .NET project: <code>p</code> packages, <code>d</code> check again, <code>t</code>
+debug the tests.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>393 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/dotnet-v1.0.0/fenix.dotnet-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 f471ee72c3a70e754f17e28f5ec6eb5129b55b33ae83c39460f9268ab0f3d868">f471ee72c3…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: c# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution&#39;s tasks, the project&#39;s checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new&#39;s projects.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

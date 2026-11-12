@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review · Fenix extensions</title>
+<meta name="description" content="GitHub pull requests, GitLab merge requests">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Review</h1>
+<p class="id"><code>fenix.review-bundle</code> <span class="badge">Bundle</span></p>
+<p class="lead">GitHub pull requests, GitLab merge requests</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>What it is</dt><dd>A bundle: installs its members</dd>
+<dt>Download</dt><dd>978 bytes</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/review-bundle">extensions/review-bundle</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page, and its Bundles tab.</li>
+<li>Search for <strong>Review</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/review-bundle-v1.0.0/fenix.review-bundle-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.review-bundle-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Nothing of its own: a bundle runs no code. Each extension it installs asks for its own permissions, below, and Fenix shows them before installing.</p>
+</section>
+<section aria-labelledby="members">
+<h2 id="members">What it installs</h2>
+<ul class="members">
+<li><p class="member-name"><a href="../fenix.review/index.html">Review</a> <code>fenix.review</code> <span class="gloss">^1</span></p><p>Code review on GitHub and GitLab: the reviews waiting, a request with its files, threads, checks and your held comments, submitted with a verdict -- and a new pull request for the branch</p><p class="gloss">May use: runs programs, web requests, project files, the editor, secrets, other settings, coding agents</p></li>
+</ul>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Code review on GitHub and GitLab: the reviews waiting, a request with
+its threads and checks, and a new one for the branch. One install on the
+welcome (<code>SPC h w</code>) or the Extensions page&#39;s Bundles (<code>SPC h x</code>) brings
+them all.</p>
+<div class="table"><table>
+<thead><tr><th>Extension</th><th>What</th></tr></thead>
+<tbody>
+<tr><td><code>fenix.review</code></td><td>Code review on GitHub and GitLab</td></tr>
+</tbody>
+</table></div>
+<p>Removing the bundle removes them too, unless you installed one on its
+own or another extension needs it.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>--</td><td>978 bytes</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/review-bundle-v1.0.0/fenix.review-bundle-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 40e3cee637a885bb7b6af253c44b913c3949fb6cfde978586e23b76a3e040892">40e3cee637…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: gitHub pull requests, GitLab merge requests.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

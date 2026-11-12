@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notebook · Fenix extensions</title>
+<meta name="description" content="Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Notebook</h1>
+<p class="id"><code>fenix.notebook</code></p>
+<p class="lead">Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.1.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>490 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/notebook">extensions/notebook</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.personal-bundle/index.html">Personal</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Notebook</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/notebook-v1.1.0/fenix.notebook-1.1.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.notebook-1.1.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>git</code></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Keeps files in folders of yours</dt><dd><ul class="folders"><li><code>notebook</code>: the folder the setting <code>notebook.folder</code> names, else <code>notebook</code> in Fenix's data folder</li></ul></dd></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Notes, a daily journal, diagrams, links between them and quick captures,
+kept for you as plain files in one folder -- so making one never means
+choosing where it goes. Its keys are under <code>SPC n</code>.</p>
+<p>The folder is <code>notebook.folder</code>, or the <code>notebook</code> folder in Fenix&#39;s data
+folder without one, read in place: <code>notes/*.md</code>, <code>journal/YYYY/YYYY-MM-DD.md</code>,
+<code>diagrams/*.mmd</code>, and <code>index.toml</code> beside them for names, pins and exports.
+Point it at a synced folder or an Obsidian vault and it works as it is.</p>
+<p>Notes save themselves a second after you stop typing, and the version
+before each editing session is kept (<code>h</code> on the notebook page).</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC n n</code></td><td>The notebook page</td></tr>
+<tr><td><code>SPC n N</code>, <code>SPC n d</code></td><td>A new note from a template, a new diagram</td></tr>
+<tr><td><code>SPC n j</code></td><td>Today&#39;s journal day: the agenda&#39;s due tasks and yesterday&#39;s open checkboxes</td></tr>
+<tr><td><code>SPC n c</code></td><td>Capture a line into today&#39;s journal (<code>&gt;</code> first: the Inbox; <code>[ ]</code> first: a task)</td></tr>
+<tr><td><code>SPC n f</code>, <code>SPC n /</code>, <code>SPC n #</code></td><td>Find by name, search (<code>tag:</code>, <code>type:</code>, <code>project:</code>, <code>is:todo</code>), tags</td></tr>
+<tr><td><code>SPC n b</code></td><td>What links here, beside the note</td></tr>
+<tr><td><code>SPC n l</code>, <code>SPC n y</code></td><td>Insert a link; copy a link to the line you&#39;re on</td></tr>
+<tr><td><code>SPC n t</code></td><td>The checkbox under the cursor to the agenda</td></tr>
+<tr><td><code>SPC n e</code>, <code>SPC n s</code>, <code>SPC n i</code></td><td>Export; save a ```mermaid block as a diagram; import a file</td></tr>
+<tr><td><code>SPC n v</code>, <code>SPC i D</code></td><td>Paste a picture; insert a diagram</td></tr>
+<tr><td><code>SPC m a</code>, <code>SPC m g</code></td><td>In a journal day: refresh its agenda list, add the day&#39;s commits</td></tr>
+</tbody>
+</table></div>
+<p>In Markdown, <code>[[</code> completes a note&#39;s name and <code>gd</code> on a link follows it
+(making the note when it isn&#39;t there yet) -- with standard keys, <code>F12</code> or
+Ctrl+click. The <code>SPC</code> keys above are <code>Ctrl+K</code> with standard keys.</p>
+<h3 id="readme-the-page">The page</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>Enter</code>, <code>o</code>, <code>v</code></td><td>Edit, read, view a diagram</td></tr>
+<tr><td><code>/</code>, <code>Tab</code>, <code>s</code></td><td>Filter, the chips, pin the search as a chip</td></tr>
+<tr><td><code>t</code> <code>r</code> <code>P</code> <code>D</code></td><td>Tags, rename (and every link to it), pin, duplicate</td></tr>
+<tr><td><code>h</code></td><td>Earlier versions, and putting one back</td></tr>
+<tr><td><code>p</code></td><td>Move it into the project&#39;s <code>docs</code></td></tr>
+<tr><td><code>x x</code></td><td>Delete: into the notebook&#39;s <code>.trash</code> folder</td></tr>
+<tr><td><code>e</code>, <code>T</code></td><td>Export; a diagram&#39;s theme</td></tr>
+<tr><td><code>[</code> <code>]</code></td><td>The journal day before, after</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-with-other-extensions">With other extensions</h3>
+<ul class="tight">
+<li><p><strong>Diagrams</strong> draws the diagrams in the page and exports (<code>diagrams.*</code>);
+<code>SPC n d</code> asks it for the kind and the starter.</p></li>
+<li><p><strong>Agenda</strong> fills a journal day&#39;s agenda list (<code>agenda.due</code>), takes <code>SPC n t</code>
+(<code>agenda.add_task</code>), and opens a <code>[[FSW-212]]</code> link (<code>agenda.open_task</code>).</p></li>
+</ul>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>notebook.folder</code></td><td>Where the notebook is</td></tr>
+<tr><td><code>notebook.history</code></td><td>Earlier versions kept of each entry</td></tr>
+<tr><td><code>notebook.journal</code></td><td>Captures go to today&#39;s journal (else the Inbox)</td></tr>
+<tr><td><code>notebook.show_project_files</code></td><td>List the project&#39;s own <code>.md</code> and <code>.mmd</code> files on the page</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-outside-fenix">Outside Fenix</h3>
+<p>The control channel&#39;s <code>fenix/notebook.capture</code> is answered by this
+extension. Fenix&#39;s reading view (<code>SPC m p</code>) asks it what <code>[[links]]</code> go to
+(<code>notebook.link</code>, <code>notebook.follow</code>).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.5</td><td>490 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/notebook-v1.1.0/fenix.notebook-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 1a03f4903e4ca5e9372875ff45111a1138ce5bacc9e3bde21a73ce6fa3db615f">1a03f4903e…</code></td></tr>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>490 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/notebook-v1.0.0/fenix.notebook-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 ee290175e0f93bfd7ab7d1d93ee389d1ba762ca09258bf2ec690ab67a6748c5f">ee290175e0…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): a link&#39;s hover says the keys of the
+key scheme in use for following it -- <code>F12</code> with standard keys, <code>gd</code>
+with Vim keys. The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

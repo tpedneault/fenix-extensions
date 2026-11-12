@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Env files · Fenix extensions</title>
+<meta name="description" content="Env files (.env): values hidden but on the cursor&#39;s line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Env files</h1>
+<p class="id"><code>fenix.dotenv</code></p>
+<p class="lead">Env files (.env): values hidden but on the cursor&#39;s line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>213 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/dotenv">extensions/dotenv</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Env files</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/dotenv-v1.0.0/fenix.dotenv-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.dotenv-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>git</code></li><li><code>npm</code></li><li><code>npx</code></li><li><code>pnpm</code></li><li><code>yarn</code></li><li><code>bun</code></li><li><code>node</code></li><li><code>deno</code></li><li><code>python</code></li><li><code>python3</code></li><li><code>uv</code></li><li><code>poetry</code></li><li><code>pipenv</code></li><li><code>cargo</code></li><li><code>go</code></li><li><code>make</code></li><li><code>just</code></li><li><code>docker</code></li><li><code>dotnet</code></li><li><code>php</code></li><li><code>ruby</code></li><li><code>bundle</code></li><li><code>rails</code></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Sees where you are in the editor, and changes what you&#39;re editing</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p><code>.env</code> files in Fenix: their values hidden but on the cursor&#39;s line,
+every env file in the project side by side, profiles switched with a
+backup kept or tasks run with them, a warning when Git would commit
+one, keys checked against <code>.env.example</code>, and variable names completed
+in code.</p>
+<p>An env file is <code>.env</code>, <code>.env.&lt;anything&gt;</code> (<code>.env.local</code>, <code>.env.staging</code>)
+or <code>&lt;name&gt;.env</code>. One whose name says <code>example</code>, <code>sample</code>, <code>template</code> or
+<code>dist</code> is an example: it says what&#39;s needed and is meant to be
+committed, so its values are shown and Git isn&#39;t asked about it.</p>
+<h3 id="readme-values-hidden">Values hidden</h3>
+<p>A value is drawn as <code>••••••</code> -- but as it is on the line the cursor&#39;s
+on, so you can edit it. <code>SPC p e r</code> shows every value in the file, with
+what <code>${VAR}</code> comes to after each value that has one; again hides them.
+<code>dotenv.mask</code> off shows them always; <code>dotenv.mask_examples</code> hides an
+example&#39;s too.</p>
+<p>Fenix masks them itself from a file&#39;s first frame, by rules the
+extension gives it: a value on one line, quoted or not. A
+quoted value over several lines is masked once you&#39;re in the file. The
+rules go by file name: the usual env files&#39; and those in the project,
+or <code>.env</code>, <code>.env.*</code> and <code>*.env</code> when examples are masked too. A file
+whose values <code>SPC p e r</code> shows takes its name out of them, so another
+file of that name opened then is masked once you&#39;re in it.</p>
+<h3 id="readme-highlighting">Highlighting</h3>
+<p>Env files are highlighted as shell (<code>languages/dotenv.toml</code>): Fenix
+ships no dotenv grammar, and of those it has, the shell&#39;s reads what an
+env file holds -- <code>KEY=value</code>, <code>export</code>, <code>#</code> comments, quotes,
+<code>${VAR}</code>. A value with a space that isn&#39;t quoted reads as a command
+after it. It names <code>.env</code>, <code>*.env</code> and the pattern <code>.env.*</code>; a
+pattern wins over a file&#39;s extension, so <code>dotenv_*.toml</code> give
+code named like one (<code>.env.d.ts</code>, <code>.env.mjs</code>, <code>.env.json</code>, <code>.env.yml</code>)
+its own language back. With <code>bash-language-server</code> installed it&#39;s asked about them
+too, as shell; ShellCheck may then say a key is unused (SC2034).</p>
+<h3 id="readme-checks">Checks</h3>
+<p>As you type, an env file&#39;s problems are underlined:</p>
+<ul class="tight">
+<li><p>a line that isn&#39;t <code>KEY=value</code> or a comment, a quote not closed, text
+after a closing quote, a key a shell can&#39;t take (<code>my.key</code>, <code>1X</code>);</p></li>
+<li><p>a key set twice: most loaders keep the last, dotenvy the first;</p></li>
+<li><p><code>${VAR}</code> that no key above sets (it&#39;s the environment&#39;s, if anything);</p></li>
+<li><p>the keys the example beside it has and it lacks (<code>SPC p e m</code> adds
+them, empty, as one change you can undo), and the keys it has that
+the example hasn&#39;t;</p></li>
+<li><p>Git: a file it tracks (its secrets are in the history: <code>SPC p e u</code>
+stops tracking it, the file kept, then commit that), or one
+<code>.gitignore</code> doesn&#39;t ignore (<code>SPC p e i</code> adds it). Asked of
+<code>git ls-files</code> and <code>git check-ignore</code> when you first open an env
+file, after <code>.gitignore</code> is saved, and with <code>SPC p e c</code>.</p></li>
+</ul>
+<p>The project doctor&#39;s page has the same, with the fixes.</p>
+<h3 id="readme-profiles">Profiles</h3>
+<p><code>SPC p e p</code> copies <code>.env.&lt;name&gt;</code> over <code>.env</code> (the one beside the env
+file you&#39;re in, else the project&#39;s), once you say yes. The old <code>.env</code>
+is kept first, outside the project so Git never sees it, in the
+extension&#39;s folder; <code>SPC p e b</code> puts one back (keeping what&#39;s there
+first). When <code>.env</code> is open the copy is one change you can undo, saved.
+The modeline says <code>env: staging</code> while <code>.env</code> is <code>.env.staging</code>&#39;s copy.</p>
+<h4 id="readme-tasks-with-a-profile">Tasks with a profile</h4>
+<p>Or leave <code>.env</code> as it is and run your tasks with a profile&#39;s variables:
+<code>dotenv.tasks</code> lists commands (<code>npm run dev, cargo run</code>), offered in the
+task picker (<code>SPC p t</code>) as <code>npm run dev · env .env.staging</code>, run in the
+project with the variables of the env file <code>SPC p e t</code> picked (<code>.env</code>
+until you pick one; kept for the project). The values are as they&#39;re
+loaded, <code>${VAR}</code> filled in; most loaders don&#39;t override a variable
+that&#39;s set, so the profile&#39;s win over what <code>.env</code> says.</p>
+<p>A task runs one of the programs the manifest names: <code>npm</code>, <code>npx</code>,
+<code>pnpm</code>, <code>yarn</code>, <code>bun</code>, <code>node</code>, <code>deno</code>, <code>python</code>, <code>python3</code>, <code>uv</code>,
+<code>poetry</code>, <code>pipenv</code>, <code>cargo</code>, <code>go</code>, <code>make</code>, <code>just</code>, <code>docker</code>, <code>dotnet</code>,
+<code>php</code>, <code>ruby</code>, <code>bundle</code>, <code>rails</code>; another is left out, its output page
+says why. Fenix&#39;s own tasks and other extensions&#39; run without a
+profile&#39;s variables.</p>
+<h3 id="readme-the-env-files-page">The env files page</h3>
+<p><code>SPC p e e</code>: every env file in the project, side by side -- a row a key,
+a column a file, values hidden. A key the example has and a file lacks
+says <code>missing</code> there.</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>hjkl</code>, arrows, <code>g</code> <code>G</code></td><td>Move</td></tr>
+<tr><td><code>r</code></td><td>Show or hide the values (<code>${VAR}</code> filled in)</td></tr>
+<tr><td><code>Enter</code></td><td>Open the file at the key</td></tr>
+<tr><td><code>y</code></td><td>Copy the value (the key, in the key&#39;s column)</td></tr>
+<tr><td><code>m</code></td><td>Add the keys its example has to the focused file</td></tr>
+<tr><td><code>p</code></td><td>Switch profile</td></tr>
+<tr><td><code>i</code></td><td>Add what Git would commit to <code>.gitignore</code></td></tr>
+<tr><td><code>R</code></td><td>Look for the files and ask Git again</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-completion">Completion</h3>
+<p>In code, the project&#39;s variable names are offered, each with the files
+that set it, after:</p>
+<div class="table"><table>
+<thead><tr><th>Language</th><th></th></tr></thead>
+<tbody>
+<tr><td>JavaScript, TypeScript</td><td><code>process.env.</code>, <code>process.env[&quot;</code>, <code>import.meta.env.</code>, <code>Bun.env.</code>, <code>Deno.env.get(&quot;</code></td></tr>
+<tr><td>Python</td><td><code>os.environ[&quot;</code>, <code>os.environ.get(&quot;</code>, <code>os.getenv(&quot;</code></td></tr>
+<tr><td>Rust</td><td><code>std::env::var(&quot;</code>, <code>env::var_os(&quot;</code>, <code>env!(&quot;</code>, <code>option_env!(&quot;</code>, <code>dotenvy::var(&quot;</code></td></tr>
+<tr><td>Go</td><td><code>os.Getenv(&quot;</code>, <code>os.LookupEnv(&quot;</code></td></tr>
+<tr><td>PHP</td><td><code>$_ENV[&#39;</code>, <code>$_SERVER[&#39;</code>, <code>getenv(&#39;</code></td></tr>
+<tr><td>Ruby</td><td><code>ENV[&#39;</code>, <code>ENV.fetch(&#39;</code></td></tr>
+</tbody>
+</table></div>
+<p>With no quote typed yet (<code>os.getenv(</code>) the name goes in quotes. It&#39;s a
+language server beside the language&#39;s own: Fenix merges their
+completions. In an env file, names are offered after <code>$</code> and <code>${</code>.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC p e e</code></td><td><code>dotenv.page</code></td><td>Every env file, side by side</td></tr>
+<tr><td><code>SPC p e r</code></td><td><code>dotenv.reveal</code></td><td>Show or hide this file&#39;s values</td></tr>
+<tr><td><code>SPC p e p</code></td><td><code>dotenv.profile</code></td><td>Switch profile</td></tr>
+<tr><td><code>SPC p e t</code></td><td><code>dotenv.task_profile</code></td><td>The env file tasks run with</td></tr>
+<tr><td><code>SPC p e b</code></td><td><code>dotenv.restore</code></td><td>Put back a backup</td></tr>
+<tr><td><code>SPC p e m</code></td><td><code>dotenv.add_missing</code></td><td>Add the keys the example has</td></tr>
+<tr><td><code>SPC p e i</code></td><td><code>dotenv.gitignore</code></td><td>Add what Git would commit to <code>.gitignore</code></td></tr>
+<tr><td><code>SPC p e u</code></td><td><code>dotenv.untrack</code></td><td>Stop tracking env files in Git</td></tr>
+<tr><td><code>SPC p e c</code></td><td><code>dotenv.check</code></td><td>Look for env files and ask Git again</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>dotenv.mask</code></td><td>Hide values but on the cursor&#39;s line</td></tr>
+<tr><td><code>dotenv.mask_examples</code></td><td>Hide examples&#39; values too</td></tr>
+<tr><td><code>dotenv.git</code></td><td>Ask Git whether it would commit an env file</td></tr>
+<tr><td><code>dotenv.tasks</code></td><td>Commands offered as tasks, with a profile&#39;s variables</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Where you are, and change it:</strong> hide the values of the env file
+you&#39;re in; add keys to it, copy a profile over it, add to
+<code>.gitignore</code>.</p></li>
+<li><p><strong>The project, read and changed:</strong> its env files, read; a profile
+copied over <code>.env</code>; <code>.gitignore</code>.</p></li>
+<li><p><strong>Run git:</strong> <code>ls-files</code> and <code>check-ignore</code>, to ask whether it would
+commit an env file; <code>rm --cached</code> when you ask it to stop tracking
+one.</p></li>
+<li><p><strong>Run npm, cargo, python and the like:</strong> only the commands you list
+in <code>dotenv.tasks</code>, as tasks you start.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>213 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/dotenv-v1.0.0/fenix.dotenv-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 ffe9fe5c461e496f389cc63f7307db1f97694bbcb1ec0500a47971f2ebb5528e">ffe9fe5c46…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: env files (.env): values hidden but on the cursor&#39;s line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

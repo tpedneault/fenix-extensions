@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ada and SPARK · Fenix extensions</title>
+<meta name="description" content="Ada and SPARK: their grammar, the Ada Language Server for Ada and GNAT project files, Alire&#39;s or gprbuild&#39;s tasks, GNATprove&#39;s findings as problems, the project&#39;s checks with fixes that install Alire, GNAT and the server, and snippets">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Ada and SPARK</h1>
+<p class="id"><code>fenix.ada</code></p>
+<p class="lead">Ada and SPARK: their grammar, the Ada Language Server for Ada and GNAT project files, Alire&#39;s or gprbuild&#39;s tasks, GNATprove&#39;s findings as problems, the project&#39;s checks with fixes that install Alire, GNAT and the server, and snippets</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>382 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/ada">extensions/ada</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Ada and SPARK</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.0.0/fenix.ada-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.ada-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>alr</code></li><li><code>gnat</code></li><li><code>gprbuild</code></li><li><code>gprclean</code></li><li><code>gnatprove</code></li><li><code>ada_language_server</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Ada and SPARK in Fenix: their grammar (Fenix has none of its own),
+AdaCore&#39;s Ada Language Server for Ada and for GNAT&#39;s project files,
+Alire&#39;s or gprbuild&#39;s tasks, GNATprove&#39;s findings as problems, the
+project doctor&#39;s checks with fixes that install Alire, GNAT, gprbuild,
+GNATprove and the server, and snippets. Built on lang-kit
+(<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It starts with Fenix. The server is set for Ada files whenever it&#39;s
+found; the doctor checks, and the tasks run, in an Ada project: an Alire
+crate (<code>alire.toml</code>), a GNAT project file (<code>.gpr</code>) at the top, or Ada
+sources.</p>
+<h3 id="readme-the-grammar">The grammar</h3>
+<p><code>*.ads</code>, <code>*.adb</code> and <code>*.ada</code> are read with tree-sitter-ada 0.9.2&#39;s
+grammar (<code>grammars/</code>, MIT): highlighted, folded (packages, subprograms,
+tasks, protected objects, records, <code>if</code>, <code>case</code>, loops, handlers), with
+Enter indenting inside a unit or a statement, and the breadcrumbs and
+<code>SPC c s</code> listing them. SPARK&#39;s aspects (<code>SPARK_Mode</code>, <code>Global</code>, <code>Pre</code>,
+<code>Post</code>) and pragmas (<code>Loop_Invariant</code>, <code>Assert</code>) are coloured as
+attributes, <code>&#39;Old</code> and <code>&#39;Range</code> as properties. <code>--</code> comments a line.</p>
+<p>Project files (<code>*.gpr</code>) are a language of their own, <code>gpr</code>, read with
+the same grammar, which isn&#39;t theirs: their keywords, strings and
+comments are coloured, and they don&#39;t fold.</p>
+<h3 id="readme-the-server">The server</h3>
+<p>The Ada Language Server (<code>ada_language_server</code>): completion, go to
+definition, references, rename, hover, its own problems, and formatting
+(<code>SPC c F</code>, and saving with <code>editor.format_on_save</code>), which it does
+itself with GNATformat. Project files get it too, in its GPR mode
+(<code>--language-gpr</code>).</p>
+<p>It&#39;s told the project file to load (<code>ada.projectFile</code>, its own
+setting): the one you choose, else an Alire crate&#39;s (<code>&lt;name&gt;.gpr</code>), else
+the only one at the project&#39;s top. With several and none chosen, the
+doctor says so. In an Alire crate, with Alire found, it runs in the
+crate&#39;s environment (<code>alr exec -- ada_language_server</code>), where Alire&#39;s
+GNAT and the dependencies&#39; project files are.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>:</p>
+<div class="table"><table>
+<thead><tr><th></th><th>In an Alire crate</th><th>With a project file</th></tr></thead>
+<tbody>
+<tr><td><code>build</code></td><td><code>alr build</code></td><td><code>gprbuild -P &lt;gpr&gt;</code>; and <code>build &lt;main&gt;</code> for each main when <code>for Main use</code> lists several</td></tr>
+<tr><td><code>run</code></td><td><code>alr run</code>; <code>run &lt;exe&gt;</code> for each of several <code>executables</code></td><td>--</td></tr>
+<tr><td><code>test</code></td><td><code>alr test</code>: the crate&#39;s test actions, else a release build</td><td>--</td></tr>
+<tr><td><code>update</code></td><td><code>alr update</code></td><td>--</td></tr>
+<tr><td><code>clean</code></td><td><code>alr clean</code></td><td><code>gprclean -P &lt;gpr&gt;</code></td></tr>
+<tr><td><code>prove</code></td><td><code>alr exec -P1 -- gnatprove --level=N -j0</code></td><td><code>gnatprove -P &lt;gpr&gt; --level=N -j0</code></td></tr>
+</tbody>
+</table></div>
+<p><code>alr</code> always runs with <code>-n</code>, so it never waits on a question. <code>prove</code>
+is there when the project uses SPARK: <code>SPARK_Mode</code> in a source, or
+GNATprove among the crate&#39;s dependencies. <code>N</code> is <code>ada.proveLevel</code>. The
+project&#39;s <code>.env</code> goes to each task.</p>
+<h3 id="readme-proof">Proof</h3>
+<p><code>SPC m p</code> (<code>ada.prove</code>) runs the proof as the <code>prove</code> task does, with
+one message a line (<code>--output=oneline</code>) and past an error (<code>-k</code>), and
+shows what GNATprove found as problems, on the files they&#39;re in: a check
+not proved at <code>high</code> as an error, <code>medium</code> as a warning, <code>low</code> as
+information; flow analysis&#39;s and the compiler&#39;s errors and warnings as
+they are. A proof takes from seconds to many minutes, so it runs only
+when asked, not on save; its problems stay until the next run.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>Alire</td><td><code>alr --version</code>; needed in a crate</td><td>Alire 2.1.1 (Linux and macOS, x86_64 and arm64; Windows x86_64)</td></tr>
+<tr><td>GNAT (Alire&#39;s)</td><td>in a crate, <code>alr version</code>&#39;s selected GNAT and gprbuild; needed</td><td><code>alr toolchain --select gnat_native gprbuild</code></td></tr>
+<tr><td>GNAT</td><td>elsewhere, <code>gnat --version</code>; needed</td><td><code>alr install gnat_native gprbuild</code>, with Alire</td></tr>
+<tr><td>gprbuild</td><td>with a project file, <code>gprbuild --version</code>; needed</td><td>the same</td></tr>
+<tr><td>Ada Language Server</td><td><code>ada_language_server --version</code></td><td>2027.0.202610121 (Linux and macOS, x86_64 and arm64; Windows x86_64)</td></tr>
+<tr><td>GNATprove</td><td>with SPARK: <code>gnatprove --version</code>, or a crate&#39;s through <code>alr exec</code></td><td><code>alr install gnatprove</code>, with Alire</td></tr>
+<tr><td>Project file</td><td>several <code>.gpr</code> and none chosen, or the one chosen not there</td><td>--</td></tr>
+</tbody>
+</table></div>
+<p>Alire&#39;s and the server&#39;s releases come from GitHub, each checked against
+the SHA-256 the pack knows, unpacked into the pack&#39;s tools folder, and
+used at once. The server&#39;s is a 110 MB download that unpacks to about
+460 MB, most of it the debug symbols AdaCore ships beside it.
+<code>alr install</code> puts GNAT, gprbuild and GNATprove in
+Alire&#39;s install prefix, <code>~/.alire/bin</code>, where the pack looks. The pack
+never runs <code>alr with gnatprove</code>, which changes the crate&#39;s manifest: to
+make GNATprove a dependency of the crate, run it yourself.</p>
+<p>Programs you installed yourself are used instead: the pack looks on
+<code>PATH</code>, in <code>~/.alire/bin</code>, and where GNAT&#39;s installers put GNAT
+(<code>/usr/gnat/bin</code>, <code>/opt/gnat/bin</code>, GNAT Community 2021&#39;s
+<code>/opt/GNAT/2021/bin</code> and <code>C:\GNAT\2021\bin</code>) and Homebrew does. Alire&#39;s
+own toolchains (<code>~/.local/share/alire/toolchains</code>) are named by a hash,
+so they&#39;re used through <code>alr</code>, not looked for.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>pkg</code>, <code>pkgb</code>, <code>spark</code></td><td>a package spec, its body; a spec <code>with SPARK_Mode</code></td></tr>
+<tr><td><code>main</code></td><td>a main procedure, with <code>Ada.Text_IO</code></td></tr>
+<tr><td><code>proc</code>, <code>func</code>, <code>exprf</code></td><td>a procedure, a function, an expression function</td></tr>
+<tr><td><code>rec</code>, <code>tagged</code></td><td>a record type; a tagged type and a primitive</td></tr>
+<tr><td><code>gen</code></td><td>a generic package</td></tr>
+<tr><td><code>task</code>, <code>prot</code></td><td>a task type and its body; a protected object and its body</td></tr>
+<tr><td><code>case</code>, <code>for</code>, <code>exc</code></td><td><code>case</code> with <code>when others</code>; <code>for</code> over <code>&#39;Range</code>; a block with a handler</td></tr>
+<tr><td><code>contract</code>, <code>inv</code></td><td>a procedure with <code>Global</code>, <code>Pre</code> and <code>Post</code>; <code>pragma Loop_Invariant</code></td></tr>
+<tr><td><code>aunit</code></td><td>an AUnit test case: its spec and body</td></tr>
+</tbody>
+</table></div>
+<p>Each is indented by three spaces, as GNAT&#39;s style check (<code>-gnaty3</code>)
+wants.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>ada.projectFile</code></td><td>empty</td><td>The project file the server, the tasks and GNATprove use, under the project; the project&#39;s own setting</td></tr>
+<tr><td><code>ada.proveLevel</code></td><td>2</td><td><code>gnatprove --level</code>, 0 (quickest) to 4</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in an Ada project or file: <code>d</code> checks the project again,
+<code>p</code> proves.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>Running a GNAT project&#39;s mains</strong>: without Alire, there&#39;s no task
+that runs a built executable; <code>alr run</code> does in a crate.</p></li>
+<li><p><strong>Debugging</strong>: GNAT&#39;s programs debug with GDB; the pack doesn&#39;t set an
+adapter or launches yet.</p></li>
+<li><p><strong>Cross toolchains</strong>: the doctor checks the native GNAT; a crate that
+depends on <code>gnat_arm_elf</code> or another builds with it through <code>alr</code>, but
+isn&#39;t checked for it.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>382 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.0.0/fenix.ada-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 e03b21c24a26d406c188f0d4d487a390fbb58c97ad6acbb043143b3261d8aabe">e03b21c24a…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: ada and SPARK: their grammar, the Ada Language Server for Ada and GNAT project files, Alire&#39;s or gprbuild&#39;s tasks, GNATprove&#39;s findings as problems, the project&#39;s checks with fixes that install Alire, GNAT and the server, and snippets.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

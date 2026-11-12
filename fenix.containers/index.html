@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Containers · Fenix extensions</title>
+<meta name="description" content="Docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Containers</h1>
+<p class="id"><code>fenix.containers</code></p>
+<p class="lead">Docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>188 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/containers">extensions/containers</a></dd>
+<dt>In the bundles</dt><dd><a href="../fenix.lab-bundle/index.html">Lab</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Containers</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/containers-v1.0.0/fenix.containers-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.containers-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>docker</code></li><li><code>podman</code></li><li><code>wslc</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Docker, Podman and wslc in Fenix: containers grouped by Compose stack,
+the project&#39;s own <code>compose.yaml</code>, live logs merged across a stack,
+performance, images and their layers, volumes and networks.</p>
+<p><code>SPC d d</code> opens it. <code>SPC d p</code> opens performance, <code>SPC d b</code> builds the
+project&#39;s Dockerfile.</p>
+<h3 id="readme-the-page">The page</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>1</code>-<code>5</code>, <code>]</code>, <code>[</code></td><td>Containers, Compose, Images, Volumes, Networks</td></tr>
+<tr><td><code>j</code> <code>k</code> <code>g</code> <code>G</code></td><td>Move</td></tr>
+<tr><td><code>Enter</code></td><td>Open the container or image</td></tr>
+<tr><td><code>m</code></td><td>The container&#39;s menu</td></tr>
+<tr><td><code>s</code> <code>R</code> <code>p</code> <code>K</code></td><td>Start or stop, restart, pause, kill</td></tr>
+<tr><td><code>l</code></td><td>Its logs; <code>L</code> on a stack, the whole stack&#39;s</td></tr>
+<tr><td><code>!</code></td><td>A shell in it</td></tr>
+<tr><td><code>o</code></td><td>Open its published port</td></tr>
+<tr><td><code>i</code></td><td>Its <code>inspect</code>, as JSON</td></tr>
+<tr><td><code>y</code></td><td>Copy its id</td></tr>
+<tr><td><code>x x</code></td><td>Remove it</td></tr>
+<tr><td><code>P P</code></td><td>Prune unused images, volumes or networks; <code>P</code> on Containers opens performance</td></tr>
+<tr><td><code>u</code> <code>d</code> <code>b</code></td><td>Compose up, down, build</td></tr>
+<tr><td><code>/</code></td><td>Filter</td></tr>
+<tr><td><code>e</code></td><td>Another engine</td></tr>
+<tr><td><code>r</code></td><td>Reload</td></tr>
+</tbody>
+</table></div>
+<p>A log page follows (<code>F</code>), shows times (<code>t</code>), filters (<code>/</code>), hides a
+stream (<code>1</code>-<code>9</code>) and opens as a buffer (<code>o</code>).</p>
+<h3 id="readme-engines">Engines</h3>
+<p>The first engine that runs is used: Docker, then Podman, then wslc.
+<code>containers.engine</code> pins one. An engine that&#39;s installed but not running says
+so, and <code>Enter</code> starts it (Docker Desktop, or Podman&#39;s machine).</p>
+<p>wslc (WSL 2.9.3 or later, a preview) has containers and images, but no
+Compose, volumes or networks yet; those tabs say so.</p>
+<h3 id="readme-permissions">Permissions</h3>
+<p>It runs <code>docker</code>, <code>podman</code> and <code>wslc</code>, and reads the project for its
+<code>compose.yaml</code>. It sends nothing anywhere.</p>
+<h3 id="readme-building-it">Building it</h3>
+<pre><code class="language-text">cargo xtask pack extensions/containers dist
+</code></pre>
+<p>It needs Rust&#39;s <code>wasm32-wasip2</code> target (<code>rustup target add wasm32-wasip2</code>).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>188 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/containers-v1.0.0/fenix.containers-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 c3b5f3456759391968721f855f8c6ea93072570d72d3b1c1e072f6747d1e11cf">c3b5f34567…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

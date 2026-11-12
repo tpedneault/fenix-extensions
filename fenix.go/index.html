@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Go · Fenix extensions</title>
+<meta name="description" content="Go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Go</h1>
+<p class="id"><code>fenix.go</code></p>
+<p class="lead">Go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>346 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/go">extensions/go</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Go</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/go-v1.0.0/fenix.go-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.go-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>go</code></li><li><code>gofmt</code></li><li><code>goimports</code></li><li><code>gopls</code></li><li><code>dlv</code></li><li><code>govulncheck</code></li><li><code>golangci-lint</code></li><li><code>brew</code></li><li><code>winget</code></li></ul></dd></div>
+<div><dt>Opens network connections (TCP and UDP sockets) to these addresses</dt><dd><ul class="chips"><li><code>${setting:go.delve_server}</code> <span class="gloss">those the setting go.delve_server holds</span></li><li><code>127.0.0.1:2345</code></li><li><code>localhost:2345</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Go in Fenix: gopls as the language server, debugging with Delve, go vet
+or golangci-lint on save, gofmt or goimports as the formatter, tasks,
+the project doctor&#39;s checks with their fixes, outdated and vulnerable
+modules, snippets, and CLI, HTTP service and library projects in the
+new-project wizard. Built on lang-kit (<code>crates/lang-kit</code>), as each
+language pack is.</p>
+<p>What <code>go install</code> installs goes to <code>~/go/bin</code>, which an editor started
+from the desktop often doesn&#39;t have on its <code>PATH</code>: the pack looks there
+too, and in Go&#39;s own folders (<code>/usr/local/go/bin</code>, <code>C:\Program Files\Go\bin</code>, Homebrew&#39;s).</p>
+<h3 id="readme-the-language-server">The language server</h3>
+<p>gopls, as found. Without it, Fenix starts <code>gopls</code> from <code>PATH</code> as
+before, and the doctor&#39;s fix row installs it (<code>go install golang.org/x/tools/gopls@latest</code>).</p>
+<h3 id="readme-linting-and-formatting">Linting and formatting</h3>
+<p>When a Go file is saved, its package is linted and the problems in that
+file are shown with gopls&#39;: golangci-lint&#39;s (<code>run --output.json.path stdout</code>, or 1.x&#39;s <code>--out-format json</code>) when it&#39;s installed, else <code>go vet -json</code>. A package that doesn&#39;t compile shows the compiler&#39;s errors.
+<code>go.linter</code> picks go vet, or turns it off.</p>
+<p><code>SPC c F</code> -- and saving, with <code>editor.format_on_save</code> -- runs goimports
+on the buffer when it&#39;s installed (<code>-srcdir</code> the file, so the package&#39;s
+own imports are known), else gofmt. <code>go.formatter</code> can ask for gofmt.</p>
+<h3 id="readme-debugging">Debugging</h3>
+<p>The adapter is Delve&#39;s DAP server, <code>dlv dap --listen 127.0.0.1:${port}</code>:
+Fenix starts it in the project for each session, on a port it picks,
+and connects to it. Delve builds the package it&#39;s given in the project,
+so <code>go.mod</code> is found.</p>
+<p><code>SPC u u</code>, in a project with no launch configuration of its own, offers:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>Go: the project&#39;s main package</td><td>the package at the top</td></tr>
+<tr><td>Go: this package</td><td>the package of the file you&#39;re in: a <code>cmd/&lt;name&gt;</code></td></tr>
+<tr><td>Go: test this package</td><td>its tests (<code>mode: test</code>, <code>-test.v</code>), run in its folder</td></tr>
+<tr><td>Go: attach to a process</td><td>a program running here, picked as the session starts (<code>mode: local</code>)</td></tr>
+<tr><td>Go: attach to a headless Delve</td><td>a Delve already running, below</td></tr>
+</tbody>
+</table></div>
+<p><em>Go: attach to a process</em> lists this machine&#39;s processes
+(<code>${pickProcess}</code>) and Delve attaches to the one picked. On Linux that
+needs ptrace: <code>kernel.yama.ptrace_scope</code> at 0, or Delve run as root.
+It&#39;s for the Delve Fenix starts, so not with <code>go.delve_server</code> set.</p>
+<p>To debug through a Delve of your own -- on another machine&#39;s port, or
+started before Fenix -- start it headless and set <code>go.delve_server</code> to
+its address:</p>
+<pre><code class="language-sh">dlv attach &lt;pid&gt; --headless --listen 127.0.0.1:2345 --accept-multiclient
+dlv exec ./orbit --headless --listen 127.0.0.1:2345 --accept-multiclient
+</code></pre>
+<p>Fenix then connects to that Delve in place of starting one, for every
+session, until the setting is emptied again.</p>
+<p>Delve needs a Go it supports: Delve 1.27 says Go 1.24 is too old when a
+session starts. An older Delve (<code>go install github.com/go-delve/delve/cmd/dlv@v1.25.2</code>) or a newer Go fixes it.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>: build (<code>go build ./...</code>), run (each main package: the top
+one, and <code>run &lt;name&gt;</code> for each <code>cmd/&lt;name&gt;</code> beside it), test, vet, lint
+(golangci-lint, when it&#39;s installed), format (goimports <code>-w</code>, else <code>go fmt</code>), tidy, and vulncheck (govulncheck, when it&#39;s installed). The
+project&#39;s <code>.env</code> goes to each. A task of the same name in
+<code>.fenix/tools.json</code> wins. Saving <code>go.mod</code>, <code>go.work</code> or golangci-lint&#39;s
+config makes them again.</p>
+<h3 id="readme-the-project-doctor">The project doctor</h3>
+<ul class="tight">
+<li><p><strong>Go</strong>: <code>go version</code> in the project, which is the toolchain Go
+switches to for it, held to <code>go.mod</code>&#39;s <code>go</code> line (1.21 at least, the
+first that switches). Fix: <code>brew install go</code> on macOS, winget&#39;s
+<code>GoLang.Go</code> on Windows.</p></li>
+<li><p><strong>Toolchain</strong>: when <code>go.mod</code>&#39;s <code>toolchain</code> line is newer than its
+<code>go</code> line, the same held to it, as a warning: it&#39;s a suggestion, and
+<code>GOTOOLCHAIN=local</code> keeps the Go you have.</p></li>
+<li><p><strong>Modules</strong>: <code>go mod tidy -diff</code> (Go 1.23): go.mod and go.sum tidy, or
+which isn&#39;t. Fix: <code>go mod tidy</code>.</p></li>
+<li><p><strong>gopls</strong>, <strong>Delve</strong>, <strong>govulncheck</strong>, and <strong>golangci-lint</strong> where the
+project has a <code>.golangci.yml</code> (or it&#39;s installed), each with its <code>go install</code>.</p></li>
+</ul>
+<p>A fix that installs something is checked again, and what it installed
+is used at once.</p>
+<h3 id="readme-packages">Packages</h3>
+<p><code>SPC m p</code> (or <em>Go: modules</em>): lang-kit&#39;s page -- the vulnerable first,
+then the outdated, the module&#39;s own requirements (go.mod&#39;s, not <code>// indirect</code>) before the rest of the build list.</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>list</td><td><code>go list -m -json all</code></td></tr>
+<tr><td>outdated</td><td><code>go list -m -u -json all</code></td></tr>
+<tr><td>vulnerable</td><td><code>govulncheck -json ./...</code></td></tr>
+<tr><td><code>u</code></td><td><code>go get path@&lt;latest&gt;</code> (the newest that fixes it, for one with no update); Go itself, <code>go get toolchain@go1.x.y</code></td></tr>
+<tr><td><code>U</code></td><td><code>go get</code> each outdated one at its latest</td></tr>
+<tr><td><code>a</code></td><td><code>go get path</code>, or <code>path@version</code></td></tr>
+<tr><td><code>d</code></td><td><code>go get path@none</code></td></tr>
+</tbody>
+</table></div>
+<p>A replaced module (<code>replace</code>) is shown at the version that replaces it,
+in the group <em>replaced</em>, and isn&#39;t upgraded: go get doesn&#39;t move a
+replace. Go&#39;s vulnerability database says no severity, so each
+advisory&#39;s risk is unknown; its title says whether the code calls the
+vulnerable function (and where), only imports its package, or only
+requires its module. Go&#39;s own packages are <code>stdlib</code>.</p>
+<p>go get doesn&#39;t tidy: when it leaves go.mod untidy, the doctor&#39;s
+<em>Modules</em> row says so, and <code>SPC m t</code> tidies.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<p>Errors: <code>iferr</code>, <code>errw</code> (wrap with <code>%w</code>), <code>errv</code> (a sentinel), <code>errt</code> (an
+error type with <code>Unwrap</code>), <code>erras</code>. Tests: <code>tt</code> (table-driven), <code>test</code>,
+<code>bench</code>. HTTP: <code>hf</code> (a handler), <code>hroute</code> (a route with a pattern),
+<code>hjson</code>, <code>hsrv</code> (a server that shuts down on Ctrl-C). Concurrency: <code>gof</code>,
+<code>wg</code>, <code>ch</code>, <code>sel</code> (with the context), <code>pool</code>, <code>ctx</code>. Types: <code>st</code>, <code>meth</code>,
+<code>new</code>, <code>iface</code>, <code>str</code>. And <code>main</code>.</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>Fenix&#39;s wizard has no Go templates; this adds three, each asking for the
+module path&#39;s start (<code>example.com</code>, <code>github.com/you</code>) and made with <code>go mod init</code>:</p>
+<ul class="tight">
+<li><p><strong>Go · command-line tool</strong>: flags and a subcommand parsed in a <code>run</code>
+that returns an error, and table-driven tests that run it.</p></li>
+<li><p><strong>Go · HTTP service</strong>: <code>net/http</code>&#39;s routing patterns, JSON handlers in
+<code>internal/server</code>, <code>log/slog</code>, a health check, a graceful shutdown,
+and tests with <code>httptest</code>.</p></li>
+<li><p><strong>Go · library module</strong>: a documented package, table-driven tests, and
+an example <code>go test</code> checks.</p></li>
+</ul>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Go project: <code>p</code> modules, <code>d</code> check again, <code>t</code> tidy.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>346 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/go-v1.0.0/fenix.go-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 dacf3b3da4cb88e03b1433268aca07df0b78db5dd71e12f8d19957e76777a28d">dacf3b3da4…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project&#39;s checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

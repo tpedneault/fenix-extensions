@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protobuf &amp; gRPC · Fenix extensions</title>
+<meta name="description" content="Protocol Buffers and gRPC: the grammar, buf&#39;s language server, buf format, buf lint on save, buf breaking against the default branch, buf generate and buf build as tasks, the project&#39;s checks with fixes that install buf, protoc and grpcurl, snippets, and a gRPC client -- a server&#39;s services by reflection or the project&#39;s protos, a body made from the method&#39;s message, server streams as they come, status, trailers, timing and history">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Protobuf &amp; gRPC</h1>
+<p class="id"><code>fenix.protobuf</code></p>
+<p class="lead">Protocol Buffers and gRPC: the grammar, buf&#39;s language server, buf format, buf lint on save, buf breaking against the default branch, buf generate and buf build as tasks, the project&#39;s checks with fixes that install buf, protoc and grpcurl, snippets, and a gRPC client -- a server&#39;s services by reflection or the project&#39;s protos, a body made from the method&#39;s message, server streams as they come, status, trailers, timing and history</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=web">Web</a></li><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>484 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/protobuf">extensions/protobuf</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Protobuf &amp; gRPC</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/protobuf-v1.0.0/fenix.protobuf-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.protobuf-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>buf</code></li><li><code>grpcurl</code></li><li><code>protoc</code></li><li><code>protols</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Protocol Buffers in Fenix, and a gRPC client: the grammar (Fenix has none
+of its own), buf&#39;s language server, <code>buf format</code>, <code>buf lint</code> on save,
+<code>buf breaking</code> against the default branch, <code>buf generate</code> and <code>buf build</code>
+as tasks, the project doctor&#39;s checks with fixes that install buf, protoc
+and grpcurl, and snippets. Built on lang-kit (<code>crates/lang-kit</code>), as each
+language pack is; the client&#39;s page on ui-kit (<code>crates/ui-kit</code>).</p>
+<p>It starts with Fenix. buf&#39;s server is set for <code>.proto</code> files whenever buf
+is found; the doctor checks buf, protoc and grpcurl in every project.</p>
+<h3 id="readme-the-grammar">The grammar</h3>
+<p><code>*.proto</code> files are read with tree-sitter-proto 0.6.0&#39;s grammar
+(<code>grammars/</code>, MIT): highlighted -- keywords, types and the built-in
+scalars, field and option names, enum values, rpc names, import paths,
+numbers, strings and their escapes --, folded (messages, enums, services,
+rpcs with options, oneofs, <code>extend</code>, an option&#39;s aggregate value), with
+Enter indenting inside a body and the breadcrumbs and <code>SPC c s</code> listing
+the declarations. <code>//</code> comments a line.</p>
+<h3 id="readme-the-server">The server</h3>
+<p>buf&#39;s language server, <code>buf lsp serve</code> (<code>buf beta lsp</code> on a buf from
+1.43 to 1.58): completion, go to definition, hover, references, rename,
+document and workspace symbols, and its problems as you type. With
+<code>protobuf.server</code> = <code>protols</code>, protols (<code>cargo install protols</code>)
+instead; either is used when the other isn&#39;t there. <code>none</code> sets
+neither.</p>
+<h3 id="readme-formatting-and-checks">Formatting and checks</h3>
+<ul class="tight">
+<li><p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <code>buf format --stdin-filepath &lt;file&gt;</code>, buf&#39;s own style. That&#39;s buf 1.74&#39;s; an older
+buf formats through its language server.</p></li>
+<li><p>On save: <code>buf lint</code> over the workspace (<code>protobuf.lint</code>), its JSON read
+-- a rule broken is a warning on its file, with the rule&#39;s name
+(<code>FIELD_LOWER_SNAKE_CASE</code>), a file that doesn&#39;t compile an error -- and
+a file it no longer speaks of made clean.</p></li>
+<li><p>On the project doctor&#39;s page: <strong>Breaking changes</strong>, what <code>buf breaking --against &#39;.git#branch=&lt;branch&gt;&#39;</code> finds when the project opens and a
+<code>.proto</code> file is saved (<code>protobuf.breaking_check</code>) -- none, or how many
+and which rules -- with a fix row that runs it as a task, its changes in
+the quickfix list. The branch is <code>protobuf.breaking_against</code>, else the
+repository&#39;s default: origin&#39;s <code>HEAD</code>, else <code>main</code> or <code>master</code>. A
+workspace a folder down compares that folder (<code>subdir=</code>).</p></li>
+</ul>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>, each in the buf workspace&#39;s folder (<code>buf.yaml</code>, or v1&#39;s
+<code>buf.work.yaml</code>, at the top or a folder down):</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>build</code></td><td><code>buf build</code></td></tr>
+<tr><td><code>lint</code></td><td><code>buf lint</code></td></tr>
+<tr><td><code>format</code></td><td><code>buf format -w</code></td></tr>
+<tr><td><code>breaking against &lt;branch&gt;</code></td><td><code>buf breaking --against &#39;.git#branch=&lt;branch&gt;&#39;</code></td></tr>
+<tr><td><code>generate</code></td><td><code>buf generate</code>, when there&#39;s a <code>buf.gen.yaml</code></td></tr>
+<tr><td><code>generate &lt;name&gt;</code></td><td><code>buf generate --template &lt;file&gt;</code>, for each <code>buf.gen.&lt;name&gt;.yaml</code> and <code>buf.&lt;name&gt;.gen.yaml</code> beside it</td></tr>
+<tr><td><code>dep update</code></td><td><code>buf dep update</code>, when <code>buf.yaml</code> has deps</td></tr>
+<tr><td><code>protoc check</code></td><td>Without buf: <code>protoc</code> on every <code>.proto</code> file, its output in the pack&#39;s own folder</td></tr>
+</tbody>
+</table></div>
+<p>buf&#39;s output, <code>file:line:col:message</code>, goes to the quickfix list.
+<code>buf.yaml</code>, <code>buf.work.yaml</code>, <code>buf.lock</code> and the templates saved read the
+project again. The project&#39;s <code>.env</code> goes to each.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>buf</td><td><code>buf --version</code>, and what that buf does: a server from 1.43, <code>buf lsp serve</code> from 1.59, a formatter on stdin from 1.74; needed in a buf workspace</td><td>buf 1.75.0 (Linux, macOS, Windows; x86_64 and arm64)</td></tr>
+<tr><td>protoc</td><td><code>protoc --version</code></td><td>protoc 36.2 (Linux, macOS, Windows on x86_64)</td></tr>
+<tr><td>grpcurl (the gRPC client)</td><td><code>grpcurl -version</code></td><td>grpcurl 1.9.4 (Linux, macOS, Windows; x86_64 and arm64)</td></tr>
+<tr><td>protols</td><td>when it&#39;s the server asked for</td><td></td></tr>
+<tr><td>Breaking changes</td><td>above</td><td>runs it as a task</td></tr>
+</tbody>
+</table></div>
+<p>Each release comes from its project&#39;s GitHub releases, checked against
+the SHA-256 the pack knows (buf&#39;s and grpcurl&#39;s from their releases&#39;
+checksum files), unpacked into the pack&#39;s tools folder, where only the
+pack looks, and used at once. One you installed yourself is used
+instead: the pack looks on <code>PATH</code>, and in Go&#39;s, Cargo&#39;s, Homebrew&#39;s,
+Snap&#39;s, Scoop&#39;s and winget&#39;s folders.</p>
+<h3 id="readme-the-grpc-client">The gRPC client</h3>
+<p><code>SPC m g</code> (or Protobuf: the gRPC client) opens it. It runs grpcurl, which
+speaks HTTP/2; the extension reads what grpcurl prints.</p>
+<ul class="tight">
+<li><p><strong>The server</strong>: <code>protobuf.targets</code>, a server a row -- <code>host:port</code>, TLS
+on or off. <code>T</code> picks one or adds one, <code>a</code> adds one when there are none,
+<code>t</code> turns TLS on or off for it. <code>protobuf.insecure</code> takes a server whose
+certificate doesn&#39;t check out (<code>-insecure</code>).</p></li>
+<li><p><strong>Its services</strong>: by the server&#39;s reflection (<code>grpcurl list</code>, then
+<code>describe</code> each service), or, <code>s</code>, from the project&#39;s <code>.proto</code> files --
+<code>buf build</code> writes them with their imports into a descriptor set in the
+pack&#39;s folder (<code>-protoset</code>), or without buf they&#39;re given to grpcurl as
+they are (<code>-import-path</code>, <code>-proto</code>), which needs no server at all to
+list them. A workspace with no server set starts with its protos.</p></li>
+<li><p><strong>The sidebar</strong>: each service and its methods, how each streams beside
+it (unary, server, client, bidi); <code>]</code> its history.</p></li>
+<li><p><strong>The body</strong>: Enter on a method describes its input message (and the
+messages and enums in it, a <code>describe</code> each until it&#39;s all known) and
+makes a body from it -- each field by its JSON name with its zero
+value, an enum&#39;s first value, a list and a map of one, a oneof&#39;s first
+choice, the well-known types as protojson writes them (a <code>Timestamp</code> a
+string, a <code>Duration</code> <code>&quot;0s&quot;</code>), 64-bit integers as strings -- in a scratch
+buffer beside, highlighted as JSON. Edit it there; each method keeps
+its own. <code>B</code> makes it again. A client stream&#39;s body is its messages one
+after another.</p></li>
+<li><p><strong>Metadata</strong>: <code>a</code> on the request adds a header (<code>authorization: Bearer ...</code>), Enter edits one, <code>d</code> deletes it; each method has its own.</p></li>
+<li><p><strong>A call</strong>: <code>r</code> (or Protobuf: invoke the gRPC method chosen) runs
+<code>grpcurl -v -H ... -d &lt;body&gt; &lt;server&gt; &lt;service/method&gt;</code>; the body is
+checked as JSON first. Its answer shows as it comes: the status, how
+long it took and how many messages (<code>OK · 12 ms · 1 message</code>,
+<code>NotFound: no satellite · 8 ms</code>), then tabs for the messages -- a server
+stream&#39;s each as it arrives, with when --, the response&#39;s headers, its
+trailers, and the timing of each. <code>x</code> cancels it. <code>protobuf.timeout</code>
+is how long a call may take (<code>-max-time</code>).</p></li>
+<li><p><strong>The history</strong>: each call kept for its method (<code>protobuf.history</code> of
+them, newest first) with its server, body, metadata, status, time and
+first message, in the extension&#39;s folder. Enter on one puts its body
+and metadata back, and shows how it went.</p></li>
+<li><p><code>y</code> copies the answer&#39;s messages; <code>O</code> opens them in a buffer.</p></li>
+</ul>
+<h4 id="readme-keys">Keys</h4>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>Tab</code>, <code>Shift+Tab</code></td><td>the sidebar, the request, the answer</td></tr>
+<tr><td><code>j</code> <code>k</code>, Enter</td><td>a row; choose a method, send a call from the history again</td></tr>
+<tr><td><code>r</code>, <code>x</code></td><td>invoke; cancel</td></tr>
+<tr><td><code>e</code>, <code>B</code></td><td>the body&#39;s buffer; the body made again</td></tr>
+<tr><td><code>a</code>, <code>d</code></td><td>add, delete metadata (on the request)</td></tr>
+<tr><td><code>T</code>, <code>t</code>, <code>s</code>, <code>R</code></td><td>the server; its TLS; reflection or the project&#39;s protos; list again</td></tr>
+<tr><td><code>1</code>-<code>4</code>, <code>[</code> <code>]</code></td><td>the answer&#39;s tabs</td></tr>
+<tr><td><code>y</code>, <code>O</code></td><td>copy the messages; open them</td></tr>
+<tr><td><code>I</code></td><td>install grpcurl, when it isn&#39;t there</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>syntax</code></td><td><code>syntax = &quot;proto3&quot;;</code> and <code>package</code></td></tr>
+<tr><td><code>message</code>, <code>field</code>, <code>repeated</code>, <code>map</code></td><td>a message with its first field; a field; a repeated one; a map</td></tr>
+<tr><td><code>enum</code></td><td>an enum, its zero value <code>_UNSPECIFIED</code> as buf&#39;s lint wants</td></tr>
+<tr><td><code>oneof</code></td><td>a oneof</td></tr>
+<tr><td><code>service</code>, <code>rpc</code>, <code>rpcs</code></td><td>a service with its first method; a method, its request and response named for it; one the server streams</td></tr>
+<tr><td><code>option</code>, <code>import</code>, <code>reserved</code></td><td>a file option (<code>go_package</code>); an import; reserved numbers and names</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>protobuf.lint</code></td><td>on</td><td><code>buf lint</code> on a saved file</td></tr>
+<tr><td><code>protobuf.server</code></td><td><code>buf</code></td><td><code>buf</code>, <code>protols</code> or <code>none</code></td></tr>
+<tr><td><code>protobuf.breaking_against</code></td><td></td><td>the branch to compare with; the default branch</td></tr>
+<tr><td><code>protobuf.breaking_check</code></td><td>on</td><td><code>buf breaking</code> for the doctor, on open and save</td></tr>
+<tr><td><code>protobuf.targets</code></td><td></td><td>the gRPC servers, and TLS for each</td></tr>
+<tr><td><code>protobuf.insecure</code></td><td>off</td><td>TLS servers whose certificate doesn&#39;t check out</td></tr>
+<tr><td><code>protobuf.timeout</code></td><td>30</td><td>seconds a call may take; 0 none</td></tr>
+<tr><td><code>protobuf.history</code></td><td>50</td><td>calls kept per method</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys-1">Keys</h3>
+<p>After <code>SPC m</code> in a buf project, a <code>.proto</code> file or the client: <code>d</code> checks
+the project again, <code>b</code> runs <code>buf breaking</code> as a task, <code>g</code> opens the
+client, <code>r</code> invokes its method, <code>t</code> picks the server.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<p>It runs buf, grpcurl, protoc and protols, and what it installs in its
+tools folder; downloads their releases from GitHub; reads the project
+(<code>buf.yaml</code>, the templates, the <code>.proto</code> files, <code>.git</code>&#39;s branches,
+<code>.env</code>) and the file you save, for <code>buf lint</code>. A call goes where its
+server is: grpcurl makes it, not Fenix.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong><code>.grpc</code> files</strong>: requests kept in files and run from the buffer, as
+the HTTP client&#39;s <code>.http</code> files are.</p></li>
+<li><p><strong>Bidirectional streams typed as you go</strong>: a client or bidi stream&#39;s
+messages are its body&#39;s, all sent at once.</p></li>
+<li><p><strong>Breaking changes in the files</strong>: they&#39;re on the doctor&#39;s page and in
+the task&#39;s quickfix list, not marked in the buffer.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>484 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/protobuf-v1.0.0/fenix.protobuf-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 4ca3b54e105379eac706fe102207aa400ffdab0f14585a3dbab411579cb5d5d4">4ca3b54e10…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: Protocol Buffers and gRPC: the grammar, buf&#39;s language server, buf format, buf lint on save, buf breaking against the default branch, buf generate and buf build as tasks, the project&#39;s checks with fixes that install buf, protoc and grpcurl, snippets, and a gRPC client -- a server&#39;s services by reflection or the project&#39;s protos, a body made from the method&#39;s message, server streams as they come, status, trailers, timing and history.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
