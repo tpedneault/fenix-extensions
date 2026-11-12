@@ -1,0 +1,16 @@
+# The store's pictures of the CSV table, retaken with
+# `cargo xtask screenshots csv`; the format is screenshots/README.md's.
+# A .csv opens in the table however it's opened, so fenix/open is all it
+# takes: none of this extension's commands is external.
+
+[[shot]]
+file = "table.png"
+note = "A year of launches as a table: columns fitted, numbers on the right, the focused cell whole below"
+project = "csv"
+open = ["data/launches.csv"]
+settle_ms = 1500
+
+[shot.wait]
+project = true
+idle = true
+timeout_s = 30

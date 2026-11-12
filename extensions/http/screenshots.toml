@@ -1,0 +1,18 @@
+# The store's picture of the HTTP client, retaken with
+# `cargo xtask screenshots http`; the format is screenshots/README.md's.
+# A request file as it reads before anything is sent: highlighted, its
+# variables, chained requests and tests. Nothing is sent -- http.send
+# isn't external, and there's no server.
+
+[[shot]]
+file = "requests.png"
+note = "A collection of requests, highlighted, with a ▶ before each; nothing sent"
+project = "http"
+open = ["api/passes.http:21"]
+settle_ms = 1500
+
+[shot.wait]
+file = "api/passes.http"
+line = 21
+idle = true
+timeout_s = 30

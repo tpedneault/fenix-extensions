@@ -1,0 +1,40 @@
+# The ground station's API: run the request the cursor's in with
+# SPC p r r, or click its ▶.
+
+@baseUrl = http://localhost:8080
+@sat = SAT-7
+
+### Log in: its answer feeds the rest
+# @name login
+POST {{baseUrl}}/api/login
+Content-Type: application/json
+
+{
+  "user": "operator",
+  "station": "{{station}}"
+}
+
+### The next pass
+# @name next
+# @test status == 200
+# @test $.satellite == "{{sat}}"
+GET {{baseUrl}}/api/passes/next?satellite={{sat}}
+    &minElevation=10
+Accept: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Book it
+# @test status == 201
+POST {{baseUrl}}/api/passes/{{next.response.body.$.id}}/booking
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "antenna": "13m-1",
+  "uplink": true
+}
+
+### Its telemetry, as it comes
+# @stream
+GET {{baseUrl}}/api/passes/{{next.response.body.$.id}}/telemetry
+Accept: text/event-stream

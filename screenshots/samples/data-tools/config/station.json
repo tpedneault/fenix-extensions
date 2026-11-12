@@ -1,0 +1,14 @@
+{
+  "$schema": "./station.schema.json",
+  "name": "Kiruna",
+  "location": { "lat": 67.857, "lon": 20.964, "alt_m": 402 },
+  "antennas": [
+    { "id": "13m-1", "band": "S", "diameter_m": 13 },
+    { "id": "15m-2", "band": "X", "diameter_m": 15 },
+    { "id": "uhf-yagi", "band": "VHF" }
+  ],
+  "passes": {
+    "min_elevation_deg": 5,
+    "lookahead_h": "48"
+  }
+}
