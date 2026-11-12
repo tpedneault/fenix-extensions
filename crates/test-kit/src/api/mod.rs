@@ -16,15 +16,20 @@
 //! Its `api::notify(..)`, `api::page::open(..)`, `api::host::set_timer(..)`
 //! and `api::warn!(..)` are then the fake's in `cargo test`, and Fenix's in
 //! the WebAssembly it packs, which has nothing of the kit in it. Every
-//! free function and every `host` call of API 1.0 is here, each checked
-//! to have the API's own signature.
+//! free function and every `host` call of API 1.5 is here -- 1.0's, and
+//! what 1.1 to 1.5 added: `key_for`, `key_scheme`, `notify_dismiss`,
+//! `compose_with_ask`, `progress`, `host::notify_with`,
+//! `host::git_state`, `host::last_task` -- each checked to have the API's
+//! own signature.
 //!
 //! What it can't replace are methods on the API's types --
-//! `Command::spawn`, `HttpRequest::send` and the rest, which call the host
-//! themselves. Natively those panic (`unreachable`); call the host
-//! function they stand for instead, `api::host::spawn(&cmd)`,
-//! `api::host::http(&req)`, which is what they do. And a call by the API's
-//! own path, `fenix_extension_api::notify`, is Fenix's: it panics too.
+//! `Command::spawn`, `HttpRequest::send`, `Notification::show` and the
+//! rest, which call the host themselves. Natively those panic
+//! (`unreachable`); call the host function they stand for instead,
+//! `api::host::spawn(&cmd)`, `api::host::http(&req)`,
+//! `api::host::notify_with(&notification)`, which is what they do. And a
+//! call by the API's own path, `fenix_extension_api::notify`, is Fenix's:
+//! it panics too.
 
 pub use fenix_extension_api::*;
 
@@ -149,6 +154,21 @@ pub fn play_sound(path: &str) -> Result<(), String> {
 pub fn open_text_beside(title: &str, text: &str, language: Option<&str>, width: f32) {
     host::open_text_beside(title, text, language, width)
 }
+pub fn compose_with_ask(title: &str, verb: &str, initial: &str, allow_empty: bool, ask: agents::Ask, over_initial: bool) -> u64 {
+    host::compose_with_ask(title, verb, initial, allow_empty, &ask.stream(true).payload(), over_initial)
+}
+pub fn key_scheme() -> KeyScheme {
+    host::editor_keys()
+}
+pub fn key_for(command: &str) -> Option<String> {
+    host::key_for(command)
+}
+pub fn progress(call: u64, message: &str, fraction: Option<f32>) {
+    host::service_progress(call, message, fraction)
+}
+pub fn notify_dismiss(tag: &str) {
+    host::notify_dismiss(tag)
+}
 
 same! {
     platform: fn() -> PlatformInfo;
@@ -186,6 +206,12 @@ same! {
     folder_list: fn(&str) -> Result<Vec<FolderEntry>, String>;
     play_sound: fn(&str) -> Result<(), String>;
     open_text_beside: fn(&str, &str, Option<&str>, f32);
+    // 1.1 to 1.5.
+    compose_with_ask: fn(&str, &str, &str, bool, agents::Ask, bool) -> u64;
+    key_scheme: fn() -> KeyScheme;
+    key_for: fn(&str) -> Option<String>;
+    progress: fn(u64, &str, Option<f32>);
+    notify_dismiss: fn(&str);
 }
 
 /// Laying out its pages, and opening them: `page::open`, `refresh`,

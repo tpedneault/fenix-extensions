@@ -5,7 +5,7 @@
 //! panics (`unreachable`). So the kit gives the test a host of its own:
 //!
 //! - [`Fake`]: a fake host that writes down what it was asked -- pages
-//!   opened and refreshed, notifications, the modeline, processes,
+//!   opened and refreshed, messages and notifications, the modeline, processes,
 //!   requests, timers, pickers, prompts, services, settings, problems,
 //!   decorations -- and answers with what the test gave it: a process's
 //!   output, an HTTP response, a service's reply, a picker's row, as the
@@ -31,7 +31,7 @@ pub mod lang;
 pub mod render;
 pub mod snapshot;
 
-pub use fake::{line, Choice, Fake, OpenPage, Picker, Process, Prompt, Ran, ServiceCall, State, Timer};
+pub use fake::{line, notification_line, Choice, Fake, Keys, OpenPage, Picker, Process, Progress, Prompt, Ran, ServiceCall, State, Timer};
 pub use harness::{parse_keys, Harness};
 
 /// The README's example, compiled.
