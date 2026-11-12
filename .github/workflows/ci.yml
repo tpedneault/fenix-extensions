@@ -65,11 +65,25 @@ jobs:
         if: steps.touched.outputs.external == 'true'
         run: |
           git diff HEAD^1 HEAD -- publishers.toml external.toml
-          # A line taken out or changed in publishers.toml is an existing
-          # publisher's owners changing: one of them approves it.
-          if git diff -U0 HEAD^1 HEAD -- publishers.toml | grep -q '^-[^-]'; then
-            echo "::warning file=publishers.toml::This changes an existing publisher's owners: one of its current owners must approve the pull request"
-          fi
+          # An existing publisher's owners changing needs one of them to
+          # approve; a new publisher is a claim. Both told plainly.
+          git show HEAD^1:publishers.toml > "$RUNNER_TEMP/before.toml" 2> /dev/null || : > "$RUNNER_TEMP/before.toml"
+          python3 -I - "$RUNNER_TEMP/before.toml" publishers.toml <<'PY'
+          import re, sys, tomllib
+          def publishers(path):
+              try:
+                  with open(path, "rb") as f:
+                      return tomllib.load(f).get("publishers", {})
+              except (OSError, tomllib.TOMLDecodeError):
+                  return {}
+          before, after = publishers(sys.argv[1]), publishers(sys.argv[2])
+          name = lambda p: p if re.fullmatch(r"[a-z0-9_-]+", p) else "(not a publisher id)"
+          for p in sorted(before):
+              if after.get(p) != before[p]:
+                  print(f"::warning file=publishers.toml::publisher {name(p)}: its owners change -- one of its current owners must approve this pull request")
+          for p in sorted(set(after) - set(before)):
+              print(f"::notice file=publishers.toml::publisher {name(p)} is claimed by this pull request")
+          PY
       - name: Install Rust stable
         if: steps.touched.outputs.external == 'true'
         run: |
