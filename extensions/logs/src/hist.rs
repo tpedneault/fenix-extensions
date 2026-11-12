@@ -108,6 +108,34 @@ impl Histogram {
         out.into_iter().map(|c| c.map(|n| if n > 0.0 { n.ceil() as u32 } else { 0 })).collect()
     }
 
+    /// The times seen in at most `n` spans, each a run of whole buckets so
+    /// no count is shared out between two: where each starts, where it
+    /// ends (not in it), and its counts. What `logs_summary` gives.
+    pub fn spans(&self, n: usize) -> Vec<(i64, i64, Counts)> {
+        let Some((first, last)) = self.range else { return Vec::new() };
+        if n == 0 || self.buckets.is_empty() {
+            return Vec::new();
+        }
+        let bucket = |t: i64| (((t - self.start) / self.width) as usize).min(BUCKETS - 1);
+        let (lo, hi) = (bucket(first), bucket(last));
+        let per = (hi - lo + 1).div_ceil(n);
+        (lo..=hi)
+            .step_by(per)
+            .map(|b| {
+                let end = (b + per).min(hi + 1);
+                let mut c = [0; 3];
+                for counts in &self.buckets[b..end] {
+                    for k in 0..3 {
+                        c[k] += counts[k];
+                    }
+                }
+                let from = (self.start + b as i64 * self.width).max(first);
+                let to = (self.start + end as i64 * self.width).min(last + 1);
+                (from, to, c)
+            })
+            .collect()
+    }
+
     /// How wide a column is over `from..=to` in `cols` columns.
     pub fn column_width(from: i64, to: i64, cols: usize) -> i64 {
         ((to - from).max(1) / cols.max(1) as i64).max(1)
@@ -146,6 +174,24 @@ mod tests {
         let even = h.columns(1_000_000, 10_999_000, 10);
         assert!(even.iter().all(|c| (999..=1002).contains(&c[0])), "spread evenly: {even:?}");
         assert!(cols[0][1] == 1, "the warning is in the first column: {cols:?}");
+    }
+
+    #[test]
+    fn spans_count_every_entry_once() {
+        let mut h = Histogram::default();
+        assert!(h.spans(10).is_empty());
+        for s in 0..10_000i64 {
+            h.add(1_000_000 + s * 1000, if s % 100 == 0 { Level::Error } else if s % 10 == 0 { Level::Warn } else { Level::Info });
+        }
+        let spans = h.spans(24);
+        assert!(!spans.is_empty() && spans.len() <= 24, "{}", spans.len());
+        assert_eq!(spans.iter().map(|s| s.2[0]).sum::<u32>(), 10_000);
+        assert_eq!(spans.iter().map(|s| s.2[2]).sum::<u32>(), 100);
+        assert_eq!(spans.iter().map(|s| s.2[1]).sum::<u32>(), 900);
+        assert_eq!((spans[0].0, spans.last().unwrap().1), (1_000_000, 1_000_000 + 9_999_000 + 1), "from the first time to just past the last");
+        assert!(spans.windows(2).all(|w| w[0].1 == w[1].0), "end to end");
+        let one = h.spans(1);
+        assert_eq!((one.len(), one[0].2[0]), (1, 10_000));
     }
 
     #[test]

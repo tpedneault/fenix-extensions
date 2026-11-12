@@ -259,6 +259,37 @@ impl Lite {
     }
 }
 
+/// A new SQLite file at `path`, made by `script`'s statements: what was
+/// there before (and its `-wal`, its `-shm`) replaced. Left with a
+/// rollback journal, as SQLite itself makes a file.
+pub fn create(path: &str, script: &str) -> Result<(), String> {
+    for p in [path.to_string(), format!("{path}-wal"), format!("{path}-shm")] {
+        match std::fs::remove_file(&p) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(format!("{p}: {e}")),
+            _ => {}
+        }
+    }
+    if let Some(dir) = std::path::Path::new(path).parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    }
+    let (db, conn) = open(path, true)?;
+    let mut failed = None;
+    for s in sql::split(script, Dialect::Sqlite) {
+        if let Outcome::Error(e) = Lite::statement(&conn, &s.text, 1) {
+            failed = Some(e);
+            break;
+        }
+    }
+    let _ = Lite::statement(&conn, "PRAGMA wal_checkpoint(TRUNCATE)", 1);
+    let _ = conn.close();
+    drop(conn);
+    drop(db);
+    if let Some(e) = failed {
+        return Err(e);
+    }
+    restore_journal(path)
+}
+
 /// A file Turso moved to WAL put back to a rollback journal, as SQLite's
 /// `journal_mode=DELETE` does: the log, checkpointed and empty, removed,
 /// and the header's two version bytes (18, 19) back at 1.
@@ -338,6 +369,22 @@ mod tests {
     }
 
     #[test]
+    fn a_new_file_is_made_and_made_afresh() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sub").join("new.db").to_string_lossy().into_owned();
+        assert!(Lite::open(&path, false).is_err(), "a file that isn't there isn't made by opening it");
+        create(&path, "create table t(id integer primary key, name text not null); insert into t values (1, 'a'), (2, 'b');").unwrap();
+        assert_eq!(python(&path, "c.execute('select count(*) from t').fetchone()[0], c.execute('pragma journal_mode').fetchone()[0], c.execute('pragma integrity_check').fetchone()[0]"), "2 delete ok");
+        let mut db = Lite::open(&path, false).unwrap();
+        assert!(matches!(&db.run("insert into t values (3, 'c')", 10)[..], [Outcome::Done { .. }]));
+        drop(db);
+        // Again: what was added is gone.
+        create(&path, "create table t(id integer primary key, name text not null); insert into t values (1, 'a'), (2, 'b');").unwrap();
+        assert_eq!(python(&path, "c.execute('select count(*) from t').fetchone()[0]"), "2");
+        assert!(create(&path, "create table t(; nonsense").is_err());
+    }
+
+    #[test]
     fn a_change_is_written_and_the_journal_put_back() {
         let dir = tempfile::tempdir().unwrap();
         let path = sample(dir.path());
@@ -357,3 +404,4 @@ mod tests {
         assert_eq!(python(&path, "c.execute('select count(*) from users').fetchone()[0]"), "2");
     }
 }
+

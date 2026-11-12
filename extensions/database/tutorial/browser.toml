@@ -1,0 +1,92 @@
+id = "database.browser"
+track = "Database"
+order = 1
+title = "The database browser"
+about = "Its pages, on a sample SQLite database it makes itself: the schema, a table's rows, a statement run from a .sql buffer, its results, the history. Nothing to install, no server."
+text = """
+The database browser: your connections in a sidebar, each one's schema
+under it -- tables, columns, keys -- and beside them what you ran. This
+lesson practises on a sample SQLite database the extension makes for you
+(Database: a sample database to try it on): no server, nothing to
+install, made afresh each time.
+
+SPC o b      the browser. j k move, Enter connects and opens, Tab goes
+             between the sidebar and the results, n a .sql buffer on
+             the connection, H the history, ? its keys, q closes it.
+On a table   s sorts by a column, / filters (a WHERE's condition),
+             y copies a cell, Y the rows as CSV, n p a page on, back.
+
+In a .sql buffer -- its first line names its connection,
+-- connection: sample.db -- SPC m is its menu:
+SPC m r      run the statement under the cursor, or the selection;
+             with standard keys Ctrl+Enter runs it too
+SPC m R      run every statement in it
+SPC m c      pick the connection it runs on
+SPC m h      the history: one put back at the cursor
+SPC m n      a new query buffer
+"""
+
+[[step]]
+say = "SPC o b: the database browser -- your connections in a sidebar, what you run beside them."
+hint = "{leader}, o, b."
+page = "fenix.database/browser"
+
+[[step]]
+say = "q closes it."
+hint = "q, on the browser."
+closed = "fenix.database/browser"
+
+[[step]]
+say = "{key:commands.palette}, then Database: a sample database to try it on -- a small shop's customers, products and orders, in SQLite, opened in the browser."
+hint = "{key:commands.palette} opens the command palette: type sample, then Enter."
+page = "fenix.database/browser"
+
+[[step]]
+say = "Its tables are under sample.db in the sidebar: j and k move, Enter on customers pages through its rows."
+hint = "j down to customers, then Enter. Enter on a branch opens it; Tab goes between the sidebar and the results."
+page = "fenix.database/table"
+
+[[step]]
+say = "On the table, s sorts by the column the cursor is on and / filters it (city = 'London'). Then q closes the table."
+hint = "h and l pick a column, s sorts; / then Enter on nothing shows every row again. q, on the table."
+closed = "fenix.database/table"
+
+[[step]]
+say = "q closes the browser too: running a statement opens it again, beside the query."
+hint = "q, on the browser. If it isn't in front, SPC o b brings it first."
+closed = "fenix.database/browser"
+
+[[step]]
+say = "{key:commands.palette} again: Database: a new query buffer. It runs on sample.db, as its first line says."
+hint = "Type new query, then Enter."
+picker = "commands"
+
+[[step]]
+say = "Under its first line write select * from customers; -- then SPC m r runs it (with standard keys, Ctrl+Enter too). The results open beside the query."
+hint = "SPC m is the .sql buffer's own menu: {leader}, m, then r for the statement the cursor is in. With Vim keys, Esc first. If the browser was still open, its results are there: s on the tutorial page skips this."
+windows = "+1"
+
+[[step]]
+say = "SPC w l, or a click, goes over to the results: s sorts them by a column, y copies a cell, Y the rows as CSV."
+hint = "{leader}, w, l: the window on the right."
+page = "fenix.database/browser"
+
+[[step]]
+say = "H, on the browser: the history -- the statements you ran, newest first, searched as you type."
+hint = "Capital H, on the browser."
+picker = "any"
+
+[[step]]
+say = "Enter on the one you ran: it's put in a new query buffer, on its connection."
+hint = "Enter. Esc would leave it."
+picker = "none"
+
+[[step]]
+say = "In that buffer, SPC m c: the connection it runs on, picked from those there are."
+hint = "{leader}, m, c -- in the .sql buffer, not on the browser."
+picker = "any"
+
+[[step]]
+say = "Enter on sample.db. The modeline says which connection a .sql buffer runs on, and how it is: db sample.db · ready."
+hint = "Enter, in the picker."
+picker = "none"

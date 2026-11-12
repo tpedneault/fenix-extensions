@@ -136,9 +136,68 @@ is read whole again each time.
 | `logs.patterns` | Formats of your own: a regular expression (`^!!`, `\| CRIT \|`) and its level (fatal, error, warn, info, debug, trace, other) |
 | `logs.poll` | How often a followed log is looked at, in milliseconds: 200 to 60,000. 1,000 unless set |
 
-## Permissions
+## For coding agents
 
-| Permission | Why |
+Two tools for your coding agents (Fenix 1.1), in the `logs` toolset,
+both class `read`: they read a log and change nothing.
+
+| Tool | What it answers |
 | --- | --- |
-| `filesystem = "project-read"` | A log in the project is read where it is, as far as each step needs |
-| `editor = "read"` | Which file `logs.open` shows, and where the project is |
+| `logs_query` | A log's entries, as JSON, the viewer's way: each one's level, time, byte offset, its lines (a stack trace with the entry it follows) and its text. Filtered by `level` (this level or worse), `time` (`12:00..12:30`, `-15m`, as `@` takes it), `text` and `exclude` (as `/` and `-`: lower case any case, `re:` a regular expression) and `fields` (as `=`: `user=bob`, `status!=200`) |
+| `logs_summary` | A log at a glance: its size, the formats its lines are written in (from its first thousand entries), its entries by level, its first and last times, and, in up to `buckets` spans of time (24; at most 100), how many entries, warnings and errors came |
+
+**Which file.** `path` is a file's path from the project's root
+(`logs/app.log`); left out, the one log of the project open in the viewer.
+Only the project's own files are read: an absolute path, a `..`, a link
+anywhere on the path (to a file or a folder) and a folder are refused,
+and with no project open there's nothing to read. A log you opened from
+outside the project isn't reached.
+
+**How much.** `logs_query` gives the newest entries first (`order:
+"oldest"` the other way), at most `limit` of them (50; at most 500) and
+`max_bytes` of their text (16 KiB; at most 256 KiB), an entry's text cut
+at 4 KiB (`"cut": true`). When there's more, `truncated` says what
+stopped it -- `limit`, `bytes`, or `scan` -- and `next_cursor`, given back
+as `cursor` with the same order, reads on from there. Oldest first, each
+entry has its `line`, from 1; newest first, the file is read back from its
+end and lines aren't counted.
+
+**Big logs.** A call reads at most 128 MiB of the file: what's past that
+is `truncated: "scan"`, and the cursor goes on from it. It's read in steps
+of a few hundred KiB on the viewer's timer, as the page indexes a log, so
+the viewer answers meanwhile; a small log is answered at once. The summary
+of a log over 128 MiB is of its newest 128 MiB, and says so. A log
+truncated or rotated between two calls makes their cursor point at
+another file's bytes: start again without one.
+
+**Logs hold secrets.** Tokens in URLs, passwords in a connection string,
+an `Authorization` header logged by mistake, people's addresses: what a
+tool answers goes to your agent, and to whoever runs the model behind it.
+The `logs` toolset isn't offered to agents until you turn it on; point
+them at logs you'd show them, and Fenix's agent rules can make them ask
+first, or refuse, by toolset, tool or class.
+
+## What it may do
+
+- Read the project's files (`filesystem = "project-read"`): a log in the
+  project, where it is, as far as each step needs -- and, for your
+  coding agents' tools, the log they name in it.
+- Read where you are (`editor = "read"`): which file `logs.open` shows,
+  and where the project is.
+
+## Building
+
+```text
+cargo xtask pack extensions/logs dist
+cargo test --manifest-path extensions/logs/Cargo.toml
+cargo run --release --manifest-path extensions/logs/Cargo.toml --example big -- /tmp/logs 200
+```
+
+`cargo test` checks each format's levels and times against samples
+(`src/samples`), entries and stack traces, the index built in steps and
+grown, truncated and rotated, the filters, the search, the bars -- and
+the agents' tools: the paths they refuse (`..`, absolute ones, links),
+the entries they find against the viewer's, their filters, limits, byte
+cap and cursors, newest first and oldest, a log read back a window at a
+time, the most a call reads, and the summary's counts and formats. The
+`big` example writes a big log and times indexing and filtering it.

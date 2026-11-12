@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.logs"
 name = "Log viewer"
-version = "1.0.0"
+version = "1.1.0"
 description = "Log files read in a pane: each entry's level and time from the formats logs are written in -- JSON lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, Python's logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,11 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+# Agent tools: Fenix 1.1, the first to offer extension API 1.2 -- their
+# classes and deadlines. The crate still builds against API 1.0.0, which
+# its kit (ui-kit) is pinned to; serve and answer are there already.
+fenix = ">=1.1, <2"
+api = "1.2"
 
 [permissions]
 # A log in the project is read where it is, as far as each step needs;
@@ -26,6 +29,9 @@ editor = "read"
 # (-o export, or -o json saved as .json) only when it starts as one; any
 # other file at all with logs.open.
 opens = ["*.log", "*.log.?", "*.log.??", "*.out", "*.export", "*.json"]
+
+# Coding agents' tools.
+services = ["logs.query", "logs.summary"]
 
 [contributes.magic]
 "*.export" = "__CURSOR="
@@ -62,3 +68,22 @@ kind = "int"
 label = "Follow every"
 description = "How often a followed log is looked at, in milliseconds: 200 to 60000."
 default = "1000"
+
+# Agents see them as logs_query and logs_summary. Each reads a file in the
+# project only (project-read): a path from its root, no .., no link. A big
+# log is read in steps, at most 128 MiB a call, with a cursor to read on.
+[[contributes.agent_tools]]
+name = "query"
+description = "Entries of a log file in the project as the log viewer reads them -- JSON lines, logfmt, syslog, journalctl, log4j, Python, tracing; stack traces kept with their entry -- by level, time, text or regex and field. Newest first unless asked; a limit, a byte cap, and a cursor to read on."
+service = "logs.query"
+input = '{"type":"object","properties":{"path":{"type":"string","description":"From the project root: logs/app.log. Left out: the one log open in the viewer"},"level":{"type":"string","enum":["fatal","error","warn","info","debug","trace"],"description":"This level or worse"},"time":{"type":"string","description":"12:00..12:30, 2024-03-01 12:00.., ..12:30, -15m (the last 15 minutes of the log)"},"text":{"type":"string","description":"In the entry, its stack trace too: lower case matches any case; re: starts a regex"},"exclude":{"type":"string","description":"Not in the entry, the same way"},"fields":{"type":"array","items":{"type":"string"},"description":"Fields of a JSON or logfmt line: user=bob, status!=200, msg~timeout, req.id=7"},"order":{"type":"string","enum":["newest","oldest"]},"limit":{"type":"integer","description":"Entries, default 50, at most 500"},"max_bytes":{"type":"integer","description":"Of their text, default 16384, at most 262144"},"cursor":{"type":"string","description":"next_cursor from the last answer, in the same order"}}}'
+class = "read"
+timeout_ms = 120000
+
+[[contributes.agent_tools]]
+name = "summary"
+description = "A log file in the project at a glance: its size, the formats its lines are written in, its entries by level, its first and last times, and how many entries (warnings, errors) came in each span of time. Of a log over 128 MiB, its newest 128 MiB. Where to look before logs_query."
+service = "logs.summary"
+input = '{"type":"object","properties":{"path":{"type":"string","description":"From the project root: logs/app.log. Left out: the one log open in the viewer"},"buckets":{"type":"integer","description":"Spans of time, default 24, at most 100"}}}'
+class = "read"
+timeout_ms = 120000

@@ -203,6 +203,37 @@ pub fn detect(line: &[u8], rules: &Rules) -> Seen {
     plain(line, rules.year)
 }
 
+/// The format an entry's first line is written in, as `logs_summary`
+/// names it: the branch of [`detect`] that reads it.
+pub fn format(line: &[u8], rules: &Rules) -> &'static str {
+    let line = &line[..line.len().min(CAP)];
+    if line.first().is_none_or(|b| b.is_ascii_whitespace()) {
+        return "text";
+    }
+    if line.starts_with(b"__CURSOR=") {
+        return "journalctl export";
+    }
+    if rules.custom.iter().any(|(re, _)| re.is_match(&line[..line.len().min(LOOK * 4)])) {
+        return "your patterns (logs.patterns)";
+    }
+    if line[0] == b'{' && json(line, rules.year).is_some() {
+        return if memchr::memmem::find(line, b"\"__CURSOR\"").is_some() { "journalctl JSON" } else { "JSON lines" };
+    }
+    if logfmt(line, rules.year).is_some() {
+        return "logfmt";
+    }
+    let seen = plain(line, rules.year);
+    if line[0] == b'<' && seen.head {
+        return "syslog";
+    }
+    match (seen.time.is_some(), seen.level != Level::Other) {
+        (true, true) => "text with a time and a level",
+        (true, false) => "text with a time",
+        (false, true) => "text with a level",
+        (false, false) => "text",
+    }
+}
+
 /// A line of `journalctl -o export`: an entry is its fields a line
 /// each, starting with `__CURSOR=`; its level is `PRIORITY=`, its time
 /// `__REALTIME_TIMESTAMP=` (microseconds).

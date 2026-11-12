@@ -8,6 +8,14 @@ use crate::result::Outcome as Came;
 use crate::schema::id;
 use crate::view::{draw_detail, draw_strip, strip_height, ResultView};
 
+/// How a `.sql` buffer's keys are said on the page, which Fenix doesn't
+/// translate: its menu after the leader (Space with Vim keys, Ctrl+K with
+/// standard keys), and standard keys' own chord.
+/// What the page says while there are no connections.
+pub const NO_CONNECTIONS: &str = "No connections yet: add them in the settings (database.connections), open a .sqlite file -- or try it on a sample, Database: a sample database to try it on, from the command palette.";
+
+pub const RUN_HINT: &str = "Run a statement from a .sql buffer: its menu's r -- SPC m r, or Ctrl+K m r with standard keys, where Ctrl+Enter runs it too. Or open a table from the sidebar.";
+
 /// What a key on the page asks of the extension.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Intent {
@@ -71,7 +79,7 @@ pub struct Browser {
 impl Default for Browser {
     fn default() -> Browser {
         let mut tree = TreeState::new();
-        tree.empty = "No connections: add them in database.connections, or open a .sqlite file".into();
+        tree.empty = "No connections yet".into();
         Browser { tree, side: true, results: Vec::new(), tabs: TabsState::new(), ran: None, note: None, help: false }
     }
 }
@@ -303,7 +311,11 @@ impl Browser {
         match &self.ran {
             None => {
                 c.put(main.x, y, "Results", Role::Title);
-                c.put(main.x, y + 2, "Run a statement from a .sql buffer (SPC m r), or open a table from the sidebar.", Role::Muted);
+                let hint = if roots.is_empty() { format!("{NO_CONNECTIONS}\n\n{RUN_HINT}") } else { RUN_HINT.to_string() };
+                let lines: Vec<String> = hint.split('\n').flat_map(|p| if p.is_empty() { vec![String::new()] } else { fenix_ui_kit::text::wrap(p, main.w) }).collect();
+                for (i, line) in lines.into_iter().take(main.bottom().saturating_sub(y + 2)).enumerate() {
+                    c.put(main.x, y + 2 + i, &line, Role::Muted);
+                }
             }
             Some(ran) => {
                 let x = c.put(main.x, y, &ran.conn, Role::Title);
@@ -383,10 +395,12 @@ impl Browser {
                 ("y Y", "copy the cell (or the selection), the rows as CSV"),
                 ("x X", "every row as CSV, as JSON, in a buffer"),
                 ("w W", "every row to a file, CSV or JSON"),
-                ("In a .sql buffer", ""),
-                ("SPC m r", "run the statement under the cursor, or the selection"),
-                ("SPC m R", "run them all"),
-                ("SPC m c", "pick its connection"),
+                ("In a .sql buffer: SPC m, then (Ctrl+K m with standard keys)", ""),
+                ("r", "run the statement under the cursor, or the selection"),
+                ("R", "run them all"),
+                ("c", "pick its connection"),
+                ("h", "the history, to put one back at the cursor"),
+                ("Ctrl+Enter", "with standard keys: r's run, at once"),
             ]
             .iter()
             .map(
@@ -475,5 +489,23 @@ mod tests {
         }
         b.key(Key::Tab, &r);
         assert!(b.side);
+    }
+
+    /// The page names a `.sql` buffer's keys for both schemes: Fenix
+    /// doesn't say a page's text in standard keys for it.
+    #[test]
+    fn its_hints_hold_with_either_key_scheme() {
+        let mut b = Browser::default();
+        let r = roots();
+        let text = b.render(&r, 100, 30).text();
+        assert!(text.contains("SPC m r, or") && text.contains("Ctrl+K m r with standard keys") && text.contains("Ctrl+Enter"), "{text}");
+        b.key(Key::Char('?'), &r);
+        let page = b.render(&r, 100, 40);
+        let help: String = page.popup_ref().expect("the help").rows.iter().map(|row| row.iter().map(|(t, _)| t.as_str()).collect::<String>() + "\n").collect();
+        assert!(help.contains("Ctrl+K m with standard keys") && help.contains("Ctrl+Enter"), "{help}");
+        assert!(!help.contains("SPC m r"), "the menu's keys follow the leader they're under: {help}");
+        let empty = Browser::default().render(&[], 100, 30).text();
+        assert!(empty.contains("No connections yet") && empty.contains("a sample database"), "{empty}");
+        assert!(!text.contains("No connections yet"), "only while there are none");
     }
 }
