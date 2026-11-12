@@ -1,0 +1,58 @@
+id = "containers.basics"
+track = "Containers"
+order = 1
+title = "Containers, logs and performance"
+about = "The Containers page and its tabs, a container's log, the performance page. Docker, Podman or wslc: without one the pages still open and say what's missing, and s on the tutorial page skips the steps that need a container."
+text = """
+Docker, Podman or wslc, whichever runs here (containers.engine, in the
+settings, picks one). With none installed, its pages still open and say
+what's missing; one that's installed but stopped says so, and Enter on
+the page starts it. A step that needs a running container: s on the
+tutorial page skips it.
+
+SPC d d   the Containers page
+            1-5, ] and [   containers, Compose, images, volumes, networks
+            j k            move;  Enter opens one;  m its menu
+            l              its log;  L on a Compose stack, the stack's
+            s R p K        start or stop, restart, pause, kill
+            x x            remove;  / filter;  e another engine;  r reload
+SPC d p   performance: each running container's CPU, memory, network, disk
+SPC d b   build the project's Dockerfile, told when it's done
+On a log: F follows, t shows times, / filters, 1-9 hide a stream, o opens
+it as a buffer.
+"""
+
+[[step]]
+say = "SPC d d: the Containers page -- the engine in use, and its containers by Compose stack."
+hint = "SPC d d. With no Docker, Podman or wslc here, it opens all the same and says what's missing: that counts."
+page = "fenix.containers/main"
+
+[[step]]
+say = "3 shows the images, 4 the volumes, 5 the networks, 1 the containers again; ] and [ step through them. Then q closes the page."
+hint = "A tab the engine doesn't have says so (wslc has no volumes or networks); with the engine stopped there are no tabs yet. q, on the page."
+closed = "fenix.containers/main"
+
+[[step]]
+say = "SPC d p: performance -- each running container's CPU, memory, network and disk, and its last minute."
+hint = "SPC d p. With nothing running, it says so: it's still the page."
+page = "fenix.containers/performance"
+
+[[step]]
+say = "o sorts by CPU rather than memory, and back. q closes it."
+hint = "o, then q, on the performance page."
+closed = "fenix.containers/performance"
+
+[[step]]
+say = "A container's log: SPC d d, j or k to a container that runs, then l."
+hint = "It takes a running engine and a container: without them, s on the tutorial page skips this and the next."
+page = "fenix.containers/logs"
+
+[[step]]
+say = "It follows as it's written: k stops following, F follows again, t shows times, / filters. q closes it."
+hint = "q, on the log page."
+closed = "fenix.containers/logs"
+
+[[step]]
+say = "Back on the Containers page, s starts or stops the container under the cursor, R restarts it, m opens its menu, x x removes it -- not needed now. q closes the page."
+hint = "q, on the Containers page. If it's closed already: SPC d d, then q -- or s on the tutorial page."
+closed = "fenix.containers/main"
