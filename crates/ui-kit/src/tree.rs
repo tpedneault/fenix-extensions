@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 use crate::motion::{page, step, top_for};
 use crate::scroll::scrollbar;
-use crate::text::{fit, width};
+use crate::text::{fit, slice, width};
 use crate::mouse::wheel_step;
 use crate::{Canvas, Key, Mouse, Outcome, Rect, Role, Style};
 
@@ -206,14 +206,17 @@ impl TreeState {
         let markers = rows.iter().any(|r| r.node.expandable() || r.depth > 0);
         for (i, row) in rows.iter().enumerate().skip(top).take(rect.h) {
             let y = rect.y + i - top;
-            let mut x = rect.x + 2 * row.depth;
+            // Indented no further than its right edge: a deep row in a
+            // narrow tree shows what of its marker fits, and no label.
+            let right = rect.x + w;
+            let mut x = (rect.x + 2 * row.depth).min(right);
             if markers {
                 let mark = match (row.node.expandable(), self.is_expanded(&row.node.id)) {
                     (false, _) => "  ",
                     (true, false) => "▸ ",
                     (true, true) => "▾ ",
                 };
-                x = canvas.put(x, y, mark, Role::Muted);
+                x = canvas.put(x, y, &slice(mark, 0, right - x), Role::Muted);
             }
             let room = (rect.x + w).saturating_sub(x);
             let detail = row.node.detail.as_deref().unwrap_or("");
@@ -347,6 +350,21 @@ mod tests {
         let none: Vec<TreeNode> = Vec::new();
         assert_eq!(drawn(&s, &none, 20, 2).text(), "Nothing here");
         assert_eq!(s.handle_key(Key::Down, &none), Outcome::Ignored);
+    }
+
+    #[test]
+    fn deep_rows_stay_in_a_narrow_rectangle() {
+        let roots = db();
+        let mut s = TreeState::new();
+        s.expand("main");
+        s.expand("main/users");
+        // `id` is two levels down: its indent alone is wider than this.
+        let mut c = Canvas::new();
+        s.render(&roots, Rect::new(1, 0, 3, 5), &mut c);
+        assert_eq!(c.text(), " ▾ …\n   ▾\n\n\n ▸ …");
+        for (y, cols, _) in c.spans() {
+            assert!(cols.start >= 1 && cols.end <= 4, "line {y}: cells {cols:?}, outside 1..4");
+        }
     }
 
     #[test]
