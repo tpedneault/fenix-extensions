@@ -42,8 +42,8 @@ left open:
    nobody, but those users stop getting its fixes (3.2).
 3. **The control channel drives Fenix well enough to script
    screenshots** (1.2).
-4. **GitHub Pages: yes.** The `gh-pages` branch exists, with a
-   placeholder page, for the maintainer to switch Pages on (1.5).
+4. **GitHub Pages: yes, and on.** The `gh-pages` branch holds a
+   placeholder page and Pages serves it (1.5).
 5. **Trackers**: Jira Cloud, then GitHub Issues and the others (6.2 to
    6.4).
 6. **The keybindings branch is merged**, and this plan sits on top of
@@ -65,7 +65,9 @@ Checked against the repository when this was written:
   notebooks, a Python bundle, and standard keys for Fenix 1.5 in HTTP,
   Database, Notebook, MIB and Tcl). MIB, Notebook and Tcl built the
   extension API from a branch of Fenix; they now build it from the
-  `v1.5.0` tag. None of it is released to the registry yet.
+  `v1.5.0` tag. All seven were released on 12 November: Jupyter 1.0.0,
+  the Python bundle 1.0.0, HTTP 1.1.0, Database 1.2.0, Notebook 1.1.0,
+  MIB 1.3.0 and Tcl 1.1.0.
 - **The index already carries a `url` and a `sha256` per release**, and
   Fenix checks the hash. Nothing in its format ties a package to this
   repository; what's missing is the way in.
@@ -202,8 +204,8 @@ are marked as such, with their repository.
 - `cargo xtask site <index.json> <out>`; a step at the end of
   `release.yml` pushes the result to `gh-pages`, which exists with a
   placeholder.
-- **Needs from the maintainer**: Pages switched on for `gh-pages`, and
-  the workflow allowed to write to it.
+- Pages is on for `gh-pages`. `release.yml` already has
+  `contents: write`, which is what pushing there takes.
 - It ships useful without pictures and gets better as 1.2 lands.
 - Linking to it from Fenix's README or site is a change to Fenix, so
   it's out of scope here; the page stands on its own URL.
@@ -452,9 +454,4 @@ with the test explorer as the case for it.
 
 ## Still open
 
-Nothing blocks milestone 1. Two things for the maintainer to do:
-
-1. Switch GitHub Pages on for `gh-pages`.
-2. Release what the merge brought -- Jupyter 1.0.0, the Python bundle,
-   and the new versions of HTTP, Database, Notebook, MIB and Tcl -- once
-   this branch is on `main`.
+Nothing. Milestone 1 can start.
