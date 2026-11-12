@@ -51,6 +51,38 @@ left open:
 7. **Publisher ids** were left to this plan's recommendation: tied to a
    GitHub owner, below (1.4).
 
+## Milestone 1: built, not yet proven
+
+Built on 13 November and merged on `claude/pensive-carson-xu7nwb`. What
+each item still needs before it counts as done:
+
+| Item | Built | Still needed |
+|---|---|---|
+| 1.1 JetBrains keys | The extension: 70 bindings, 7 unbinds, checked against Fenix's source and `validate` | Trying in a 1.6 nightly; then its release |
+| 1.2 Screenshots | `cargo xtask screenshots`, scripts for CSV, Logs, Hex, HTTP, Colours, Data tools | A first run on Windows (`screenshots/README.md` lists the steps); see the limit below |
+| 1.3 Contributor guide | `CONTRIBUTING.md`, the pull request template | Nothing |
+| 1.4 External packages | `external.toml`, `publishers.toml`, `external-check`, `index-add-external`, four workflows | The workflows' first runs; a test extension in another repository |
+| 1.5 Catalogue | `cargo xtask site`, the job in `release.yml`, `site.yml` | The workflow's first push to `gh-pages` |
+
+**The limit on screenshots.** The control channel runs only commands an
+extension marks `external = true`, and only CCSDS, MIB, PDF and VNC mark
+any. So a script can show what opening a file shows, and no page behind
+a command: Regex, Diagrams, Notebook, Rust and the rest wait until their
+page-opening commands are marked (a release of each), or the channel
+learns to send keys (Fenix's to add).
+
+**Noticed on the way, not fixed:**
+
+- Fenix's installer doesn't compare a downloaded package's own id and
+  version with the listing it came from. `xtask` now guarantees they
+  match for everything it writes to the index; Fenix checking too would
+  be defence in depth. An issue for Fenix.
+- `extensions/http/extension.wasm` is tracked in Git.
+- HTTP, Database, Notebook, MIB and Tcl say `api = "1.5"` with a `fenix`
+  floor below 1.5. Fenix checks `api` on its own, so nothing breaks; the
+  floors are just out of step with 3.2's rule.
+- `validate` accepts `runtime = "lua"`, which Fenix can't run yet.
+
 ## Where things stand
 
 Checked against the repository when this was written:
@@ -109,8 +141,9 @@ A data-only keymap flavour, `extensions/jetbrains-keys`.
   `scheme = "standard"`, only where IntelliJ's defaults differ from
   Fenix's (which are VS Code's). `unbind = true` for IntelliJ chords
   Fenix has no command for.
-- `engine.fenix = ">=1.5.3, <2"`: the debugger's F-keys only go to a
-  flavour after 1.5.2.
+- `engine.fenix = ">=1.6.0, <2"`: the debugger's F-keys only go to a
+  flavour after 1.5.2, and a nightly counts as 1.6.0, so it can be tried
+  there before 1.6 ships.
 - A README table: IntelliJ action, its shortcut, the Fenix command, and
   a list of what has no equivalent.
 - **Done when** `cargo xtask validate` passes, `SPC h K` reports nothing
@@ -454,4 +487,8 @@ with the test explorer as the case for it.
 
 ## Still open
 
-Nothing. Milestone 1 can start.
+1. Mark page-opening commands `external = true`, extension by
+   extension, so screenshots can reach them? It also lets other tools
+   open those pages.
+2. `Ctrl+T` in JetBrains keys runs `git pull --rebase` at once, where
+   IntelliJ asks first. Keep it?
