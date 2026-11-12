@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.go"
 name = "Go"
-version = "1.0.0"
+version = "1.1.0"
 description = "Go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -50,6 +50,7 @@ languages = ["go"]
 [[contributes.commands]]
 id = "go.packages"
 title = "Go: modules -- outdated and vulnerable, upgrade, add, remove"
+external = true
 
 [[contributes.commands]]
 id = "go.doctor"

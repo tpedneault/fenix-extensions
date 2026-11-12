@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.database"
 name = "Database browser"
-version = "1.2.0"
+version = "1.3.0"
 description = "SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table's rows paged and changed, history, completion of the schema's names"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -82,6 +82,7 @@ languages = ["sql"]
 [[contributes.commands]]
 id = "database.open"
 title = "Database: the browser -- connections, their schemas, results"
+external = true
 
 [[contributes.commands]]
 id = "database.run"
@@ -98,6 +99,7 @@ title = "Database: the connection this .sql buffer runs on"
 [[contributes.commands]]
 id = "database.history"
 title = "Database: the statements you ran, searched"
+external = true
 
 [[contributes.commands]]
 id = "database.new_query"

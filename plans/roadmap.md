@@ -65,11 +65,13 @@ each item still needs before it counts as done:
 | 1.5 Catalogue | `cargo xtask site`, the job in `release.yml`, `site.yml` | The workflow's first push to `gh-pages` |
 
 **The limit on screenshots.** The control channel runs only commands an
-extension marks `external = true`, and only CCSDS, MIB, PDF and VNC mark
-any. So a script can show what opening a file shows, and no page behind
-a command: Regex, Diagrams, Notebook, Rust and the rest wait until their
-page-opening commands are marked (a release of each), or the channel
-learns to send keys (Fenix's to add).
+extension marks `external = true`. On 13 November the commands that open
+a page of their own were marked in 21 extensions (a minor release of
+each), and scripts added for Regex, Env files, the Colours palette and
+the HTTP client: 8 extensions and 12 shots are scripted. Still out of
+reach: pages that start from the file in front of you (a diagram's
+preview, a log, a hex dump opened by command), which Fenix's rule for
+`external` leaves out, and anything needing a service.
 
 **Noticed on the way, not fixed:**
 

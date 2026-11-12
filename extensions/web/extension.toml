@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.web"
 name = "Web: JavaScript and TypeScript"
-version = "1.0.0"
+version = "1.1.0"
 description = "JavaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config & Shell, debugging with js-debug (Node, each of package.json's scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json's scripts as tasks, the project's checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -60,6 +60,7 @@ languages = ["javascript", "typescript", "tsx"]
 [[contributes.commands]]
 id = "web.packages"
 title = "Web: packages -- outdated and vulnerable, upgrade, add, remove"
+external = true
 
 [[contributes.commands]]
 id = "web.doctor"

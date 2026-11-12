@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.http"
 name = "HTTP client"
-version = "1.1.0"
+version = "1.2.0"
 description = "An HTTP client on .http files (REST Client's and JetBrains'): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response's body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server's schema, and imports from Postman, Insomnia, OpenAPI and curl"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -75,10 +75,12 @@ title = "HTTP: run every request in the project, and report"
 [[contributes.commands]]
 id = "http.open"
 title = "HTTP: the client -- collections, the request, its response"
+external = true
 
 [[contributes.commands]]
 id = "http.history"
 title = "HTTP: history of what was sent"
+external = true
 
 [[contributes.commands]]
 id = "http.response"

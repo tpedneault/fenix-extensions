@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.regex"
 name = "Regex"
-version = "1.0.0"
+version = "1.1.0"
 description = "A regex playground: matches and their groups coloured as you type, the replacement's result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -31,7 +31,9 @@ events = ["changed", "focus"]
 [[contributes.commands]]
 id = "regex.open"
 title = "Regex: playground -- on the regex under the cursor, or the selection as its text"
+external = true
 
 [[contributes.commands]]
 id = "regex.cheatsheet"
 title = "Regex: cheatsheet -- the syntax and recipes, to try"
+external = true

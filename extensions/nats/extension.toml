@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.nats"
 name = "NATS"
-version = "1.0.0"
+version = "1.1.0"
 description = "A NATS client: live subjects with their rates and messages, payloads pretty-printed, filters and highlights, publish and request, JetStream's streams, consumers and key-value buckets -- at any message rate"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -68,10 +68,12 @@ timeout_ms = 15000
 [[contributes.commands]]
 id = "nats.open"
 title = "NATS: live subjects, their rates and messages"
+external = true
 
 [[contributes.commands]]
 id = "nats.jetstream"
 title = "NATS: JetStream -- streams, consumers, key-value buckets"
+external = true
 
 [[contributes.commands]]
 id = "nats.publish"

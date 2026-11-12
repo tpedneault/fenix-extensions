@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- `pets.home` can be run from outside Fenix, over the control channel
+  (`fenix/runCommand`): its page opened by a script or another tool, as
+  the screenshots' scripts do.
+
 ## 1.1.0
 
 For Fenix 1.0.1 (extension API 1.1).

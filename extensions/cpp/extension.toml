@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.cpp"
 name = "C/C++"
-version = "1.0.0"
+version = "1.1.0"
 description = "C and C++: clangd with the build's compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake's presets as tasks, clang-format, clang-tidy on save with its fixes, the project's checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -54,6 +54,7 @@ languages = ["c", "cpp"]
 [[contributes.commands]]
 id = "cpp.packages"
 title = "C/C++: packages -- vcpkg's or Conan's, outdated and vulnerable"
+external = true
 
 [[contributes.commands]]
 id = "cpp.doctor"

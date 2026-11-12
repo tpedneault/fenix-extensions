@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pomodoro"
 name = "Pomodoro"
-version = "1.0.1"
+version = "1.1.0"
 description = "A focus timer: work rounds and breaks counted down on the modeline, today's rounds and the week's -- clocked into the agenda when it's there"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -32,6 +32,7 @@ services = ["pomodoro.state"]
 [[contributes.commands]]
 id = "pomodoro.open"
 title = "Pomodoro: the round, today's and the week's"
+external = true
 
 [[contributes.commands]]
 id = "pomodoro.start"

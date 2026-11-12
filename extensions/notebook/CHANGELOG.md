@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- `notebook.open`, `notebook.new_note`, `notebook.find`, `notebook.recent`, `notebook.journal`, `notebook.search`, `notebook.tags` can be run from outside Fenix, over the control channel
+  (`fenix/runCommand`): their pages opened by a script or another tool, as
+  the screenshots' scripts do.
+
 ## 1.1.0
 
 - For Fenix 1.5 (extension API 1.5): a link's hover says the keys of the
