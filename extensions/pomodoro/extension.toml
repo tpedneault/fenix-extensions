@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pomodoro"
 name = "Pomodoro"
-version = "1.1.0"
+version = "1.2.0"
 description = "A focus timer: work rounds and breaks counted down on the modeline, today's rounds and the week's -- clocked into the agenda when it's there"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,9 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+# Notifications (API 1.3), keys named as the key scheme has them (1.5).
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # A round carries on across a restart: the modeline shows it again, and
 # one that ran out while Fenix was closed is counted.

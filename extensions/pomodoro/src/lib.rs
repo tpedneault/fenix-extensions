@@ -6,6 +6,7 @@
 
 pub mod focus;
 pub mod history;
+mod keys;
 pub mod page;
 pub mod round;
 
@@ -13,7 +14,7 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, NaiveDate};
-use fenix_extension_api::{self as api, clock, export, host, Event, Extension, Focus, Key, Page, PickerItem};
+use fenix_extension_api::{self as api, clock, export, host, Event, Extension, Focus, Key, Notification, Page, PickerItem};
 
 use history::{Kept, Round, Task};
 use round::{Ended, Lengths, Phase, Run};
@@ -149,21 +150,23 @@ impl Pomodoro {
             }
         }
         let next = format!("{} ({} min)", e.next.name(), self.lengths.minutes(e.next));
-        let said = match (e.phase, e.counted, e.started_next) {
-            (Phase::Work, true, true) => format!("Round {} done -- {next} has started", e.round),
-            (Phase::Work, true, false) => format!("Round {} done -- {next} next: SPC o p s starts it", e.round),
-            (Phase::Work, false, true) => format!("Skipped round {} -- {next} has started", e.round),
-            (Phase::Work, false, false) => format!("Skipped round {} -- {next} next: SPC o p s starts it", e.round),
-            (_, true, _) => format!("Break's over -- SPC o p s starts round {}", self.kept.timer.round()),
-            (_, false, _) => format!("Skipped the break -- SPC o p s starts round {}", self.kept.timer.round()),
-        };
-        api::notify(&said);
+        let (summary, body) = end_words(&e, &next, self.kept.timer.round(), &keys::start());
+        if e.counted {
+            // It ran out while you may be elsewhere: a notification, the
+            // next replacing it.
+            round_note(&e, summary, body, self.kept.timer.round()).show();
+        } else {
+            // Skipped: you're here, and the message line will do.
+            api::notify(&format!("{summary} -- {body}"));
+        }
     }
 
     fn start(&mut self) {
         if !self.kept.timer.start(now(), &self.lengths) {
-            return api::notify("The round's already running -- SPC o p p pauses it");
+            return api::notify(&format!("The round's already running -- {} pauses it", keys::keys_for("pomodoro.pause", "SPC o p p")));
         }
+        // The round's end that asked for this is done with.
+        api::notify_dismiss(ROUND_TAG);
         if self.kept.timer.phase == Phase::Work {
             self.clock_in();
         }
@@ -172,7 +175,7 @@ impl Pomodoro {
 
     fn pause(&mut self) {
         if !self.kept.timer.pause(now()) {
-            return api::notify("No round is running -- SPC o p s starts one");
+            return api::notify(&format!("No round is running -- {} starts one", keys::start()));
         }
         self.clock_out();
         self.save();
@@ -212,7 +215,7 @@ impl Pomodoro {
         self.kept.on = None;
         self.kept.timer.reset();
         self.watch.next_round();
-        api::notify("Back to round 1 -- SPC o p s starts it");
+        api::notify(&format!("Back to round 1 -- {} starts it", keys::start()));
         self.save();
     }
 
@@ -265,7 +268,7 @@ impl Pomodoro {
             (Asked::ClockIn(task), Err(why)) => {
                 api::warn!("agenda.clock_in: {why}");
                 self.kept.task = None;
-                api::notify(&format!("Couldn't clock into \"{}\" -- SPC o p t picks another", task.title));
+                api::notify(&format!("Couldn't clock into \"{}\" -- {} picks another", task.title, keys::keys_for("pomodoro.task", "SPC o p t")));
             }
             (Asked::Tasks, Ok(text)) => {
                 let tasks: Vec<Task> = serde_json::from_str::<serde_json::Value>(&text)
@@ -274,7 +277,7 @@ impl Pomodoro {
                     .and_then(|t| serde_json::from_value(t).ok())
                     .unwrap_or_default();
                 if tasks.is_empty() {
-                    return api::notify("No tasks to do in the agenda -- SPC A n adds one");
+                    return api::notify(&format!("No tasks to do in the agenda -- {} adds one", keys::keys_for("agenda.new_task", "SPC A n")));
                 }
                 let mut items = vec![PickerItem::new("None -- don't clock in", "none")];
                 items.extend(tasks.iter().map(|t| PickerItem::new(t.title.clone(), t.id.to_string())));
@@ -312,6 +315,35 @@ impl Pomodoro {
             Some(task) => api::notify(&format!("Work rounds are for \"{}\" -- pomodoro.agenda is off, so they won't clock in", task.title)),
         }
         self.save();
+    }
+}
+
+/// The tag a round's end goes by: the next end replaces it.
+const ROUND_TAG: &str = "pomodoro.round";
+
+/// What a round's end says: a summary, and what comes next. `next` is
+/// the next round's name and length, `next_round` its number, `start` the
+/// keys that start a round as the key scheme in use has them.
+fn end_words(e: &Ended, next: &str, next_round: u32, start: &str) -> (String, String) {
+    match (e.phase, e.counted, e.started_next) {
+        (Phase::Work, true, true) => (format!("Round {} done", e.round), format!("{next} has started")),
+        (Phase::Work, true, false) => (format!("Round {} done", e.round), format!("{next} next: {start} starts it")),
+        (Phase::Work, false, true) => (format!("Skipped round {}", e.round), format!("{next} has started")),
+        (Phase::Work, false, false) => (format!("Skipped round {}", e.round), format!("{next} next: {start} starts it")),
+        (_, true, _) => ("Break's over".to_string(), format!("{start} starts round {next_round}")),
+        (_, false, _) => ("Skipped the break".to_string(), format!("{start} starts round {next_round}")),
+    }
+}
+
+/// A round that ran out, as a notification: tagged, so the next end
+/// replaces it; Enter on it starts what's next, unless that started by
+/// itself.
+fn round_note(e: &Ended, summary: String, body: String, next_round: u32) -> Notification {
+    let note = Notification::new(summary).body(body).tag(ROUND_TAG);
+    match (e.started_next, e.phase) {
+        (true, _) => note,
+        (false, Phase::Work) => note.action("Start it", "pomodoro.start"),
+        (false, _) => note.action(format!("Start round {next_round}"), "pomodoro.start"),
     }
 }
 
@@ -430,7 +462,34 @@ export!(Pomodoro);
 
 #[cfg(test)]
 mod tests {
-    use super::{state_json, Phase};
+    use super::{end_words, round_note, state_json, Ended, Phase, ROUND_TAG};
+
+    fn ended(phase: Phase, counted: bool, started_next: bool) -> Ended {
+        Ended { phase, at: 0, length: 25 * 60_000, counted, round: 3, next: Phase::ShortBreak, started_next }
+    }
+
+    #[test]
+    fn a_round_s_end_names_the_keys_of_the_scheme_in_use() {
+        let next = "a short break (5 min)";
+        let e = ended(Phase::Work, true, false);
+        assert_eq!(end_words(&e, next, 4, "SPC o p s"), ("Round 3 done".to_string(), "a short break (5 min) next: SPC o p s starts it".to_string()));
+        assert_eq!(end_words(&e, next, 4, "C-k o p s").1, "a short break (5 min) next: C-k o p s starts it");
+        let e = ended(Phase::ShortBreak, true, false);
+        assert_eq!(end_words(&e, next, 4, "C-k o p s"), ("Break's over".to_string(), "C-k o p s starts round 4".to_string()));
+        let e = ended(Phase::Work, false, true);
+        assert_eq!(end_words(&e, next, 4, "SPC o p s"), ("Skipped round 3".to_string(), "a short break (5 min) has started".to_string()));
+    }
+
+    #[test]
+    fn a_round_that_ran_out_is_a_notification_that_starts_the_next() {
+        let note = round_note(&ended(Phase::Work, true, false), "Round 3 done".into(), "a short break next".into(), 4);
+        assert_eq!((note.summary.as_str(), note.body.as_str(), note.tag.as_deref()), ("Round 3 done", "a short break next", Some(ROUND_TAG)));
+        assert_eq!((note.actions[0].label.as_str(), note.actions[0].command.as_str()), ("Start it", "pomodoro.start"));
+        let note = round_note(&ended(Phase::LongBreak, true, false), "Break's over".into(), String::new(), 4);
+        assert_eq!(note.actions[0].label, "Start round 4");
+        // A break that started by itself has nothing to start.
+        assert!(round_note(&ended(Phase::Work, true, true), "Round 3 done".into(), String::new(), 4).actions.is_empty());
+    }
 
     #[test]
     fn its_state_is_served_for_other_extensions() {
