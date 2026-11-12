@@ -69,7 +69,7 @@ fn stream(n: usize, min: usize, max: usize, subjects: usize) -> Vec<u8> {
 fn connected(limits: Limits) -> (Core, Null, u64) {
     let mut net = Null::default();
     let mut core = Core::new(limits, 1_700_000_000_000_000);
-    core.set_servers(&mut net, vec![Addr::parse("localhost").unwrap()], &[">".into()]);
+    core.set_servers(&mut net, vec![Addr::parse("localhost", "SPC o m a").unwrap()], &[">".into()]);
     core.connect(&mut net, 0, Auth::None, 1_700_000_000_000_000);
     let s = core.conns[0].socket.unwrap();
     core.on_connected(&mut net, s, Ok(()), 1_700_000_000_000_000);

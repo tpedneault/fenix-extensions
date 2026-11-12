@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0
+
+- For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+  key scheme in use, and yours when you've bound your own -- the empty
+  page's "then `C-k o m c` connects" with standard keys, `SPC o m c` with
+  Vim keys, and likewise the publish buffer's title, the hints to set a
+  server's credentials and the errors that send you to Fenix's settings
+  (`C-,`, `SPC ,`). The README gives standard keys beside Vim's.
+
 ## 1.1.0
 
 - `nats.open`, `nats.jetstream` can be run from outside Fenix, over the control channel
