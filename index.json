@@ -1192,6 +1192,29 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.jetbrains-keys",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.6.0, <2",
+          "runtime": "none",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/jetbrains-keys-v1.0.0/fenix.jetbrains-keys-1.0.0.fenixext",
+          "sha256": "c43f0a8c787491ce46f28480f04f6fbba0ad56d33d4807b91df23ec54233f0e3",
+          "size": 7151,
+          "dependencies": {},
+          "categories": [
+            "keymaps"
+          ]
+        }
+      ],
+      "name": "JetBrains keys",
+      "description": "The IntelliJ platform's default shortcuts, over Fenix's standard keys",
+      "categories": [
+        "keymaps"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.jira",
       "versions": [
         {
