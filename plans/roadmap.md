@@ -19,25 +19,50 @@ Three threads run through it:
 
 | Milestone | Theme | What ships | Size |
 |---|---|---|---|
-| 1 | The shop window | JetBrains keys, screenshots, a contributor guide | M |
+| 1 | The shop window | JetBrains keys, scripted screenshots, the web catalogue, external packages in the index, a contributor guide | L |
 | 2 | Author tooling | `xtask new` and `xtask install`, a test kit, a widget gallery | M |
-| 3 | Onboarding | Tutorial lessons, the API sweep, more agent tools, a web catalogue | L |
+| 3 | Onboarding | Tutorial lessons, the API sweep, more agent tools | M |
 | 4 | Tests | The test explorer, in `lang-kit` and four language packs | L |
 | 5 | Breadth | Theme packs and a converter, three language packs, prose checking | L |
-| 6 | Integrations | Kubernetes, Jira Cloud, GitHub Issues and Linear, more languages | L |
+| 6 | Integrations | Kubernetes, Jira Cloud, GitHub and GitLab Issues, Linear, more languages | L |
 
-Milestones 1 and 2 are independent and can run side by side. 3 leans on
-1 (screenshots feed the catalogue). 4 leans on 2 (the test kit). 5 and 6
-lean on 2 (`xtask new`) and are otherwise free to reorder.
+Milestones 1 and 2 are independent and can run side by side. 4 leans on
+2 (the test kit). 5 and 6 lean on 2 (`xtask new`) and are otherwise free
+to reorder.
+
+## Decided
+
+The maintainer's answers (12 November 2026) to what the first draft
+left open:
+
+1. **The index may point at packages built elsewhere.** An outside
+   extension stays in its author's repository; this one lists it (1.4).
+2. **An older Fenix is told nothing** about a release it can't run: it
+   keeps the last one that fits. So raising an extension's floor strands
+   nobody, but those users stop getting its fixes (3.2).
+3. **The control channel drives Fenix well enough to script
+   screenshots** (1.2).
+4. **GitHub Pages: yes.** The `gh-pages` branch exists, with a
+   placeholder page, for the maintainer to switch Pages on (1.5).
+5. **Trackers**: Jira Cloud, then GitHub Issues and the others (6.2,
+   6.3).
 
 ## Where things stand
 
 Checked against the repository when this was written:
 
 - 46 code or data extensions and 7 bundles in `extensions/`.
-- **No `jetbrains-keys`**, in the tree or its history, though Fenix's
-  `COMING_FROM.md` and `WRITING_EXTENSIONS.md` link to it as the store's
-  worked example of a keymap flavour.
+- **No `jetbrains-keys`**, on `main`, on any branch or in the registry's
+  index, though Fenix's `COMING_FROM.md`, `WRITING_EXTENSIONS.md` and
+  changelog all name it as the store's worked example of a keymap
+  flavour.
+- **An unmerged branch, `claude/fenix-ide-keybindings-3sjjky`** (9
+  November), holds a Jupyter notebook extension, a Python bundle, and
+  standard-keys work in HTTP, Database, Notebook, MIB and Tcl. Merge or
+  drop it before milestone 3: it overlaps the API sweep.
+- **The index already carries a `url` and a `sha256` per release**, and
+  Fenix checks the hash. Nothing in its format ties a package to this
+  repository; what's missing is the way in.
 - **No extension has a `screenshots/` folder.** The store's details page
   shows them when they're there.
 - **One tutorial lesson** in the whole store:
@@ -83,35 +108,89 @@ A data-only keymap flavour, `extensions/jetbrains-keys`.
   after install, and both links in Fenix's docs resolve.
 - **Follow-ups**, each S: Sublime Text and Visual Studio flavours.
 
-### 1.2 Screenshots (M)
+### 1.2 Scripted screenshots (M)
 
-- A first pass of twelve: HTTP, Database, Containers, Logs, Review, CI,
-  CSV, Diagrams, Notebook, Regex, Colours, and one language pack
-  (Rust: the package page and a debug session).
+`cargo xtask screenshots [extension]`, driving a running Fenix over the
+control channel so every picture can be retaken after a theme or layout
+change.
+
+- Each extension gets a `screenshots.toml`: for each picture, a sample
+  project to open (`fenix/openProject`), the commands to run
+  (`fenix/runCommand`), what `fenix/state` should say before the shot,
+  and the file name.
+- `xtask` installs the packed extension into a clean profile, starts
+  Fenix at a fixed window size and theme, runs the steps and captures
+  the window with the system's own tool. The control channel has no
+  capture of its own, so that last step is per platform: Windows first.
+- Sample projects live under `screenshots/samples/` at the top of the
+  repository and aren't packed.
 - A house style in the contributor guide: one theme, one window size,
   PNG, under 2 MB, up to three per extension, the first one the hero.
-- Then the rest, a batch per release.
-- **Risk**: they need a real Fenix window, so they're taken by hand.
-  Worth checking whether Fenix's control channel can script it; if it
-  can, an `xtask screenshots` follows in milestone 3.
-- **Done when** every extension in the first pass shows a picture on its
-  store page, and `validate` checks size and format (it may already).
+- First pass, twelve: HTTP, Database, Containers, Logs, Review, CI,
+  CSV, Diagrams, Notebook, Regex, Colours, and Rust (the package page
+  and a debug session). Then the rest, a batch per release.
+- Pages that need a service (Containers, Review, CI, Database) use a
+  local stand-in or a recorded sample; say which in the script.
+- **Done when** the twelve show a picture on their store page, the
+  command retakes all of them unattended on Windows, and `validate`
+  checks size and format.
 
 ### 1.3 A contributor guide (S)
 
 `CONTRIBUTING.md`, and a pull request template.
 
-- How to submit: a folder under `extensions/`, what review looks at,
-  who tags the release.
-- Publisher ids: who may use `fenix.`, how to pick another.
+- Two ways in: a folder under `extensions/` (built and released here),
+  or an entry in `external.toml` for a package built elsewhere (1.4).
+- Publisher ids: `fenix.` is this repository's; anyone else picks their
+  own, first come, and keeps it.
 - A permissions checklist for reviewers: the narrowest `process`,
   `network` and `sockets` that work, no `network = ["*"]` without a
   reason in the README, secrets by key.
 - What every extension carries: README, CHANGELOG, a screenshot, tests
   where it has code.
-- **Open question for the maintainer**: do outside extensions live in
-  this repository, or may the index point at packages built elsewhere?
-  The guide should say which.
+
+### 1.4 External packages in the index (M)
+
+An outside author builds and hosts their own `.fenixext`; the registry
+lists it. The index needs no new field for this.
+
+- `external.toml` on `main`: one entry per release -- `id`, `version`,
+  `url`, `sha256`, `repository`. A submission is a pull request adding
+  an entry.
+- `cargo xtask index-add-external`: downloads the package, checks the
+  hash, unpacks it, runs the same checks `validate` runs on a folder
+  here, and writes the index entry **from the manifest inside the
+  package**, never from what the pull request claims: name, permissions,
+  `fenix`, `api`, dependencies.
+- CI runs it on any pull request touching `external.toml`, and prints
+  the permissions for the reviewer. `release.yml` adds the entries and
+  signs, as it does for the rest.
+- Rules it enforces: an https URL that stays put (a release asset, not a
+  branch), an id whose publisher isn't `fenix.` and isn't someone
+  else's, a version not already listed, a size limit.
+- A reusable workflow authors can call from their own repository to
+  build, pack and attach a `.fenixext` to a release, printing the entry
+  to submit.
+- **Risk**: a URL can die. A scheduled job checks each one still
+  answers with its hash and opens an issue when it doesn't.
+- **Done when** a test extension in another repository is installed
+  from the store through an `external.toml` entry.
+
+### 1.5 The web catalogue (M)
+
+A static site generated by `xtask` from the registry's `index.json`:
+every extension with its description, categories, permissions, hero
+screenshot, changelog and the Fenix it needs, searchable. External ones
+are marked as such, with their repository.
+
+- `cargo xtask site <index.json> <out>`; a step at the end of
+  `release.yml` pushes the result to `gh-pages`, which exists with a
+  placeholder.
+- **Needs from the maintainer**: Pages switched on for `gh-pages`, and
+  the workflow allowed to write to it.
+- It ships useful without pictures and gets better as 1.2 lands.
+- Linking to it from Fenix's README or site is a change to Fenix, so
+  it's out of scope here; the page stands on its own URL.
 
 ---
 
@@ -186,11 +265,15 @@ own sake.
   a container build, a test run, a download, an HTTP runner.
 - **Agent-assisted compose** (1.4): Review's descriptions already; the
   HTTP client's request notes and the agenda's task text are candidates.
-- **Check first**: an extension built for API 1.5 needs
-  `fenix = ">=1.5"`. Confirm how the store treats someone on an older
-  Fenix (keeps the last release that fits, or shows nothing) before
-  raising any floor. If it's the second, sweep only at the next minor
-  where the floor moves anyway.
+- **Floors**: an extension built for API 1.5 needs `fenix = ">=1.5"`.
+  An older Fenix isn't told about that release and keeps the last one
+  it can run, so nothing breaks, but those users get no more fixes for
+  it. So: raise a floor only in a minor release that uses what the
+  newer API adds, say so at the top of its CHANGELOG entry, and ship any
+  pending fixes in a patch release on the old floor first.
+- **Before starting**: settle the unmerged
+  `claude/fenix-ide-keybindings-3sjjky` branch, which already does some
+  of this for five extensions.
 
 ### 3.3 More agent tools (M)
 
@@ -205,17 +288,6 @@ shape for:
 
 Each within the limits (description 300 characters, schema 2 KiB), each
 with a tool class so Fenix asks before anything that writes.
-
-### 3.4 A web catalogue (M)
-
-A static page generated by `xtask` from the registry's `index.json`:
-every extension with its description, categories, permissions, hero
-screenshot and changelog, searchable. Published from this repository
-with GitHub Pages by a step in `release.yml`.
-
-- **Needs from the maintainer**: Pages switched on for the repository.
-- Linking to it from Fenix's README or site is a change to Fenix, so
-  it's out of scope here; the page stands on its own URL.
 
 ---
 
@@ -311,21 +383,35 @@ workloads and pods in a tree, live logs, a shell in a pod
 resource's YAML in a buffer. Read-only agent tools. Joins the Lab
 bundle.
 
-### 6.2 Jira Cloud (M)
+### 6.2 A tracker seam in the agenda (M)
 
-The Jira extension describes itself as for Server and Data Center.
-Cloud differs in sign-in (email and API token, or OAuth), the REST
-version and rich-text fields. The work is in `crates/jira`, behind the
-client the extension and the agenda already share.
+First, so that Jira stops being a special case: a small service the
+agenda calls for "the issues assigned to me", "this issue" and "move it
+on", which any tracker extension can serve. Jira Server and Data Center
+move onto it with no change in behaviour. The Jira bundle keeps working
+as it is.
 
-### 6.3 GitHub Issues and Linear in the agenda (L)
+### 6.3 Jira Cloud (M)
 
-- First, a small tracker service the agenda calls, so Jira stops being a
-  special case. This is the design step; do it before 6.2 if both are
-  planned, so Cloud lands on the new seam.
-- Then one extension per tracker that serves it.
+The Jira extension is for Server and Data Center. Cloud differs in
+sign-in (email and API token, or OAuth through `socket::listen`), the
+REST version and rich-text fields. The work is in `crates/jira`, behind
+the client the extension and the agenda already share; one extension,
+both kinds, told apart by the site's address.
 
-### 6.4 Language packs, second wave (M each)
+### 6.4 GitHub Issues, GitLab Issues, Linear (M each)
+
+One extension per tracker, each serving 6.2's seam and bringing its own
+page: searches, an issue with its comments, a new-issue form, a branch
+started from an issue.
+
+- **GitHub Issues** first, then **GitLab Issues**: both reuse
+  `crates/forge` and the sign-in Review already has, so someone using
+  Review has nothing more to set up.
+- **Linear** after: its own API and token.
+- Agent tools on each: read an issue, list mine.
+
+### 6.5 Language packs, second wave (M each)
 
 Scala, Nix, LaTeX and Typst (with a PDF preview through the PDF
 reader's service, if it has one to offer).
@@ -348,14 +434,9 @@ with the test explorer as the case for it.
 - The first extension from someone other than the maintainer is merged.
 - No link in Fenix's docs points at a store extension that isn't there.
 
-## Open questions
+## Still open
 
-1. Outside extensions: in this repository, or packages built elsewhere?
-   (1.3)
-2. What does the store show an older Fenix when an extension's newest
-   release needs a newer one? (3.2)
-3. Can the control channel drive Fenix well enough to script
-   screenshots? (1.2)
-4. GitHub Pages for this repository: yes or no? (3.4)
-5. Which trackers after Jira Cloud matter to the people using the
-   agenda today? (6.3)
+1. The unmerged `claude/fenix-ide-keybindings-3sjjky` branch: merge it
+   (Jupyter and a Python bundle join the store) or drop it?
+2. Publisher ids for outside authors: is first come enough, or should a
+   publisher prove they own a repository or a domain? (1.4)
