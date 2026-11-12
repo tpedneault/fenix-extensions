@@ -97,6 +97,27 @@ bundles install several at once, and are what the welcome's packs offer.
 | [`fenix.reading-bundle`](extensions/reading-bundle) | Reading | The PDF reader |
 | [`fenix.review-bundle`](extensions/review-bundle) | Review | GitHub pull requests, GitLab merge requests |
 
+## The catalogue
+
+[tpedneault.github.io/fenix-extensions](https://tpedneault.github.io/fenix-extensions/)
+is the store on the web: every extension and bundle in the index, to
+search and browse before installing -- each with what it does, what it
+may do in plain words, the Fenix it needs, its versions, and for one
+built here its screenshots, README and changelog. One built elsewhere is
+marked so, with its repository.
+
+`cargo xtask site <index.json> <out>` makes it: plain HTML, one
+stylesheet and a small script that only filters, nothing loaded from
+anywhere else. After each release, `release.yml` rebuilds it from the new
+index and main's extensions and pushes it to the `gh-pages` branch, which
+Pages serves; Site (`site.yml`, run by hand) does the same without
+releasing anything. To see it locally:
+
+```text
+git fetch origin registry && git show origin/registry:index.json > index.json
+cargo xtask site index.json out       # then open out/index.html
+```
+
 ## Making an extension
 
 [CONTRIBUTING.md](CONTRIBUTING.md) says how to add one or improve one.

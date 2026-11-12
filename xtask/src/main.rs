@@ -9,6 +9,8 @@
 //! cargo xtask index-add <index.json> <extension-dir> <url> <sha256> <size>
 //! cargo xtask external-check [--offline] [--index index.json]   external.toml and publishers.toml
 //! cargo xtask index-add-external <index.json> [--only <id>@<version>]
+//! cargo xtask screenshots [name] [--dry-run]   each extension's screenshots.toml, run in Fenix and captured
+//! cargo xtask site <index.json> <out>        the catalogue, for GitHub Pages
 //! ```
 //!
 //! The manifest is read the way Fenix reads it (`fenix-extensions`'
@@ -24,6 +26,7 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
 mod screenshots;
+mod site;
 
 #[derive(Debug, Deserialize)]
 struct Manifest {
@@ -345,6 +348,9 @@ fn check_chords(dir: &Path) -> Result<(), String> {
         .and_then(|c| c.as_array())
         .map(|a| a.iter().filter_map(|c| c.get("name").and_then(|n| n.as_str()).map(str::to_string)).collect())
         .unwrap_or_default();
+    // A keymap flavour is there to take standard keys' chords, and has no
+    // context to give them: the warning below is for the others.
+    let flavour = manifest.get("extension").and_then(|e| e.get("categories")).and_then(|c| c.as_array()).is_some_and(|c| c.iter().any(|c| c.as_str() == Some("keymaps")));
     let api = manifest.get("engine").and_then(|e| e.get("api")).and_then(|a| a.as_str()).map(|a| semver::Version::parse(&match a.matches('.').count() { 0 => format!("{a}.0.0"), 1 => format!("{a}.0"), _ => a.to_string() }).ok());
     for rel in files(dir).into_iter().filter(|f| f.starts_with("keymaps") && f.extension().is_some_and(|x| x == "toml")) {
         let path = dir.join(&rel);
@@ -380,7 +386,7 @@ fn check_chords(dir: &Path) -> Result<(), String> {
             if field("command").is_none() && chord.get("unbind").and_then(|u| u.as_bool()) != Some(true) {
                 return Err(format!("{at}: {keys}: a command, or unbind = true"));
             }
-            if STANDARD_CHORDS.contains(&keys) && field("context").is_none() {
+            if !flavour && STANDARD_CHORDS.contains(&keys) && field("context").is_none() {
                 println!("warn {at}: {keys} is one of standard keys' own, and this takes it everywhere -- give it a context");
             }
         }
@@ -565,8 +571,9 @@ fn main() {
         Some("external-check") => external::check_command(&root, &args[1..]),
         Some("index-add-external") => external::add_command(&root, &args[1..]),
         Some("screenshots") => screenshots::run(&root, &args[1..]),
+        Some("site") => site::site(&root, Path::new(&arg(1)), Path::new(&arg(2))),
         Some("index-add") => arg(5).parse::<u64>().map_err(|e| format!("size: {e}")).and_then(|size| index_add(Path::new(&arg(1)), Path::new(&arg(2)), &arg(3), &arg(4), size)),
-        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>]".into()),
+        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>] | screenshots [name] [--fenix <path>] [--theme <name>] [--size WxH] [--dry-run] | site <index.json> <out>".into()),
     };
     if let Err(e) = result {
         eprintln!("xtask: {e}");
