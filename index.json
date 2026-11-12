@@ -2363,6 +2363,22 @@
           "permissions": {
             "sound": true
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/pomodoro-v1.1.0/fenix.pomodoro-1.1.0.fenixext",
+          "sha256": "001c803a1f43f40a6ab0c08ea7d9dcd0d683975192894f6e5d2ab86d40754893",
+          "size": 146823,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "sound": true
+          }
         }
       ],
       "name": "Pomodoro",
