@@ -2029,6 +2029,29 @@
               "git"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/notebook-v1.2.0/fenix.notebook-1.2.0.fenixext",
+          "sha256": "6d679dfa5bd1e2d84462e6d452318793d4cd9d0c47b8fac62e3a18c4f2e8b951",
+          "size": 493225,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "folders": {
+              "notebook": "${setting:notebook.folder}|data:notebook"
+            },
+            "process": [
+              "git"
+            ]
+          }
         }
       ],
       "name": "Notebook",
