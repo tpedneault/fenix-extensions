@@ -1,7 +1,9 @@
 # Regex
 
-A playground for regular expressions (`SPC s x`): a pattern, a text to
-try it on and a replacement, matched as you type.
+A playground for regular expressions (`SPC s x`, or `C-k s x` with
+standard keys): a pattern, a text to try it on and a replacement,
+matched as you type. It needs Fenix 1.5 or later (extension API 1.5);
+on an older Fenix, Regex 1.1.0 is the one you get.
 
 - **Matches**, on a background in the text: the whole match the
   selection's, each capture group its own colour from the theme's
@@ -45,8 +47,8 @@ on; a line with no regex leaves its text as it was.
 
 | Key | Command | What it does |
 | --- | --- | --- |
-| `SPC s x` | `regex.open` | The playground |
-| `SPC s X` | `regex.cheatsheet` | The cheatsheet |
+| `SPC s x` (standard keys: `C-k s x`) | `regex.open` | The playground |
+| `SPC s X` (standard keys: `C-k s X`) | `regex.cheatsheet` | The cheatsheet |
 
 On the playground:
 
