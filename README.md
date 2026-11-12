@@ -96,6 +96,8 @@ bundles install several at once, and are what the welcome's packs offer.
 
 ## Making an extension
 
+[CONTRIBUTING.md](CONTRIBUTING.md) says how to add one or improve one.
+
 An extension carries data -- themes, snippets, project templates and
 keymaps, laid out like your own in Fenix's settings folder -- or code: a
 WebAssembly component built with `fenix-extension-api` (Fenix's
