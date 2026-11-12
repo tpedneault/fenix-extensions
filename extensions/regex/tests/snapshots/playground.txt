@@ -1,0 +1,25 @@
+
+  Regex                                     playground   cheatsheet
+
+  pattern   (\d{4})-(\d+)
+            0 matches · 2 groups
+  flags     i ignore case   m multi-line   s . matches \n
+  flavour   Rust regex  f: fancy-regex (lookaround, backreferences)
+
+  text      Enter to type the text to match
+
+  replace   none · Enter to write one: $1, ${name}, $$ for $
+
+  EXPLAINED ──────────────────────────────────────────────────────────
+  (\d{4})                 group 1:
+    \d{4}                 a digit, exactly 4 times
+  -                       '-'
+  (\d+)                   group 2:
+    \d+                   a digit, 1 or more times
+
+  ELSEWHERE ──────────────────────────────────────────────────────────
+  \d \w \s \b: Unicode here and in Python 3; ASCII in JavaScript
+    (even with u), Go, Java and PCRE unless asked (PCRE2_UCP).
+
+  ────────────────────────────────────────────────────────────────────
+  Enter edit   c clear and edit   i m s x u flags   f flavour
