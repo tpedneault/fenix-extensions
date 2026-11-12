@@ -44,22 +44,28 @@ left open:
    screenshots** (1.2).
 4. **GitHub Pages: yes.** The `gh-pages` branch exists, with a
    placeholder page, for the maintainer to switch Pages on (1.5).
-5. **Trackers**: Jira Cloud, then GitHub Issues and the others (6.2,
-   6.3).
+5. **Trackers**: Jira Cloud, then GitHub Issues and the others (6.2 to
+   6.4).
+6. **The keybindings branch is merged**, and this plan sits on top of
+   it (13 November).
+7. **Publisher ids** were left to this plan's recommendation: tied to a
+   GitHub owner, below (1.4).
 
 ## Where things stand
 
 Checked against the repository when this was written:
 
-- 46 code or data extensions and 7 bundles in `extensions/`.
+- 49 extensions (47 with code, 2 of data only) and 8 bundles in
+  `extensions/`.
 - **No `jetbrains-keys`**, on `main`, on any branch or in the registry's
   index, though Fenix's `COMING_FROM.md`, `WRITING_EXTENSIONS.md` and
   changelog all name it as the store's worked example of a keymap
   flavour.
-- **An unmerged branch, `claude/fenix-ide-keybindings-3sjjky`** (9
-  November), holds a Jupyter notebook extension, a Python bundle, and
-  standard-keys work in HTTP, Database, Notebook, MIB and Tcl. Merge or
-  drop it before milestone 3: it overlaps the API sweep.
+- **The keybindings branch is merged under this plan** (Jupyter
+  notebooks, a Python bundle, and standard keys for Fenix 1.5 in HTTP,
+  Database, Notebook, MIB and Tcl). MIB, Notebook and Tcl built the
+  extension API from a branch of Fenix; they now build it from the
+  `v1.5.0` tag. None of it is released to the registry yet.
 - **The index already carries a `url` and a `sha256` per release**, and
   Fenix checks the hash. Nothing in its format ties a package to this
   repository; what's missing is the way in.
@@ -67,8 +73,9 @@ Checked against the repository when this was written:
   shows them when they're there.
 - **One tutorial lesson** in the whole store:
   `extensions/review/tutorial/pull-requests.toml`.
-- **41 of 46 code extensions build against API `v1.0.0`.** Five are on
-  1.0.1 to 1.3.0; none is on 1.4 or 1.5.
+- **39 of 47 code extensions build against API `v1.0.0`.** Five are on
+  1.0.1 to 1.3.0, and three (MIB, Notebook, Tcl) on 1.5, where their
+  hints already name the key for the scheme in use (`key_for`).
 - **8 extensions mention agents in their manifest** (agent-context,
   ccsds, ci, database, mib, nats, pets, review). Logs, Containers and
   HTTP give agents nothing yet.
@@ -127,7 +134,7 @@ change.
 - A house style in the contributor guide: one theme, one window size,
   PNG, under 2 MB, up to three per extension, the first one the hero.
 - First pass, twelve: HTTP, Database, Containers, Logs, Review, CI,
-  CSV, Diagrams, Notebook, Regex, Colours, and Rust (the package page
+  CSV, Diagrams, Jupyter, Regex, Colours, and Rust (the package page
   and a debug session). Then the rest, a batch per release.
 - Pages that need a service (Containers, Review, CI, Database) use a
   local stand-in or a recorded sample; say which in the script.
@@ -141,8 +148,9 @@ change.
 
 - Two ways in: a folder under `extensions/` (built and released here),
   or an entry in `external.toml` for a package built elsewhere (1.4).
-- Publisher ids: `fenix.` is this repository's; anyone else picks their
-  own, first come, and keeps it.
+- Publisher ids: `fenix.` is this repository's; anyone else claims
+  their own with their first submission, tied to their GitHub account
+  or organisation (1.4).
 - A permissions checklist for reviewers: the narrowest `process`,
   `network` and `sockets` that work, no `network = ["*"]` without a
   reason in the README, secrets by key.
@@ -165,9 +173,17 @@ lists it. The index needs no new field for this.
 - CI runs it on any pull request touching `external.toml`, and prints
   the permissions for the reviewer. `release.yml` adds the entries and
   signs, as it does for the rest.
-- Rules it enforces: an https URL that stays put (a release asset, not a
-  branch), an id whose publisher isn't `fenix.` and isn't someone
-  else's, a version not already listed, a size limit.
+- **Publishers.** `publishers.toml` maps each publisher id to the
+  GitHub owners (a user or an organisation) that may release under it.
+  The first accepted submission claims the id, first come; from then on
+  a release under it must be a release asset of a repository one of its
+  owners owns, which `xtask` checks from the URL. That proves who a
+  publisher is with nothing to set up, and stops a second party
+  shipping under someone else's name. Changing owners is a pull request
+  the current owner approves. Domain proof isn't worth its cost yet.
+- Other rules it enforces: an https URL that stays put (a release
+  asset, not a branch), a publisher that isn't `fenix.`, a version not
+  already listed, a size limit.
 - A reusable workflow authors can call from their own repository to
   build, pack and attach a `.fenixext` to a release, printing the entry
   to submit.
@@ -246,7 +262,7 @@ points at it and at `xtask new`.
 
 Lessons in `tutorial/*.toml`, the format Review already uses.
 
-- First: HTTP, Database, Containers, Notebook, and one shared lesson
+- First: HTTP, Database, Containers, Notebook, Jupyter, and one shared lesson
   shape for language packs (install the server from the doctor, run a
   task, start a debug session) filled in for Rust, Python, Web and Go.
 - A lesson template in the contributor guide.
@@ -271,9 +287,9 @@ own sake.
   it. So: raise a floor only in a minor release that uses what the
   newer API adds, say so at the top of its CHANGELOG entry, and ship any
   pending fixes in a patch release on the old floor first.
-- **Before starting**: settle the unmerged
-  `claude/fenix-ide-keybindings-3sjjky` branch, which already does some
-  of this for five extensions.
+- **Started**: MIB, Notebook and Tcl are done, and are the pattern to
+  follow. HTTP and Database have their standard-key chords but still
+  build against an older API.
 
 ### 3.3 More agent tools (M)
 
@@ -436,7 +452,9 @@ with the test explorer as the case for it.
 
 ## Still open
 
-1. The unmerged `claude/fenix-ide-keybindings-3sjjky` branch: merge it
-   (Jupyter and a Python bundle join the store) or drop it?
-2. Publisher ids for outside authors: is first come enough, or should a
-   publisher prove they own a repository or a domain? (1.4)
+Nothing blocks milestone 1. Two things for the maintainer to do:
+
+1. Switch GitHub Pages on for `gh-pages`.
+2. Release what the merge brought -- Jupyter 1.0.0, the Python bundle,
+   and the new versions of HTTP, Database, Notebook, MIB and Tcl -- once
+   this branch is on `main`.
