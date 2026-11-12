@@ -1,0 +1,158 @@
+# Packs an extension built outside this repository, attaches it to the
+# calling repository's release, and prints the `[[release]]` entry to add
+# to this repository's `external.toml` (README.md, "Extensions built
+# elsewhere").
+#
+# Call it from a workflow of your own repository, on the release's tag:
+#
+#   on:
+#     push:
+#       tags: ['v*']
+#   jobs:
+#     pack:
+#       permissions:
+#         contents: write          # to create the release and attach to it
+#       uses: tpedneault/fenix-extensions/.github/workflows/pack-extension.yml@<commit>
+#       with:
+#         xtask-ref: <commit>      # the same commit as on the `uses:` line
+#         extension-dir: .         # where extension.toml is
+#
+# Inputs:
+#   xtask-ref      (required) The commit, or tag, of tpedneault/fenix-extensions
+#                  whose `xtask` packs it: pin it, as the `uses:` line is
+#                  pinned, so what packs your releases changes only when you
+#                  say.
+#   extension-dir  The folder of your repository holding extension.toml,
+#                  relative to its root. Default `.`.
+#   tag            The release tag to attach to. Default: the tag the
+#                  workflow runs on (`github.ref_name`). The release is
+#                  created if there isn't one; a package already attached
+#                  under the same name is never replaced -- a release in the
+#                  index doesn't change, so a new package is a new version.
+#
+# Outputs: `entry` (the `[[release]]` text), `url`, `sha256`. The entry is
+# also in the run's summary.
+#
+# A code extension (one with a Cargo.toml) is built for wasm32-wasip2 by
+# `cargo xtask pack`, as this repository's are, and its source is left out
+# of the package.
+name: Pack an extension
+
+on:
+  workflow_call:
+    inputs:
+      xtask-ref:
+        description: 'The tpedneault/fenix-extensions commit or tag whose xtask packs it'
+        type: string
+        required: true
+      extension-dir:
+        description: 'The folder holding extension.toml, relative to the repository root'
+        type: string
+        required: false
+        default: '.'
+      tag:
+        description: 'The release tag to attach to; default the tag the workflow runs on'
+        type: string
+        required: false
+        default: ''
+    outputs:
+      entry:
+        description: 'The [[release]] entry for external.toml'
+        value: ${{ jobs.pack.outputs.entry }}
+      url:
+        description: "The package's URL"
+        value: ${{ jobs.pack.outputs.url }}
+      sha256:
+        description: "The package's SHA-256"
+        value: ${{ jobs.pack.outputs.sha256 }}
+
+jobs:
+  pack:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      entry: ${{ steps.entry.outputs.entry }}
+      url: ${{ steps.entry.outputs.url }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      EXTENSION_DIR: ${{ inputs.extension-dir }}
+    steps:
+      - name: The tag
+        run: |
+          # As a release asset's URL spells it, so external.toml takes it.
+          if ! [[ "$TAG" =~ ^[A-Za-z0-9._+-]+$ ]] || [ "$TAG" = . ] || [ "$TAG" = .. ]; then
+            echo "the tag $TAG has characters a release asset's URL would escape: letters, digits, . _ + - only"
+            exit 1
+          fi
+          case "$EXTENSION_DIR" in
+            /*|*..*) echo "extension-dir is a folder inside the repository: $EXTENSION_DIR"; exit 1 ;;
+          esac
+      - name: The extension, at the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          path: extension
+          persist-credentials: false
+      - name: fenix-extensions' xtask, at the pinned ref
+        uses: actions/checkout@v4
+        with:
+          repository: tpedneault/fenix-extensions
+          ref: ${{ inputs.xtask-ref }}
+          path: fenix-extensions
+          persist-credentials: false
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal --target wasm32-wasip2 --no-self-update
+          rustup default stable
+      - name: Pack
+        id: pack
+        working-directory: fenix-extensions
+        run: |
+          info=$(cargo xtask pack "$GITHUB_WORKSPACE/extension/$EXTENSION_DIR" "$GITHUB_WORKSPACE/dist")
+          file=$(echo "$info" | jq -r .file)
+          {
+            echo "file=$file"
+            echo "name=$(basename "$file")"
+            echo "id=$(echo "$info" | jq -r .id)"
+            echo "version=$(echo "$info" | jq -r .version)"
+            echo "sha256=$(echo "$info" | jq -r .sha256)"
+          } >> "$GITHUB_OUTPUT"
+          (cd "$(dirname "$file")" && sha256sum "$(basename "$file")" > "$(basename "$file").sha256")
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FILE: ${{ steps.pack.outputs.file }}
+        run: |
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --notes ""
+          fi
+          # Never --clobber: a package once listed doesn't change.
+          gh release upload "$TAG" "$FILE" "$FILE.sha256" --repo "$GITHUB_REPOSITORY"
+      - name: The entry for external.toml
+        id: entry
+        env:
+          ID: ${{ steps.pack.outputs.id }}
+          VERSION: ${{ steps.pack.outputs.version }}
+          NAME: ${{ steps.pack.outputs.name }}
+          SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${NAME}"
+          entry=$(printf '[[release]]\nid = "%s"\nversion = "%s"\nurl = "%s"\nsha256 = "%s"\nrepository = "%s"\n' "$ID" "$VERSION" "$url" "$SHA256" "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}")
+          echo "$entry"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          {
+            echo "entry<<FENIX_ENTRY_EOF"
+            echo "$entry"
+            echo "FENIX_ENTRY_EOF"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### For tpedneault/fenix-extensions' external.toml"
+            echo
+            echo '```toml'
+            echo "$entry"
+            echo '```'
+            echo
+            echo "Add it in a pull request there; the first release under a publisher also adds the publisher to publishers.toml."
+          } >> "$GITHUB_STEP_SUMMARY"

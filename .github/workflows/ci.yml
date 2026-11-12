@@ -35,3 +35,57 @@ jobs:
           for dir in extensions/*/; do
             cargo xtask pack "$dir" dist
           done
+
+  # A pull request adding a release built elsewhere (external.toml) or
+  # claiming a publisher (publishers.toml): each package downloaded and
+  # checked, and what it may do printed for the reviewer. Untrusted input:
+  # no secrets, a read-only token, nothing from the pull request in a
+  # shell line, and the output can't issue workflow commands.
+  external:
+    name: Extensions built elsewhere
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # The merge commit and the base it's on.
+          fetch-depth: 2
+      - name: Does it touch external.toml or publishers.toml?
+        id: touched
+        run: |
+          if git diff --quiet HEAD^1 HEAD -- external.toml publishers.toml; then
+            echo "external=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "external=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: What it changes there
+        if: steps.touched.outputs.external == 'true'
+        run: |
+          git diff HEAD^1 HEAD -- publishers.toml external.toml
+          # A line taken out or changed in publishers.toml is an existing
+          # publisher's owners changing: one of them approves it.
+          if git diff -U0 HEAD^1 HEAD -- publishers.toml | grep -q '^-[^-]'; then
+            echo "::warning file=publishers.toml::This changes an existing publisher's owners: one of its current owners must approve the pull request"
+          fi
+      - name: Install Rust stable
+        if: steps.touched.outputs.external == 'true'
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup override set stable
+      - name: Every package downloaded and checked, with its permissions
+        if: steps.touched.outputs.external == 'true'
+        run: |
+          index=()
+          if git fetch --depth=1 origin registry; then
+            git show FETCH_HEAD:index.json > "$RUNNER_TEMP/index.json"
+            index=(--index "$RUNNER_TEMP/index.json")
+          fi
+          token=$(openssl rand -hex 16)
+          echo "::stop-commands::$token"
+          status=0
+          cargo xtask external-check "${index[@]}" || status=$?
+          echo "::$token::"
+          exit "$status"
