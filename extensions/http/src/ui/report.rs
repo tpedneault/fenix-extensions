@@ -45,6 +45,23 @@ pub struct Report {
     pub list: TreeState,
 }
 
+/// A run this long, or longer, is worth telling you about when it ends
+/// while you're elsewhere: a notification's worth.
+pub const LONG_RUN_MS: i64 = 10_000;
+
+/// What to say when a run ends.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Said {
+    /// Nothing: its report is in front of you, and says it.
+    Nothing,
+    /// A line on the modeline: a short run, ended while you were
+    /// elsewhere.
+    Status(String),
+    /// A long one, ended while you were elsewhere: a notification (API
+    /// 1.3's) when the extension has one; the modeline's line until then.
+    Notice(String),
+}
+
 pub enum Action {
     Nothing,
     /// Open file at a line.
@@ -57,6 +74,25 @@ impl Report {
         let mut list = TreeState::new();
         list.empty = "Sending…".into();
         Report { title: title.to_string(), planned, list, ..Report::default() }
+    }
+
+    /// What to say now it's done, `elapsed_ms` after it began, its
+    /// report `in_front` of you or not.
+    pub fn said(&self, elapsed_ms: i64, in_front: bool) -> Said {
+        if in_front {
+            return Said::Nothing;
+        }
+        let passed = self.results.iter().filter(|r| r.passed()).count();
+        let failed = self.results.len() - passed;
+        let mut s = format!("Run: {}: {passed}/{} passed", self.title, self.results.len());
+        if failed > 0 {
+            s.push_str(&format!(", {failed} failed"));
+        }
+        if elapsed_ms < LONG_RUN_MS {
+            return Said::Status(s);
+        }
+        s.push_str(&format!(" in {}", duration(elapsed_ms.max(0) as u64 * 1000)));
+        Said::Notice(s)
     }
 
     fn nodes(&self) -> Vec<TreeNode> {
@@ -151,5 +187,20 @@ mod tests {
         let c = r.render(80, 10);
         assert!(c.line(4).contains("✗ status == 200  (found 500)"), "{}", c.text());
         assert_eq!(c.line(0), "Run · api.http   1 passed · 1 failed");
+    }
+
+    #[test]
+    fn a_long_run_ended_elsewhere_is_a_notice_a_quick_one_a_line() {
+        let mut r = Report::new("the project", 2);
+        r.results = vec![result(200, &[]), result(500, &[])];
+        r.done = true;
+        assert_eq!(r.said(60_000, true), Said::Nothing, "its report is in front of you");
+        assert_eq!(r.said(800, false), Said::Status("Run: the project: 1/2 passed, 1 failed".into()));
+        match r.said(LONG_RUN_MS + 2_500, false) {
+            Said::Notice(s) => assert!(s.starts_with("Run: the project: 1/2 passed, 1 failed in ") && s.ends_with('s'), "{s}"),
+            other => panic!("{other:?}"),
+        }
+        r.results.pop();
+        assert_eq!(r.said(10, false), Said::Status("Run: the project: 1/1 passed".into()), "nothing failed: not said");
     }
 }
