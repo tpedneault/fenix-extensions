@@ -14,3 +14,16 @@ settle_ms = 2000
 file = "web/theme.css"
 idle = true
 timeout_s = 30
+
+# The palette opens from a command, external since 1.1.0.
+[[shot]]
+file = "the-palette.png"
+note = "The project's palette: every colour its files use, by hue"
+project = "colours"
+commands = ["colours.palette"]
+settle_ms = 2000
+
+[shot.wait]
+no_file = true
+idle = true
+timeout_s = 30

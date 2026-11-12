@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- `regex.open`, `regex.cheatsheet` can be run from outside Fenix, over the control channel
+  (`fenix/runCommand`): their pages opened by a script or another tool, as
+  the screenshots' scripts do.
+
 ## 1.0.0
 
 - The first release, for Fenix 1.0: a regex playground: matches and their groups coloured as you type, the replacement's result, the pattern explained and its errors pointed at, copies for six languages, saved patterns -- and a cheatsheet with recipes.

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.dotenv"
 name = "Env files"
-version = "1.0.0"
+version = "1.1.0"
 description = "Env files (.env): values hidden but on the cursor's line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -45,6 +45,7 @@ files = [".env", ".env.*", "*.env", "*.php", "*.rb", "*.rake", "Gemfile", "Rakef
 [[contributes.commands]]
 id = "dotenv.page"
 title = "Env: every env file in the project, keys side by side"
+external = true
 
 [[contributes.commands]]
 id = "dotenv.reveal"

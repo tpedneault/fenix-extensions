@@ -16,3 +16,16 @@ file = "api/passes.http"
 line = 21
 idle = true
 timeout_s = 30
+
+# The client opens from a command, external since 1.2.0.
+[[shot]]
+file = "the-client.png"
+note = "The client: the project's collections, a request, and where its response goes; nothing sent"
+project = "http"
+commands = ["http.open"]
+settle_ms = 2000
+
+[shot.wait]
+no_file = true
+idle = true
+timeout_s = 30

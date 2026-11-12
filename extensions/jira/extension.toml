@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.jira"
 name = "Jira"
-version = "1.0.0"
+version = "1.1.0"
 description = "Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -30,6 +30,7 @@ services = ["jira.request", "jira.config", "jira.set_blocked", "jira.new_issue"]
 [[contributes.commands]]
 id = "jira.open"
 title = "Jira: open -- your searches, their issues, a preview"
+external = true
 
 [[contributes.commands]]
 id = "jira.refresh"
@@ -38,10 +39,12 @@ title = "Jira: run the search again"
 [[contributes.commands]]
 id = "jira.goto_issue"
 title = "Jira: open an issue by key"
+external = true
 
 [[contributes.commands]]
 id = "jira.search"
 title = "Jira: search -- words, or JQL after :"
+external = true
 
 [[contributes.commands]]
 id = "jira.create_issue"

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- `pomodoro.open` can be run from outside Fenix, over the control channel
+  (`fenix/runCommand`): its page opened by a script or another tool, as
+  the screenshots' scripts do.
+
 ## 1.0.1
 
 - `pomodoro.state`, a service other extensions read the timer through: `{"phase": "work"}`, `"break"` or `"off"`. The pets keep still while you work and play in the break.

@@ -1,0 +1,28 @@
+# The store's pictures of Regex, retaken with
+# `cargo xtask screenshots regex`; the format is screenshots/README.md's.
+# Both pages open from a command, which the control channel runs since
+# 1.1.0 marked them external.
+
+[[shot]]
+file = "1-playground.png"
+note = "The playground, opened with nothing under the cursor: empty until a pattern is typed"
+project = "regex"
+commands = ["regex.open"]
+settle_ms = 2000
+
+[shot.wait]
+no_file = true
+idle = true
+timeout_s = 30
+
+[[shot]]
+file = "2-cheatsheet.png"
+note = "The cheatsheet: the syntax and recipes"
+project = "regex"
+commands = ["regex.cheatsheet"]
+settle_ms = 2000
+
+[shot.wait]
+no_file = true
+idle = true
+timeout_s = 30

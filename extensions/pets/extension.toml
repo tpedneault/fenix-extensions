@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pets"
 name = "Pets"
-version = "1.1.0"
+version = "1.2.0"
 description = "Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -44,6 +44,7 @@ title = "Pets: rehome one"
 [[contributes.commands]]
 id = "pets.home"
 title = "Pets: their home -- levels, happiness, what they wear"
+external = true
 
 [[contributes.commands]]
 id = "pets.dress"
