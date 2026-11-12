@@ -1,0 +1,493 @@
+# The IntelliJ platform's default shortcuts (the Windows and Linux
+# keymap), over Fenix's standard keys. Only what differs from Fenix's is
+# here: the rest of standard keys are VS Code's, and stay. Vim keys are
+# left as they are. Your own keybindings.toml goes over all of this.
+
+# -- Navigation --------------------------------------------------------
+
+# Go to declaration (over Fenix's sidebar, in a file's text)
+[[keys]]
+keys = "C-b"
+command = "code.goto_definition"
+scheme = "standard"
+when = "text"
+
+# Go to implementation
+[[keys]]
+keys = "C-M-b"
+command = "code.implementations"
+scheme = "standard"
+when = "text"
+
+# Find usages, and show usages
+[[keys]]
+keys = "M-F7"
+command = "code.references"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-M-F7"
+command = "code.references"
+scheme = "standard"
+when = "text"
+
+# Call hierarchy
+[[keys]]
+keys = "C-M-h"
+command = "code.callers"
+scheme = "standard"
+when = "text"
+
+# Go to class and go to symbol: the language servers' symbols
+[[keys]]
+keys = "C-n"
+command = "code.project_symbols"
+scheme = "standard"
+
+[[keys]]
+keys = "C-M-S-n"
+command = "code.project_symbols"
+scheme = "standard"
+
+# Go to file
+[[keys]]
+keys = "C-S-n"
+command = "project.find_file"
+scheme = "standard"
+
+# File structure: this file's scopes
+[[keys]]
+keys = "C-F12"
+command = "code.breadcrumbs"
+scheme = "standard"
+when = "text"
+
+# Back and forward
+[[keys]]
+keys = "C-M-Left"
+command = "nav.jump_back"
+scheme = "standard"
+
+[[keys]]
+keys = "C-M-Right"
+command = "nav.jump_forward"
+scheme = "standard"
+
+# Previous and next editor tab
+[[keys]]
+keys = "M-Left"
+command = "tab.prev"
+scheme = "standard"
+
+[[keys]]
+keys = "M-Right"
+command = "tab.next"
+scheme = "standard"
+
+# Close the tab
+[[keys]]
+keys = "C-F4"
+command = "tab.close"
+scheme = "standard"
+
+# Next and previous highlighted error
+[[keys]]
+keys = "F2"
+command = "nav.next_problem"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "S-F2"
+command = "nav.prev_problem"
+scheme = "standard"
+when = "text"
+
+# Next and previous occurrence: the search's or the references' list
+[[keys]]
+keys = "C-M-Down"
+command = "project.quickfix_next"
+scheme = "standard"
+
+[[keys]]
+keys = "C-M-Up"
+command = "project.quickfix_prev"
+scheme = "standard"
+
+# Move caret to the matching brace
+[[keys]]
+keys = "C-S-m"
+command = "nav.matching_bracket"
+scheme = "standard"
+when = "text"
+
+# Alt+Up and Alt+Down go to the previous and next method; Fenix has no
+# such command, and moving lines there instead would edit your text.
+[[keys]]
+keys = "M-Up"
+unbind = true
+scheme = "standard"
+
+[[keys]]
+keys = "M-Down"
+unbind = true
+scheme = "standard"
+
+# Ctrl+[ and Ctrl+] move to the code block's start and end; Fenix has no
+# such command, and its indent and outdent would edit your text.
+[[keys]]
+keys = "C-["
+unbind = true
+scheme = "standard"
+
+[[keys]]
+keys = "C-]"
+unbind = true
+scheme = "standard"
+
+# -- Editing -----------------------------------------------------------
+
+# Duplicate line (over Fenix's next occurrence, which is Alt+J below)
+[[keys]]
+keys = "C-d"
+command = "edit.copy_lines_down"
+scheme = "standard"
+when = "text"
+
+# Delete line (Fenix's redo stays on Ctrl+Shift+Z, as IntelliJ's is)
+[[keys]]
+keys = "C-y"
+command = "edit.delete_line"
+scheme = "standard"
+when = "text"
+
+# Ctrl+Shift+K is Push; Fenix's delete-line there would edit your text.
+[[keys]]
+keys = "C-S-k"
+unbind = true
+scheme = "standard"
+
+# Move line up and down, and move statement (lines, in Fenix)
+[[keys]]
+keys = "M-S-Up"
+command = "edit.move_lines_up"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "M-S-Down"
+command = "edit.move_lines_down"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-S-Up"
+command = "edit.move_lines_up"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-S-Down"
+command = "edit.move_lines_down"
+scheme = "standard"
+when = "text"
+
+# Join lines
+[[keys]]
+keys = "C-S-j"
+command = "edit.join_lines"
+scheme = "standard"
+when = "text"
+
+# Start a new line, and start a new line before the current
+[[keys]]
+keys = "S-Enter"
+command = "edit.new_line_below"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-M-Enter"
+command = "edit.new_line_above"
+scheme = "standard"
+when = "text"
+
+# Add selection for the next occurrence, and select all occurrences
+[[keys]]
+keys = "M-j"
+command = "edit.add_next_occurrence"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-M-S-j"
+command = "edit.select_all_occurrences"
+scheme = "standard"
+when = "text"
+
+# Ctrl+W extends the selection; Fenix has no such command, and closing
+# the tab instead would surprise. Ctrl+F4 closes it.
+[[keys]]
+keys = "C-w"
+unbind = true
+scheme = "standard"
+
+# Collapse and expand (over Fenix's text size, in a file's text)
+[[keys]]
+keys = "C--"
+command = "code.fold"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-="
+command = "code.unfold"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-+"
+command = "code.unfold"
+scheme = "standard"
+when = "text"
+
+# Insert live template: Fenix's snippets (its terminal is Alt+F12)
+[[keys]]
+keys = "C-j"
+command = "insert.snippet"
+scheme = "standard"
+when = "text"
+
+# Copy path
+[[keys]]
+keys = "C-S-c"
+command = "file.yank_path"
+scheme = "standard"
+when = "text"
+
+# -- Code and refactoring ----------------------------------------------
+
+# Show context actions
+[[keys]]
+keys = "M-Enter"
+command = "code.lsp_code_action"
+scheme = "standard"
+when = "text"
+
+# Reformat code
+[[keys]]
+keys = "C-M-l"
+command = "code.format_buffer"
+scheme = "standard"
+when = "text"
+
+# Rename
+[[keys]]
+keys = "S-F6"
+command = "code.lsp_rename"
+scheme = "standard"
+when = "text"
+
+# Quick documentation. Ctrl+Q quits nowhere: in a file's text it's the
+# documentation, and elsewhere nothing (the unbind first, so the binding
+# goes over it).
+[[keys]]
+keys = "C-q"
+unbind = true
+scheme = "standard"
+
+[[keys]]
+keys = "C-q"
+command = "code.hover"
+scheme = "standard"
+when = "text"
+
+# -- Search ------------------------------------------------------------
+
+# Replace, and replace in files
+[[keys]]
+keys = "C-r"
+command = "search.replace_buffer"
+scheme = "standard"
+
+[[keys]]
+keys = "C-S-r"
+command = "search.replace_project"
+scheme = "standard"
+
+# Find action: the palette
+[[keys]]
+keys = "C-S-a"
+command = "commands.palette"
+scheme = "standard"
+
+# -- Run and debug -----------------------------------------------------
+
+# Run (the last task again), run a configuration (pick a task), and run
+# the context's configuration (the test at the cursor)
+[[keys]]
+keys = "S-F10"
+command = "task.rerun_last"
+scheme = "standard"
+
+[[keys]]
+keys = "M-S-F10"
+command = "task.run"
+scheme = "standard"
+
+[[keys]]
+keys = "C-S-F10"
+command = "task.run_test_at_cursor"
+scheme = "standard"
+when = "text"
+
+# Debug, and debug a configuration you pick
+[[keys]]
+keys = "S-F9"
+command = "debug.start_or_continue"
+scheme = "standard"
+
+[[keys]]
+keys = "M-S-F9"
+command = "debug.pick_launch"
+scheme = "standard"
+
+# Resume (over the debugger's own F9, its breakpoint)
+[[keys]]
+keys = "F9"
+command = "debug.start_or_continue"
+scheme = "standard"
+
+# Step over, step into, step out, run to cursor
+[[keys]]
+keys = "F8"
+command = "debug.step_over"
+scheme = "standard"
+
+[[keys]]
+keys = "F7"
+command = "debug.step_into"
+scheme = "standard"
+
+[[keys]]
+keys = "S-F8"
+command = "debug.step_out"
+scheme = "standard"
+
+[[keys]]
+keys = "M-F9"
+command = "debug.run_to_cursor"
+scheme = "standard"
+
+# Evaluate expression
+[[keys]]
+keys = "M-F8"
+command = "debug.evaluate"
+scheme = "standard"
+
+# Toggle line breakpoint
+[[keys]]
+keys = "C-F8"
+command = "debug.toggle_breakpoint"
+scheme = "standard"
+
+# Stop, and rerun
+[[keys]]
+keys = "C-F2"
+command = "debug.stop"
+scheme = "standard"
+
+[[keys]]
+keys = "C-F5"
+command = "debug.restart"
+scheme = "standard"
+
+# -- Tool windows ------------------------------------------------------
+
+# Project: the explorer's sidebar
+[[keys]]
+keys = "M-1"
+command = "explorer.toggle_sidebar"
+scheme = "standard"
+
+# Select in: the file in the sidebar
+[[keys]]
+keys = "M-F1"
+command = "explorer.reveal_current"
+scheme = "standard"
+
+# Find: the last search, as it was left
+[[keys]]
+keys = "M-3"
+command = "search.last"
+scheme = "standard"
+
+# Debug: the debug dock
+[[keys]]
+keys = "M-5"
+command = "debug.toggle_dock"
+scheme = "standard"
+
+# Problems
+[[keys]]
+keys = "M-6"
+command = "code.problems"
+scheme = "standard"
+
+# Git: the log
+[[keys]]
+keys = "M-9"
+command = "git.log"
+scheme = "standard"
+
+# Commit: Git's status page, where you commit
+[[keys]]
+keys = "M-0"
+command = "git.open"
+scheme = "standard"
+
+# Terminal
+[[keys]]
+keys = "M-F12"
+command = "terminal.toggle"
+scheme = "standard"
+
+# Settings, and project structure: the project's settings
+[[keys]]
+keys = "C-M-s"
+command = "settings.open"
+scheme = "standard"
+
+[[keys]]
+keys = "C-M-S-s"
+command = "project.settings"
+scheme = "standard"
+
+# -- Version control ---------------------------------------------------
+
+# Update project: pull, rebasing your commits on top
+[[keys]]
+keys = "C-t"
+command = "git.pull_rebase"
+scheme = "standard"
+
+# Rollback lines: the changed hunk at the cursor
+[[keys]]
+keys = "C-M-z"
+command = "git.hunk_discard"
+scheme = "standard"
+when = "text"
+
+# Next and previous change
+[[keys]]
+keys = "C-M-S-Down"
+command = "nav.next_hunk"
+scheme = "standard"
+when = "text"
+
+[[keys]]
+keys = "C-M-S-Up"
+command = "nav.prev_hunk"
+scheme = "standard"
+when = "text"
