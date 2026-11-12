@@ -1,0 +1,23 @@
+/* Mission control: a dark console theme. */
+:root {
+  --bg: #0f1420;
+  --panel: #182033;
+  --border: rgb(46 58 84);
+  --text: #e6e9ef;
+  --muted: hsl(220 14% 62%);
+  --accent: oklch(72% 0.15 250);
+  --ok: #3fb950;
+  --warn: rgb(210, 153, 34);
+  --alarm: #f85149;
+  --link: dodgerblue;
+  --selection: rgba(56, 139, 253, 0.35);
+}
+
+.telemetry .value { color: var(--text); }
+.telemetry .value.stale { color: #8b949e; }
+.limit-yellow { background: hsla(42, 78%, 48%, 0.18); color: goldenrod; }
+.limit-red { background: #f8514926; color: tomato; }
+.pass-timeline { border-top: 2px solid oklch(65% 0.2 145); }
+.antenna.tracking { outline: 1px solid #58a6ff; }
+.antenna.parked { outline: 1px dashed slategray; }
+.uplink-armed { box-shadow: 0 0 0 2px rgb(255 123 114 / 60%); }

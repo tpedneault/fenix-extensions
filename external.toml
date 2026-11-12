@@ -1,0 +1,24 @@
+# Extensions built elsewhere: each [[release]] is one version of an
+# extension that its author builds and hosts in their own repository, as
+# a GitHub release asset, and that the registry lists beside the ones
+# built here. A submission is a pull request adding an entry (and, the
+# first time, the publisher to publishers.toml). See "Extensions built
+# elsewhere" in README.md.
+#
+#   [[release]]
+#   id = "acme.dusk"            # <publisher>.<name>; never fenix.
+#   version = "1.0.0"           # what the package's own extension.toml says
+#   url = "https://github.com/acme/dusk/releases/download/v1.0.0/acme.dusk-1.0.0.fenixext"
+#   sha256 = "<64 lower case hex digits: sha256sum of the .fenixext>"
+#   repository = "https://github.com/acme/dusk"
+#
+# The url is a release asset of a repository owned by one of the
+# publisher's owners in publishers.toml, and the repository is that
+# owner's too. Everything else the index says of the release -- name,
+# description, categories, permissions, the Fenix and API it needs, its
+# dependencies -- is read from the manifest inside the package, after its
+# hash is checked, never from here. A release once listed doesn't change:
+# a new package is a new version, and a new entry.
+#
+# `cargo xtask external-check --offline` checks this file without the
+# network; without --offline it downloads and checks each package.

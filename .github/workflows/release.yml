@@ -88,3 +88,23 @@ jobs:
           git add index.json index.json.minisig
           git commit -m "Index: $TAG"
           git push origin HEAD:registry
+
+  # The catalogue on GitHub Pages, rebuilt from the index just pushed and
+  # main's extensions. A job of its own after the release, not a step in
+  # it: the release and its signed index are done whatever happens here,
+  # and a failure shows as this job's, to run again with Site (site.yml).
+  site:
+    needs: release
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: gh-pages
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup override set stable
+      - name: Build the catalogue and push it to gh-pages
+        run: bash .github/site.sh "$TAG"

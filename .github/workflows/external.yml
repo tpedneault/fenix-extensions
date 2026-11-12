@@ -1,0 +1,91 @@
+# Releases built elsewhere: once a pull request adding to external.toml
+# is merged, each release there that the index hasn't is downloaded,
+# checked, and added to `index.json` on the `registry` branch from the
+# manifest inside its package, and the index is signed with the registry
+# key -- as release.yml does for the extensions built here.
+#
+# Run by hand (Actions, External releases, Run workflow) on `main` it does
+# the same, for one release (`<id>@<version>`) or every new one.
+name: External releases
+
+on:
+  push:
+    branches: [main]
+    paths: [external.toml]
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'One release, `<id>@<version>`; empty for every one the index has not'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+# One at a time, with release.yml: each pushes the registry branch.
+concurrency:
+  group: registry
+
+jobs:
+  index:
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust stable and minisign
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup override set stable
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq minisign
+      - name: The registry branch
+        run: |
+          # The registry branch, or a new one with nothing in it.
+          if git ls-remote --exit-code --heads origin registry > /dev/null; then
+            git fetch origin registry
+            git worktree add -B registry ../registry origin/registry
+          else
+            git worktree add --orphan -b registry ../registry
+          fi
+      - name: Each new release, checked and added from its own manifest
+        id: add
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          only=()
+          if [ -n "$ONLY" ]; then
+            if ! [[ "$ONLY" =~ ^[a-z0-9_-]+(\.[a-z0-9_-]+)+@[0-9A-Za-z.+-]+$ ]]; then echo "not <id>@<version>: $ONLY"; exit 1; fi
+            only=(--only "$ONLY")
+          fi
+          # What the packages say can't issue workflow commands.
+          token=$(openssl rand -hex 16)
+          echo "::stop-commands::$token"
+          status=0
+          cargo xtask index-add-external ../registry/index.json "${only[@]}" || status=$?
+          echo "::$token::"
+          if [ "$status" != 0 ]; then exit "$status"; fi
+          if [ -n "$(git -C ../registry status --porcelain -- index.json)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing new: the index has every release in external.toml"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: The index signed, and pushed
+        if: steps.add.outputs.changed == 'true'
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          printf '%s' "$MINISIGN_SECRET_KEY" > "$RUNNER_TEMP/registry.key"
+          if [ -n "$MINISIGN_PASSWORD" ]; then
+            printf '%s\n' "$MINISIGN_PASSWORD" | minisign -S -s "$RUNNER_TEMP/registry.key" -m ../registry/index.json -x ../registry/index.json.minisig -t "fenix-extensions index"
+          else
+            minisign -S -s "$RUNNER_TEMP/registry.key" -m ../registry/index.json -x ../registry/index.json.minisig -t "fenix-extensions index"
+          fi
+          rm -f "$RUNNER_TEMP/registry.key"
+          cd ../registry
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.json index.json.minisig
+          git commit -m "Index: external.toml at ${GITHUB_SHA::7}"
+          git push origin HEAD:registry

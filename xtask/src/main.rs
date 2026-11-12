@@ -7,10 +7,16 @@
 //! cargo xtask pack <extension-dir> [dist]    a .fenixext (built first); prints its id, version, sha256, size
 //! cargo xtask for-tag <name>-v<version>      the extension folder a release tag names
 //! cargo xtask index-add <index.json> <extension-dir> <url> <sha256> <size>
+//! cargo xtask external-check [--offline] [--index index.json]   external.toml and publishers.toml
+//! cargo xtask index-add-external <index.json> [--only <id>@<version>]
+//! cargo xtask screenshots [name] [--dry-run]   each extension's screenshots.toml, run in Fenix and captured
+//! cargo xtask site <index.json> <out>        the catalogue, for GitHub Pages
 //! ```
 //!
 //! The manifest is read the way Fenix reads it (`fenix-extensions`'
 //! `manifest.rs`): what's refused here would be refused there.
+
+mod external;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -18,6 +24,9 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+
+mod screenshots;
+mod site;
 
 #[derive(Debug, Deserialize)]
 struct Manifest {
@@ -315,6 +324,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
         count += 1;
     }
     check_dependencies(&known, &here)?;
+    screenshots::validate_all(root)?;
     println!("{count} extension(s)");
     Ok(())
 }
@@ -338,6 +348,9 @@ fn check_chords(dir: &Path) -> Result<(), String> {
         .and_then(|c| c.as_array())
         .map(|a| a.iter().filter_map(|c| c.get("name").and_then(|n| n.as_str()).map(str::to_string)).collect())
         .unwrap_or_default();
+    // A keymap flavour is there to take standard keys' chords, and has no
+    // context to give them: the warning below is for the others.
+    let flavour = manifest.get("extension").and_then(|e| e.get("categories")).and_then(|c| c.as_array()).is_some_and(|c| c.iter().any(|c| c.as_str() == Some("keymaps")));
     let api = manifest.get("engine").and_then(|e| e.get("api")).and_then(|a| a.as_str()).map(|a| semver::Version::parse(&match a.matches('.').count() { 0 => format!("{a}.0.0"), 1 => format!("{a}.0"), _ => a.to_string() }).ok());
     for rel in files(dir).into_iter().filter(|f| f.starts_with("keymaps") && f.extension().is_some_and(|x| x == "toml")) {
         let path = dir.join(&rel);
@@ -373,7 +386,7 @@ fn check_chords(dir: &Path) -> Result<(), String> {
             if field("command").is_none() && chord.get("unbind").and_then(|u| u.as_bool()) != Some(true) {
                 return Err(format!("{at}: {keys}: a command, or unbind = true"));
             }
-            if STANDARD_CHORDS.contains(&keys) && field("context").is_none() {
+            if !flavour && STANDARD_CHORDS.contains(&keys) && field("context").is_none() {
                 println!("warn {at}: {keys} is one of standard keys' own, and this takes it everywhere -- give it a context");
             }
         }
@@ -463,7 +476,7 @@ fn pack(dir: &Path, dist: &Path) -> Result<(), String> {
     let name = format!("{}-{}.fenixext", m.extension.id, m.extension.version);
     let out = dist.join(&name);
     let mut zip = zip::ZipWriter::new(std::fs::File::create(&out).map_err(|e| e.to_string())?);
-    for rel in files(dir).into_iter().filter(|rel| !(code && source_only(rel))) {
+    for rel in files(dir).into_iter().filter(|rel| !(code && source_only(rel)) && !screenshots::is_script(rel)) {
         let entry = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect::<Vec<_>>().join("/");
         zip.start_file(entry, zip::write::SimpleFileOptions::default()).map_err(|e| e.to_string())?;
         zip.write_all(&std::fs::read(dir.join(&rel)).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
@@ -487,7 +500,12 @@ fn for_tag(root: &Path, tag: &str) -> Result<(), String> {
 }
 
 fn index_add(index: &Path, dir: &Path, url: &str, sha256: &str, size: u64) -> Result<(), String> {
-    let m = manifest(dir)?;
+    index_write(index, &manifest(dir)?, url, sha256, size)
+}
+
+/// A release in the index, from its manifest: one read here
+/// (`index_add`), or from inside a package built elsewhere (`external`).
+fn index_write(index: &Path, m: &Manifest, url: &str, sha256: &str, size: u64) -> Result<(), String> {
     let mut doc: serde_json::Value = match std::fs::read_to_string(index) {
         Ok(text) => serde_json::from_str(&text).map_err(|e| format!("{}: {e}", index.display()))?,
         Err(_) => serde_json::json!({ "format": 1, "extensions": [] }),
@@ -550,8 +568,12 @@ fn main() {
         Some("build") => build(Path::new(&arg(1))),
         Some("pack") => pack(Path::new(&arg(1)), Path::new(args.get(2).map(String::as_str).unwrap_or("dist"))),
         Some("for-tag") => for_tag(&root, &arg(1)),
+        Some("external-check") => external::check_command(&root, &args[1..]),
+        Some("index-add-external") => external::add_command(&root, &args[1..]),
+        Some("screenshots") => screenshots::run(&root, &args[1..]),
+        Some("site") => site::site(&root, Path::new(&arg(1)), Path::new(&arg(2))),
         Some("index-add") => arg(5).parse::<u64>().map_err(|e| format!("size: {e}")).and_then(|size| index_add(Path::new(&arg(1)), Path::new(&arg(2)), &arg(3), &arg(4), size)),
-        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size>".into()),
+        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>] | screenshots [name] [--fenix <path>] [--theme <name>] [--size WxH] [--dry-run] | site <index.json> <out>".into()),
     };
     if let Err(e) = result {
         eprintln!("xtask: {e}");

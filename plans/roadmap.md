@@ -42,14 +42,46 @@ left open:
    nobody, but those users stop getting its fixes (3.2).
 3. **The control channel drives Fenix well enough to script
    screenshots** (1.2).
-4. **GitHub Pages: yes.** The `gh-pages` branch exists, with a
-   placeholder page, for the maintainer to switch Pages on (1.5).
+4. **GitHub Pages: yes, and on.** The `gh-pages` branch holds a
+   placeholder page and Pages serves it (1.5).
 5. **Trackers**: Jira Cloud, then GitHub Issues and the others (6.2 to
    6.4).
 6. **The keybindings branch is merged**, and this plan sits on top of
    it (13 November).
 7. **Publisher ids** were left to this plan's recommendation: tied to a
    GitHub owner, below (1.4).
+
+## Milestone 1: built, not yet proven
+
+Built on 13 November and merged on `claude/pensive-carson-xu7nwb`. What
+each item still needs before it counts as done:
+
+| Item | Built | Still needed |
+|---|---|---|
+| 1.1 JetBrains keys | The extension: 70 bindings, 7 unbinds, checked against Fenix's source and `validate` | Trying in a 1.6 nightly; then its release |
+| 1.2 Screenshots | `cargo xtask screenshots`, scripts for CSV, Logs, Hex, HTTP, Colours, Data tools | A first run on Windows (`screenshots/README.md` lists the steps); see the limit below |
+| 1.3 Contributor guide | `CONTRIBUTING.md`, the pull request template | Nothing |
+| 1.4 External packages | `external.toml`, `publishers.toml`, `external-check`, `index-add-external`, four workflows | The workflows' first runs; a test extension in another repository |
+| 1.5 Catalogue | `cargo xtask site`, the job in `release.yml`, `site.yml` | The workflow's first push to `gh-pages` |
+
+**The limit on screenshots.** The control channel runs only commands an
+extension marks `external = true`, and only CCSDS, MIB, PDF and VNC mark
+any. So a script can show what opening a file shows, and no page behind
+a command: Regex, Diagrams, Notebook, Rust and the rest wait until their
+page-opening commands are marked (a release of each), or the channel
+learns to send keys (Fenix's to add).
+
+**Noticed on the way, not fixed:**
+
+- Fenix's installer doesn't compare a downloaded package's own id and
+  version with the listing it came from. `xtask` now guarantees they
+  match for everything it writes to the index; Fenix checking too would
+  be defence in depth. An issue for Fenix.
+- `extensions/http/extension.wasm` is tracked in Git.
+- HTTP, Database, Notebook, MIB and Tcl say `api = "1.5"` with a `fenix`
+  floor below 1.5. Fenix checks `api` on its own, so nothing breaks; the
+  floors are just out of step with 3.2's rule.
+- `validate` accepts `runtime = "lua"`, which Fenix can't run yet.
 
 ## Where things stand
 
@@ -65,7 +97,9 @@ Checked against the repository when this was written:
   notebooks, a Python bundle, and standard keys for Fenix 1.5 in HTTP,
   Database, Notebook, MIB and Tcl). MIB, Notebook and Tcl built the
   extension API from a branch of Fenix; they now build it from the
-  `v1.5.0` tag. None of it is released to the registry yet.
+  `v1.5.0` tag. All seven were released on 12 November: Jupyter 1.0.0,
+  the Python bundle 1.0.0, HTTP 1.1.0, Database 1.2.0, Notebook 1.1.0,
+  MIB 1.3.0 and Tcl 1.1.0.
 - **The index already carries a `url` and a `sha256` per release**, and
   Fenix checks the hash. Nothing in its format ties a package to this
   repository; what's missing is the way in.
@@ -107,8 +141,9 @@ A data-only keymap flavour, `extensions/jetbrains-keys`.
   `scheme = "standard"`, only where IntelliJ's defaults differ from
   Fenix's (which are VS Code's). `unbind = true` for IntelliJ chords
   Fenix has no command for.
-- `engine.fenix = ">=1.5.3, <2"`: the debugger's F-keys only go to a
-  flavour after 1.5.2.
+- `engine.fenix = ">=1.6.0, <2"`: the debugger's F-keys only go to a
+  flavour after 1.5.2, and a nightly counts as 1.6.0, so it can be tried
+  there before 1.6 ships.
 - A README table: IntelliJ action, its shortcut, the Fenix command, and
   a list of what has no equivalent.
 - **Done when** `cargo xtask validate` passes, `SPC h K` reports nothing
@@ -202,8 +237,8 @@ are marked as such, with their repository.
 - `cargo xtask site <index.json> <out>`; a step at the end of
   `release.yml` pushes the result to `gh-pages`, which exists with a
   placeholder.
-- **Needs from the maintainer**: Pages switched on for `gh-pages`, and
-  the workflow allowed to write to it.
+- Pages is on for `gh-pages`. `release.yml` already has
+  `contents: write`, which is what pushing there takes.
 - It ships useful without pictures and gets better as 1.2 lands.
 - Linking to it from Fenix's README or site is a change to Fenix, so
   it's out of scope here; the page stands on its own URL.
@@ -452,9 +487,6 @@ with the test explorer as the case for it.
 
 ## Still open
 
-Nothing blocks milestone 1. Two things for the maintainer to do:
-
-1. Switch GitHub Pages on for `gh-pages`.
-2. Release what the merge brought -- Jupyter 1.0.0, the Python bundle,
-   and the new versions of HTTP, Database, Notebook, MIB and Tcl -- once
-   this branch is on `main`.
+Nothing. Decided on 13 November: page-opening commands are to be marked
+`external = true`, extension by extension, so screenshots can reach
+them; and `Ctrl+T` stays in JetBrains keys.

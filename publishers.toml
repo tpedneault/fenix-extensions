@@ -1,0 +1,12 @@
+# Who may release under each publisher id -- the part of an extension's
+# id before its first dot (`acme` in `acme.dusk`). Each publisher's
+# owners are GitHub users or organisations; a release in external.toml
+# under it must be a release asset of a repository one of them owns.
+#
+# `fenix` is this repository's own and can't be claimed. Any other id is
+# claimed by the first accepted submission under it, which adds it here.
+# Changing a publisher's owners afterwards is a pull request that one of
+# its current owners approves.
+#
+#   [publishers.acme]
+#   owners = ["acme", "alice"]
