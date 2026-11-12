@@ -1,0 +1,76 @@
+# A lesson of Fenix's tutorial (SPC h T), in its format (Fenix's
+# crates/fenix-gui/src/tutorial.rs): only the fields Fenix 1.0 reads,
+# so no scheme, {leader} or {key:...}. Fenix 1.5 says SPC as standard
+# keys' leader (Ctrl+K) by itself. The practice text is a .http file;
+# SPC p r r sends a request from it as from any text that's no file.
+id = "http.requests"
+track = "HTTP"
+order = 1
+title = "Requests in a .http file"
+about = "Reading a .http file, sending the request under the cursor, its response, variables, environments and the client. Sending needs the internet (httpbin.org): offline, s on the tutorial page skips those steps."
+text = """
+# A .http file: requests, each a METHOD and URL line, then its headers,
+# a blank line and its body; ### between requests, # for comments.
+#
+#   SPC p r r   send the request the cursor's on (in a .http file also
+#               SPC m r, or Ctrl+Enter with standard keys)
+#   SPC p r v   its response again
+#   SPC p r e   the environment {{variables}} come from
+#   SPC p r o   the client: collections, history, request, response
+#   SPC p r A   run every request in the project, and report
+#
+# Offline, a request can't go: it says why, and s on the tutorial page
+# skips the step.
+
+### Who am I
+GET https://httpbin.org/get
+
+### A variable: set with @, read with {{ }}
+@host = https://httpbin.org
+GET {{host}}/anything?from=fenix
+"""
+
+[[step]]
+say = "Read the file: the request called Who am I is its GET line, below its ###. Put the cursor on that line."
+hint = "j moves down a line (Down with standard keys), to the one that starts GET https://httpbin.org/get."
+line = 15
+
+[[step]]
+say = "SPC p r r sends it, and its response opens beside. In a .http file of yours, its status shows after its line too."
+hint = "SPC, then p, r, r, with the cursor on the GET line. Offline, or with the setting http.response at none, nothing opens: s on the tutorial page skips this."
+windows = "+1"
+
+[[step]]
+say = "SPC w l moves to the response: its status, size and time, then the body. ] goes on to its headers, cookies and timing."
+hint = "SPC, then w, l; or click the response."
+page = "fenix.http/response"
+
+[[step]]
+say = "q closes it. SPC p r v brings it back, with the cursor on its request."
+hint = "q, on the response."
+closed = "fenix.http/response"
+
+[[step]]
+say = "The last request reads {{host}}, set on the line above it. Select both lines -- V then j, or Shift+Down with standard keys -- and SPC p r r sends what's selected."
+hint = "On the @host line: V, j, then SPC p r r. The response opens beside again. Offline: s skips this."
+windows = "+1"
+
+[[step]]
+say = "SPC p r e: the environments in the project's http-client.env.json (secrets in its private twin). The one you pick fills in their {{variables}}."
+hint = "SPC, then p, r, e. A project with no http-client.env.json has none to pick, and says so: s skips this."
+picker = "any"
+
+[[step]]
+say = "Enter picks one, and Esc leaves it as it was."
+hint = "Esc."
+picker = "none"
+
+[[step]]
+say = "SPC p r o: the client. The project's .http files and the history on the left, the request you pick, and its response under it."
+hint = "SPC, then p, r, o."
+page = "fenix.http/client"
+
+[[step]]
+say = "Tab moves between its parts, j and k within one; Enter shows a request, r sends it. q closes the client."
+hint = "q, on the client."
+closed = "fenix.http/client"

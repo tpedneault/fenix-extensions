@@ -19,6 +19,7 @@
 //! imports Postman, Insomnia, OpenAPI and `curl`, and exports to `curl`
 //! and code.
 
+mod agent;
 mod assert;
 mod auth;
 mod body;
@@ -67,6 +68,9 @@ const SECRET_NAMES: &str = "/data/secret-names.json";
 const CALLBACK_MS: u32 = 5 * 60 * 1000;
 const RESPONSE: &str = "response";
 const REPORT: &str = "report";
+/// What a request sent from text that's no file goes by, as its file:
+/// a scratch buffer's, the tutorial's practice. Never a path.
+const SCRATCH: &str = "*text*";
 
 /// Folders never looked in for `.http` files.
 const SKIP: &[&str] = &["node_modules", "target", "dist", "build", "vendor", "__pycache__", "venv", "bin", "obj"];
@@ -160,6 +164,19 @@ struct SendCx<'a> {
     tokens: &'a BTreeMap<String, Token>,
     dotenv: Vec<(String, String)>,
     now: i64,
+    /// The values filled in that are secret -- the keychain's, the
+    /// private env file's, tokens, Fenix's environment and `.env`'s --
+    /// for what an agent's told to have them hidden.
+    hidden: std::cell::RefCell<Vec<String>>,
+}
+
+impl SendCx<'_> {
+    fn hide(&self, value: Option<String>) -> Option<String> {
+        if let Some(v) = &value {
+            self.hidden.borrow_mut().push(v.clone());
+        }
+        value
+    }
 }
 
 impl vars::Context for SendCx<'_> {
@@ -167,24 +184,27 @@ impl vars::Context for SendCx<'_> {
         self.file.var(name).map(String::from)
     }
     fn env_var(&self, name: &str) -> Option<String> {
-        self.envs.var(self.env, name).map(|v| v.0)
+        match self.envs.var(self.env, name) {
+            Some((v, env::Source::Private)) => self.hide(Some(v)),
+            other => other.map(|v| v.0),
+        }
     }
     fn secret(&self, name: &str) -> Option<String> {
-        secrets::lookup(name, self.env, &|k| api::secret(k), self.secrets)
+        self.hide(secrets::lookup(name, self.env, &|k| api::secret(k), self.secrets))
     }
     fn process_env(&self, name: &str) -> Option<String> {
-        api::env_var(name)
+        self.hide(api::env_var(name))
     }
     fn response(&self, name: &str) -> Option<&Exchange> {
         self.last.get(name)
     }
     fn dotenv(&self, name: &str) -> Option<String> {
-        self.dotenv.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone())
+        self.hide(self.dotenv.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone()))
     }
     fn token(&self, id: &str) -> Option<String> {
         let t = self.tokens.get(&store::token_key(self.env, id))?;
         let id_token = self.envs.auth(self.env, id).is_some_and(|c| matches!(c.get("Use ID Token"), Some(serde_json::Value::Bool(true))));
-        t.good(self.now / 1000).then(|| t.value(id_token).to_string())
+        self.hide(t.good(self.now / 1000).then(|| t.value(id_token).to_string()))
     }
     fn now_millis(&self) -> i64 {
         self.now
@@ -217,11 +237,13 @@ enum Origin {
     Runner,
     /// Another request needs its answer.
     Chain,
+    /// A coding agent's `http_run`, as service call this.
+    Agent(u64),
 }
 
 /// What a request in flight is for.
 enum Pending {
-    Request { job: Job, sent: Sent, opts: Opts, partial: Option<Received>, env: Option<String>, name: Option<String> },
+    Request { job: Job, sent: Sent, opts: Opts, partial: Option<Box<Received>>, env: Option<String>, name: Option<String> },
     /// The token endpoint, for configuration `key`.
     Token { key: String, oauth: Box<OAuth>, refreshing: bool, old_refresh: Option<String>, device: Option<auth::Device> },
     /// The device grant's start.
@@ -340,6 +362,15 @@ enum Timed {
 struct Runner {
     queue: VecDeque<Job>,
     page: u64,
+    /// When it began, in milliseconds.
+    started: i64,
+}
+
+/// A coding agent's `http_run` under way: what its answer hides, and how
+/// much of the body it's given.
+struct AgentCall {
+    hidden: Vec<String>,
+    max_body: usize,
 }
 
 struct ResponsePage {
@@ -381,6 +412,10 @@ struct Core {
     /// asked for once already, so a keystroke doesn't ask again.
     schemas: HashMap<String, Arc<graphql::Schema>>,
     schemas_asked: HashSet<String>,
+    /// Agents' `http_run` calls waiting for their answer.
+    agent_calls: HashMap<u64, AgentCall>,
+    /// The page of its own that has the focus, if one does.
+    front: Option<u64>,
 }
 
 #[derive(Default)]
@@ -569,7 +604,7 @@ impl Core {
         let secrets = self.secrets();
         let mut read = |_: &str| Err::<Vec<u8>, String>("no files in an introspection query".into());
         let prepared = {
-            let mut cx = SendCx { file: &file, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.last, tokens: &self.store.tokens, dotenv: self.dotenv(), now: now_millis() };
+            let mut cx = SendCx { file: &file, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.last, tokens: &self.store.tokens, dotenv: self.dotenv(), now: now_millis(), hidden: Default::default() };
             let mut bare = r.clone();
             bare.body = None;
             send::prepare(&bare, &mut cx, &mut read, &send::Defaults::default())
@@ -713,6 +748,10 @@ impl Core {
     /// The statuses after each request of `rel`, and its `▶`s: a click on
     /// one sends it, on the status shows its response.
     fn decorate(&mut self, rel: &str) {
+        // Text that's no file has nothing to draw in.
+        if rel == SCRATCH {
+            return;
+        }
         let path = project(rel);
         let Some(text) = self.texts.get(rel).cloned().or_else(|| api::buffer::text(&path)) else { return };
         let f = HttpFile::parse(&text);
@@ -768,6 +807,18 @@ impl Core {
     }
 }
 
+/// The request in `text` -- what's selected, else the cursor's line --
+/// at line `at` of it (from 0), or the first: its index and label.
+/// Only one whose URL is one -- `http(s)://`, `ws(s)://`, or a
+/// `{{variable}}` first -- so a line of prose isn't sent as `GET` it.
+fn scratch_request(text: &str, at: u32) -> Option<(usize, String)> {
+    let f = HttpFile::parse(text);
+    let i = f.at(at).unwrap_or(0);
+    let r = f.requests.get(i)?;
+    let url = r.url.trim_start().to_ascii_lowercase();
+    ["http://", "https://", "ws://", "wss://", "{{"].iter().any(|p| url.starts_with(p)).then(|| (i, r.label()))
+}
+
 /// A request's name in the tree: its name or title, else its path.
 fn short_label(r: &parse::Request) -> String {
     match r.directive("name").map(|d| d.value.clone()).or_else(|| r.title.clone()).filter(|t| !t.is_empty()) {
@@ -809,10 +860,16 @@ impl Http {
         let defaults = send::Defaults { timeout_ms: (setting_int("http.timeout", 30) * 1000).min(u32::MAX as u64) as u32, follow_redirects: setting_on("http.follow_redirects", true), insecure: setting_on("http.insecure", false) || !envs.ssl(env.as_deref()).verify };
         let rel = job.file.clone();
         let mut read = |p: &str| api::read_file(&project(&beside(&rel, p)));
-        let prepared = {
-            let mut cx = SendCx { file: &file, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.core.last, tokens: &self.core.store.tokens, dotenv: self.core.dotenv(), now: now_millis() };
-            send::prepare(&r, &mut cx, &mut read, &defaults)
+        let (prepared, hidden) = {
+            let mut cx = SendCx { file: &file, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.core.last, tokens: &self.core.store.tokens, dotenv: self.core.dotenv(), now: now_millis(), hidden: Default::default() };
+            let prepared = send::prepare(&r, &mut cx, &mut read, &defaults);
+            (prepared, cx.hidden.into_inner())
         };
+        if let Origin::Agent(call) = job.origin {
+            if let Some(c) = self.core.agent_calls.get_mut(&call) {
+                c.hidden.extend(hidden);
+            }
+        }
         let (mut sent, opts) = match prepared {
             Ok(p) => p,
             Err(vars::Missing::Response(name)) => {
@@ -845,6 +902,9 @@ impl Http {
             }
         }
         if sent.method == "WEBSOCKET" {
+            if matches!(job.origin, Origin::Agent(_)) {
+                return Err("a WebSocket request stays open until it's closed: it isn't run for an agent".into());
+            }
             let name = r.name().map(String::from);
             return self.open_ws(job, sent, opts, env, name);
         }
@@ -1087,6 +1147,11 @@ impl Http {
         match job.origin {
             Origin::Runner => self.ran(job, Err(why), Vec::new()),
             Origin::Chain => {}
+            Origin::Agent(call) => {
+                if let Some(c) = self.core.agent_calls.remove(&call) {
+                    api::answer(call, Err(agent::redact(&format!("{}: {why}", job.label), &agent::to_hide(&c.hidden))));
+                }
+            }
             _ => error(&format!("{}: {why}", job.label)),
         }
         self.refresh_pages();
@@ -1095,7 +1160,7 @@ impl Http {
     /// Its answer, come: kept, tested, shown.
     fn finish(&mut self, job: Job, sent: Sent, opts: Opts, env: Option<String>, name: Option<String>, answer: Result<Received, String>) {
         let now = now_millis() / 1000;
-        let ex = Exchange { sent, answer, at: now, file: Some(job.file.clone()), name: name.clone(), env: env.clone() };
+        let ex = Exchange { sent, answer, at: now, file: Some(job.file.clone()).filter(|f| f != SCRATCH), name: name.clone(), env: env.clone() };
         let text = self.core.text(&job.file).unwrap_or_default();
         let file = HttpFile::parse(&text);
         let req = file.requests.iter().find(|r| r.label() == job.label).cloned();
@@ -1161,6 +1226,16 @@ impl Http {
                 let answer = ex.answer.as_ref().map(|r| (r.status, r.timing.total)).map_err(Clone::clone);
                 self.ran(&job, answer, tests);
             }
+            Origin::Agent(call) => {
+                if let Some(c) = self.core.agent_calls.remove(&call) {
+                    let hidden = agent::to_hide(&c.hidden);
+                    let said = match &ex.answer {
+                        Ok(r) => Ok(agent::answer(&agent::Ran { label: &job.label, file: &job.file, method: &ex.sent.method, env: env.as_deref() }, r, &tests, &hidden, c.max_body).to_string()),
+                        Err(e) => Err(agent::redact(&format!("{}: {e}", job.label), &hidden)),
+                    };
+                    api::answer(call, said);
+                }
+            }
             _ => {}
         }
         for v in self.clients.values().map(|c| &c.response) {
@@ -1213,7 +1288,7 @@ impl Http {
         let secrets = self.core.secrets();
         let file = HttpFile::default();
         let oauth = {
-            let mut cx = SendCx { file: &file, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.core.last, tokens: &self.core.store.tokens, dotenv: self.core.dotenv(), now: now_millis() };
+            let mut cx = SendCx { file: &file, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.core.last, tokens: &self.core.store.tokens, dotenv: self.core.dotenv(), now: now_millis(), hidden: Default::default() };
             OAuth::from_config(id, &config, &mut |s| vars::resolve(s, &mut cx).map_err(|m| m.said()))
         };
         let oauth = match oauth {
@@ -1425,7 +1500,7 @@ impl Http {
         self.reports.insert(page, Report::new(&title, queue.len()));
         pages::refresh(page);
         let first = queue.pop_front();
-        self.core.runner = Some(Runner { queue, page });
+        self.core.runner = Some(Runner { queue, page, started: now_millis() });
         if let Some(j) = first {
             self.run(j);
         }
@@ -1441,14 +1516,19 @@ impl Http {
             report.results.push(RunResult { file: job.file.clone(), label: job.label.clone(), method, line, answer, tests });
         }
         let next = runner.queue.pop_front();
-        let page = runner.page;
+        let (page, started) = (runner.page, runner.started);
         match next {
             Some(j) => self.run(j),
             None => {
+                let in_front = self.core.front == Some(page);
                 if let Some(report) = self.reports.get_mut(&page) {
                     report.done = true;
-                    let passed = report.results.iter().filter(|r| r.passed()).count();
-                    api::notify(&format!("Run: {passed}/{} passed", report.results.len()));
+                    match report.said(now_millis() - started, in_front) {
+                        ui::report::Said::Nothing => {}
+                        // A notification of its own would say a long
+                        // one (API 1.3's): this API has the message.
+                        ui::report::Said::Status(s) | ui::report::Said::Notice(s) => api::notify(&s),
+                    }
                 }
                 self.core.runner = None;
             }
@@ -1477,9 +1557,28 @@ impl Http {
     }
 
     fn send_here(&mut self) -> Result<(), String> {
-        let (file, index, label) = self.here_request()?;
+        let (file, index, label) = self.here_request().or_else(|e| self.here_text_request(e))?;
         self.run(Job { file, index, label, origin: Origin::Buffer, depth: 0 });
         Ok(())
+    }
+
+    /// In text that's no file -- a scratch buffer, the tutorial's
+    /// practice -- the request selected (its `@variables` with it), or
+    /// the one on the cursor's line; `why` when there's none, or it's a
+    /// file after all. Its environment is the project's.
+    fn here_text_request(&mut self, why: String) -> Result<(String, usize, String), String> {
+        let here = api::here().ok_or(why.clone())?;
+        if here.path.is_some() {
+            return Err(why);
+        }
+        let first = here.line.saturating_sub(1);
+        let at = api::cursor().map(|c| c.at.0.saturating_sub(first)).unwrap_or(0);
+        let (index, label) = scratch_request(&here.text, at).ok_or("no request here: a METHOD and URL line (GET https://...), or the request selected with its @variables")?;
+        if self.core.root.is_none() {
+            self.core.root = here.project.map(|p| p.root);
+        }
+        self.core.texts.insert(SCRATCH.to_string(), here.text);
+        Ok((SCRATCH.to_string(), index, label))
     }
 
     fn open_client(&mut self, history: bool) {
@@ -1553,7 +1652,7 @@ impl Http {
         let secrets = self.core.secrets();
         let rel = file.to_string();
         let mut read = |p: &str| api::read_file(&project(&beside(&rel, p)));
-        let mut cx = SendCx { file: &f, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.core.last, tokens: &self.core.store.tokens, dotenv: self.core.dotenv(), now: now_millis() };
+        let mut cx = SendCx { file: &f, envs: &envs, env: env.as_deref(), secrets: &secrets, last: &self.core.last, tokens: &self.core.store.tokens, dotenv: self.core.dotenv(), now: now_millis(), hidden: Default::default() };
         let (sent, _) = send::prepare(&r, &mut cx, &mut read, &send::Defaults::default()).map_err(|m| format!("copied with its variables filled in, and {}", m.said()))?;
         let items: Vec<PickerItem> = export::Lang::ALL.iter().map(|l| PickerItem::new(l.name(), l.name())).collect();
         let id = api::pick("Copy as", &items);
@@ -2268,7 +2367,7 @@ impl Extension for Http {
             }
             "http.env" => self.pick_env(None),
             "http.response" => {
-                let (rel, _, label) = self.here_request()?;
+                let (rel, _, label) = self.here_request().or_else(|e| self.here_text_request(e))?;
                 if !self.core.shown.contains_key(&(rel.clone(), label.clone())) {
                     return Err("not sent yet".into());
                 }
@@ -2461,12 +2560,12 @@ impl Extension for Http {
                     let shown = self.core.shown.entry(key).or_default();
                     shown.exchange = Some(Exchange { sent: sent.clone(), answer: Ok(got.clone()), at: now_millis() / 1000, file: Some(job.file.clone()), name: name.clone(), env: env.clone() });
                     shown.sending = true;
-                    self.core.pending.insert(request, Pending::Request { job, sent, opts, partial: Some(got), env, name });
+                    self.core.pending.insert(request, Pending::Request { job, sent, opts, partial: Some(Box::new(got)), env, name });
                     self.refresh_pages();
                 }
                 HttpPart::Response(answer) => self.finish(job, sent, opts, env, name, answer.map(received)),
                 HttpPart::Chunk(bytes) => {
-                    let mut got = partial.unwrap_or_default();
+                    let mut got = partial.map(|b| *b).unwrap_or_default();
                     got.body.extend(bytes);
                     let key = (job.file.clone(), job.label.clone());
                     if let Some(Ok(r)) = self.core.shown.get_mut(&key).and_then(|s| s.exchange.as_mut()).map(|e| &mut e.answer) {
@@ -2475,11 +2574,11 @@ impl Extension for Http {
                     for v in self.clients.values().map(|c| &c.response).chain(self.responses.values().map(|r| &r.view)) {
                         v.forget();
                     }
-                    self.core.pending.insert(request, Pending::Request { job, sent, opts, partial: Some(got), env, name });
+                    self.core.pending.insert(request, Pending::Request { job, sent, opts, partial: Some(Box::new(got)), env, name });
                     self.refresh_pages();
                 }
                 HttpPart::End(err) => {
-                    let got = partial.unwrap_or_default();
+                    let got = partial.map(|b| *b).unwrap_or_default();
                     if let Some(e) = err {
                         api::warn!("{}: the stream broke off: {e}", job.label);
                     }
@@ -2563,6 +2662,10 @@ impl Extension for Http {
     }
 
     fn focus_moved(&mut self, focus: Focus) {
+        self.core.front = match &focus {
+            Focus::Page(p) => p.mine,
+            _ => None,
+        };
         let Focus::File(Some(path)) = focus else { return };
         if !is_http(&path) {
             return;
@@ -2595,6 +2698,36 @@ impl Extension for Http {
 
     fn lsp_message(&mut self, server: u64, message: &str) {
         self.servers.handle(server, message, &mut Server(&mut self.core));
+    }
+
+    /// `http.requests` and `http.run`: coding agents' `http_requests` and
+    /// `http_run`.
+    fn serve(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        let args: serde_json::Value = serde_json::from_str(payload).unwrap_or_default();
+        let field = |k: &str| args.get(k).and_then(|v| v.as_str()).map(str::trim).filter(|v| !v.is_empty()).map(str::to_string);
+        match name {
+            "http.requests" => Some(agent::requests(&self.agent_files(), field("file").as_deref()).map(|v| v.to_string())),
+            "http.run" => {
+                let max_body = args.get("max_body").and_then(|v| v.as_u64()).map_or(agent::DEFAULT_BODY, |n| (n as usize).clamp(1, agent::MAX_BODY));
+                let (file, index, label) = match agent::find(&self.agent_files(), &field("request").unwrap_or_default(), field("file").as_deref()) {
+                    Ok(found) => found,
+                    Err(e) => return Some(Err(e)),
+                };
+                self.core.agent_calls.insert(call, AgentCall { hidden: Vec::new(), max_body });
+                let job = Job { file, index, label, origin: Origin::Agent(call), depth: 0 };
+                match self.try_run(job.clone()) {
+                    // Answered when its answer comes (`finish`, `failed`).
+                    Ok(()) => None,
+                    Err(e) => {
+                        let hidden = self.core.agent_calls.remove(&call).map(|c| agent::to_hide(&c.hidden)).unwrap_or_default();
+                        // Shown after its line, as any that fails is.
+                        self.failed(&Job { origin: Origin::Chain, ..job.clone() }, e.clone());
+                        Some(Err(agent::redact(&format!("{}: {e}", job.label), &hidden)))
+                    }
+                }
+            }
+            other => Some(Err(format!("no service {other}"))),
+        }
     }
 
     fn page(&mut self, page: u64, width: u32, height: u32) -> Page {
@@ -2776,6 +2909,12 @@ impl Http {
         }
     }
 
+    /// The project's `.http` files, each parsed, for an agent.
+    fn agent_files(&mut self) -> Vec<(String, HttpFile)> {
+        self.core.files();
+        self.core.files.iter().map(|f| (f.rel.clone(), HttpFile::parse(&self.core.text(&f.rel).unwrap_or_default()))).collect()
+    }
+
     fn request_index(&self, file: &str, label: &str) -> Result<usize, String> {
         let text = self.core.text(file).ok_or("can't read it")?;
         HttpFile::parse(&text).requests.iter().position(|r| r.label() == label).ok_or_else(|| "that request is gone".into())
@@ -2803,6 +2942,19 @@ mod tests {
         let s = parse_secrets("token=abc; dev.password = p=w;\nkey=1");
         assert_eq!(s, [("token".to_string(), "abc".to_string()), ("dev.password".into(), "p=w".into()), ("key".into(), "1".into())]);
         assert!(parse_secrets("").is_empty());
+    }
+
+    #[test]
+    fn text_thats_no_file_sends_the_request_on_its_line_or_selected() {
+        assert_eq!(scratch_request("GET https://httpbin.org/get", 0), Some((0, "GET https://httpbin.org/get".into())));
+        // Selected with its variable, the cursor on the request's line.
+        let both = "@host = https://httpbin.org\nGET {{host}}/anything";
+        assert_eq!(scratch_request(both, 1), Some((0, "GET {{host}}/anything".into())));
+        assert_eq!(scratch_request("### Who\n# @name who\nhttps://x.test/me", 0), Some((0, "who".into())), "a bare URL, as .http files have them");
+        assert_eq!(scratch_request("Put the cursor on a request line", 0), None, "prose isn't a GET");
+        assert_eq!(scratch_request("# a comment", 0), None);
+        assert_eq!(scratch_request("@host = https://x.test", 0), None, "a variable alone");
+        assert_eq!(scratch_request("", 0), None);
     }
 
     #[test]

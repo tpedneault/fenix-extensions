@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.http"
 name = "HTTP client"
-version = "1.2.0"
+version = "1.3.0"
 description = "An HTTP client on .http files (REST Client's and JetBrains'): run the request under the cursor and see its status beside it, collections and history in a sidebar, a request view whose every field edits the file, the response's body, headers, cookies and timing, environments and secrets, OAuth 2.0, chained requests, tests and a runner, WebSocket requests, GraphQL completion from the server's schema, and imports from Postman, Insomnia, OpenAPI and curl"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,6 +10,8 @@ categories = ["web", "tools", "languages"]
 runtime = "wasm"
 
 [engine]
+# Fenix 1.0 runs all but the agent tools (1.1) and the Ctrl+Enter chord
+# (1.5), which it leaves out; the tutorial lesson keeps to what 1.0 reads.
 fenix = ">=1.0, <2"
 # http-send with its timing, tagged decorations, page-render-ex, the
 # grammar for .http files; 0.8.7: the keychain (secret-set, patterns), the
@@ -43,9 +45,31 @@ env = ["${setting:http.env}"]
 clipboard = true
 
 [contributes]
-# Statuses again as you edit, on the file you move to; the collections
-# read again when one's saved.
+# Statuses again as you edit, on the file you move to (and whether a
+# run's report is in front of you, when it ends); the collections read
+# again when one's saved.
 events = ["changed", "focus", "saved"]
+# Coding agents' tools, below.
+services = ["http.requests", "http.run"]
+
+# Agents see them as http_requests and http_run (Fenix 1.1 or later; an
+# older Fenix leaves them out). Listing reads the project's .http files.
+# Running sends one of their requests, as you would, so it's external:
+# Fenix refuses that class unless your agents.mcp.allow says otherwise.
+[[contributes.agent_tools]]
+name = "requests"
+description = "The requests in the project's .http files: each one's file, name, method and URL as written ({{variables}} unfilled) and line. The name is what http_run takes."
+service = "http.requests"
+input = '{"type":"object","properties":{"file":{"type":"string","description":"Only this .http file, a path in the project"}}}'
+class = "read"
+
+[[contributes.agent_tools]]
+name = "run"
+description = "Sends one request from the project's .http files, by its name (http_requests lists them), in the environment the user chose, and answers its status, headers, body (cut to max_body characters) and tests. Secrets' values are hidden in the answer."
+service = "http.run"
+input = '{"type":"object","properties":{"request":{"type":"string","description":"Its name, as http_requests lists it"},"file":{"type":"string","description":"The .http file that has it, when two have the name"},"max_body":{"type":"integer","description":"Characters of the body answered: 20000 unless said, at most 100000"}},"required":["request"]}'
+class = "external"
+timeout_ms = 120000
 
 # Completion of {{variables}}, headers and directives; variables nothing
 # sets underlined.
