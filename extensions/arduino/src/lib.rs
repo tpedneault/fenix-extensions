@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use fenix_extension_api::{export, host, project, terminal, Check, Command, Event, Extension, Health, Level, PickerItem, Section, Task};
 
-use state::{Effect, State, Tools};
+use state::{Effect, Keys, State, Tools};
 
 /// Where an install puts each tool, besides `PATH` and Fenix's tools folder:
 /// the Arduino CLI installer, and an Arduino IDE 2 (which brings its own
@@ -29,6 +29,31 @@ fn tools() -> Tools {
         configured.or_else(|| fenix_extension_api::find_program(name, hints))
     });
     Tools { cli: found.next().flatten(), clangd: found.next().flatten(), language_server: found.next().flatten() }
+}
+
+/// The keys what it says names, as the key scheme in use writes them now
+/// (yours over Fenix's). Fenix's `key_for` knows the leader's keys and
+/// chords but no `SPC m` menu, so a menu command is its own keys when it
+/// has some, else its key in the menu. Natively, where there's no Fenix
+/// to ask, Vim's.
+fn keys() -> Keys {
+    #[cfg(target_arch = "wasm32")]
+    {
+        use fenix_extension_api::key_for;
+        let menu = key_for("leader.local");
+        let m = |command: &str, key: &str| state::menu_keys(key_for(command), menu.as_deref(), key);
+        Keys {
+            new_sketch: key_for("arduino.new_sketch").unwrap_or_else(|| "SPC f n".into()),
+            board: m("arduino.board", "s"),
+            port: m("arduino.port", "p"),
+            baud: m("arduino.baud", "B"),
+            board_options: m("arduino.board_options", "o"),
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        Keys::default()
+    }
 }
 
 #[derive(Default)]
@@ -141,12 +166,17 @@ impl Extension for Arduino {
     }
 
     fn run_command(&mut self, id: &str) -> Result<(), String> {
+        self.state().keys = keys();
         let effects = self.state().command(id);
         self.apply(effects);
         Ok(())
     }
 
     fn handle(&mut self, event: Event) {
+        // What follows may say a key; a line of output says none.
+        if !matches!(event, Event::ProcessOutput(_)) {
+            self.state().keys = keys();
+        }
         let effects = match event {
             Event::FocusChanged(file) => self.state().focus(file.map(PathBuf::from).as_deref()),
             Event::ProcessOutput(o) => {

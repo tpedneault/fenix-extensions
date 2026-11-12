@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.arduino"
 name = "Arduino"
-version = "1.0.0"
+version = "1.1.0"
 description = "Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["languages", "tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # With Fenix: a sketch you open needs its language server from the start.
 [activation]

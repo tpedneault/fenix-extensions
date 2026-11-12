@@ -60,13 +60,26 @@ pub enum Link {
 
 /// The surface's title for a session `link` -- the one place a dropped
 /// connection shows on the pane itself, so a frozen last frame doesn't
-/// look like an idle desktop.
-pub fn title(name: &str, link: Link) -> String {
+/// look like an idle desktop. `open` is the keys that open a session
+/// (`SPC v v`).
+pub fn title(name: &str, link: Link, open: &str) -> String {
     match link {
         Link::Connecting | Link::Live => format!("VNC: {name}"),
         Link::Reconnecting => format!("VNC: {name} (disconnected, reconnecting...)"),
-        Link::Down => format!("VNC: {name} (disconnected -- SPC v v to reconnect)"),
+        Link::Down => format!("VNC: {name} (disconnected -- {open} to reconnect)"),
     }
+}
+
+/// The keys that run `command` now, as the key scheme in use writes them
+/// (`SPC v v`, or `C-k v v` with standard keys, or yours); `vim`, its Vim
+/// keys, when none does.
+fn keys(host: &mut dyn Host, command: &str, vim: &str) -> String {
+    host.keys_for(command).unwrap_or_else(|| vim.to_string())
+}
+
+/// The keys that open a session: `vnc.open`.
+fn open_keys(host: &mut dyn Host) -> String {
+    keys(host, "vnc.open", "SPC v v")
 }
 
 /// What to do with a resolution the server reports, given the last one
@@ -149,6 +162,9 @@ pub trait Host {
     fn stamp(&mut self) -> String;
     /// Writes a screenshot: where it went, or why it couldn't.
     fn save(&mut self, file: &str, png: &[u8]) -> Result<String, String>;
+    /// The keys that run `command` now, as the key scheme in use writes
+    /// them; none when no key does.
+    fn keys_for(&mut self, command: &str) -> Option<String>;
 }
 
 struct Session {
@@ -228,6 +244,15 @@ impl Viewer {
         Viewer::default()
     }
 
+    /// You switched between Vim keys and standard keys: a dropped
+    /// session's title names the keys that reconnect it again.
+    pub fn keys_changed(&mut self, host: &mut dyn Host) {
+        let names: Vec<String> = self.sessions.keys().cloned().collect();
+        for name in names {
+            self.retitle(host, &name);
+        }
+    }
+
     /// The sessions there are, and how each stands.
     pub fn sessions(&self) -> Vec<(String, Link)> {
         self.sessions.iter().map(|(n, s)| (n.clone(), s.link)).collect()
@@ -251,7 +276,8 @@ impl Viewer {
     pub fn open_picker(&mut self, host: &mut dyn Host) {
         let configured = hosts(host.setting("vnc.hosts").as_deref());
         if configured.is_empty() {
-            host.say(Level::Error, "no VNC hosts yet -- add them in SPC , (vnc.hosts)");
+            let settings = keys(host, "settings.open", "SPC ,");
+            host.say(Level::Error, &format!("no VNC hosts yet -- add them to vnc.hosts on the settings page ({settings})"));
             return;
         }
         let items: Vec<(String, String, String)> = configured
@@ -302,11 +328,12 @@ impl Viewer {
     /// place of any it had, which Fenix gives no other way to bring here --
     /// and drawn whole from what it last showed.
     fn show_here(&mut self, host: &mut dyn Host, name: &str) {
+        let open = open_keys(host);
         let Some(s) = self.sessions.get_mut(name) else { return };
         if let Some(old) = s.surface.take() {
             host.page_close(old);
         }
-        match host.surface_open(&title(name, s.link)) {
+        match host.surface_open(&title(name, s.link, &open)) {
             Ok(surface) => {
                 s.surface = Some(surface);
                 s.shown = true;
@@ -457,7 +484,8 @@ impl Viewer {
         if attempts >= MAX_RECONNECT_ATTEMPTS {
             s.link = Link::Down;
             self.retitle(host, name);
-            host.say(Level::Error, &format!("VNC {name}: reconnect failed after {attempts} attempts ({why}) -- giving up; SPC v v {name} to try again"));
+            let open = open_keys(host);
+            host.say(Level::Error, &format!("VNC {name}: reconnect failed after {attempts} attempts ({why}) -- giving up; {open} and pick {name} to try again"));
         } else {
             host.say(Level::Error, &format!("VNC {name}: reconnect failed ({why}); retrying..."));
             s.reconnect_timer = Some(host.timer(reconnect_delay_millis(attempts)));
@@ -499,7 +527,8 @@ impl Viewer {
 
     fn retitle(&mut self, host: &mut dyn Host, name: &str) {
         if let Some((surface, link)) = self.sessions.get(name).and_then(|s| s.surface.map(|p| (p, s.link))) {
-            host.retitle(surface, &title(name, link));
+            let open = open_keys(host);
+            host.retitle(surface, &title(name, link, &open));
         }
     }
 
@@ -750,9 +779,11 @@ mod tests {
 
     #[test]
     fn titles_say_how_the_connection_stands() {
-        assert_eq!(title("vm", Link::Live), "VNC: vm");
-        assert_eq!(title("vm", Link::Reconnecting), "VNC: vm (disconnected, reconnecting...)");
-        assert_eq!(title("vm", Link::Down), "VNC: vm (disconnected -- SPC v v to reconnect)");
+        assert_eq!(title("vm", Link::Live, "SPC v v"), "VNC: vm");
+        assert_eq!(title("vm", Link::Reconnecting, "SPC v v"), "VNC: vm (disconnected, reconnecting...)");
+        assert_eq!(title("vm", Link::Down, "SPC v v"), "VNC: vm (disconnected -- SPC v v to reconnect)");
+        // With standard keys, the leader is Ctrl+K.
+        assert_eq!(title("vm", Link::Down, "C-k v v"), "VNC: vm (disconnected -- C-k v v to reconnect)");
     }
 
     #[test]

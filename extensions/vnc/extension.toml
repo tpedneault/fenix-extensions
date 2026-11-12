@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.vnc"
 name = "VNC"
-version = "1.0.0"
+version = "1.1.0"
 description = "Remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # Nothing loads until one of its commands runs, or a [workspaces] entry
 # opens a host (the vnc.connect service).

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.images"
 name = "Image viewer"
-version = "1.0.0"
+version = "1.1.0"
 description = "Pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # A picture opens in it however you open it, which starts it; so do its
 # commands.

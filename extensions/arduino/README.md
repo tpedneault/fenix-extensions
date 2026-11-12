@@ -20,8 +20,20 @@ one, `SPC m` is its menu:
 | `i` | The sketch's board, port, speed and tools |
 | `n` | A new sketch (also `SPC f n`) |
 
+With standard keys, `SPC` is `Ctrl+K`: the menu is `Ctrl+K m`, a new
+sketch `Ctrl+K f n`.
+
 The board and port live in `sketch.yaml`, where `arduino-cli` and the
 Arduino IDE read them too; the monitor's speed in `.fenix/settings.toml`.
+
+A build or an upload is a task in Fenix's task pane, so Fenix notifies
+you when one ends while you're elsewhere, as `notifications.tasks` says
+(by default, one that took 10 seconds or more), with "Run it again".
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: "the
+default -- `C-k m s` picks your board" with standard keys, `SPC m s`
+with Vim keys.
 
 ## Tools
 

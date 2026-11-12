@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pdf"
 name = "PDF reader"
-version = "1.0.1"
+version = "1.1.0"
 description = "PDFs read in a pane: continuous pages, zoom, an outline, search, selection, links and marks, and a shelf of the documents you read"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # Home lists what you read lately, and a .pdf opens in it: it runs while
 # Fenix does.

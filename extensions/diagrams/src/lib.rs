@@ -27,6 +27,31 @@ const SCALE: f32 = 2.0;
 /// isn't held up by drawing.
 const SETTLE: u32 = 150;
 
+/// The keys that run `command`, which is `key` in a Mermaid file's
+/// `SPC m` menu, as the key scheme in use writes them: see
+/// [`menu_keys_from`]. Natively, where there's no Fenix to ask, its Vim
+/// keys.
+fn menu_keys(command: &str, key: &str) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        // Fenix's `key_for` knows the leader's keys and chords, not a
+        // `SPC m` menu's: the menu's own keys, then this one's in it.
+        menu_keys_from(api::key_for(command), api::key_for("leader.local"), key)
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = command;
+        menu_keys_from(None, None, key)
+    }
+}
+
+/// A command's own keys when it has some (`own`: yours, a chord); else
+/// `key` in the `SPC m` menu, opened by `menu` (`SPC m`, or `C-k m` with
+/// standard keys); else as Vim keys have it.
+fn menu_keys_from(own: Option<String>, menu: Option<String>, key: &str) -> String {
+    own.or_else(|| menu.map(|menu| format!("{menu} {key}"))).unwrap_or_else(|| format!("SPC m {key}"))
+}
+
 /// What a picker or prompt is for.
 enum Asked {
     Kind,
@@ -244,7 +269,7 @@ impl Diagrams {
 
     /// `SPC m p`: the preview beside the diagram (again closes it).
     fn toggle_preview(&mut self) {
-        let Some(path) = self.here_path() else { return api::notify("SPC m p previews a Mermaid diagram (.mmd)") };
+        let Some(path) = self.here_path() else { return api::notify(&format!("{} previews a Mermaid diagram (.mmd)", menu_keys("diagram.preview", "p"))) };
         let open: Vec<u64> = self.pages.iter().filter(|(_, p)| !p.viewer && same_path(&p.source, &path)).map(|(id, _)| *id).collect();
         if open.is_empty() {
             self.open_page(&path, false);
@@ -380,15 +405,15 @@ impl Extension for Diagrams {
                 Some(path) => {
                     self.open_page(&path, true);
                 }
-                None => api::notify("SPC m v shows a Mermaid diagram (.mmd) on its own"),
+                None => api::notify(&format!("{} shows a Mermaid diagram (.mmd) on its own", menu_keys("diagram.viewer", "v"))),
             },
             "diagram.theme" => match self.here_path() {
                 Some(path) => self.pick_theme(path),
-                None => host::notify(api::Level::Error, "SPC m t sets a diagram's theme"),
+                None => host::notify(api::Level::Error, &format!("{} sets a diagram's theme", menu_keys("diagram.theme", "t"))),
             },
             "diagram.export" => match self.here_path() {
                 Some(path) => self.export(path),
-                None => host::notify(api::Level::Error, "SPC m e exports a diagram"),
+                None => host::notify(api::Level::Error, &format!("{} exports a diagram", menu_keys("diagram.export", "e"))),
             },
             other => return Err(format!("no command {other}")),
         }
@@ -536,6 +561,19 @@ mod tests {
         assert_eq!(uri_path("file:///C:/Users/me/My%20Notes/flow.mmd"), "C:/Users/me/My Notes/flow.mmd");
         assert_eq!(uri_path("file:///home/me/flow.mmd"), "/home/me/flow.mmd");
         assert!(same_path("C:\\Users\\me\\flow.mmd", "c:/users/me/flow.mmd"));
+    }
+
+    #[test]
+    fn a_menu_command_is_named_by_the_keys_of_the_scheme_in_use() {
+        // Fenix gives no keys for a command only in an SPC m menu: the
+        // menu's, as each scheme writes them, and the command's in it.
+        assert_eq!(menu_keys_from(None, Some("SPC m".into()), "p"), "SPC m p");
+        assert_eq!(menu_keys_from(None, Some("C-k m".into()), "p"), "C-k m p");
+        // A key of its own (yours) wins.
+        assert_eq!(menu_keys_from(Some("F6".into()), Some("C-k m".into()), "p"), "F6");
+        // The menu unbound, or natively: as Vim keys have it.
+        assert_eq!(menu_keys_from(None, None, "e"), "SPC m e");
+        assert_eq!(menu_keys("diagram.export", "e"), "SPC m e");
     }
 
     #[test]

@@ -1,6 +1,6 @@
 [package]
 name = "fenix-images"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
@@ -10,7 +10,7 @@ description = "The image viewer for Fenix: PNG, JPEG, GIF, WebP, BMP and SVG in 
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 # The pictures, decoded in the sandbox: pure Rust, no threads.
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 # A JPEG too big to decode whole, decoded at a half, a quarter or an

@@ -185,7 +185,9 @@ impl StandardsPage {
     }
 }
 
-pub fn layout(p: &StandardsPage, cols: usize) -> Page {
+/// `decode` is the keys that open the decode (`SPC k d`), as the key
+/// scheme in use writes them.
+pub fn layout(p: &StandardsPage, cols: usize, decode: &str) -> Page {
     let (left, width) = frame(cols, 130);
     let mut g = Grid::new();
     g.put(1, left, "Standards", Role::Title);
@@ -242,7 +244,7 @@ pub fn layout(p: &StandardsPage, cols: usize) -> Page {
         y += 1;
     }
     y += 1;
-    g.put(y, left, "A field in the decode (SPC k d) names the standard that defines it: Enter on it opens this PDF at that heading.", Role::Muted);
+    g.put(y, left, &format!("A field in the decode ({decode}) names the standard that defines it: Enter on it opens this PDF at that heading."), Role::Muted);
     g.keys(left, width, &[("Enter", "open"), ("/", "search them all"), ("o", "where to get it"), ("f", "the folder setting"), ("q", "close")]);
     g.finish()
 }
@@ -264,9 +266,9 @@ mod tests {
         let mut long = StandardsPage::new(None);
         long.folder = Some(PathBuf::from(format!("C:/{}/standards", "deep/".repeat(40))));
         long.pdfs = pdfs;
-        let head = layout(&long, 160).text.lines().nth(1).unwrap_or_default().to_string();
+        let head = layout(&long, 160, "SPC k d").text.lines().nth(1).unwrap_or_default().to_string();
         assert!(head.contains("Standards") && head.contains("standards · 2 of 13 found"), "{head}");
-        let text = layout(&p, 160).text;
+        let text = layout(&p, 160, "SPC k d").text;
         assert!(text.contains("2 of 13 found") && text.contains("133x0b2e2.pdf"), "{text}");
         assert_eq!(p.key(Key::Enter), Action::Open(PathBuf::from("133x0b2e2.pdf")));
         p.key(Key::Char('j'));
@@ -286,14 +288,21 @@ mod tests {
         assert_eq!(p.key(Key::Enter), Action::Search("segment header".into()));
         p.search_started("segment header", 2);
         p.found(2, [(40, "the Segment Header shall".to_string())], false);
-        let text = layout(&p, 160).text;
+        let text = layout(&p, 160, "SPC k d").text;
         assert!(text.contains("1 matches in 1 standards · reading 2 more") && text.contains("p. 41"), "{text}");
         p.found(2, [(12, "a segment header".to_string())], true);
         p.found(0, [], true);
-        let text = layout(&p, 160).text;
+        let text = layout(&p, 160, "SPC k d").text;
         assert!(text.contains("2 matches in 1 standards") && !text.contains("reading"), "{text}");
         assert_eq!(p.key(Key::Enter), Action::OpenAt(PathBuf::from("232x0b4e1.pdf"), 12), "in page order");
         p.key(Key::Escape);
-        assert!(layout(&p, 160).text.contains("CCSDS 301.0-B"), "back to the standards");
+        assert!(layout(&p, 160, "SPC k d").text.contains("CCSDS 301.0-B"), "back to the standards");
+    }
+
+    #[test]
+    fn it_names_the_decodes_keys_in_the_scheme_in_use() {
+        let p = StandardsPage::new(None);
+        assert!(layout(&p, 200, "SPC k d").text.contains("A field in the decode (SPC k d) names the standard"));
+        assert!(layout(&p, 200, "C-k k d").text.contains("A field in the decode (C-k k d) names the standard"));
     }
 }
