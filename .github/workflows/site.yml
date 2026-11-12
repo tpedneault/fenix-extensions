@@ -1,0 +1,25 @@
+# The catalogue on GitHub Pages, rebuilt by hand (Actions, Site, Run
+# workflow) from the registry's index as it is and main's extensions:
+# nothing is released. release.yml does the same after each release.
+name: Site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  site:
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: gh-pages
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup override set stable
+      - name: Build the catalogue and push it to gh-pages
+        run: bash .github/site.sh "rebuilt by hand"
