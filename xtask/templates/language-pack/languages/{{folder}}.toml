@@ -1,0 +1,17 @@
+# TODO(you): the language's files. `language` is one of the names Fenix
+# highlights itself (rust, python, go, lua, ...): Fenix refuses a name it
+# has no grammar for. A language it doesn't have brings its own grammar,
+# compiled to WebAssembly, and the queries beside it:
+#
+#   language = "kotlin"
+#   grammar = "grammars/tree-sitter-kotlin.wasm"
+#   queries = "queries/kotlin"
+#
+# (Fenix's "Language packs" has the rest, and the Zig pack here is the
+# worked example.) `extensions` and `filenames` are the files it reads as
+# this language; `comment` starts a line comment in it.
+#
+# As it stands this reads *.example files as Lua.
+language = "lua"
+extensions = ["example"]
+filenames = []

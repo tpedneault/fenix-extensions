@@ -16,6 +16,7 @@ to the store.
 - [What every extension carries](#what-every-extension-carries)
 - [Versions](#versions)
 - [Permissions](#permissions)
+- [Starting one](#starting-one)
 - [Building and checking](#building-and-checking)
 - [Screenshots](#screenshots)
 - [Tutorial lessons](#tutorial-lessons)
@@ -24,11 +25,10 @@ to the store.
 - [Reporting a security problem](#reporting-a-security-problem)
 - [Licence](#licence)
 
-Coming, and not here yet: `cargo xtask new` to start an extension from
-a template, `cargo xtask install` to pack and install in one step, a
-test kit, and a widget gallery
-([milestone 2](plans/roadmap.md#milestone-2-author-tooling)). Until
-then, copy the nearest extension here and change it.
+Start from a template: `cargo xtask new <kind> <publisher.name>`
+([Starting one](#starting-one)). Coming, and not here yet: a test kit and
+a widget gallery
+([milestone 2](plans/roadmap.md#milestone-2-author-tooling)).
 
 ## Two ways in
 
@@ -280,6 +280,56 @@ checks it against the code.
       narrow as the rest.
 - [ ] An agent tool's `class` matches what it does.
 
+## Starting one
+
+```text
+cargo xtask new <kind> <publisher.name> [--name "Display name"] [--fenix]
+```
+
+`<kind>` is `theme`, `keymap`, `snippets`, `language-pack` or `tool`,
+and the id's name part is the folder: `cargo xtask new tool acme.word-count`
+writes `extensions/word-count/`. What it writes is the smallest working
+extension of the kind -- the same files [What every extension
+carries](#what-every-extension-carries) lists, a README with its **What it
+may do**, a CHANGELOG for 1.0.0, and the narrowest permissions the kind
+needs -- and it passes `cargo xtask validate`, packs, and, for the two
+kinds with code, builds, tests and lints as it is:
+
+| Kind | What it starts you with |
+|---|---|
+| `theme` | A light theme in Fenix's theme format, its colours kept at a readable contrast |
+| `keymap` | A flavour over standard keys: three `[[keys]]`, as [JetBrains keys](extensions/jetbrains-keys) has them |
+| `snippets` | Two snippets for every language, as [Rust snippets](extensions/rust-snippets) has its own |
+| `language-pack` | A pack on lang-kit: a language file, a doctor check, tasks, a snippet, tests, and a placeholder tool, `example-tool`, that it installs nothing for |
+| `tool` | A command, a canvas page built with `ui-kit`, a setting, a key under `SPC o`, tests |
+
+Where something is yours to say -- the author, the description, the tool
+a language pack is about -- the file has a `TODO(you)` note saying what
+goes there; search the folder for them. A code kind's `Cargo.lock` is
+committed with it, so `--locked` holds from the start.
+
+- **The id.** `publisher.name`, one dot. An id that starts with `fenix.`
+  is this repository's ([Publisher ids](#publisher-ids)): `new` refuses
+  it unless you say `--fenix`, and refuses `--fenix` with any other
+  publisher. Under `extensions/` it's `fenix.<folder>`; one of your own is
+  for a package you build and host, and `new` says so when it finishes.
+- **Refused**, with nothing written: an id that isn't `publisher.name`
+  (the name is lower-case letters, digits and `-`, starting with a
+  letter), a kind it doesn't have, a folder or an id that's already taken.
+
+To try it in Fenix:
+
+```text
+cargo xtask install extensions/<name>             # packs it into a temporary folder, then: fenix --install-extension <the .fenixext>
+cargo xtask install extensions/<name> --watch     # and again each time a file under it changes; Ctrl+C stops
+```
+
+Fenix is `$FENIX` if it's set, else `fenix` on the `PATH`, else what
+`--fenix <path>` says; it works the same on Windows and Linux. `--watch`
+polls the folder's files twice a second, ignoring `target/`, `dist/`
+and the `extension.wasm` a build makes, and installs once things have been
+still for a moment. It's the old `package.ps1 -Install`, in one command.
+
 ## Building and checking
 
 You need Rust stable with Clippy, and the WebAssembly target, once:
@@ -316,8 +366,11 @@ Then try it in Fenix (Fenix's
 [Starting one](https://github.com/tpedneault/fenix/blob/master/docs/WRITING_EXTENSIONS.md#starting-one)):
 
 ```text
-fenix --install-extension dist/fenix.<name>-<version>.fenixext
+cargo xtask install extensions/<name>
 ```
+
+which is `pack` and then `fenix --install-extension` on the package
+(`dist/fenix.<name>-<version>.fenixext` does the same by hand).
 
 A running Fenix notices within a few seconds (themes and languages wait
 for `SPC q r`); `SPC h l` shows what it logs, and why it stopped if it

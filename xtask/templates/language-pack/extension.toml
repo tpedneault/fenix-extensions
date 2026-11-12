@@ -1,0 +1,39 @@
+[extension]
+id = "{{id}}"
+name = "{{name}}"
+version = "1.0.0"
+description = "Tasks and project checks for a language"    # TODO(you): the language, and what the pack does for it
+authors = ["Your Name"]                                    # TODO(you)
+license = "MIT OR Apache-2.0"
+repository = "{{repository}}"
+categories = ["languages", "snippets"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# With Fenix: the project doctor's checks and the tasks are there from the
+# start, in a project this pack's context names (below).
+[activation]
+on_startup = true
+
+[permissions]
+# TODO(you): the programs the pack runs, by name: the tool it checks the
+# version of (src/doctor.rs) and the ones its tasks run (src/tasks.rs).
+# Nothing else; no network, no files, until a feature needs them. A pack
+# that installs a server adds "/tools/*" here and the hosts it downloads
+# from under `network`; one that lints on save adds editor = "read" and
+# events = ["saved"].
+process = ["example-tool"]
+
+[[contributes.contexts]]
+name = "{{folder}}"
+# TODO(you): the files that mark a project of this language, as Fenix
+# should look for them (a build file, a config). `languages = [...]` loads
+# the pack for every file of a language instead.
+markers = ["{{folder}}.toml"]
+
+[[contributes.commands]]
+id = "{{folder}}.doctor"
+title = "{{name}}: check the project again"

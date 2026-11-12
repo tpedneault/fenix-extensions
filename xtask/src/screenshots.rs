@@ -760,8 +760,14 @@ pub struct Options {
     pub dry_run: bool,
 }
 
+/// The Fenix to run when `--fenix` doesn't say: `$FENIX`, else `fenix` on
+/// the `PATH`.
+pub(crate) fn default_fenix() -> PathBuf {
+    std::env::var_os("FENIX").filter(|f| !f.is_empty()).map(PathBuf::from).unwrap_or_else(|| PathBuf::from("fenix"))
+}
+
 pub fn options(args: &[String]) -> Result<Options, String> {
-    let mut o = Options { extension: None, fenix: std::env::var_os("FENIX").filter(|f| !f.is_empty()).map(PathBuf::from).unwrap_or_else(|| PathBuf::from("fenix")), theme: THEME.into(), size: SIZE, dry_run: false };
+    let mut o = Options { extension: None, fenix: default_fenix(), theme: THEME.into(), size: SIZE, dry_run: false };
     let mut args = args.iter();
     while let Some(arg) = args.next() {
         let (flag, inline) = match arg.split_once('=') {

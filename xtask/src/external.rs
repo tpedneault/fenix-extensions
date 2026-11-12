@@ -23,7 +23,7 @@ use crate::{check_agent_tools, check_chords, check_dependencies, files, index_wr
 
 /// The publisher id this repository's own extensions are under: nobody
 /// else's.
-const RESERVED: &str = "fenix";
+pub(crate) const RESERVED: &str = "fenix";
 /// The most a package may be, packed. Fenix unpacks at most 64 MiB
 /// (`fenix-extensions`' `MAX_UNPACKED`), and refuses a release whose
 /// `size` is more than that; a package is compressed, so 50 MiB packed is

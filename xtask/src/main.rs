@@ -11,12 +11,16 @@
 //! cargo xtask index-add-external <index.json> [--only <id>@<version>]
 //! cargo xtask screenshots [name] [--dry-run]   each extension's screenshots.toml, run in Fenix and captured
 //! cargo xtask site <index.json> <out>        the catalogue, for GitHub Pages
+//! cargo xtask new <kind> <publisher.name> [--name "Display name"] [--fenix]   a new extension from a template (theme, keymap, snippets, language-pack, tool)
+//! cargo xtask install <extension-dir> [--fenix <path>] [--watch]   pack it and install it into Fenix; --watch, again whenever a file changes
 //! ```
 //!
 //! The manifest is read the way Fenix reads it (`fenix-extensions`'
 //! `manifest.rs`): what's refused here would be refused there.
 
 mod external;
+mod install;
+mod new;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -572,8 +576,10 @@ fn main() {
         Some("index-add-external") => external::add_command(&root, &args[1..]),
         Some("screenshots") => screenshots::run(&root, &args[1..]),
         Some("site") => site::site(&root, Path::new(&arg(1)), Path::new(&arg(2))),
+        Some("new") => new::run(&root, &args[1..]),
+        Some("install") => install::run(&args[1..]),
         Some("index-add") => arg(5).parse::<u64>().map_err(|e| format!("size: {e}")).and_then(|size| index_add(Path::new(&arg(1)), Path::new(&arg(2)), &arg(3), &arg(4), size)),
-        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>] | screenshots [name] [--fenix <path>] [--theme <name>] [--size WxH] [--dry-run] | site <index.json> <out>".into()),
+        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>] | screenshots [name] [--fenix <path>] [--theme <name>] [--size WxH] [--dry-run] | site <index.json> <out> | new <kind> <publisher.name> [--name \"Display name\"] [--fenix] | install <extension-dir> [--fenix <path>] [--watch]".into()),
     };
     if let Err(e) = result {
         eprintln!("xtask: {e}");

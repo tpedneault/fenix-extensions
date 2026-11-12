@@ -1,0 +1,38 @@
+# {{name}}: a keymap flavour, over Fenix's standard keys. Only what
+# differs from Fenix's is here: the rest of standard keys are VS Code's,
+# and stay. Vim keys are left as they are. Your own keybindings.toml goes
+# over all of this.
+#
+# TODO(you): replace these three with your flavour's keys. One key with
+# its modifiers each (C-Enter, S-F6, M-F7); never C-k, C-S-p, C-\ or M-x,
+# which are Fenix's own. A command Fenix doesn't have, or a key it can't
+# read, is reported (SPC h K) and not bound.
+
+# Rename
+[[keys]]
+keys = "S-F6"
+command = "code.lsp_rename"
+scheme = "standard"            # Vim keys are left as they are
+when = "text"                  # in a file's text; elsewhere, Fenix's
+
+# Find usages
+[[keys]]
+keys = "M-F7"
+command = "code.references"
+scheme = "standard"
+when = "text"
+
+# Go to implementation
+[[keys]]
+keys = "C-M-b"
+command = "code.implementations"
+scheme = "standard"
+when = "text"
+
+# A key Fenix has a command for, that your flavour wants free, is taken
+# away rather than left to surprise:
+#
+# [[keys]]
+# keys = "C-w"
+# unbind = true
+# scheme = "standard"
