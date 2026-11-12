@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.4.0
+
+For Fenix 1.5 (extension API 1.5), which it needed since 1.2.0 -- its
+manifest now says so too.
+
+- A lesson in the tutorial (`SPC h T`, *Database*): the browser, a table's
+  rows, a statement run from a `.sql` buffer, its results, the history and
+  a buffer's connection, on a sample database -- nothing to install, no
+  server. Its keys are said as your key scheme has them.
+- **Database: a sample database to try it on** (`database.sample`): a
+  small shop in SQLite, made afresh in the extension's own folder, opened
+  in the browser.
+- The browser names a `.sql` buffer's keys for standard keys too:
+  `Ctrl+K m r` beside `SPC m r`, and `Ctrl+Enter`, in its empty results
+  and its help (`?`). With no connection yet, it says how to add one, or
+  where the sample is.
+- Fixed: a coding agent's session went on with a connection's old host,
+  user or options after its row in `database.connections` changed, until
+  Fenix restarted; it's closed now, and opened again as the row says.
+  `database_query`'s description names `TABLE`, which it always took, and
+  says a connection can be an open SQLite file.
+
 ## 1.3.0
 
 - `database.open`, `database.history` can be run from outside Fenix, over the control channel
