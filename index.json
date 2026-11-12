@@ -1160,6 +1160,44 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.jupyter",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/jupyter-v1.0.0/fenix.jupyter-1.0.0.fenixext",
+          "sha256": "ac2e346856ff7155ee20a7fffb4c89b7cd0b4825fa1ab10932d03be95a52fa6f",
+          "size": 183462,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "data",
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-read",
+            "process": [
+              "python3",
+              "python",
+              "uv",
+              "${setting:jupyter.python}"
+            ]
+          }
+        }
+      ],
+      "name": "Jupyter notebooks",
+      "description": "Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib's plots and other pictures -- cells edited beside it and changed through the file's buffer, and run on the notebook's Python: ipykernel when it's there, Python itself when it isn't, input() asked of you",
+      "categories": [
+        "languages",
+        "data",
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.logs",
       "versions": [
         {
