@@ -1,0 +1,27 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────
+  Table      │ Tree  TreeState: folders opened, closed, one read when opened
+› Tree       │
+  Tabs       │ ▾ harbour-tides/                ┃ │ harbour-tides/
+  Text field │   ▾ src/                        ┃ │ a folder of 7
+  List       │     ▾ tides/                    ┃ │ open
+  Popup menu │         mod.rs             905 B┃ │
+  Splits     │         harmonics.rs     14.5 KB┃ │
+  Scrolling  │         stations.rs       7.1 KB┃ │
+  Styles     │         predict.rs        9.7 KB┃ │
+  Mouse      │       main.rs             2.1 KB┃ │
+             │       cli.rs              4.3 KB┃ │
+             │   ▾ tests/                      ┃ │
+             │     ▾ fixtures/                 │ │
+             │         brest-2025.csv   86.1 KB│ │
+             │         dover-2025.csv   85.9 KB│ │
+             │         constituents.to…  3.2 KB│ │
+             │         README.md          410 B│ │
+             │       harmonics.rs        5.3 KB│ │
+────────────────────────────────────────────────────────────────────────────────
+
+j k move  l open  h close, or up  Enter open, or the file  + - all open, closed
+[ ] section  c its code
+----
+focus: line 4, cells 15..47
+typing: false

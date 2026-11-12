@@ -1,0 +1,27 @@
+[extension]
+id = "fenix.gallery"
+name = "Widget gallery"
+version = "1.0.0"
+description = "Every ui-kit widget working on one page -- tables, trees, tabs, fields, lists, menus, splits, scrolled regions, styles and the mouse -- each with the code that draws it a key away: for people writing extensions"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Its command loads it.
+[activation]
+commands = ["gallery.*"]
+
+# Nothing: the page, its sample data and the code it shows are all its
+# own. Copying a selection writes the clipboard, which needs nothing.
+[permissions]
+
+[[contributes.commands]]
+id = "gallery.open"
+title = "Widget gallery: every ui-kit widget, live, with the code that draws it"
+external = true

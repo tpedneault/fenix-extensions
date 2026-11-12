@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Tabs  TabsState: Tab, Shift+Tab, 1 to 9 or a click
+  Tree       │
+› Tabs       │ 1 Summary   2 Headers 8   3 Body 2.4 KB   4 Timing   5 Cookies 0
+  Text field │ ────────────────────────────────────────────────────────────────────────────────────
+  List       │
+  Popup menu │ content-type: application/json; charset=utf-8
+  Splits     │ content-length: 2461
+  Scrolling  │ cache-control: max-age=600
+  Styles     │ etag: "5f1c-18e2a"
+  Mouse      │ date: Thu, 19 Mar 2026 09:14:07 GMT
+             │ server: tides-api/0.5
+             │ vary: accept-encoding
+             │ x-request-id: 7d0c55e2
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │ The same tabs in 28 cells:
+             │ 1 Summary   2 Headers 8   3
+             │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Tab S-Tab next, previous  1-5 a tab  n numbers on, off  [ ] section  c its code
+----
+focus: none
+typing: false

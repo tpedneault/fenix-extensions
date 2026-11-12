@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Scrolling  ScrollState: only the lines shown are drawn
+  Tree       │
+  Tabs       │ cargo build, 6 runs · lines 1 to 21 of 300
+  Text field │
+  List       │    1 [09:14:00] cargo build --release   (run 1 of 6)                               ┃
+  Popup menu │    2 [09:14:01]    Compiling proc-macro2 v1.0.95                                   │
+  Splits     │    3 [09:14:02]    Compiling unicode-ident v1.0.18                                 │
+› Scrolling  │    4 [09:14:03]    Compiling libc v0.2.172                                         │
+  Styles     │    5 [09:14:04]    Compiling cfg-if v1.0.0                                         │
+  Mouse      │    6 [09:14:05]    Compiling autocfg v1.4.0                                        │
+             │    7 [09:14:06]    Compiling serde v1.0.219                                        │
+             │    8 [09:14:07]    Compiling quote v1.0.40                                         │
+             │    9 [09:14:08]    Compiling syn v2.0.101                                          │
+             │   10 [09:14:09]    Compiling memchr v2.7.4                                         │
+             │   11 [09:14:10]    Compiling itoa v1.0.15                                          │
+             │   12 [09:14:11]    Compiling ryu v1.0.20                                           │
+             │   13 [09:14:12]    Compiling serde_json v1.0.140                                   │
+             │   14 [09:14:13]    Compiling num-traits v0.2.19                                    │
+             │   15 [09:14:14]    Compiling chrono v0.4.41                                        │
+             │   16 [09:14:15]    Compiling clap_lex v0.7.4                                       │
+             │   17 [09:14:16]    Compiling anstyle v1.0.10                                       │
+             │   18 [09:14:17]    Compiling clap_builder v4.5.38                                  │
+             │   19 [09:14:18]    Compiling clap v4.5.38                                          │
+             │   20 [09:14:19]    Compiling csv-core v0.1.12                                      │
+             │   21 [09:14:20]    Compiling csv v1.3.1                                            │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+j k a line  J K PgUp PgDn a page  g G top, bottom  n the next problem  [ ] section  c its code
+----
+focus: none
+typing: false

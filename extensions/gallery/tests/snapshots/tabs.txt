@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Tabs  TabsState: Tab, Shift+Tab, 1 to 9 or a click
+  Tree       │
+› Tabs       │ 1 Summary   2 Headers 8   3 Body 2.4 KB   4 Timing   5 Cookies 0
+  Text field │ ────────────────────────────────────────────────────────────────────────────────────
+  List       │
+  Popup menu │ GET https://tides.example.test/v1/stations/brest/predictions?days=2
+  Splits     │ 200 OK
+  Scrolling  │ 2.4 KB in 182 ms, from the cache: no
+  Styles     │
+  Mouse      │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │ The same tabs in 28 cells:
+             │ 1 Summary   2 Headers 8   3
+             │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Tab S-Tab next, previous  1-5 a tab  n numbers on, off  [ ] section  c its code
+----
+focus: none
+typing: false
