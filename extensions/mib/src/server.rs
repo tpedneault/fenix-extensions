@@ -11,6 +11,7 @@ use fenix_extension_api::lsp::types::{
 use fenix_extension_api::lsp::{self, Documents, LanguageServer};
 use fenix_mib::{DefRef, Kind, MibSet};
 
+use crate::keys::Hints;
 use crate::{mib_check, mib_page, Mib};
 
 /// The words of `line` (letters, digits, `_`), each with the columns it
@@ -37,7 +38,7 @@ pub(crate) fn words(line: &str) -> Vec<(std::ops::Range<usize>, &str)> {
 }
 
 /// What `K` shows on a MIB name.
-pub(crate) fn hover_text(set: &MibSet, def: DefRef, apid_hex: bool) -> String {
+pub(crate) fn hover_text(set: &MibSet, def: DefRef, apid_hex: bool, keys: &Hints) -> String {
     let e = set.get(def);
     let mut lines = vec![format!("{} {} · {}", def.kind.tag(), e.name, set.root_label(e.root)), e.description.clone()];
     let r = &e.row;
@@ -62,7 +63,7 @@ pub(crate) fn hover_text(set: &MibSet, def: DefRef, apid_hex: bool) -> String {
                 lines.push(format!("Sent only while {}", pre.iter().map(ToString::to_string).collect::<Vec<_>>().join(" and ")));
             }
             lines.push(String::new());
-            lines.push(format!("{} opens it · SPC k e edits this call", crate::definition_keys()));
+            lines.push(format!("{} opens it · {} edits this call", keys.definition, keys.edit_call));
         }
         _ => {
             let cols: Vec<String> = (1..def.kind.headers().len())
@@ -74,7 +75,7 @@ pub(crate) fn hover_text(set: &MibSet, def: DefRef, apid_hex: bool) -> String {
                 lines.push(cols.join(" · "));
             }
             lines.push(String::new());
-            lines.push(format!("{} opens it", crate::definition_keys()));
+            lines.push(format!("{} opens it", keys.definition));
         }
     }
     lines.retain(|l| !l.trim().is_empty() || l.is_empty());
@@ -142,7 +143,7 @@ impl LanguageServer for Mib {
     /// `K` on a MIB name: its card.
     fn hover(&mut self, _server: u64, docs: &Documents, params: HoverParams) -> Option<Hover> {
         let (set, def) = self.def_at(docs, &params.text_document_position_params)?;
-        Some(Hover { contents: HoverContents::Markup(MarkupContent { kind: MarkupKind::PlainText, value: hover_text(&set, def, crate::apid_hex()) }), range: None })
+        Some(Hover { contents: HoverContents::Markup(MarkupContent { kind: MarkupKind::PlainText, value: hover_text(&set, def, crate::apid_hex(), &Hints::current()) }), range: None })
     }
 
     /// `gd` on a MIB name: its page, opened once the answer's sent -- it

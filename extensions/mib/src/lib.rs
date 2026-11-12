@@ -13,6 +13,7 @@
 //!
 //! Coding agents look definitions up with `mib_lookup` (`agent`).
 
+pub mod keys;
 mod agent;
 mod mib_check;
 mod mib_def;
@@ -20,19 +21,6 @@ mod mib_form;
 mod mib_page;
 mod page;
 mod server;
-
-/// The keys that go to a definition, as the key scheme in use has them
-/// (`gd`, or `F12` with standard keys).
-pub(crate) fn definition_keys() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        api::key_for("code.goto_definition").unwrap_or_else(|| "gd".to_string())
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "gd".to_string()
-    }
-}
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -43,6 +31,7 @@ use fenix_extension_api::{self as api, export, host, project, Check, Event, Exte
 use fenix_mib::mission::{list_items, map_entries, Mission};
 use fenix_mib::{DefRef, Kind, MibRoot, MibSet};
 
+use keys::Hints;
 use mib_def::DefPage;
 use mib_form::InsertForm;
 use mib_page::{MibKey, MibPage};
@@ -61,7 +50,14 @@ const PROJECT: &str = "/project";
 const WATCH_MILLIS: u32 = 3_000;
 
 /// What it says when there's no MIB to work with.
-const NO_MIB: &str = "no MIB for this project -- SPC k , lists one in its settings";
+fn no_mib_text(settings_keys: &str) -> String {
+    format!("no MIB for this project -- {settings_keys} lists one in its settings")
+}
+
+/// `no_mib_text`, with the keys of the scheme in use.
+fn no_mib() -> String {
+    no_mib_text(&keys::keys("mib.settings", "SPC k ,"))
+}
 
 /// The extension: its language servers' documents, and the MIB.
 #[derive(Default)]
@@ -423,7 +419,7 @@ impl Mib {
     fn set_here(&mut self) -> Option<Arc<MibSet>> {
         let set = self.set();
         if set.is_none() {
-            error(NO_MIB);
+            error(&no_mib());
         }
         set
     }
@@ -490,7 +486,7 @@ impl Mib {
     fn cmd_reload(&mut self) {
         let (key, _) = key_here();
         if key.roots.is_empty() {
-            return error(NO_MIB);
+            return error(&no_mib());
         }
         api::notify("reading the MIB again…");
         self.load(key);
@@ -543,7 +539,7 @@ impl Mib {
     fn cmd_generate(&mut self) {
         let (key, _) = key_here();
         if key.roots.is_empty() {
-            return error(NO_MIB);
+            return error(&no_mib());
         }
         let mut items = Vec::new();
         for (i, (_, file, what)) in fenix_mib::generate::KINDS.iter().enumerate() {
@@ -658,7 +654,7 @@ impl Mib {
         match std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&path, generated)) {
             Ok(()) => {
                 host::open_file(&path.to_string_lossy(), None);
-                api::notify(&format!("wrote generated/{file} -- regenerate it with SPC k g after the MIB changes"));
+                api::notify(&format!("wrote generated/{file} -- regenerate it with {} after the MIB changes", Hints::current().generate));
             }
             Err(e) => error(&format!("couldn't write generated/{file}: {e}")),
         }
@@ -722,7 +718,7 @@ impl Mib {
                 let ctx = mib_page::Ctx { set: set.as_deref(), loading, apid_hex: hex, source };
                 Page::canvas(mib_page::layout(p, &ctx, width)).typing(p.typing()).space(p.claims_space())
             }
-            Some(Open::Def(p)) => Page::canvas(mib_def::layout(p, set.as_deref(), hex, width)).typing(p.typing()),
+            Some(Open::Def(p)) => Page::canvas(mib_def::layout(p, set.as_deref(), hex, width, &Hints::current())).typing(p.typing()),
             Some(Open::Form(f, _)) => {
                 let bytes = f.show_bytes.then(|| form_bytes(set.as_deref(), f));
                 Page::canvas(mib_form::layout(f, bytes.as_ref(), width)).typing(f.typing()).space(f.claims_space())
@@ -884,6 +880,7 @@ impl Mib {
             return;
         };
         let options = read_options();
+        let keys = Hints::current();
         let set = MibSet::load_with(vec![MibRoot { label: project_name(), path: dir.clone() }], None, options.clone());
         let check = |label: &str, health: Health, detail: String| Check { section: Section::Database, label: label.to_string(), health, detail, fix: None };
         let mut checks = Vec::new();
@@ -895,7 +892,7 @@ impl Mib {
         }
         checks.push(check("tables", if tables == 0 { Health::Warn } else { Health::Ok }, summary));
         if let Some(format) = &info.format {
-            checks.push(check("layout", Health::Info, format!("{format} -- mib.icd in the project's settings (SPC k ,) says which")));
+            checks.push(check("layout", Health::Info, format!("{format} -- mib.icd in the project's settings ({}) says which", keys.settings)));
         }
         let problems = set.problems();
         let shown = problems.len().min(20);
@@ -921,16 +918,32 @@ impl Mib {
             checks.push(check("not in the ICD", Health::Info, format!("{}.dat -- ignored; mib.columns reads a table of the mission's own", unknown.join(".dat, "))));
         }
         if tables > 0 {
-            checks.push(check("browse", Health::Ok, "this project is its own MIB -- SPC k k lists what's in it".into()));
-            checks.extend(mission_checks(&set).into_iter().map(|(label, health, detail)| check(&label, health, detail)));
+            checks.push(check("browse", Health::Ok, format!("this project is its own MIB -- {} lists what's in it", keys.page)));
+            checks.extend(mission_checks(&set, &keys).into_iter().map(|(label, health, detail)| check(&label, health, detail)));
         }
         project::doctor(&checks);
     }
 }
 
+/// The doctor's line for the mission profile: its PUS edition, the
+/// on-board time, and the keys of Fenix's settings, where it's set.
+fn profile_summary(edition: &str, time: impl std::fmt::Display, settings_keys: &str) -> String {
+    format!("{edition} · {time} · {settings_keys} sets the project's (CCSDS & PUS)")
+}
+
+/// The doctor's line for the project's `recordings/`: how many, and the
+/// keys that open one.
+fn recordings_summary(n: usize, recording_keys: &str) -> String {
+    if n == 0 {
+        format!("none yet -- {recording_keys} opens one")
+    } else {
+        format!("{n} -- {recording_keys} opens one")
+    }
+}
+
 /// The mission profile the project's MIB is read against, whether the
 /// MIB agrees with it and the standards, and its recordings.
-fn mission_checks(set: &MibSet) -> Vec<(String, Health, String)> {
+fn mission_checks(set: &MibSet, keys: &Hints) -> Vec<(String, Health, String)> {
     use fenix_ccsds::pus::PusEdition;
     let mission = mission();
     let mut out = Vec::new();
@@ -939,7 +952,7 @@ fn mission_checks(set: &MibSet) -> Vec<(String, Health, String)> {
         PusEdition::A => "PUS-A",
         PusEdition::None => "no PUS",
     };
-    let summary = format!("{edition} · {} · SPC , sets the project's (CCSDS & PUS)", mission.profile.tm_time.label());
+    let summary = profile_summary(edition, mission.profile.tm_time.label(), &keys.fenix_settings);
     if mission.problems.is_empty() {
         out.push(("mission profile".to_string(), Health::Ok, summary));
     } else {
@@ -961,7 +974,7 @@ fn mission_checks(set: &MibSet) -> Vec<(String, Health, String)> {
     let recordings = Path::new(PROJECT).join("recordings");
     if recordings.is_dir() {
         let n = std::fs::read_dir(&recordings).into_iter().flatten().flatten().filter(|e| e.path().is_file() && e.path().extension().is_none_or(|x| !x.eq_ignore_ascii_case("md"))).count();
-        let what = if n == 0 { "none yet -- SPC k f opens one".to_string() } else { format!("{n} -- SPC k f opens one") };
+        let what = recordings_summary(n, &keys.recording);
         out.push(("recordings".to_string(), Health::Ok, what));
     } else {
         out.push(("recordings".to_string(), Health::Info, "no recordings/ folder for dumps and captures".to_string()));
@@ -1145,7 +1158,7 @@ impl MibExtension {
             Some(k) => vec![agent::kind(k).ok_or_else(|| format!("{k}: one of telecommand, tc_parameter, tm_packet, tm_parameter, calibration"))?],
             None => Kind::ALL.to_vec(),
         };
-        let set = self.mib.set().ok_or(NO_MIB)?;
+        let set = self.mib.set().ok_or_else(no_mib)?;
         agent::lookup(&set, query, &kinds, apid_hex()).map(|v| v.to_string())
     }
 }
@@ -1185,12 +1198,37 @@ mod tests {
     fn k_on_a_telecommand_shows_its_arguments_and_how_to_open_it() {
         let set = ops();
         let tc = set.find(Kind::Telecommand, 0, "ZTC08101").unwrap();
-        let card = server::hover_text(&set, tc, true);
+        let card = server::hover_text(&set, tc, true, &Hints::default());
         assert!(card.starts_with("TC ZTC08101 · OPS"), "{card}");
         assert!(card.contains("PTH00101") && card.contains("Arguments"), "{card}");
         assert!(card.ends_with("gd opens it · SPC k e edits this call"), "{card}");
         let param = set.resolve("PTH00102").unwrap();
-        assert!(server::hover_text(&set, param, true).ends_with("gd opens it"));
+        assert!(server::hover_text(&set, param, true, &Hints::default()).ends_with("gd opens it"));
+    }
+
+    #[test]
+    fn the_card_names_the_keys_of_the_standard_scheme() {
+        let set = ops();
+        let tc = set.find(Kind::Telecommand, 0, "ZTC08101").unwrap();
+        let card = server::hover_text(&set, tc, true, &Hints::standard());
+        assert!(card.ends_with("F12 opens it · C-k k e edits this call"), "{card}");
+        let param = set.resolve("PTH00102").unwrap();
+        assert!(server::hover_text(&set, param, true, &Hints::standard()).ends_with("F12 opens it"));
+    }
+
+    #[test]
+    fn the_doctor_names_the_keys_of_the_scheme() {
+        let (vim, standard) = (Hints::default(), Hints::standard());
+        assert_eq!(profile_summary("PUS-C", "CUC", &vim.fenix_settings), "PUS-C · CUC · SPC , sets the project's (CCSDS & PUS)");
+        assert_eq!(profile_summary("PUS-C", "CUC", &standard.fenix_settings), "PUS-C · CUC · C-k , sets the project's (CCSDS & PUS)");
+        assert_eq!(recordings_summary(0, &vim.recording), "none yet -- SPC k f opens one");
+        assert_eq!(recordings_summary(3, &standard.recording), "3 -- C-k k f opens one");
+    }
+
+    #[test]
+    fn what_it_says_of_a_missing_mib_names_the_settings_keys() {
+        assert_eq!(no_mib_text("SPC k ,"), "no MIB for this project -- SPC k , lists one in its settings");
+        assert_eq!(no_mib_text("C-k k ,"), "no MIB for this project -- C-k k , lists one in its settings");
     }
 
     #[test]

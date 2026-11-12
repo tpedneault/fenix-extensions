@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use fenix_mib::detail::{self, CalBody};
 use fenix_mib::{CalKind, DefRef, Kind, MibSet};
 
+use crate::keys::Hints;
 use crate::mib_page::kind_role;
 use crate::page::{fit, frame, wrap, Filter, Grid, Key, Page, Popup, Role};
 
@@ -771,11 +772,11 @@ pub fn title(set: Option<&MibSet>, page: &DefPage) -> String {
     }
 }
 
-pub fn layout(page: &DefPage, set: Option<&MibSet>, apid_hex: bool, cols: usize) -> Page {
+pub fn layout(page: &DefPage, set: Option<&MibSet>, apid_hex: bool, cols: usize, keys: &Hints) -> Page {
     let (left, width) = frame(cols, 150);
     let mut g = Grid::new();
     let Some(set) = set.filter(|s| page.current().index < s.entries(page.current().kind).len()) else {
-        g.put(1, left, "This MIB isn't loaded any more -- SPC k k opens the MIB page.", Role::Muted);
+        g.put(1, left, &format!("This MIB isn't loaded any more -- {} opens the MIB page.", keys.page), Role::Muted);
         return g.finish();
     };
     let def = page.current();
@@ -948,11 +949,21 @@ mod tests {
     }
 
     #[test]
+    fn a_page_whose_mib_is_gone_names_the_keys_of_the_scheme() {
+        let (set, _) = set();
+        let page = DefPage::new(set.find(Kind::Telecommand, 0, "ZTC08101").unwrap());
+        let vim = layout(&page, None, true, 160, &Hints::default()).text;
+        assert!(vim.contains("This MIB isn't loaded any more -- SPC k k opens the MIB page."), "{vim}");
+        let standard = layout(&page, None, true, 160, &Hints::standard()).text;
+        assert!(standard.contains("This MIB isn't loaded any more -- C-k k k opens the MIB page."), "{standard}");
+    }
+
+    #[test]
     fn a_telecommand_page_lays_out_its_bits_parameters_and_links() {
         let (set, root) = set();
         let tc = set.find(Kind::Telecommand, 0, "ZTC08101").unwrap();
         let page = DefPage::new(tc);
-        let text = layout(&page, Some(&set), true, 160).text;
+        let text = layout(&page, Some(&set), true, 160, &Hints::default()).text;
         assert!(text.contains("TC  ZTC08101  Set heater control mode"), "{text}");
         assert!(text.contains("APID 0x3F2 · 1010"), "{text}");
         assert!(text.contains("APPLICATION DATA · 16 BITS"), "{text}");
@@ -971,7 +982,7 @@ mod tests {
         for c in "MODE".chars() {
             page.key(if c == ' ' { Key::Space } else { Key::Char(c) }, &set);
         }
-        let text = layout(&page, Some(&set), true, 160).text;
+        let text = layout(&page, Some(&set), true, 160, &Hints::default()).text;
         assert!(text.contains("PTH00102") && !text.contains("PTH00101"), "only the matching parameter: {text}");
         assert!(text.contains("NAME") && text.contains("1 row hidden"), "its column headings stay: {text}");
         page.key(Key::Enter, &set);
@@ -985,11 +996,11 @@ mod tests {
         for c in "nothing-like-it".chars() {
             page.key(Key::Char(c), &set);
         }
-        let text = layout(&page, Some(&set), true, 160).text;
+        let text = layout(&page, Some(&set), true, 160, &Hints::default()).text;
         assert!(!text.contains("PARAMETERS"), "a section with no rows left goes: {text}");
         assert!(text.contains("ccf.dat"), "the file line stays: {text}");
         page.key(Key::Escape, &set);
-        assert!(page.filter.is_empty() && layout(&page, Some(&set), true, 160).text.contains("PTH00101"));
+        assert!(page.filter.is_empty() && layout(&page, Some(&set), true, 160, &Hints::default()).text.contains("PTH00101"));
         std::fs::remove_dir_all(&root.path).ok();
     }
 
@@ -1001,7 +1012,7 @@ mod tests {
         page.key(Key::Char('j'), &set);
         page.key(Key::Enter, &set);
         assert_eq!(set.get(page.current()).name, "PTH00102");
-        let text = layout(&page, Some(&set), true, 160).text;
+        let text = layout(&page, Some(&set), true, 160, &Hints::default()).text;
         assert!(text.contains("PAF00042") && text.contains("AUTO"), "its calibration inline: {text}");
         assert!(text.contains("USED BY TELECOMMANDS · 1"), "{text}");
         page.key(Key::Char('u'), &set);

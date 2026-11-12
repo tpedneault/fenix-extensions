@@ -17,6 +17,7 @@ pub mod book;
 pub mod clock;
 pub mod export;
 pub mod links_page;
+pub mod keys;
 pub mod meta;
 pub mod page;
 pub mod paths;
@@ -33,14 +34,7 @@ mod lsp;
 /// The keys that go to a definition, as the key scheme in use has them
 /// (`gd`, or `F12` with standard keys).
 pub(crate) fn definition_keys() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        api::key_for("code.goto_definition").unwrap_or_else(|| "gd".to_string())
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "gd".to_string()
-    }
+    keys::keys("code.goto_definition", "gd")
 }
 
 use std::cell::RefCell;
@@ -364,7 +358,7 @@ impl NotebookExt {
         if rows.is_empty() {
             api::home(None);
         } else {
-            api::home(Some(&HomeSection { title: "notebook".into(), key: "SPC n n".into(), rows, most: 5 }));
+            api::home(Some(&HomeSection { title: "notebook".into(), key: keys::keys("notebook.open", "SPC n n"), rows, most: 5 }));
         }
     }
 
@@ -421,7 +415,7 @@ impl NotebookExt {
             if e.starts_with("line ") {
                 Img::Failed(e)
             } else if e.contains("no service") || e.contains("diagrams.render") {
-                Img::Failed("drawn by the Diagrams extension -- SPC h x installs it".into())
+                Img::Failed(format!("drawn by the Diagrams extension -- {} installs it", keys::keys("extensions.open", "SPC h x")))
             } else {
                 Img::Failed(e)
             }
@@ -474,7 +468,7 @@ impl NotebookExt {
             }
         };
         let (_, p) = self.notebook_page.as_ref()?;
-        let canvas = page::layout(p, width, &ctx, &image);
+        let canvas = page::layout(p, width, &ctx, &image, &keys::keys("notebook.journal", "SPC n j"));
         let typing = p.typing();
         // Pictures it wants and hasn't asked for: asked for now, the page
         // laid out again when they come.
@@ -558,6 +552,13 @@ impl Extension for NotebookExt {
         self.fetch_due(|_| {});
         self.drain();
         Ok(())
+    }
+
+    /// Home's section names the key that opens the page: drawn again.
+    fn key_scheme_changed(&mut self, _scheme: api::KeyScheme) {
+        if self.notebook().is_some() {
+            self.refresh_home();
+        }
     }
 
     fn run_command(&mut self, id: &str) -> Result<(), String> {

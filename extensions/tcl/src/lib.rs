@@ -1,12 +1,14 @@
 //! Tcl in Fenix, as a WebAssembly extension: a language server for Tcl
 //! files -- `K` on a built-in, completion of options, subcommands,
-//! built-ins and the project's own procs, `gd` -- `SPC m s` and `SPC m T`,
+//! built-ins and the project's own procs, go to definition -- the `SPC m s` and
+//! `SPC m T` of its menu --
 //! and the project doctor's checks.
 //!
 //! `server` decides; here what it asks for is carried out through the
 //! host, and what the host says is given back to it.
 
 pub mod doctor;
+pub mod keys;
 pub mod server;
 pub mod signatures;
 pub mod tags;
@@ -20,14 +22,7 @@ use server::{Effect, Tcl};
 /// The keys that go to a definition, as the key scheme in use has them
 /// (`gd`, or `F12` with standard keys).
 pub(crate) fn definition_keys() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        fenix_extension_api::key_for("code.goto_definition").unwrap_or_else(|| "gd".to_string())
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "gd".to_string()
-    }
+    keys::keys("code.goto_definition", "gd")
 }
 
 /// Where an install puts Universal Ctags and Tcl, besides `PATH` and
@@ -64,7 +59,7 @@ impl TclExtension {
                             Ok(process) => self.tcl.started(scan, process),
                             Err(why) => self.tcl.failed(scan, &format!("couldn't run ctags: {why}")),
                         },
-                        None => self.tcl.failed(scan, &format!("ctags not found -- completion of the project's procs, {} and SPC m s need Universal Ctags on PATH", definition_keys())),
+                        None => self.tcl.failed(scan, &format!("ctags not found -- completion of the project's procs, {} and {} need Universal Ctags on PATH", definition_keys(), keys::menu_keys("code.symbols", "s"))),
                     },
                     Effect::Notify(text) => fenix_extension_api::notify(&text),
                     Effect::Error(text) => host::notify(Level::Error, &text),
@@ -91,7 +86,7 @@ impl TclExtension {
         }
         let tclsh = fenix_extension_api::find_program("tclsh", TCLSH_HINTS);
         let ctags = fenix_extension_api::find_program("ctags", CTAGS_HINTS);
-        let checks: Vec<Check> = doctor::checks(tclsh.as_deref(), ctags.as_deref())
+        let checks: Vec<Check> = doctor::checks(tclsh.as_deref(), ctags.as_deref(), &doctor::Keys { definition: definition_keys(), symbols: keys::menu_keys("code.symbols", "s") })
             .into_iter()
             .map(|c| {
                 let health = match c.health {
@@ -113,6 +108,7 @@ impl Extension for TclExtension {
     }
 
     fn run_command(&mut self, id: &str) -> Result<(), String> {
+        self.tcl.refresh_keys = Some(keys::menu_keys("completion.refresh_tags", "T"));
         match id {
             "code.symbols" => {
                 let root = self.root();
@@ -131,7 +127,11 @@ impl Extension for TclExtension {
     fn handle(&mut self, event: Event) {
         match event {
             Event::ProcessOutput(o) => self.tcl.output(o.process, o.stderr, &o.line),
-            Event::ProcessExit((process, code)) => self.tcl.exited(process, code),
+            Event::ProcessExit((process, code)) => {
+                // The scan's end can pick what `SPC m s` was waiting for, or say nothing's there.
+                self.tcl.refresh_keys = Some(keys::menu_keys("completion.refresh_tags", "T"));
+                self.tcl.exited(process, code)
+            }
             Event::Picked((id, value)) if Some(id) == self.pick => {
                 self.pick = None;
                 self.tcl.picked(value.as_deref());
