@@ -22,7 +22,12 @@ GET {{baseUrl}}/me
 Authorization: Bearer {{login.response.body.$.token}}
 ```
 
-`examples/` has a collection to try, with its env files.
+`examples/` has a collection to try, with its env files. The tutorial
+(`SPC h T`) has a lesson on it, under **HTTP**: reading a `.http` file,
+sending a request and seeing its response, variables, environments and
+the client, on a practice file of its own. Sending needs the internet
+(it asks httpbin.org); offline, `s` on the tutorial page skips those
+steps.
 
 ## Running from the buffer
 
@@ -31,6 +36,12 @@ before it) sends the request the cursor's in. Its status shows after it
 -- `200 OK · 85 ms · 1.2 kB · tests 2/2` -- and its response opens
 beside; a click on the status brings the response back. `SPC p r a`
 runs every request in the file and reports.
+
+In text that's no file -- a scratch buffer, the tutorial's practice --
+`SPC p r r` sends the request on the cursor's line, or the one selected
+with its `@variables` (a line whose URL isn't `http://`, `https://`,
+`ws://`, `wss://` or a `{{variable}}` isn't sent). Its environment is
+the project's; there's no status after it, only its response beside.
 
 `.http` and `.rest` files are highlighted by tree-sitter-http, which the
 extension brings (`grammars/`): Fenix has no grammar of its own for them.
@@ -140,7 +151,10 @@ changed.
 `SPC p r a` runs a file's requests in turn, `SPC p r A` the project's,
 and `x` on a folder in the sidebar that folder's: the report says each
 one passed -- its tests, or with none, a status under 400 -- and why
-not. `Enter` there goes to the request.
+not. `Enter` there goes to the request. When it's done and you're
+elsewhere, the modeline says how it went (and, for a run of ten seconds
+or more, how long it took); with the report in front of you, it says
+nothing more.
 
 ## Environments
 
@@ -256,6 +270,35 @@ and `1`-`5` between tabs; `r` (or Ctrl+Enter) sends; `e` the
 environment; `y` copies as code; `\` hides the sidebar. The mouse picks
 too.
 
+## For coding agents
+
+Your coding agents, through Fenix (1.1 or later), get two tools:
+
+- **`http_requests`** lists the requests in the project's `.http` files:
+  each one's file, name, method, URL and line, the URL as written --
+  `{{variables}}` unfilled, so no value of theirs is in it. `file` keeps
+  to one file. It reads, so Fenix lets agents call it.
+- **`http_run`** sends one of them, by the name `http_requests` gave it
+  (and `file`, when two files have the name), as `SPC p r r` would: in
+  the environment you chose, its chained requests and sign-ins first,
+  its tests run, its status after its line and in the history. It
+  answers the status, headers, body and tests. Only a request in your
+  files: an agent can't give it a URL, a method, headers or another
+  environment. A WebSocket request isn't run for an agent.
+
+  Sending a request acts outside this machine, so it's an **external**
+  tool, and Fenix refuses those by default. To let agents run requests,
+  say so in `agents.mcp.allow` -- `http_run = "ask"` has Fenix ask you
+  each time, in the agent's thread; `"allow"` doesn't ask.
+
+What `http_run` answers hides your secrets: each value it filled in
+from the keychain, the private env file, an OAuth token, `.env` or
+Fenix's environment is `«hidden»` wherever it would show -- the URL, a
+header, a body that echoes it -- and a cookie the server set is its name
+and attributes, not its value. A body longer than `max_body` characters
+(20,000, at most 100,000) is cut, with a line saying how much there was;
+one that isn't text is said as its size and type.
+
 ## Imports and exports
 
 `SPC p r i` imports the file selected in the explorer (or one you name):
@@ -351,6 +394,18 @@ the keychain), and the GraphQL schemas read. The secrets' names.
 - **Open sockets** to any host and port: WebSocket requests.
 - **Read the environment variables `http.env` lists,** none other.
 - **The clipboard's text:** a curl command, imported.
+
+Coding agents (`http_requests`, `http_run`) use these and ask for no
+more: running a request is the network you've given it, and only where
+your `agents.mcp.allow` lets agents do something external.
+
+## Building
+
+`cargo xtask pack extensions/http dist` from the repository's root.
+`cargo test` covers the parser, variables, auth, imports and exports,
+the pages, and what agents are given: a request found by its name, the
+answer shaped, secrets hidden, a long body cut; and what a run says when
+it ends.
 
 ## Not here yet
 
