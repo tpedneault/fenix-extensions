@@ -90,6 +90,26 @@ fn error(message: &str) {
     host::notify(api::Level::Error, message);
 }
 
+/// The keys that run `command` now, as the key scheme in use writes them
+/// (`SPC x V`, or `C-k x V` with standard keys, or yours); `vim`, its Vim
+/// keys, when none does, and natively, where there's no Fenix to ask.
+fn keys_for(command: &str, vim: &str) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        api::key_for(command).unwrap_or_else(|| vim.to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = command;
+        vim.to_string()
+    }
+}
+
+/// What a check says of a file with no schema: `keys` pick one.
+fn no_schema(keys: &str) -> String {
+    format!("no schema for this file: {keys} picks one")
+}
+
 fn setting(key: &str) -> String {
     api::setting(key).unwrap_or_default().trim().to_string()
 }
@@ -487,7 +507,7 @@ impl Core {
             Err(e) => return (vec![diagnose::syntax(e.at, &format!("{}: {}", format.name(), e.message))], Vec::new(), Some(format!("{} doesn't parse: {e}", format.name()))),
         };
         let Some((reference, asked)) = self.schema_for(path, text, &node) else {
-            return (Vec::new(), Vec::new(), Some("no schema for this file: SPC x V picks one".into()));
+            return (Vec::new(), Vec::new(), Some(no_schema(&keys_for("data-tools.schema", "SPC x V"))));
         };
         let src = schema::source(&reference, path);
         let key = src.key();
@@ -690,5 +710,13 @@ mod tests {
         assert_eq!(stem(Some("/p/config.prod.json")), "config");
         assert_eq!(stem(Some("C:\\p\\.eslintrc.json")), "eslintrc");
         assert_eq!(stem(None), "data");
+    }
+
+    #[test]
+    fn no_schema_names_the_keys_of_the_scheme_in_use() {
+        assert_eq!(no_schema("SPC x V"), "no schema for this file: SPC x V picks one");
+        assert_eq!(no_schema("C-k x V"), "no schema for this file: C-k x V picks one");
+        // Natively there's no Fenix to ask: its Vim keys.
+        assert_eq!(keys_for("data-tools.schema", "SPC x V"), "SPC x V");
     }
 }

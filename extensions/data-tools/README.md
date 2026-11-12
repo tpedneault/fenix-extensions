@@ -71,7 +71,13 @@ it went.
 | `SPC x l` `L` | `data-tools.stringify`, `parse_string` | As a string of JSON, and back |
 | `SPC x g` | `data-tools.types` | Types from the sample |
 
-In a JSON, YAML or TOML file the same keys are under `SPC m`.
+In a JSON, YAML or TOML file the same keys are under `SPC m`. With
+standard keys, `SPC` is `Ctrl+K`: `Ctrl+K x f`, `Ctrl+K m f`.
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys that run a command in the key scheme you use, and yours where you
+rebound them: a file with no schema says `C-k x V` picks one with
+standard keys, `SPC x V` with Vim keys.
 
 ## Settings
 
