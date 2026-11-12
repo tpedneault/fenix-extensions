@@ -203,16 +203,16 @@ async fn render_note(src: NoteSource, files: Option<PathBuf>) -> Result<(String,
 /// A diagram exported as `format` (`svg`, `png`): its bytes, and the
 /// theme it was drawn in.
 async fn diagram_file(source: &str, format: &str) -> Result<(Vec<u8>, String), String> {
-    let said = run::call("diagrams.export", &serde_json::json!({ "source": source, "format": format }).to_string()).await.map_err(no_diagrams)?;
+    let said = run::call("diagrams.export", &serde_json::json!({ "source": source, "format": format }).to_string()).await.map_err(|e| no_diagrams(e, &crate::keys::keys("extensions.open", "SPC h x")))?;
     let v: serde_json::Value = serde_json::from_str(&said).map_err(|e| e.to_string())?;
     let bytes = paths::unbase64(v.get("bytes").and_then(|b| b.as_str()).ok_or("nothing drawn")?)?;
     Ok((bytes, v.get("theme").and_then(|t| t.as_str()).unwrap_or("").to_string()))
 }
 
 /// Why a diagram couldn't be drawn, said as where drawing comes from.
-fn no_diagrams(e: String) -> String {
+fn no_diagrams(e: String, install_keys: &str) -> String {
     if e.contains("no service") {
-        "diagrams are drawn by the Diagrams extension -- SPC h x installs it".into()
+        format!("diagrams are drawn by the Diagrams extension -- {install_keys} installs it")
     } else {
         e
     }
@@ -443,11 +443,11 @@ impl NotebookExt {
             let done: Result<&'static str, String> = async {
                 match (source, how) {
                     (Export::Diagram(text), How::ClipPng) => {
-                        run::call("diagrams.copy_picture", &serde_json::json!({ "source": text }).to_string()).await.map_err(no_diagrams)?;
+                        run::call("diagrams.copy_picture", &serde_json::json!({ "source": text }).to_string()).await.map_err(|e| no_diagrams(e, &crate::keys::keys("extensions.open", "SPC h x")))?;
                         Ok("the picture")
                     }
                     (Export::Diagram(text), How::ClipSvg) => {
-                        api::copy(&run::call("diagrams.svg", &serde_json::json!({ "source": text }).to_string()).await.map_err(no_diagrams)?);
+                        api::copy(&run::call("diagrams.svg", &serde_json::json!({ "source": text }).to_string()).await.map_err(|e| no_diagrams(e, &crate::keys::keys("extensions.open", "SPC h x")))?);
                         Ok("the SVG")
                     }
                     (Export::Diagram(text), How::ClipMarkdown) => {
@@ -545,11 +545,12 @@ impl NotebookExt {
     /// `SPC n s`: the ```mermaid block under the cursor, saved to the
     /// notebook as a diagram.
     pub(crate) fn save_block(&mut self) {
-        let Some(here) = self.here() else { return error("SPC n s saves the ```mermaid block the cursor is in") };
-        let Some(path) = here.path.clone() else { return error("SPC n s saves the ```mermaid block the cursor is in") };
+        let usage = format!("{} saves the ```mermaid block the cursor is in", crate::keys::keys("notebook.save_block", "SPC n s"));
+        let Some(here) = self.here() else { return error(&usage) };
+        let Some(path) = here.path.clone() else { return error(&usage) };
         let line = here.line.saturating_sub(1) as usize;
         let text = api::buffer::text(&path).unwrap_or_default();
-        let Some(source) = mermaid_block_at(&text, line) else { return error("SPC n s saves the ```mermaid block the cursor is in") };
+        let Some(source) = mermaid_block_at(&text, line) else { return error(&usage) };
         if self.notebook().is_none() {
             return;
         }
@@ -569,6 +570,13 @@ pub(crate) fn mermaid_block_at(text: &str, line: usize) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn missing_diagrams_names_the_keys_that_install_them() {
+        assert_eq!(no_diagrams("no service diagrams.export".into(), "SPC h x"), "diagrams are drawn by the Diagrams extension -- SPC h x installs it");
+        assert_eq!(no_diagrams("no service diagrams.export".into(), "C-k h x"), "diagrams are drawn by the Diagrams extension -- C-k h x installs it");
+        assert_eq!(no_diagrams("a real error".into(), "C-k h x"), "a real error");
+    }
 
     #[test]
     fn a_mermaid_block_is_found_from_any_of_its_lines() {

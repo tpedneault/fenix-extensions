@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- The hints that named a leader sequence (`SPC n n`, `SPC n j`, `SPC n t`,
+  `SPC m a`, `SPC h x` and the rest) -- the empty notebook page, Home's
+  section, a mermaid block's hover, and what it says when an action can't
+  run -- say the keys the key scheme in use has: `C-k n n` with standard
+  keys, your own leader chord if you set one, a key you bound yourself.
+  Home's section and the hints change when you switch between Vim keys and
+  standard keys.
+
 ## 1.2.0
 
 - `notebook.open`, `notebook.new_note`, `notebook.find`, `notebook.recent`, `notebook.journal`, `notebook.search`, `notebook.tags` can be run from outside Fenix, over the control channel

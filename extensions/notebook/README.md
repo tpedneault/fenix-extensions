@@ -28,7 +28,9 @@ before each editing session is kept (`h` on the notebook page).
 
 In Markdown, `[[` completes a note's name and `gd` on a link follows it
 (making the note when it isn't there yet) -- with standard keys, `F12` or
-Ctrl+click. The `SPC` keys above are `Ctrl+K` with standard keys.
+Ctrl+click. The `SPC` keys above are `Ctrl+K` with standard keys; what the notebook
+says when it names a key (an empty page, Home's section, a hover, an
+error) gives the keys you have.
 
 ## The page
 

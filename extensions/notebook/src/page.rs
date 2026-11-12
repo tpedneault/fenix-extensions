@@ -498,7 +498,7 @@ fn kind_tag(row: &Row) -> (&'static str, Role) {
 
 /// The page, `cols` wide; the selected entry laid out by `ctx`, its
 /// pictures as `image` has them.
-pub fn layout(page: &NotebookPage, cols: usize, ctx: &reading::Ctx, image: &dyn Fn(&Picture) -> Option<u32>) -> Canvas {
+pub fn layout(page: &NotebookPage, cols: usize, ctx: &reading::Ctx, image: &dyn Fn(&Picture) -> Option<u32>, journal_keys: &str) -> Canvas {
     let now = crate::clock::now();
     let (left, width) = frame(cols, 150);
     let mut g = Grid::new();
@@ -588,8 +588,12 @@ pub fn layout(page: &NotebookPage, cols: usize, ctx: &reading::Ctx, image: &dyn 
         y += 1;
     }
     if shown.is_empty() {
-        let text = if page.rows.is_empty() { "Nothing here yet -- N makes a note, d a diagram, SPC n j opens today's journal." } else { "Nothing matches -- Esc clears the filter." };
-        g.put(top, left, &fit(text, list_w), Role::Muted);
+        if page.rows.is_empty() {
+            g.put(top, left, &fit("Nothing here yet -- N makes a note, d a diagram.", list_w), Role::Muted);
+            g.put(top + 1, left, &fit(&format!("{journal_keys} opens today's journal."), list_w), Role::Muted);
+        } else {
+            g.put(top, left, &fit("Nothing matches -- Esc clears the filter.", list_w), Role::Muted);
+        }
     }
 
     // The selected one, on the right.
@@ -740,7 +744,17 @@ mod tests {
     }
 
     fn text(p: &NotebookPage) -> String {
-        layout(p, 140, &reading::Ctx::plain(), &|_| None).all_text()
+        layout(p, 140, &reading::Ctx::plain(), &|_| None, "SPC n j").all_text()
+    }
+
+    #[test]
+    fn an_empty_page_names_the_journal_keys_of_the_scheme() {
+        let empty = NotebookPage::new(Vec::new(), Vec::new(), Vec::new(), "C:/nb".into());
+        for keys in ["SPC n j", "C-k n j"] {
+            let t = layout(&empty, 140, &reading::Ctx::plain(), &|_| None, keys).all_text();
+            assert!(t.contains("Nothing here yet -- N makes a note, d a diagram."), "{t}");
+            assert!(t.contains(&format!("{keys} opens today's journal.")), "{t}");
+        }
     }
 
     #[test]
