@@ -1393,6 +1393,43 @@
               "tcp://*:*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/http-v1.2.0/fenix.http-1.2.0.fenixext",
+          "sha256": "67a7ba36ec0d2435a3878f98ce569c3fb6753b25a9b8c512a96860bd6b4b7063",
+          "size": 880110,
+          "dependencies": {},
+          "categories": [
+            "web",
+            "tools",
+            "languages"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "clipboard": true,
+            "editor": "write",
+            "env": [
+              "${setting:http.env}"
+            ],
+            "filesystem": "project-write",
+            "listen": [
+              "127.0.0.1:*"
+            ],
+            "network": [
+              "*"
+            ],
+            "secrets": [
+              "http.secret.*",
+              "http.token.*",
+              "http.secrets"
+            ],
+            "sockets": [
+              "tcp://*:*"
+            ]
+          }
         }
       ],
       "name": "HTTP client",
