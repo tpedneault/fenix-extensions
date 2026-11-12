@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.jira"
 name = "Jira"
-version = "1.1.0"
+version = "1.2.0"
 description = "Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # Its commands load it, and so does the agenda's first call to Jira.
 [activation]

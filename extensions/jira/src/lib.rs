@@ -62,6 +62,26 @@ fn set_map(key: &str, entries: &[(String, String)]) {
     }
 }
 
+/// The keys that open the settings page now, as the key scheme in use
+/// writes them (`SPC ,`, `C-,` with standard keys, or yours); its Vim
+/// keys when none does, and natively, where there's no Fenix to ask.
+fn settings_keys() -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        api::key_for("settings.open").unwrap_or_else(|| "SPC ,".to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        "SPC ,".to_string()
+    }
+}
+
+/// Why it can't reach Jira yet: no server or token. `keys` open the
+/// settings page.
+fn not_set_up(keys: &str) -> String {
+    format!("Jira isn't set up yet -- set its server and token on the settings page ({keys}), under Jira")
+}
+
 /// Where Jira is, when it's set up.
 fn base_url() -> Option<String> {
     api::setting("jira.base_url").map(|b| b.trim().trim_end_matches('/').to_string()).filter(|b| !b.is_empty())
@@ -71,14 +91,15 @@ fn base_url() -> Option<String> {
 fn client() -> Result<JiraClient, String> {
     match (base_url(), host::secret("jira.token").filter(|t| !t.trim().is_empty())) {
         (Some(base), Some(token)) => Ok(JiraClient::new(Rc::new(Direct { base, token }))),
-        _ => Err("Jira isn't set up yet -- set its server and token in SPC , (Jira)".into()),
+        _ => Err(not_set_up(&settings_keys())),
     }
 }
 
 /// A job's end, taken in by `Jira::take_done`.
 enum Done {
     Issues { jql: String, result: Result<Vec<IssueSummary>, String> },
-    Detail { key: String, result: Result<IssueDetail, String> },
+    /// Boxed: an issue's detail is far bigger than the others.
+    Detail { key: String, result: Result<Box<IssueDetail>, String> },
     Offer { title: String, key: String, result: Result<Vec<(String, Choice)>, String> },
     Types { project: String, types: Result<Vec<fenix_jira_client::IssueType>, String>, priorities: Vec<String> },
     Fields { type_id: String, result: Result<Vec<fenix_jira_client::CreateField>, String> },
@@ -125,8 +146,8 @@ impl Jira {
         page::queries(&map("jira.projects"), &map("jira.users"), &map("jira.queries"), here)
     }
 
-    fn ctx_parts(&self) -> (Vec<(String, String)>, String, chrono::NaiveDate) {
-        (map("jira.users"), base_url().unwrap_or_default(), fenix_extension_api::clock::now().date_naive())
+    fn ctx_parts(&self) -> (Vec<(String, String)>, String, chrono::NaiveDate, String) {
+        (map("jira.users"), base_url().unwrap_or_default(), fenix_extension_api::clock::now().date_naive(), settings_keys())
     }
 
     fn refresh(&self) {
@@ -201,7 +222,7 @@ impl Jira {
         let Ok(client) = client() else { return };
         spawn(async move {
             let result = client.get_issue(&key).await;
-            Done::Detail { key, result }
+            Done::Detail { key, result: result.map(Box::new) }
         });
     }
 
@@ -239,7 +260,7 @@ impl Jira {
         match base_url() {
             Some(base) => Some(format!("{base}/browse/{key}")),
             None => {
-                host::notify(api::Level::Error, "Jira isn't set up -- its server goes on the settings page (SPC ,)");
+                host::notify(api::Level::Error, &format!("Jira isn't set up -- its server goes on the settings page ({})", settings_keys()));
                 None
             }
         }
@@ -486,7 +507,7 @@ impl Jira {
                 }
                 Done::Detail { key, result } => {
                     if let Some((_, page)) = &mut self.page {
-                        page.details.insert(key, result);
+                        page.details.insert(key, result.map(|d| *d));
                     }
                 }
                 Done::Offer { title, key, result } => match result {
@@ -583,6 +604,12 @@ impl Jira {
 }
 
 impl Extension for Jira {
+    /// You switched between Vim keys and standard keys: the page names
+    /// the settings page's keys again.
+    fn key_scheme_changed(&mut self, _scheme: api::KeyScheme) {
+        self.refresh();
+    }
+
     fn run_command(&mut self, id: &str) -> Result<(), String> {
         match id {
             "jira.open" => {
@@ -654,8 +681,8 @@ impl Extension for Jira {
         if *id != page {
             return Page::new();
         }
-        let (people, server, today) = self.ctx_parts();
-        let ctx = page::Ctx { in_agenda: &self.in_agenda, people: &people, server, today };
+        let (people, server, today, settings_keys) = self.ctx_parts();
+        let ctx = page::Ctx { in_agenda: &self.in_agenda, people: &people, server, today, settings_keys };
         Page::canvas(page::layout(p, &ctx, width as usize)).typing(p.typing()).space(p.claims_space())
     }
 
@@ -665,8 +692,8 @@ impl Extension for Jira {
             self.page = Some((id, p));
             return;
         }
-        let (people, server, today) = self.ctx_parts();
-        let ctx = page::Ctx { in_agenda: &self.in_agenda, people: &people, server, today };
+        let (people, server, today, settings_keys) = self.ctx_parts();
+        let ctx = page::Ctx { in_agenda: &self.in_agenda, people: &people, server, today, settings_keys };
         let action = p.key(key, &ctx);
         self.page = Some((id, p));
         self.action(action);
@@ -713,7 +740,7 @@ impl Extension for Jira {
                 };
                 let (base, token) = match (base_url(), host::secret("jira.token").filter(|t| !t.trim().is_empty())) {
                     (Some(base), Some(token)) => (base, token),
-                    _ => return Some(Err("Jira isn't set up yet -- set its server and token in SPC , (Jira)".into())),
+                    _ => return Some(Err(not_set_up(&settings_keys()))),
                 };
                 let direct = Direct { base, token };
                 let sent = direct.send(&req.method, &req.path, req.body);
@@ -766,3 +793,16 @@ impl Extension for Jira {
 }
 
 api::export!(Jira);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn not_set_up_names_the_settings_keys_of_the_scheme_in_use() {
+        assert_eq!(not_set_up("SPC ,"), "Jira isn't set up yet -- set its server and token on the settings page (SPC ,), under Jira");
+        assert_eq!(not_set_up("C-,"), "Jira isn't set up yet -- set its server and token on the settings page (C-,), under Jira");
+        // Natively there's no Fenix to ask: its Vim keys.
+        assert_eq!(settings_keys(), "SPC ,");
+    }
+}
