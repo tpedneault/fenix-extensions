@@ -1,0 +1,33 @@
+[package]
+name = "fenix-test-kit"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Testing an extension in plain cargo test, without Fenix: a fake host that writes down what it was asked and answers with what a test gives it, a harness that drives the extension, and its pages as text to snapshot."
+
+[features]
+default = ["ui-kit"]
+# `render::canvas`: a ui-kit canvas as text, for a page's widgets alone.
+ui-kit = ["dep:fenix-ui-kit"]
+# `Fake` as lang-kit's `Host`, so a language pack's kit and its own code
+# talk to the one fake.
+lang-kit = ["dep:fenix-lang-kit"]
+
+[dependencies]
+# The tag the kits pin: an extension's types and the kit's are the same
+# only when they're built from the same API.
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-ui-kit = { path = "../ui-kit", optional = true }
+fenix-lang-kit = { path = "../lang-kit", optional = true }
+# Columns as display cells, as Fenix and ui-kit count them.
+unicode-width = "0.2"
+
+[dev-dependencies]
+# Its own tests have every feature, so plain `cargo test` runs them all.
+fenix-test-kit = { path = ".", features = ["ui-kit", "lang-kit"] }
+fenix-ui-kit = { path = "../ui-kit" }
+fenix-lang-kit = { path = "../lang-kit" }
+
+# Built with whichever extension uses it.
+[workspace]

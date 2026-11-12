@@ -1,0 +1,7 @@
+Log  3 commits
+───────────────────────────────
+a1b2c3d Read the log on a timer
+9f8e7d6 Copy a commit's hash
+0123abc The first commit
+
+j/k move  y copy  Enter show  n how many
