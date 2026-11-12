@@ -14,6 +14,11 @@ threads), and `o` there reviews it, or opens a new one.
 | `SPC g M` | The reviews: open requests, yours, those waiting on you |
 | `SPC g P` | A pull request for the branch |
 
+With standard keys they're `Ctrl+K g M` and `Ctrl+K g P`. What it says
+names the keys as the key scheme in use has them, and yours when you've
+bound your own: "set one in `C-,`" with standard keys, "in `SPC ,`" with
+Vim keys. It needs Fenix 1.5 or later.
+
 ## The reviews
 
 | Key | What it does |
@@ -56,9 +61,12 @@ empty or still the template; with your text in it, `A` is Vim's. It's
 yours to edit before `S S`. The first time, Fenix asks whether the Review
 extension may send the branch's diff to that agent.
 
+Once it's opened, a notification says so; Enter on it, or a click, opens
+the request in the browser.
+
 ## Settings
 
-Fenix's own, under Git and Forges (`SPC ,`):
+Fenix's own, under Git and Forges (`SPC ,`, `Ctrl+,` with standard keys):
 
 | Setting | What it does |
 | --- | --- |
