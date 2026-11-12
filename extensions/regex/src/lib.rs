@@ -24,10 +24,18 @@ mod seed;
 mod store;
 mod syntax;
 
+#[cfg(test)]
+mod driven;
+
 use std::collections::HashMap;
 use std::path::Path;
 
-use fenix_extension_api::{self as api, decorations, export, host, Cells, Changed, Decoration, Event, Extension, Focus, Key, KeyPress, MouseAction, MouseButton, MouseEvent, NamedKey, Page, PickerItem, Rgb, Role, Shade, SurfaceKey};
+// Fenix's API; in its tests, the same with a fake host (fenix-test-kit).
+#[cfg(not(test))]
+use fenix_extension_api as api;
+#[cfg(test)]
+use fenix_test_kit::api;
+use api::{decorations, export, host, Cells, Changed, Decoration, Event, Extension, Focus, Key, KeyPress, MouseAction, MouseButton, MouseEvent, NamedKey, Page, PickerItem, Rgb, Role, Shade, SurfaceKey};
 
 use engine::{Flags, Flavour};
 use playground::{Action, Back, Playground, State, Tab};

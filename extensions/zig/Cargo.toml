@@ -14,8 +14,8 @@ fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0
 fenix-lang-kit = { path = "../../crates/lang-kit" }
 
 [dev-dependencies]
-# lang-kit's test host.
-fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# A fake host for its tests, which its kit talks to as well.
+fenix-test-kit = { path = "../../crates/test-kit", default-features = false, features = ["lang-kit"] }
 # The snippets read by Fenix's own code.
 fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
 # The language file, read as fenix-gui reads it.

@@ -29,9 +29,8 @@ Start from a template: `cargo xtask new <kind> <publisher.name>`
 ([Starting one](#starting-one)). For a page, the
 [widget gallery](extensions/gallery) (`gallery.open`, `SPC h g`) has
 every `ui-kit` widget working, each with the code that draws it a key
-away: copy the section nearest to what you want. Coming, and not here
-yet: a test kit
-([milestone 2](plans/roadmap.md#milestone-2-author-tooling)).
+away: copy the section nearest to what you want. To test one without
+Fenix, the [test kit](crates/test-kit/README.md).
 
 ## Two ways in
 
@@ -152,10 +151,16 @@ says so and the Fenix it's for: "The first release, for Fenix 1.0:
 on the extension's details.
 
 **Tests**, where it has code: unit tests in the crate, run on your
-machine by `cargo test`. Keep the logic -- parsing, layout, what a key
-does -- in functions that don't call the host, so they can be tested
-there. A language pack fakes the host with `lang-kit`'s `mock` feature
-(see its [README](crates/lang-kit/README.md)). Fixtures go in `tests/`.
+machine by `cargo test`. Natively the host's calls panic, so keep the
+logic -- parsing, layout, what a key does -- in functions that don't
+call the host, and test the rest on the
+[test kit](crates/test-kit/README.md): `fenix_test_kit::api` in place of
+the API under `#[cfg(test)]`, a fake host that writes down what it was
+asked and answers as Fenix would, a harness for commands, keys and
+events, and pages as text to snapshot. A language pack gives the same
+fake to its `lang-kit` kit. [Regex](extensions/regex/src/driven.rs) and
+[Zig](extensions/zig/src/lib.rs) are the examples. Fixtures and
+snapshots go in `tests/`.
 
 **`validate` also checks** a theme has a `name`; a snippet has its
 `# key:`, its `# --` line and a body; screenshots are PNG, JPEG, GIF or
@@ -473,6 +478,9 @@ extensions depend on by path
 - [`lang-kit`](crates/lang-kit/README.md): what language packs share --
   the packages page, doctor checks, tasks, installing a server, a
   formatter and a linter -- and a fake host to test them with.
+- [`test-kit`](crates/test-kit/README.md): testing an extension without
+  Fenix -- a fake host, a harness, pages as text and snapshots. A
+  dev-dependency: nothing of it is packed.
 - `forge` (GitHub and GitLab), `jira`, `mib`, `ccsds`, `nats`,
   `diagram`: the code two extensions share, or an extension and its
   agent tools.

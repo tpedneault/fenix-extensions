@@ -1,0 +1,26 @@
+
+    «title:Regex»                                     «title:playground»   «muted:cheatsheet»
+
+>   «title:pattern»   «bg=#5e2626:(\d{4})»-«bg=#265034:(\d+)»
+              «muted:0 matches · 2 groups»
+    «muted:flags»     «muted:i» «muted:ignore case»   «muted:m» «muted:multi-line»   «muted:s» «muted:. matches \n»
+    «muted:flavour»   Rust regex«muted:  f: fancy-regex (lookaround, backreferences)»
+
+    «muted:text»      «muted:Enter to type the text to match»
+
+    «muted:replace»   «muted:none · Enter to write one: $1, ${name}, $$ for $»
+
+    «muted:EXPLAINED» ──────────────────────────────────────────────────────────
+    «bg=#5e2626:(\d{4})»                 group 1:
+      «accent:\d{4}»                 a digit, exactly 4 times
+    «accent:-»                       '-'
+    «bg=#265034:(\d+)»                   group 2:
+      «accent:\d+»                   a digit, 1 or more times
+
+    «muted:ELSEWHERE» ──────────────────────────────────────────────────────────
+    «muted:\d \w \s \b: Unicode here and in Python 3; ASCII in JavaScript»
+      «muted:(even with u), Go, Java and PCRE unless asked (PCRE2_UCP).»
+
+    ────────────────────────────────────────────────────────────────────
+    «accent:Enter» «muted:edit»   «accent:c» «muted:clear and edit»   «accent:i m s x u» «muted:flags»   «accent:f» «muted:flavour»
+[more keys, mouse]

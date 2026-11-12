@@ -148,10 +148,12 @@ one extension uses go under `crates/` (`crates/jira`, the Jira client the
 agenda and Jira share; `crates/ui-kit`, the widgets canvas pages are
 built from; `crates/lang-kit`, what the language packs share: the
 package manager page, doctor checks, tasks, installing a server, a
-formatter and a linter). So do stand-ins for crates that need C, which
-an extension's build has no compiler for: `crates/zstd-shim` is the
-`zstd` crate's decoder in pure Rust, patched in for it
-(`[patch.crates-io]`, as `extensions/parquet` does).
+formatter and a linter; `crates/test-kit`, a fake host, a harness and
+pages as text, so an extension's tests run in plain `cargo test`). So do
+stand-ins for crates that need C, which an extension's build has no
+compiler for: `crates/zstd-shim` is the `zstd` crate's decoder in pure
+Rust, patched in for it (`[patch.crates-io]`, as `extensions/parquet`
+does).
 
 ```text
 extensions/my-themes/

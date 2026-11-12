@@ -1,0 +1,7 @@
+  «title:Log»«muted:  3 commits»
+  ───────────────────────────────
+> «accent:a1b2c3d» Read the log on a timer
+  «accent:9f8e7d6» Copy a commit's hash
+  «accent:0123abc» The first commit
+
+j/k move  y copy  Enter show  n how many
