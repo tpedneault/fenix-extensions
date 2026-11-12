@@ -6,7 +6,8 @@ doctor's checks with fixes that install Zig and ZLS, and snippets. Built
 on lang-kit (`crates/lang-kit`), as each language pack is.
 
 It starts with Fenix. ZLS is set for Zig files whenever it's found; the
-doctor checks Zig and ZLS in every project.
+doctor checks Zig and ZLS in every project. It needs Fenix 1.5 or later
+(extension API 1.5); on an older Fenix, Zig 1.0.0 is the one you get.
 
 ## The grammar
 
@@ -63,7 +64,11 @@ ZLS's release comes from GitHub; Zig's from the wheels Zig's own project
 puts on PyPI (`pip install ziglang`, https://codeberg.org/ziglang/zig-pypi),
 the same Zig as ziglang.org's. Each is checked against the SHA-256 the
 pack knows, unpacked into the pack's tools folder, where only the pack
-looks, and used at once. One you installed yourself is used instead: the
+looks, and used at once. Starting it is said in the message line; how
+it ended is a notification, since a download can take a while: "Installed
+ZLS 0.17.0", or "Couldn't install ZLS 0.17.0" with which step failed and
+why, and *Try again*. Each newer one for a tool takes the last one's
+place. One you installed yourself is used instead: the
 pack looks on `PATH`, and in zvm's, zigup's and anyzig's folders,
 Homebrew's, Snap's and winget's. On Windows, Zig comes from
 https://ziglang.org/download/ or `winget install zig.zig`.
@@ -92,8 +97,8 @@ https://ziglang.org/download/ or `winget install zig.zig`.
 
 ## Keys
 
-After `SPC m` in a Zig project or file: `d` checks the project again, `s`
-lists `zig build`'s steps again.
+After `SPC m` in a Zig project or file (`C-k m` with standard keys): `d`
+checks the project again, `s` lists `zig build`'s steps again.
 
 ## Not yet
 
