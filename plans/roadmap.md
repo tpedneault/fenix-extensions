@@ -53,7 +53,7 @@ left open:
 
 ## Milestone 1: built, not yet proven
 
-Built on 13 November and merged on `claude/pensive-carson-xu7nwb`. What
+Built on 13 November and on `main` since pull request #27. What
 each item still needs before it counts as done:
 
 | Item | Built | Still needed |
@@ -84,6 +84,38 @@ preview, a log, a hex dump opened by command), which Fenix's rule for
   floor below 1.5. Fenix checks `api` on its own, so nothing breaks; the
   floors are just out of step with 3.2's rule.
 - `validate` accepts `runtime = "lua"`, which Fenix can't run yet.
+
+## Milestone 2: built, not yet proven
+
+Built on 13 November, on `claude/pensive-carson-xu7nwb`, not yet on
+`main`.
+
+| Item | Built | Still needed |
+|---|---|---|
+| 2.1 `xtask new` | Five kinds (theme, keymap, snippets, language-pack, tool); each validates, packs and tests as scaffolded | A scaffold opened in Fenix |
+| 2.2 `xtask install` | Pack and `fenix --install-extension`, with `--watch` | A run against a real Fenix, and on Windows |
+| 2.3 Test kit | `crates/test-kit`: a stand-in for the API in tests, a fake host with canned answers, pages and canvases as text, snapshots; Regex and Zig converted | More extensions moved onto it |
+| 2.4 Widget gallery | `extensions/gallery`: ten live sections, each with its code a key away; three `ui-kit` fixes it found | Opening it in Fenix; its release |
+
+What it turned up:
+
+- **The test kit is for API 1.0.** The kits and 39 of 47 code extensions
+  build against `v1.0.0`, and a type is the kit's own only from the same
+  tag; Cargo won't patch one tag with another. An extension on 1.1 to
+  1.5 can't use it yet. Either the kits move up together (with 3.2's
+  sweep), or Fenix's API crate gains a seam: on a native target, its
+  host calls going through something a test can set, where today each
+  is `unreachable!()`. An issue for Fenix.
+- **Methods on API types aren't faked** (`Command::spawn`,
+  `HttpRequest::send`): a test needs the `api::host::` form of the call.
+- **`xtask new` defaults to an extension you host yourself**; one for
+  this repository takes `--fenix`.
+- **The gallery keeps its own small canvas-to-text helper**
+  (`tests/support/mod.rs`), written before the test kit landed. Moving
+  it onto `fenix_test_kit::render` is a small follow-up.
+- **The stretch, `cargo xtask smoke`**, wasn't built: Fenix's headless
+  worker looks usable, at the cost of building wasmtime and much of
+  Fenix in CI.
 
 ## Where things stand
 
