@@ -1,5 +1,5 @@
-//! What every language pack's code extension shares (API 0.8.3, and the
-//! later calls a pack may use through [`Host`]): the package manager
+//! What every language pack's code extension shares (built on extension
+//! API 1.5, every host call through [`Host`]): the package manager
 //! page, the doctor's checks, tasks, a server or an adapter installed
 //! into the tools folder, a formatter and a linter. A
 //! pack says what its language has -- a [`PackageManager`], [`Program`]s,
@@ -27,7 +27,7 @@ use fenix_extension_api::{Check, Command, Event, Key, MouseEvent, Page};
 
 pub use doctor::{Doctor, Extra, Fix, Judge, Program};
 pub use exec::{command, split_words, Output};
-pub use host::{Fenix, Host};
+pub use host::{notification_line, Fenix, Host};
 pub use install::{Install, Installer, Use};
 pub use lint::Files;
 pub use lint::{compiler_lines, Lint, Linter};
@@ -70,13 +70,15 @@ impl Kit {
     }
 
     pub fn with_host(prefix: &str, host: Box<dyn Host>) -> Kit {
+        let mut installer = Installer::new();
+        installer.prefix = Some(prefix.into());
         Kit {
             prefix: prefix.into(),
             host,
             packages: None,
             doctor: Doctor::new(),
             tasks: Tasks::default(),
-            installer: Installer::new(),
+            installer,
             lint: Lint::new(),
             formatters: Vec::new(),
             fixing: HashSet::new(),
@@ -332,6 +334,8 @@ mod tests {
             calls = host.0.borrow_mut().take();
         }
         assert!(calls.contains(&"server python: /tools/server/bin/server --stdio".to_string()) && calls.iter().any(|c| c.starts_with("spawn")), "{calls:?}");
+        assert!(calls.contains(&"notification low #install.server: Installed server -- Now the language server for python.".to_string()), "how it ended, as a notification: {calls:?}");
+        assert_eq!(kit.installer.prefix.as_deref(), Some("python"), "so a failure offers python.install.server again");
         assert_eq!(kit.run_command("python.install.server"), Some(Ok(())), "installed again by its own command");
         std::fs::remove_dir_all(&dir).unwrap();
     }
