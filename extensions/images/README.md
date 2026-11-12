@@ -32,7 +32,8 @@ GIFs, animated WebPs and APNGs play, a frame at a time, at their own
 pace (a frame asking for 10 ms or less is shown for 100 ms, as browsers
 do), and stop while they're out of sight.
 
-`SPC m` on a picture has the same, and `SPC f i` from anywhere previews
+`SPC m` on a picture has the same, and `SPC f i` (`Ctrl+K f i` with
+standard keys) from anywhere previews
 the picture the line you're on names -- `![plot](img/plot.png)`,
 `src="logo.svg"`, `"sprites/cat.gif"`; the one under the cursor, when it
 names more -- in a pane beside it, the focus staying in your code. Again
@@ -52,6 +53,10 @@ here too (`Enter` on it).
 
 The modeline says the same as the details line, for the picture looked at
 last: `IMG cat.gif · GIF · 640 × 480 · 1.2 MB · playing, 12 frames · fit 50% · 3/12`.
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys that run a command in the key scheme you use, and yours where you
+rebound them: `SPC f i`, or `C-k f i` with standard keys.
 
 ## Limits
 

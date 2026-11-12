@@ -49,6 +49,27 @@ fn say(level: Level, message: &str) {
     host::notify(level, message)
 }
 
+/// The keys that run `command` now, as the key scheme in use writes them
+/// (`SPC f i`, or `C-k f i` with standard keys, or yours); `vim`, its Vim
+/// keys, when none does, and natively, where there's no Fenix to ask.
+fn keys_for(command: &str, vim: &str) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        fenix_extension_api::key_for(command).unwrap_or_else(|| vim.to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = command;
+        vim.to_string()
+    }
+}
+
+/// Why the preview has nothing to show: you aren't in a file. `keys` run
+/// the preview.
+fn preview_wants_a_file(keys: &str) -> String {
+    format!("{keys} previews a picture named in the file you're in")
+}
+
 /// The editor theme's colours.
 fn colors() -> Colors {
     let t = fenix_extension_api::theme();
@@ -359,7 +380,7 @@ impl Images {
     /// `SPC f i`: the picture the line you're on names, beside it; again
     /// on the same one closes it.
     fn preview(&mut self) -> Result<(), String> {
-        let here = fenix_extension_api::here().ok_or("SPC f i previews a picture named in the file you're in")?;
+        let here = fenix_extension_api::here().ok_or_else(|| preview_wants_a_file(&keys_for("images.preview", "SPC f i")))?;
         let file = here.path.ok_or("this buffer isn't a file")?;
         // The one under the cursor first, when Fenix says where it is.
         let refs = match fenix_extension_api::cursor().filter(|c| !c.selected) {
@@ -573,3 +594,16 @@ impl Extension for Images {
 }
 
 export!(Images);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_preview_names_the_keys_of_the_scheme_in_use() {
+        assert_eq!(preview_wants_a_file("SPC f i"), "SPC f i previews a picture named in the file you're in");
+        assert_eq!(preview_wants_a_file("C-k f i"), "C-k f i previews a picture named in the file you're in");
+        // Natively there's no Fenix to ask: its Vim keys.
+        assert_eq!(keys_for("images.preview", "SPC f i"), "SPC f i");
+    }
+}
