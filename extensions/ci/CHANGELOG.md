@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+- For Fenix 1.5 (extension API 1.5): where an error says to set
+  something in Fenix's settings -- a forge's token, a Jenkins's address,
+  job, user or API token -- it names the keys that open them as the key
+  scheme in use has them: `C-,` with standard keys, `SPC ,` with Vim
+  keys, or the ones you bound. The README gives standard keys beside
+  Vim's.
+
 ## 1.2.0
 
 - `ci.open` can be run from outside Fenix, over the control channel

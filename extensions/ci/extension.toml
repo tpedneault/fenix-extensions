@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ci"
 name = "CI status"
-version = "1.2.0"
+version = "1.3.0"
 description = "Your branch's CI on the modeline -- GitHub Actions, GitLab pipelines or Jenkins -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs' logs for your coding agent"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,9 +10,10 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-# Notifications (API 1.3).
-fenix = ">=1.2, <2"
-api = "1.3"
+# Notifications (API 1.3), and keys named as the key scheme has them
+# (API 1.5).
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # It starts with Fenix: the modeline shows the branch's CI from the start.
 [activation]

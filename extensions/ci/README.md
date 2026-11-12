@@ -21,6 +21,11 @@ failing jobs' logs for your coding agent, so it can fix them.
 | `SPC g C` | The CI page |
 | `SPC g F` | The log of the job that failed |
 
+With standard keys they're `Ctrl+K g C` and `Ctrl+K g F`. What it says
+names the keys as the key scheme in use has them, and yours when you've
+bound your own: "set it in `C-,`" with standard keys, "in `SPC ,`" with
+Vim keys. It needs Fenix 1.5 or later.
+
 ## The page
 
 The branch's latest runs (GitHub's workflow runs, GitLab's pipelines),
@@ -50,8 +55,9 @@ Jenkins doesn't know a repository by its remote, so you name the job:
 | `ci.jenkins_job` | The project's job: its folders and its name (`space/rocket`), or its address |
 | `ci.jenkins_user`, `ci.jenkins_token` | Your user there and one of its API tokens (your name, Security, Add new token) |
 
-The first two are per project (`SPC ,`, CI status). With a job named and
-no `ci.provider` chosen, the CI is Jenkins.
+The first two are per project (`SPC ,`, or `Ctrl+,` with standard keys:
+CI status). With a job named and no `ci.provider` chosen, the CI is
+Jenkins.
 
 The page then shows the branch's **builds**. For a multibranch pipeline
 (or a folder of jobs) they're the builds of the job named after your
@@ -109,7 +115,7 @@ GitLab, the addresses in the settings theirs, and anything else a GitLab
 at the remote's host, as the Review extension takes it. A Jenkins is
 where the settings say (above), whatever the remote.
 
-The tokens are Fenix's own (`SPC ,`, Forges): `github.token`, else the
+The tokens are Fenix's own (`SPC ,` or `Ctrl+,`, Forges): `github.token`, else the
 GitHub CLI's (`gh auth token`, `--hostname` for an Enterprise Server);
 `gitlab.token` (the `read_api` scope to read, `api` to re-run and cancel).
 A public repository on GitHub needs none.
