@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.pets"
 name = "Pets"
-version = "1.2.0"
+version = "1.3.0"
 description = "Little 3D pets on the modeline: they nap, play fetch, cheer your passing tests -- and Ember burns up when one fails"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,9 @@ categories = ["fun"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0.1, <2"
-api = "1.1"
+# Keys named as the key scheme has them (API 1.5).
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # With Fenix: they're there when you start.
 [activation]

@@ -67,6 +67,11 @@ on), party hats.
 | `SPC P h` | Hide them, or bring them back |
 | `SPC P r` | Rehome one |
 
+With standard keys they're `Ctrl+K P a` and so on. What they say names
+the keys as the key scheme in use has them, and yours when you've bound
+your own: "`C-k P a` adopts one" with standard keys, "`SPC P a`" with
+Vim keys. It needs Fenix 1.5 or later.
+
 | Setting | |
 | --- | --- |
 | `pets.place` | `modeline`, or the foot of the pane you're in (`panes`) |

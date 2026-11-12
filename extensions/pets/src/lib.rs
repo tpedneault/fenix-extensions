@@ -8,6 +8,7 @@ pub mod brain;
 pub mod care;
 pub mod fx;
 pub mod home;
+mod keys;
 pub mod save;
 pub mod season;
 pub mod world;
@@ -15,7 +16,7 @@ pub mod world;
 use std::collections::HashMap;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use fenix_extension_api::{export, host, layer, page, AgentTurn, DebugState, Event, Extension, Key, LayerLevel, Page, PickerItem, Style};
+use fenix_extension_api::{export, host, layer, page, AgentTurn, DebugState, Event, Extension, Key, KeyScheme, LayerLevel, Page, PickerItem, Style};
 
 use acts::KINDS;
 use brain::{Home, Repo, State};
@@ -79,7 +80,11 @@ impl Pets {
     }
 
     fn state(&mut self) -> &mut State {
-        self.state.get_or_insert_with(|| State::new(Vec::new(), 1, today()))
+        self.state.get_or_insert_with(|| {
+            let mut st = State::new(Vec::new(), 1, today());
+            st.home_keys = keys::home();
+            st
+        })
     }
 
     /// The layer drawn again from where the pets are now.
@@ -203,6 +208,7 @@ impl Extension for Pets {
             Err(_) => (Vec::new(), true),
         };
         let mut st = State::new(pets, seed, day);
+        st.home_keys = keys::home();
         st.clips = clips;
         st.has_yarn = self.models.contains_key("yarn");
         self.state = Some(st);
@@ -222,14 +228,14 @@ impl Extension for Pets {
             "pets.adopt" => self.adopt(),
             "pets.throw_ball" => {
                 if !self.state().throw_ball(now) {
-                    fenix_extension_api::notify("No pets to throw it for -- SPC P a adopts one");
+                    fenix_extension_api::notify(&format!("No pets to throw it for -- {} adopts one", keys::keys_for("pets.adopt", "SPC P a")));
                 }
             }
             "pets.hide" => {
                 let st = self.state();
                 st.hidden = !st.hidden;
-                let said = if st.hidden { "The pets are napping out of sight -- SPC P h brings them back" } else { "The pets are back" };
-                fenix_extension_api::notify(said);
+                let said = if st.hidden { format!("The pets are napping out of sight -- {} brings them back", keys::keys_for("pets.hide", "SPC P h")) } else { "The pets are back".to_string() };
+                fenix_extension_api::notify(&said);
             }
             "pets.rehome" => self.rehome(),
             "pets.home" => {
@@ -238,7 +244,7 @@ impl Extension for Pets {
             "pets.dress" => {
                 let items: Vec<PickerItem> = self.state().pets.iter().map(|p| PickerItem::new(p.name.clone(), p.uid.to_string()).detail(format!("level {}", p.care.level()))).collect();
                 match items.len() {
-                    0 => fenix_extension_api::notify("No pets yet -- SPC P a adopts one"),
+                    0 => fenix_extension_api::notify(&format!("No pets yet -- {} adopts one", keys::keys_for("pets.adopt", "SPC P a"))),
                     1 => {
                         let uid = self.state().pets[0].uid;
                         self.dress(uid);
@@ -253,6 +259,13 @@ impl Extension for Pets {
         }
         self.draw();
         Ok(())
+    }
+
+    /// What's said names their home's keys as the new scheme has them.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        if let Some(st) = self.state.as_mut() {
+            st.home_keys = keys::home();
+        }
     }
 
     fn handle(&mut self, event: Event) {
@@ -341,7 +354,7 @@ impl Extension for Pets {
                         fenix_extension_api::notify(&format!("{name} has come to stay"));
                         self.keep();
                     } else {
-                        fenix_extension_api::notify(&format!("There's room for {most} pets (pets.most) -- SPC P r rehomes one"));
+                        fenix_extension_api::notify(&format!("There's room for {most} pets (pets.most) -- {} rehomes one", keys::keys_for("pets.rehome", "SPC P r")));
                     }
                 }
                 Some(Asked::Rename(uid)) if !text.trim().is_empty() => {
