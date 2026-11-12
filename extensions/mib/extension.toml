@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.mib"
 name = "SCOS-2000 MIB"
-version = "1.3.0"
+version = "1.4.0"
 description = "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"

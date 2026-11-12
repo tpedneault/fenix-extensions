@@ -101,6 +101,10 @@ keeps those; the MIB reads them.
 | `SPC k r` | `mib.reload` | Read the MIBs again |
 | `SPC k ,` | `mib.settings` | This project's settings |
 
+What it says when it names a key -- a card, the doctor, a missing MIB --
+gives the keys you have: `C-k k k` with standard keys where this table
+says `SPC k k`.
+
 In a Tcl file, `SPC m` has `i`, `e`, `q`, `t`, `k`, `p`, `c`, `m` and `r`,
 beside the Tcl extension's keys.
 
