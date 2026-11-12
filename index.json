@@ -2559,6 +2559,22 @@
           "permissions": {
             "editor": "read"
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/regex-v1.1.0/fenix.regex-1.1.0.fenixext",
+          "sha256": "97cd4b45ad4a13c505c3d95f52e88bee31bf6902103720b65ccc4a4edc0b1116",
+          "size": 585256,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read"
+          }
         }
       ],
       "name": "Regex",
