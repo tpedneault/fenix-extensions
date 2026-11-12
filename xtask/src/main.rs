@@ -7,10 +7,14 @@
 //! cargo xtask pack <extension-dir> [dist]    a .fenixext (built first); prints its id, version, sha256, size
 //! cargo xtask for-tag <name>-v<version>      the extension folder a release tag names
 //! cargo xtask index-add <index.json> <extension-dir> <url> <sha256> <size>
+//! cargo xtask external-check [--offline] [--index index.json]   external.toml and publishers.toml
+//! cargo xtask index-add-external <index.json> [--only <id>@<version>]
 //! ```
 //!
 //! The manifest is read the way Fenix reads it (`fenix-extensions`'
 //! `manifest.rs`): what's refused here would be refused there.
+
+mod external;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -487,7 +491,12 @@ fn for_tag(root: &Path, tag: &str) -> Result<(), String> {
 }
 
 fn index_add(index: &Path, dir: &Path, url: &str, sha256: &str, size: u64) -> Result<(), String> {
-    let m = manifest(dir)?;
+    index_write(index, &manifest(dir)?, url, sha256, size)
+}
+
+/// A release in the index, from its manifest: one read here
+/// (`index_add`), or from inside a package built elsewhere (`external`).
+fn index_write(index: &Path, m: &Manifest, url: &str, sha256: &str, size: u64) -> Result<(), String> {
     let mut doc: serde_json::Value = match std::fs::read_to_string(index) {
         Ok(text) => serde_json::from_str(&text).map_err(|e| format!("{}: {e}", index.display()))?,
         Err(_) => serde_json::json!({ "format": 1, "extensions": [] }),
@@ -550,8 +559,10 @@ fn main() {
         Some("build") => build(Path::new(&arg(1))),
         Some("pack") => pack(Path::new(&arg(1)), Path::new(args.get(2).map(String::as_str).unwrap_or("dist"))),
         Some("for-tag") => for_tag(&root, &arg(1)),
+        Some("external-check") => external::check_command(&root, &args[1..]),
+        Some("index-add-external") => external::add_command(&root, &args[1..]),
         Some("index-add") => arg(5).parse::<u64>().map_err(|e| format!("size: {e}")).and_then(|size| index_add(Path::new(&arg(1)), Path::new(&arg(2)), &arg(3), &arg(4), size)),
-        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size>".into()),
+        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>]".into()),
     };
     if let Err(e) = result {
         eprintln!("xtask: {e}");
