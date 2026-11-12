@@ -1,0 +1,15 @@
+# The store's pictures of the widget gallery, retaken with
+# `cargo xtask screenshots gallery`; the format is screenshots/README.md's.
+# The page needs no project: gallery.open is external, so the control
+# channel opens it, on the table, as a fresh profile has it.
+
+[[shot]]
+file = "1-table.png"
+note = "The gallery open on its first section: 400 rows of made-up weather in a table, the sections in the sidebar, the keys at the foot"
+commands = ["gallery.open"]
+settle_ms = 2000
+
+[shot.wait]
+no_file = true
+idle = true
+timeout_s = 30

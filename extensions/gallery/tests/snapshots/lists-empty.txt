@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ List  A list is a tree of leaves: styled, detailed, or empty
+  Tree       │
+  Tabs       │ Release 0.5.0 · 9 of 12 to do
+  Text field │
+› List       │ No tasks: x brings them back
+  Popup menu │
+  Splits     │
+  Scrolling  │
+  Styles     │
+  Mouse      │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │ j k J K g G move the same way in tables, trees, lists and scrolled regions
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+j k move  J K a screen  g G first, last  Enter done, not done  x empty, full  [ ] section
+c its code
+----
+focus: none
+typing: false

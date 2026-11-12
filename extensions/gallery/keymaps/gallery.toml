@@ -1,0 +1,6 @@
+# The gallery's key, in the help group. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC h g"
+label = "widget gallery"
+command = "gallery.open"

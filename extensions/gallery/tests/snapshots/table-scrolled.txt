@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+› Table      │ Table  TableState: 400 rows asked for as shown; sort, select
+  Tree       │
+  Tabs       │ 400 observations · row 400 of 400 · columns 5 to 7 of 7
+  Text field │
+  List       │ Rain mm  Wind km/h  Conditions
+  Popup menu │ ───────────────────────────────────────────────────────────────────────────────────
+  Splits     │     0.0         16  Warm and humid, a sea breeze in the afternoon                  │
+  Scrolling  │     0.0         20  Clear and still                                                │
+  Styles     │     0.0         32  Overcast                                                       │
+  Mouse      │     0.0         22  Sunny spells                                                   │
+             │     0.0         12  Warm and humid, a sea breeze in the afternoon                  │
+             │     0.0         50  Clear and still                                                │
+             │    36.3         16  Drizzle                                                        │
+             │     0.0         18  Bright but cold, a sharp frost at dawn                         │
+             │     5.5         15  Snow flurries overnight, settling on high ground above 400 m   │
+             │     3.8          6  Drizzle                                                        │
+             │     0.0         46  Warm and humid, a sea breeze in the afternoon                  │
+             │     0.2         10  Snow flurries overnight, settling on high ground above 400 m   │
+             │     0.0         18  Clear and still                                                │
+             │     0.0          9  Clear and still                                                │
+             │     0.0          9  Low cloud clearing by midday, a light breeze off the water     │
+             │     0.0         35  Low cloud clearing by midday, a light breeze off the water     │
+             │     0.0          8  Clear and still                                                │
+             │     1.4         14  Snow flurries overnight, settling on high ground above 400 m   ┃
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+hjkl move  J K a screen  0 $ first, last column  s sort  v V select  y copy  Enter the row
+[ ] section  c its code
+----
+focus: line 25, cells 15..98
+typing: false

@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+› Table      │ Table  TableState: 400 rows asked for as shown; sort, select
+  Tree       │
+  Tabs       │ 400 observations · row 4 of 400 · 3 by 2 selected
+  Text field │
+  List       │ Station       Date        High °C  Low °C  Rain mm  Wind km/h  Conditions
+  Popup menu │ ───────────────────────────────────────────────────────────────────────────────────
+  Splits     │ Tromsø        2026-03-01      2.7    -3.5     11.7         35  Snow flurries overn…┃
+  Scrolling  │ Reykjavík     2026-03-01      4.4    -2.1      0.0         28  Overcast            │
+  Styles     │ Hobart        2026-03-01     16.4     7.9      3.1         16  Gale from the south…│
+  Mouse      │ 札幌 Sapporo  2026-03-01      2.2    -5.4      0.9         10  Snow flurries overn…│
+             │ Ushuaia       2026-03-01     14.8     7.2      0.5         38  Drizzle             │
+             │ Valparaíso    2026-03-01     18.9    10.2      0.0         17  Clear and still     │
+             │ Marrakesh     2026-03-01     24.0     9.5      2.7          7  Drizzle             │
+             │ Tórshavn      2026-03-01      6.7     1.3      0.0         48  Sunny spells        │
+             │ Darwin        2026-03-01     29.7    21.6      0.0         10  Fog in the harbour …│
+             │ Halifax       2026-03-01     -0.2    -9.7      8.6         11  Snow flurries overn…│
+             │ Kraków        2026-03-01      7.7    -2.5      3.9          9  Snow flurries overn…│
+             │ Nairobi       2026-03-01     27.2    15.7      0.0          7  Sunny spells        │
+             │ Wellington    2026-03-01     18.7    11.6      0.0         38  Clear and still     │
+             │ Yellowknife   2026-03-01    -11.4   -24.8      0.0         20  Clear and still     │
+             │ Lisbon        2026-03-01     17.0    10.1      3.4         21  Gale from the south…│
+             │ Ulaanbaatar   2026-03-01      1.6   -14.0      0.0          8  Overcast            │
+             │ Chennai       2026-03-01     34.5    24.3      0.0          7  Clear and still     │
+             │ Punta Arenas  2026-03-01     15.0     8.4      2.5         21  Showers on and off,…│
+             │ Kyiv          2026-03-01      7.3    -2.2      1.4         17  Snow flurries overn…│
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+hjkl grow it  y copy it  v V stop selecting  [ ] section  c its code
+----
+focus: line 11, cells 15..98
+typing: false

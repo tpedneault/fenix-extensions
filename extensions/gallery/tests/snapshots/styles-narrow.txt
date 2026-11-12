@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Styles  Role, Fill, underlines, the palette, text in cells
+  Tree       │
+  Tabs       │ Role       Title  Text  Muted  Accent  Good  Warn  Bad
+  Text field │ Syntax     keyword  string  comment  function  type  number  constant.builtin
+  List       │
+  Popup menu │ Fill        Panel    Focus    Selection    Accent    Good    Warn    Bad
+  Splits     │ Underline  underlined  in the accent  a problem
+  Scrolling  │
+› Styles     │ Palette        #5e9cf5      #e06c75      #98c379      #e5c07b
+  Mouse      │                #c678dd      #56b6c2      #d19a66      #abb2bf
+             │
+             │ Text       s = "Brest → 東京 → São Paulo, by sea": 31 chars in 32 cells; w = 4
+             │                   ├──┤
+             │   fit(s, w)       Bre…
+             │   fit_tail(s, w)  …sea
+             │   slice(s, 6, w)  → 東
+             │   wrap(s, w)      Bres
+             │                   t →
+             │                   東京
+             │                   →
+             │                   São
+             │                   Paul
+             │                   o,
+             │                   by
+             │                   sea
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
++ - the text helpers wider, narrower  [ ] section  c its code
+----
+focus: none
+typing: false
