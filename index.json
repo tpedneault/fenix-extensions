@@ -1517,6 +1517,51 @@
               "tcp://127.0.0.1:1024-65535"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/java-v1.1.0/fenix.java-1.1.0.fenixext",
+          "sha256": "3f0b5517c6e66b31f377ffd766da5c24f40da59e0229e82af6ff53a82f156d4d",
+          "size": 779543,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com",
+              "download.eclipse.org",
+              "repo1.maven.org"
+            ],
+            "process": [
+              "java",
+              "javac",
+              "gradle",
+              "mvn",
+              "gradlew",
+              "mvnw",
+              "kotlin-lsp",
+              "google-java-format",
+              "ktlint",
+              "jdtls",
+              "fenix-java",
+              "${setting:java.jdk}",
+              "/tools/*"
+            ],
+            "sockets": [
+              "tcp://localhost:1024-65535",
+              "tcp://127.0.0.1:1024-65535"
+            ]
+          }
         }
       ],
       "name": "Java and Kotlin",
