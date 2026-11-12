@@ -19,6 +19,8 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
+mod site;
+
 #[derive(Debug, Deserialize)]
 struct Manifest {
     extension: Info,
@@ -550,6 +552,7 @@ fn main() {
         Some("build") => build(Path::new(&arg(1))),
         Some("pack") => pack(Path::new(&arg(1)), Path::new(args.get(2).map(String::as_str).unwrap_or("dist"))),
         Some("for-tag") => for_tag(&root, &arg(1)),
+        Some("site") => site::site(&root, Path::new(&arg(1)), Path::new(&arg(2))),
         Some("index-add") => arg(5).parse::<u64>().map_err(|e| format!("size: {e}")).and_then(|size| index_add(Path::new(&arg(1)), Path::new(&arg(2)), &arg(3), &arg(4), size)),
         _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size>".into()),
     };
