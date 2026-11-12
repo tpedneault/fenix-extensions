@@ -10,8 +10,9 @@ categories = ["languages", "snippets"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# The API the shared kits are built on.
+api = "1.5"
 
 # With Fenix: the project doctor's checks and the tasks are there from the
 # start, in a project this pack's context names (below).

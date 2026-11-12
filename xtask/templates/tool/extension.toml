@@ -10,8 +10,9 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# The API the shared kits are built on.
+api = "1.5"
 
 # Its command loads it. It asks for no permissions: the page reads what
 # you type into it and its own setting, nothing else. When it needs
