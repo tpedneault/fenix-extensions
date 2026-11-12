@@ -157,7 +157,7 @@ pub(crate) struct Ccsds {
     searched: HashMap<u64, u64>,
     next_search: u64,
     /// Services it called: what to say when there's none.
-    calls: HashMap<u64, &'static str>,
+    calls: HashMap<u64, String>,
 }
 
 /// What a set of MIBs was read from.
@@ -189,6 +189,33 @@ fn mission() -> Mission {
 
 fn error(message: &str) {
     host::notify(api::Level::Error, message);
+}
+
+/// The keys that run `command` now, as the key scheme in use writes them
+/// (`SPC k d`, or `C-k k d` with standard keys, or yours); `vim`, its Vim
+/// keys, when none does, and natively, where there's no Fenix to ask.
+fn keys_for(command: &str, vim: &str) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        api::key_for(command).unwrap_or_else(|| vim.to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = command;
+        vim.to_string()
+    }
+}
+
+/// The keys of Fenix's Extensions page, where the PDF reader is
+/// installed (`SPC h x`).
+fn extensions_keys() -> String {
+    keys_for("extensions.open", "SPC h x")
+}
+
+/// Why the standards can't be read: `fenix.pdf` isn't there. `keys` open
+/// the Extensions page.
+fn wants_the_reader(what: &str, keys: &str) -> String {
+    format!("{what} the PDF reader, the fenix.pdf extension: {keys} installs it")
 }
 
 /// The MIBs here, as the MIB extension reads them: those `mib.roots`
@@ -374,7 +401,7 @@ impl Ccsds {
             },
             "ccsds.recording" => match file_here() {
                 Some(path) => self.open_recording(&path, None),
-                None => error("select a recording in the explorer (SPC f j), then SPC k f"),
+                None => error(&format!("select a recording in the explorer ({}), then {}", keys_for("explorer.jump", "SPC f j"), keys_for("ccsds.recording", "SPC k f"))),
             },
             "ccsds.live" => self.cmd_live(),
             "ccsds.standards" => self.cmd_standards(),
@@ -821,7 +848,7 @@ impl Ccsds {
         let Some(set) = self.set() else { return Err("no MIB for this project, so no parameters to follow".into()) };
         let Some(def) = set.resolve(name) else { return Err(format!("{name} isn't in the project's MIBs")) };
         let Some(&stream) = self.pages.iter().filter(|(_, p)| matches!(p, Open::Stream(..))).map(|(id, _)| id).max() else {
-            return Err("no recording or live source open -- SPC k f or SPC k l, then t".into());
+            return Err(format!("no recording or live source open -- {} or {}, then t", keys_for("ccsds.recording", "SPC k f"), keys_for("ccsds.live", "SPC k l")));
         };
         self.follow(stream, def);
         Ok(())
@@ -872,7 +899,7 @@ impl Ccsds {
             Some(Open::Packet(p)) => Page::canvas(packet_page::layout(p, width)).typing(p.typing()),
             Some(Open::Stream(p, _)) => Page::canvas(stream_page::layout(p, width)).typing(p.typing()),
             Some(Open::Time(p, _)) => Page::canvas(time_page::layout(p, width)).typing(p.typing()),
-            Some(Open::Standards(p)) => Page::canvas(standards_page::layout(p, width)).typing(p.typing()),
+            Some(Open::Standards(p)) => Page::canvas(standards_page::layout(p, width, &keys_for("ccsds.decode", "SPC k d"))).typing(p.typing()),
             None => Page::new(),
         }
     }
@@ -982,7 +1009,7 @@ impl Ccsds {
             Link::Standard(std, heading) => return self.open_standard(std, Some(heading)),
         };
         let call = api::call_service("mib.open", &serde_json::json!({ "name": name }).to_string());
-        self.calls.insert(call, "opening a MIB definition needs the MIB extension");
+        self.calls.insert(call, "opening a MIB definition needs the MIB extension".into());
     }
 
     /// A standard's PDF at `heading`, when the library has it.
@@ -993,7 +1020,7 @@ impl Ccsds {
         let pdfs = standards_page::pdfs_in(Path::new(LIBRARY));
         match standards_page::file_for(standard, &pdfs).cloned() {
             Some(path) => self.open_pdf(&path, None, heading),
-            None => error(&format!("{std} ({}) isn't in the standards folder -- SPC k ? says where to get it", standard.title)),
+            None => error(&format!("{std} ({}) isn't in the standards folder -- {} says where to get it", standard.title, keys_for("ccsds.standards", "SPC k ?"))),
         }
     }
 
@@ -1003,7 +1030,7 @@ impl Ccsds {
         let Some(path) = library_path(guest) else { return error("the standards folder isn't set (ccsds.library)") };
         let payload = serde_json::json!({ "path": path, "page": page, "heading": heading }).to_string();
         let call = api::call_service("pdf.open", &payload);
-        self.calls.insert(call, "standards open in the PDF reader, the fenix.pdf extension: SPC h x installs it");
+        self.calls.insert(call, wants_the_reader("standards open in", &extensions_keys()));
     }
 
     fn stream_action(&mut self, id: u64, action: stream_page::Action) {
@@ -1133,7 +1160,7 @@ impl Ccsds {
                 api::page::refresh(page);
             }
             if let Some(why) = failed.filter(|w| w.contains("serve")) {
-                error(&format!("searching the standards takes the PDF reader, the fenix.pdf extension: SPC h x installs it ({why})"));
+                error(&format!("{} ({why})", wants_the_reader("searching the standards takes", &extensions_keys())));
             }
             return;
         }
@@ -1251,7 +1278,8 @@ impl LanguageServer for Ccsds {
         let m = mission();
         // The MIB only for hex worth reading through it.
         let set = decode::hex_at(&line, col).filter(|b| b.len() >= 6).and_then(|_| self.set());
-        let value = decode::hover(&line, col, set.as_deref(), &m)?;
+        let (time, decode) = (keys_for("ccsds.time", "SPC k T"), keys_for("ccsds.decode", "SPC k d"));
+        let value = decode::hover(&line, col, set.as_deref(), &m, &decode::Keys { time: &time, decode: &decode })?;
         Some(Hover { contents: HoverContents::Markup(MarkupContent { kind: MarkupKind::PlainText, value }), range: None })
     }
 }
@@ -1287,6 +1315,16 @@ impl Extension for CcsdsExtension {
 
     fn page(&mut self, page: u64, width: u32, _height: u32) -> Page {
         self.ccsds.layout(page, width as usize)
+    }
+
+    /// You switched between Vim keys and standard keys: the standards
+    /// page names the decode's keys again.
+    fn key_scheme_changed(&mut self, _scheme: api::KeyScheme) {
+        for (id, p) in &self.ccsds.pages {
+            if matches!(p, Open::Standards(_)) {
+                api::page::refresh(*id);
+            }
+        }
     }
 
     fn page_key(&mut self, page: u64, key: Key) {
@@ -1382,5 +1420,13 @@ mod tests {
         // A line of the MIB's tc_vectors.txt: the mnemonic's 0001 isn't hex.
         assert_eq!(longest_hex("TTYP0001     18 64 C0 00 00 1D"), Some(vec![0x18, 0x64, 0xC0, 0x00, 0x00, 0x1D]));
         assert_eq!(longest_hex("x=1B F2 C0 07"), Some(vec![0x1B, 0xF2, 0xC0, 0x07]), "after punctuation it is");
+    }
+
+    #[test]
+    fn wanting_the_reader_names_the_keys_of_the_scheme_in_use() {
+        assert_eq!(wants_the_reader("standards open in", "SPC h x"), "standards open in the PDF reader, the fenix.pdf extension: SPC h x installs it");
+        assert_eq!(wants_the_reader("standards open in", "C-k h x"), "standards open in the PDF reader, the fenix.pdf extension: C-k h x installs it");
+        // Natively there's no Fenix to ask: its Vim keys.
+        assert_eq!(extensions_keys(), "SPC h x");
     }
 }

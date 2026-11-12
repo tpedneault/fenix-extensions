@@ -60,6 +60,14 @@ the MIB extension reads (`mib.roots`).
 | `SPC k ?` | `ccsds.standards` | The standards |
 | `SPC f x` | `ccsds.hex` | The file as hex |
 
+With standard keys, `SPC` is `Ctrl+K`: `Ctrl+K k d`.
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: `K` on
+hex ends "`C-k k d` opens the decode" with standard keys and "`SPC k d`
+opens the decode" with Vim keys, and so do its messages and the
+standards page.
+
 ## For coding agents
 
 `ccsds_decode` (read, Fenix 1.1) decodes bytes your coding agent gives

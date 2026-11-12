@@ -9,10 +9,23 @@ use fenix_mib::{DefRef, MibSet};
 
 use crate::packet_page::DecodeAs;
 
+/// The keys a reading names, as the key scheme in use writes them:
+/// the time converter's (`SPC k T`) and the decode's (`SPC k d`).
+pub(crate) struct Keys<'a> {
+    pub time: &'a str,
+    pub decode: &'a str,
+}
+
+#[cfg(test)]
+impl Keys<'static> {
+    /// As Vim keys have them.
+    pub(crate) const VIM: Keys<'static> = Keys { time: "SPC k T", decode: "SPC k d" };
+}
+
 /// `K` on an on-board time: the word under the cursor, when it's the
 /// mission's time code -- `814B878A.8000` as the converter writes a CUC,
 /// or its octets in hex -- read from the mission's epoch.
-pub(crate) fn time_hover(line: &str, col: usize, m: &Mission) -> Option<String> {
+pub(crate) fn time_hover(line: &str, col: usize, m: &Mission, keys: &Keys) -> Option<String> {
     let chars: Vec<char> = line.chars().collect();
     let part = |c: char| c.is_ascii_hexdigit() || c == '.' || c == 'x' || c == 'X';
     if !chars.get(col).is_some_and(|c| part(*c)) {
@@ -44,10 +57,11 @@ pub(crate) fn time_hover(line: &str, col: usize, m: &Mission) -> Option<String> 
     let utc = fenix_ccsds::time::tai_to_utc(d.tai, &p.leap);
     let correlated = if m.nominal_epoch.is_some() { " (correlated)" } else { "" };
     Some(format!(
-        "{} · {}{correlated}\n{}\nSPC k T converts it",
+        "{} · {}{correlated}\n{}\n{} converts it",
         p.tm_time.label(),
         fenix_ccsds::time::format_utc(utc),
-        fenix_ccsds::time::format_doy(utc)
+        fenix_ccsds::time::format_doy(utc),
+        keys.time
     ))
 }
 
@@ -191,8 +205,8 @@ pub(crate) fn decode_bytes(bytes: &[u8], reading: DecodeAs, set: Option<&MibSet>
 
 /// `K` on hex: a short reading of the packet or frame it spells -- or of
 /// the on-board time it is, in the mission's format.
-pub(crate) fn hover(line: &str, col: usize, set: Option<&MibSet>, mission: &Mission) -> Option<String> {
-    if let Some(hover) = time_hover(line, col, mission) {
+pub(crate) fn hover(line: &str, col: usize, set: Option<&MibSet>, mission: &Mission, keys: &Keys) -> Option<String> {
+    if let Some(hover) = time_hover(line, col, mission, keys) {
         return Some(hover);
     }
     let bytes = hex_at(line, col)?;
@@ -219,7 +233,7 @@ pub(crate) fn hover(line: &str, col: usize, set: Option<&MibSet>, mission: &Miss
     lines.push(if bad.is_empty() { "every check passes".into() } else { bad.join("
 ") });
     lines.push(String::new());
-    lines.push("SPC k d opens the decode".into());
+    lines.push(format!("{} opens the decode", keys.decode));
     Some(lines.join("
 "))
 }
@@ -270,5 +284,17 @@ mod tests {
         assert_eq!(hex_at(line, 5), Some(vec![0x1B, 0xF2, 0xC0, 0x07, 0x00, 0x09, 0x3F, 0xA3]));
         assert_eq!(hex_at(line, 0), None, "tc isn't hex");
         assert_eq!(hex_at("  0BF2C123 ", 4), Some(vec![0x0B, 0xF2, 0xC1, 0x23]));
+    }
+
+    #[test]
+    fn a_reading_names_the_keys_of_the_scheme_in_use() {
+        let m = Mission::default();
+        let standard = Keys { time: "C-k k T", decode: "C-k k d" };
+        let packet = "0801C0000000AB";
+        assert!(hover(packet, 0, None, &m, &Keys::VIM).unwrap().ends_with("\nSPC k d opens the decode"));
+        assert!(hover(packet, 0, None, &m, &standard).unwrap().ends_with("\nC-k k d opens the decode"));
+        let time = "814B878A.8000";
+        assert!(time_hover(time, 0, &m, &Keys::VIM).unwrap().ends_with("\nSPC k T converts it"));
+        assert!(time_hover(time, 0, &m, &standard).unwrap().ends_with("\nC-k k T converts it"));
     }
 }

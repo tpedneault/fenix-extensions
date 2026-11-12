@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+  key scheme in use, and yours where you rebound them -- `K` on hex or an
+  on-board time ends "`C-k k d` opens the decode" or "`C-k k T` converts
+  it" with standard keys and `SPC k d`, `SPC k T` with Vim keys; so do
+  the standards page and its messages (the explorer, a recording, a
+  live source, the standards, the Extensions page for the PDF reader).
+  The MIB's settings are read as before.
+
 ## 1.2.2
 
 - A command that reads a large MIB may take up to a minute, rather than
