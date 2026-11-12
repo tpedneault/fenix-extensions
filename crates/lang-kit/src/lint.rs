@@ -526,7 +526,7 @@ In file included from x.h:1:
                         let mut parts = l.splitn(3, ':');
                         let (file, line, message) = (parts.next()?, parts.next()?.parse::<u32>().ok()?, parts.next()?);
                         let p = Problem::warning((line, 0), (line, 1), message);
-                        let p = if message.contains("needless") { p.fix("Remove it", vec![fenix_extension_api::TextEdit::new((line, 0), (line, 4), "")]) } else { p.into() };
+                        let p = if message.contains("needless") { p.fix("Remove it", vec![fenix_extension_api::TextEdit::new((line, 0), (line, 4), "")]) } else { p };
                         Some((file.to_string(), vec![p]))
                     })
                     .collect())
