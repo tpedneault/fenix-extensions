@@ -62,7 +62,7 @@ pub(crate) fn hover_text(set: &MibSet, def: DefRef, apid_hex: bool) -> String {
                 lines.push(format!("Sent only while {}", pre.iter().map(ToString::to_string).collect::<Vec<_>>().join(" and ")));
             }
             lines.push(String::new());
-            lines.push("gd opens it · SPC k e edits this call".to_string());
+            lines.push(format!("{} opens it · SPC k e edits this call", crate::definition_keys()));
         }
         _ => {
             let cols: Vec<String> = (1..def.kind.headers().len())
@@ -74,7 +74,7 @@ pub(crate) fn hover_text(set: &MibSet, def: DefRef, apid_hex: bool) -> String {
                 lines.push(cols.join(" · "));
             }
             lines.push(String::new());
-            lines.push("gd opens it".to_string());
+            lines.push(format!("{} opens it", crate::definition_keys()));
         }
     }
     lines.retain(|l| !l.trim().is_empty() || l.is_empty());

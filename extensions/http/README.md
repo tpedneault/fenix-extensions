@@ -287,7 +287,7 @@ filled in -- secrets too, so mind where it goes.
 
 | Key | Command | What it does |
 | --- | --- | --- |
-| `SPC p r r` | `http.send` | Send the request under the cursor |
+| `SPC p r r`, with standard keys also `Ctrl+Enter` in a `.http` file | `http.send` | Send the request under the cursor |
 | `SPC p r a` | `http.send_all` | Run this file's requests, and report |
 | `SPC p r A` | `http.run_project` | Run the project's, and report |
 | `SPC p r o` | `http.open` | The client |

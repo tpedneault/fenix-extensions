@@ -27,7 +27,8 @@ before each editing session is kept (`h` on the notebook page).
 | `SPC m a`, `SPC m g` | In a journal day: refresh its agenda list, add the day's commits |
 
 In Markdown, `[[` completes a note's name and `gd` on a link follows it
-(making the note when it isn't there yet).
+(making the note when it isn't there yet) -- with standard keys, `F12` or
+Ctrl+click. The `SPC` keys above are `Ctrl+K` with standard keys.
 
 ## The page
 
