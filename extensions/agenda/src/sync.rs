@@ -308,7 +308,7 @@ pub fn send_op(op: model::PendingOp, key: String, known_flag: Option<Option<Stri
                 };
                 match field {
                     Ok(Some(field)) => client.set_flagged(&key, &field, *on).await,
-                    Ok(None) => Err("this Jira has no Flagged field -- press b on the project's search on the Jira page (SPC j j) to pick another meaning for Blocked".to_string()),
+                    Ok(None) => Err(format!("this Jira has no Flagged field -- press b on the project's search on the Jira page ({}) to pick another meaning for Blocked", crate::keys::jira())),
                     Err(err) => Err(err),
                 }
             }
