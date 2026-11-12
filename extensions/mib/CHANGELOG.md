@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- For Fenix 1.5 (extension API 1.5): a name's card says the keys of the
+  key scheme in use for going to its page -- `F12` with standard keys,
+  `gd` with Vim keys. The README gives standard keys beside Vim's.
+
 ## 1.2.2
 
 - **The MIB page opens on a large MIB.** `SPC k k` read the MIB and ran

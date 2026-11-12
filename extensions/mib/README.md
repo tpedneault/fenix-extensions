@@ -33,7 +33,8 @@ you wrote, and generate code from it.
   - `b` shows the packet's bytes and where each value went, `y` copies
     them and `D` decodes them (with the CCSDS extension).
 - **In your scripts**, through a language server:
-  - `K` on a MIB name shows its card, and `gd` opens its page.
+  - `K` on a MIB name shows its card, and `gd` opens its page (with
+    standard keys, `Ctrl+K Ctrl+I` and `F12`, or Ctrl+click).
   - Completion offers telecommands and parameters.
   - Telecommand calls the MIB disagrees with are underlined: unknown
     mnemonics, missing or out-of-range arguments, and repetitions that

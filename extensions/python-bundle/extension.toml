@@ -1,0 +1,19 @@
+[extension]
+id = "fenix.python-bundle"
+name = "Python"
+version = "1.0.0"
+description = "Python with Jupyter notebooks: the language pack (basedpyright, ruff, debugpy, uv), .ipynb notebooks run on a kernel, and the CSV table for the data they read"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages"]
+# A bundle: nothing of its own, the extensions below.
+runtime = "bundle"
+
+[engine]
+fenix = ">=1.0, <2"
+
+[dependencies]
+"fenix.python" = "^1"
+"fenix.jupyter" = "^1"
+"fenix.csv" = "^1"

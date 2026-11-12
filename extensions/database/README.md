@@ -63,7 +63,7 @@ In a `.sql` buffer:
 
 | Key | What it does |
 | --- | --- |
-| `SPC m r` | Run the statement under the cursor -- or the selection, its statements in turn |
+| `SPC m r`, with standard keys also `Ctrl+Enter` | Run the statement under the cursor -- or the selection, its statements in turn |
 | `SPC m R` | Run every statement in the buffer |
 | `SPC m c` | Pick the connection the buffer runs on |
 | `SPC m h` | The history: the statements you ran, newest first, searched as you type; one picked goes in at the cursor |

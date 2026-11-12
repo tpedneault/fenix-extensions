@@ -1,3 +1,5 @@
 /target
 /dist
 *.key
+# An extension built on its own keeps its build here.
+extensions/*/target/

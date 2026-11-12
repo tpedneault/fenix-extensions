@@ -1,0 +1,26 @@
+[package]
+name = "fenix-jupyter"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Jupyter notebooks (.ipynb) in Fenix: their cells and outputs, plots included, edited through the file's buffer and run on a kernel."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-ui-kit = { path = "../../crates/ui-kit" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Outputs' pictures (image/png, image/jpeg) are base64 in the notebook.
+base64 = "0.22"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

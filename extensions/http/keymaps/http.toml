@@ -146,3 +146,12 @@ command = "http.ws_send"
 keys = "g"
 label = "GraphQL schema, again"
 command = "http.graphql_schema"
+
+# Standard keys: Ctrl+Enter sends the request under the cursor, in a .http
+# file only (its SPC m context).
+[[keys]]
+keys = "C-Enter"
+command = "http.send"
+scheme = "standard"
+when = "text"
+context = "http"

@@ -304,6 +304,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
             }
         }
         check_agent_tools(&dir)?;
+        check_chords(&dir)?;
         let version = semver::Version::parse(&m.extension.version).map_err(|e| e.to_string())?;
         let entry = known.entry(m.extension.id.clone()).or_insert(Known { versions: Vec::new(), dependencies: BTreeMap::new() });
         entry.versions.push(version);
@@ -315,6 +316,68 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
     }
     check_dependencies(&known, &here)?;
     println!("{count} extension(s)");
+    Ok(())
+}
+
+/// The chords Fenix keeps for itself: standard keys' leader and palette,
+/// the terminal's way out, Alt+X.
+const RESERVED_CHORDS: &[&str] = &["C-k", "C-S-p", "C-\\", "M-x"];
+/// Standard keys' own chords an extension's would hide (a warning, not an
+/// error: in a context of its own it may mean it).
+const STANDARD_CHORDS: &[&str] = &["C-c", "C-x", "C-v", "C-z", "C-y", "C-s", "C-a", "C-f", "C-h", "C-p", "C-o", "C-w", "C-/", "F12", "F2", "C-.", "C-g", "C-b", "C-j", "C-n", "C-e"];
+
+/// `[[keys]]` in its keymaps (API 1.5): one key with its modifiers, a
+/// scheme and a place Fenix knows, a context it has, short of Fenix's own
+/// chords and of a terminal -- and an API that reads them.
+fn check_chords(dir: &Path) -> Result<(), String> {
+    let manifest_text = std::fs::read_to_string(dir.join("extension.toml")).map_err(|e| e.to_string())?;
+    let manifest: toml::Table = toml::from_str(&manifest_text).map_err(|e| e.message().to_string())?;
+    let contexts: Vec<String> = manifest
+        .get("contributes")
+        .and_then(|c| c.get("contexts"))
+        .and_then(|c| c.as_array())
+        .map(|a| a.iter().filter_map(|c| c.get("name").and_then(|n| n.as_str()).map(str::to_string)).collect())
+        .unwrap_or_default();
+    let api = manifest.get("engine").and_then(|e| e.get("api")).and_then(|a| a.as_str()).map(|a| semver::Version::parse(&match a.matches('.').count() { 0 => format!("{a}.0.0"), 1 => format!("{a}.0"), _ => a.to_string() }).ok());
+    for rel in files(dir).into_iter().filter(|f| f.starts_with("keymaps") && f.extension().is_some_and(|x| x == "toml")) {
+        let path = dir.join(&rel);
+        let at = path.display();
+        let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let table: toml::Table = toml::from_str(&text).map_err(|e| format!("{at}: {}", e.message()))?;
+        let Some(chords) = table.get("keys").and_then(|k| k.as_array()) else { continue };
+        if api.as_ref().is_some_and(|v| v.as_ref().is_none_or(|v| *v < semver::Version::new(1, 5, 0))) {
+            return Err(format!("{at}: [[keys]] needs engine.api 1.5 -- an older Fenix can't read the keymap"));
+        }
+        for chord in chords {
+            let field = |key: &str| chord.get(key).and_then(|v| v.as_str());
+            let keys = field("keys").unwrap_or_default();
+            if keys.is_empty() || keys.split_whitespace().count() != 1 {
+                return Err(format!("{at}: [[keys]] {keys:?} -- one key with its modifiers (C-Enter, F5)"));
+            }
+            if RESERVED_CHORDS.contains(&keys) {
+                return Err(format!("{at}: {keys} is Fenix's own"));
+            }
+            if !matches!(field("scheme").unwrap_or("any"), "vim" | "standard" | "any") {
+                return Err(format!("{at}: {keys}: scheme is vim, standard or any"));
+            }
+            match field("when").unwrap_or("anywhere") {
+                "anywhere" | "text" | "typing" | "not_typing" | "page" => {}
+                "terminal" => return Err(format!("{at}: {keys}: only Fenix's chords and yours reach past a terminal")),
+                other => return Err(format!("{at}: {keys}: when {other:?} -- anywhere, text, typing, not_typing or page")),
+            }
+            if let Some(context) = field("context") {
+                if !contexts.iter().any(|c| c == context) {
+                    return Err(format!("{at}: {keys}: context {context:?} isn't one of its [[contributes.contexts]]"));
+                }
+            }
+            if field("command").is_none() && chord.get("unbind").and_then(|u| u.as_bool()) != Some(true) {
+                return Err(format!("{at}: {keys}: a command, or unbind = true"));
+            }
+            if STANDARD_CHORDS.contains(&keys) && field("context").is_none() {
+                println!("warn {at}: {keys} is one of standard keys' own, and this takes it everywhere -- give it a context");
+            }
+        }
+    }
     Ok(())
 }
 
@@ -526,6 +589,29 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("extension.toml"), format!("[extension]\nid = \"acme.{name}\"\nname = \"{name}\"\nversion = \"{version}\"\nruntime = \"{runtime}\"\n\n[engine]\nfenix = \">=2.0, <3\"\n{rest}")).unwrap();
         dir
+    }
+
+    #[test]
+    fn chords_are_checked() {
+        let t = Temp::new("chords");
+        let keymap = |dir: &Path, text: &str| {
+            std::fs::create_dir_all(dir.join("keymaps")).unwrap();
+            std::fs::write(dir.join("keymaps/k.toml"), text).unwrap();
+        };
+        let ctx = "\n[engine]\napi = \"1.5\"\n\n[[contributes.contexts]]\nname = \"sql\"\nlanguages = [\"sql\"]\n";
+        let dir = t.0.join("x");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("extension.toml"), format!("[extension]\nid = \"acme.x\"{ctx}")).unwrap();
+        keymap(&dir, "[[keys]]\nkeys = \"C-Enter\"\ncommand = \"x.run\"\ncontext = \"sql\"\nwhen = \"text\"\nscheme = \"standard\"\n");
+        assert_eq!(check_chords(&dir), Ok(()));
+        for (bad, says) in [("keys = \"C-k\"\ncommand = \"x.run\"", "Fenix's own"), ("keys = \"C-x C-s\"\ncommand = \"x.run\"", "one key"), ("keys = \"F5\"\ncommand = \"x.run\"\nwhen = \"terminal\"", "past a terminal"), ("keys = \"F5\"\ncommand = \"x.run\"\ncontext = \"tcl\"", "isn't one of"), ("keys = \"F5\"", "a command")] {
+            keymap(&dir, &format!("[[keys]]\n{bad}\n"));
+            let err = check_chords(&dir).unwrap_err();
+            assert!(err.contains(says), "{bad}: {err}");
+        }
+        std::fs::write(dir.join("extension.toml"), "[extension]\nid = \"acme.x\"\n[engine]\napi = \"1.4\"\n").unwrap();
+        keymap(&dir, "[[keys]]\nkeys = \"F5\"\ncommand = \"x.run\"\n");
+        assert!(check_chords(&dir).unwrap_err().contains("1.5"));
     }
 
     #[test]

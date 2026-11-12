@@ -4,16 +4,17 @@ Tcl scripts in Fenix, as an extension and a language server for Tcl
 files. Its answers join any other Tcl language
 server's. Tcl's highlighting stays in Fenix.
 
-- `K` on a built-in shows Tcl's own usage line for it -- on one of its
-  arguments too (`K` on the `$s` in `string compare $s $t` names
-  `string compare`) -- and an ensemble's subcommands.
+- `K` (with standard keys, `Ctrl+K Ctrl+I` or the pointer resting) on a
+  built-in shows Tcl's own usage line for it -- on one of its arguments
+  too (on the `$s` in `string compare $s $t` it names `string compare`)
+  -- and an ensemble's subcommands.
 - Completion: a command's `-options` once you type a `-` (`lsort -u`),
   an ensemble's subcommands after its name (`string co`, `binary encode
   `), and otherwise Tcl's built-ins and the project's own procs and
   namespaces by their fully-qualified names (`myns::greet`). Nothing in
   a comment or a string.
-- `gd` on a proc goes to where it's defined: in the file, else in the
-  project.
+- `gd` (with standard keys, `F12` or Ctrl+click) on a proc goes to where
+  it's defined: in the file, else in the project.
 - A call to one of the project's procs is colored as a call, wherever
   it's defined: Fenix asks its language server for them.
 
@@ -24,7 +25,8 @@ the built-ins.
 
 ## Keys
 
-In a Tcl file, under `SPC m` (beside the MIB's, when it's on):
+In a Tcl file, under `SPC m` (`Ctrl+K m` with standard keys; beside the
+MIB's, when it's on):
 
 | Key | Command | What it does |
 | --- | --- | --- |

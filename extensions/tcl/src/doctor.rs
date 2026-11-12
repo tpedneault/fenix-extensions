@@ -79,7 +79,7 @@ pub fn checks(tclsh: Option<&str>, ctags: Option<&str>) -> Vec<Check> {
         },
         match ctags {
             Some(path) => Check { label: "ctags", health: Health::Ok, detail: path.to_string() },
-            None => Check { label: "ctags", health: Health::Info, detail: "not found -- completion of the project's procs, gd and SPC m s need Universal Ctags".into() },
+            None => Check { label: "ctags", health: Health::Info, detail: format!("not found -- completion of the project's procs, {} and SPC m s need Universal Ctags", crate::definition_keys()) },
         },
     ]
 }

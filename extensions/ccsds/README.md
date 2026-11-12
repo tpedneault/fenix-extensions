@@ -35,7 +35,7 @@ Space packets, transfer frames and CLTUs in Fenix.
 - **The standards** (`SPC k ?`): the CCSDS and ECSS standards, which of
   them the `ccsds.library` folder has, and a search through all of them
   (with the PDF extension).
-- **`K`** on hex or an on-board time, in any file: what it is, in short.
+- **`K`** (with standard keys, `Ctrl+K Ctrl+I` or the pointer resting) on hex or an on-board time, in any file: what it is, in short.
 - **The mission clock** (`ccsds.clock`): the time now as the mission
   writes it on board, in the modeline.
 

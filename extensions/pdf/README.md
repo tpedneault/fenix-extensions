@@ -2,7 +2,7 @@
 
 PDFs read in a pane. A
 `.pdf` opens in it however you open it -- the explorer, the file picker,
-`:e`, a recent file, the command line, `gf` on `spec.pdf#page=38` -- on a
+`:e`, a recent file, the command line, `gf` (with standard keys, Ctrl+click or `Alt+F12`) on `spec.pdf#page=38` -- on a
 surface in the pane you're in: every page one under the other, fitted to
 the pane's width the first time, and where you left it after that.
 

@@ -55,6 +55,7 @@ bundles install several at once, and are what the welcome's packs offer.
 | [`fenix.images`](extensions/images) | Image viewer | Pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names |
 | [`fenix.java`](extensions/java) | Java and Kotlin | Java and Kotlin: Eclipse JDT LS, debugging with java-debug, kotlin-language-server and Kotlin's highlighting, google-java-format and ktlint, Gradle's and Maven's tasks, the project's checks with their fixes, outdated and vulnerable dependencies, snippets, and Gradle, Spring Boot and Maven projects |
 | [`fenix.jira`](extensions/jira) | Jira | Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it |
+| [`fenix.jupyter`](extensions/jupyter) | Jupyter notebooks | Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib's plots and other pictures -- cells edited beside it and changed through the file's buffer, and run on the notebook's Python: ipykernel when it's there, Python itself when it isn't, input() asked of you |
 | [`fenix.logs`](extensions/logs) | Log viewer | Log files read in a pane: each entry's level and time from the formats logs are written in -- JSON lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, Python's logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once |
 | [`fenix.lua`](extensions/lua) | Lua | Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project's checks with their fixes, snippets, and LÖVE game and LuaRocks module projects |
 | [`fenix.mib`](extensions/mib) | SCOS-2000 MIB | SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them |
@@ -89,6 +90,7 @@ bundles install several at once, and are what the welcome's packs offer.
 | [`fenix.lab-bundle`](extensions/lab-bundle) | Lab | Arduino, containers, VNC |
 | [`fenix.mission-bundle`](extensions/mission-bundle) | Mission | SCOS-2000 MIB, CCSDS & PUS, Tcl |
 | [`fenix.personal-bundle`](extensions/personal-bundle) | Personal | Notebook, Diagrams, Agenda |
+| [`fenix.python-bundle`](extensions/python-bundle) | Python | Python with Jupyter notebooks: the language pack (basedpyright, ruff, debugpy, uv), .ipynb notebooks run on a kernel, and the CSV table for the data they read |
 | [`fenix.reading-bundle`](extensions/reading-bundle) | Reading | The PDF reader |
 | [`fenix.review-bundle`](extensions/review-bundle) | Review | GitHub pull requests, GitLab merge requests |
 
@@ -145,7 +147,7 @@ fenix --install-extension dist/fenix.my-themes-1.0.0.fenixext   # try it
 ## Bundles
 
 A bundle is extensions that go together, installed as one -- the
-welcome's Personal, Mission, Review, Jira, Lab and Reading
+welcome's Personal, Mission, Review, Jira, Lab, Python and Reading
 (`extensions/*-bundle`). Its manifest is its members, as dependencies,
 and a description; its folder holds only that, README.md, CHANGELOG.md
 and screenshots.
