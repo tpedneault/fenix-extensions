@@ -1,0 +1,84 @@
+# A lesson of Fenix's tutorial (SPC h T). See "Tutorial lessons" in the
+# repository's CONTRIBUTING.md.
+id = "notebook.notes"
+track = "Notebook"
+order = 1
+title = "Notes, the journal and links"
+about = "Your notebook: a note from a template, a line captured into today's journal, a link to a note, tags and search. It makes a note called Tutorial note, and a line in today's journal: x x on the page deletes the note after."
+text = """
+The notebook keeps notes, a journal day for each day, and diagrams, as
+files in one folder: you never choose where one goes.
+
+SPC n n   the notebook page: Enter edits, / filters, q closes
+SPC n N   a new note, from a template
+SPC n j   today's journal day
+SPC n c   capture a line into today's journal
+SPC n l   a link to a note, here; gd on a link follows it
+SPC n #   every tag    SPC n /   search every note and day
+
+Links to notes:
+
+"""
+
+[[step]]
+say = "SPC n n: the notebook page -- every note, journal day and diagram."
+hint = "SPC n, then n."
+page = "fenix.notebook/notebook"
+
+[[step]]
+say = "q closes it for now."
+hint = "q, on the notebook page."
+closed = "fenix.notebook/notebook"
+
+[[step]]
+say = "SPC n N: a new note -- first, the template it starts from."
+hint = "SPC n, then a capital N."
+picker = "any"
+
+[[step]]
+say = "Decision record, Enter; call it Tutorial note, Enter. It opens, and saves itself as you type."
+hint = "Type decision to narrow the list, Enter; then the name and Enter. Esc puts the list away."
+picker = "none"
+
+[[step]]
+say = "Back in the practice text (SPC h T, then Enter), on the empty line under Links to notes: SPC n l, and pick Tutorial note."
+hint = "SPC h T, Enter brings the practice back. Then G (Ctrl+End with standard keys) to the last line; SPC n, then l; Enter on Tutorial note."
+text = """
+The notebook keeps notes, a journal day for each day, and diagrams, as
+files in one folder: you never choose where one goes.
+
+SPC n n   the notebook page: Enter edits, / filters, q closes
+SPC n N   a new note, from a template
+SPC n j   today's journal day
+SPC n c   capture a line into today's journal
+SPC n l   a link to a note, here; gd on a link follows it
+SPC n #   every tag    SPC n /   search every note and day
+
+Links to notes:
+[[Tutorial note]]
+"""
+
+[[step]]
+say = "SPC n c: capture a line into today's journal -- type Tried the notebook #tutorial, Enter. Then SPC n #: every tag."
+hint = "SPC n, then c; the line and Enter. SPC n j would open today's day, the line under its Log. SPC n, then #, lists the tags."
+picker = "any"
+
+[[step]]
+say = "tutorial, Enter: the notebook page, showing only what's tagged with it -- today's journal day, with your capture."
+hint = "Type tutorial to narrow the list, then Enter."
+page = "fenix.notebook/notebook"
+
+[[step]]
+say = "q closes it."
+hint = "q, on the notebook page."
+closed = "fenix.notebook/notebook"
+
+[[step]]
+say = "SPC n /: search every note and day. Type Tutorial note, Enter: what matches, to pick from."
+hint = "SPC n, then /; the words, then Enter. tag:, type: and is:todo narrow it too."
+picker = "any"
+
+[[step]]
+say = "Enter opens the one picked, or Esc puts the list away."
+hint = "Enter, or Esc."
+picker = "none"

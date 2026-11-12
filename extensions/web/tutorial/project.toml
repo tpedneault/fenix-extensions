@@ -1,0 +1,84 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor, the packages page, a task, a debug session, formatting
+# and linting on save -- filled in for JavaScript and TypeScript. See
+# "Tutorial lessons" in the repository's CONTRIBUTING.md.
+id = "web.project"
+track = "Web: JavaScript and TypeScript"
+order = 1
+title = "A JavaScript project: doctor, packages, scripts, debugging"
+about = "In a project of yours with a package.json at its top (npm init -y makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A JavaScript or TypeScript project in Fenix: what it needs, its
+packages, its scripts, its program under the debugger, and the
+formatter and ESLint as you save.
+
+SPC p h   the project doctor: each check, and a fix for what's missing
+          (f runs the fix on the row, r checks again, q closes it)
+SPC m p   the packages: vulnerable and outdated first; u upgrade, a add,
+          d remove (SPC m d checks again, SPC m i installs, SPC m s the
+          dev server, SPC m S stops it)
+SPC p t   the tasks: package.json's scripts, and install
+SPC u b   a breakpoint on the cursor's line; SPC u U a launch to start,
+          then n step over, c continue, SPC u q end
+SPC ,     the settings: editor.format_on_save, web.eslint
+
+The practice program, for a project that has nothing to run yet: put it
+in index.js, and the breakpoint on the total += line.
+
+const names = ["Ada", "Grace", "Brendan"];
+let total = 0;
+for (const name of names) {
+  total += name.length;
+}
+console.log(`${total} letters`);
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Node, the package manager, node_modules, the servers, the debugger, each checked."
+hint = "SPC p, then h. In a project with a package.json: the checks are made in one only."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix: f on the TypeScript server's runs its npm install -g. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC m p: the packages -- the vulnerable first, then the outdated."
+hint = "SPC m, then p, in the project (or SPC : and Web: packages). Without Node and its manager, s on the tutorial page skips this."
+page = "fenix.web/packages"
+
+[[step]]
+say = "u upgrades the package under the cursor, a adds one, d removes one -- each as a task. q closes the page for now."
+hint = "q, on the packages page."
+closed = "fenix.web/packages"
+
+[[step]]
+say = "SPC p t: the project's tasks, package.json's scripts."
+hint = "SPC p, then t. A package.json with no scripts has install only."
+picker = "tasks"
+
+[[step]]
+say = "Pick one -- test, or install -- and Enter: it runs in Task Output (q there closes it). Or Esc."
+hint = "Type to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "In index.js, SPC u b puts a breakpoint on the cursor's line. Then SPC u U: the launches the pack offers."
+hint = "In a .js or .ts file, not the practice text: SPC u U needs one in front. It needs js-debug -- the doctor's Debugger row installs it; without, s on the tutorial page skips this."
+picker = "any"
+
+[[step]]
+say = "Node: current file, Enter: it runs, and stops at your breakpoint. n steps over, c continues, SPC u q ends it."
+hint = "Enter on the launch; Esc puts the list away."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a script then runs the project's Biome or Prettier on it."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a script now: it's formatted when the project uses Biome or Prettier, and ESLint's problems show when it uses ESLint (web.eslint)."
+hint = "q, on the settings page."
+closed = "settings"

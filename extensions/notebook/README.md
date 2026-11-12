@@ -50,6 +50,13 @@ Ctrl+click. The `SPC` keys above are `Ctrl+K` with standard keys.
 - **Agenda** fills a journal day's agenda list (`agenda.due`), takes `SPC n t`
   (`agenda.add_task`), and opens a `[[FSW-212]]` link (`agenda.open_task`).
 
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Notebook* section: the
+page, a note from a template, a line captured into today's journal, a
+link to a note, tags and search. It makes a note called *Tutorial note*
+and a line in today's journal; `x x` on the page deletes the note after.
+
 ## Settings
 
 | Setting | What it does |

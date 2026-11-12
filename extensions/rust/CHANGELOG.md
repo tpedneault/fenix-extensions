@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- A lesson in Fenix's tutorial (`SPC h T`, its *Rust* section), in a Rust
+  project of yours: the project doctor and a fix from it, the crates
+  page, a task, a debug session stopped at a breakpoint, and rustfmt and
+  clippy on save.
+
 ## 1.1.0
 
 - `rust.packages` can be run from outside Fenix, over the control channel

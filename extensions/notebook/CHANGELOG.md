@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- A lesson in Fenix's tutorial (`SPC h T`, its *Notebook* section): the
+  notebook page, a note from a template, a line captured into today's
+  journal, a link to a note, tags and search.
+
 ## 1.2.0
 
 - `notebook.open`, `notebook.new_note`, `notebook.find`, `notebook.recent`, `notebook.journal`, `notebook.search`, `notebook.tags` can be run from outside Fenix, over the control channel

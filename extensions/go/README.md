@@ -145,6 +145,16 @@ mod init`:
 - **Go · library module**: a documented package, table-driven tests, and
   an example `go test` checks.
 
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Go* section, in a Go
+module of yours: the project doctor and a fix from it, the modules page,
+a task, a debug session stopped at a breakpoint, and goimports and the
+linter on save. Each step is checked by what's on screen -- the page or
+the picker in front -- and a step whose tool isn't installed yet is
+skipped with `s` on the tutorial page; the doctor says how to install
+it.
+
 ## Keys
 
 After `SPC m` in a Go project: `p` modules, `d` check again, `t` tidy.

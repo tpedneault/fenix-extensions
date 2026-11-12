@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- A lesson in Fenix's tutorial (`SPC h T`, its *Go* section), in a Go
+  module of yours: the project doctor and a fix from it, the modules
+  page, a task, a debug session stopped at a breakpoint, and goimports
+  and the linter on save.
+
 ## 1.1.0
 
 - `go.packages` can be run from outside Fenix, over the control channel

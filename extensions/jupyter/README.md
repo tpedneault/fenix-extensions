@@ -97,6 +97,15 @@ What a cell runs is yours: the kernel runs with your permissions, as
 Jupyter's does. Fenix's sandbox holds the extension to running Python
 (and uv) only, but not what Python then does.
 
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Jupyter notebooks*
+section: a notebook opened on its page, a cell edited beside it, and
+cells run. Its practice text is a small notebook: `:w tour.ipynb` saves
+it in the project, to open when you have none. Running a cell needs
+Python; without it, that step says what you'd see, and passes all the
+same.
+
 ## Settings
 
 | Setting | |

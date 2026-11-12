@@ -1,0 +1,88 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor, the packages page, a task, a debug session, formatting
+# and linting on save -- filled in for Go. See "Tutorial lessons" in the
+# repository's CONTRIBUTING.md.
+id = "go.project"
+track = "Go"
+order = 1
+title = "A Go project: doctor, modules, tasks, debugging"
+about = "In a Go module of yours (a go.mod at its top; go mod init makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Go module in Fenix: what it needs, its modules, its tasks, its
+program under the debugger, and goimports and the linter as you save.
+
+SPC p h   the project doctor: each check, and a fix for what's missing
+          (f runs the fix on the row, r checks again, q closes it)
+SPC m p   the modules: vulnerable and outdated first; u upgrade, a add,
+          d remove (SPC m d checks the project again, SPC m t go mod tidy)
+SPC p t   the tasks: build, run, test, vet, lint, format, tidy, vulncheck
+SPC u b   a breakpoint on the cursor's line; SPC u U a launch to start,
+          then n step over, c continue, SPC u q end
+SPC ,     the settings: editor.format_on_save, go.formatter, go.linter
+
+The practice program, for a module that has no main of its own: put it
+in main.go, and the breakpoint on the total += line.
+
+package main
+
+import "fmt"
+
+func main() {
+	names := []string{"Ada", "Grace", "Rob"}
+	total := 0
+	for _, name := range names {
+		total += len(name)
+	}
+	fmt.Println(total, "letters")
+}
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Go, the toolchain, the modules, gopls, Delve, each checked."
+hint = "SPC p, then h. In a Go module: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix: f on gopls' runs go install golang.org/x/tools/gopls@latest, and the server starts. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC m p: the modules -- the vulnerable first, then the outdated."
+hint = "SPC m, then p, in the Go module (or SPC : and Go: modules). Without Go, s on the tutorial page skips this."
+page = "fenix.go/packages"
+
+[[step]]
+say = "u upgrades the module under the cursor, a adds one, d removes one -- each as a task. q closes the page for now."
+hint = "q, on the modules page."
+closed = "fenix.go/packages"
+
+[[step]]
+say = "SPC p t: the module's tasks."
+hint = "SPC p, then t. Without Go there are none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick test and Enter: go test runs in Task Output (q there closes it). Or Esc."
+hint = "Type test to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "In main.go, SPC u b puts a breakpoint on the cursor's line. Then SPC u U: the launches Go offers."
+hint = "In a .go file, not the practice text: SPC u U needs a Go file in front. It needs Delve -- the doctor's row installs it; without, s on the tutorial page skips this."
+picker = "any"
+
+[[step]]
+say = "Go: the project's main package, Enter: Delve builds it, and it stops at your breakpoint. n steps over, c continues, SPC u q ends it."
+hint = "Enter on the launch; Esc puts the list away."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Go file then runs goimports (else gofmt) on it."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a Go file now: it's formatted, and its package is linted -- golangci-lint's problems when it's installed, else go vet's (go.linter)."
+hint = "q, on the settings page."
+closed = "settings"

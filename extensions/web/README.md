@@ -181,6 +181,16 @@ Lit or vanilla, in TypeScript); this adds:
 `.prettierrc`, `.swcrc` and the like are read as JSON; `*.pcss` and
 `*.postcss` as CSS.
 
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Web: JavaScript and
+TypeScript* section, in a project of yours with a `package.json`: the
+project doctor and a fix from it, the packages page, a task, a debug
+session stopped at a breakpoint, and the formatter and ESLint on save.
+Each step is checked by what's on screen -- the page or the picker in
+front -- and a step whose tool isn't installed yet is skipped with `s`
+on the tutorial page; the doctor says how to install it.
+
 ## Keys
 
 After `SPC m` in a project with a `package.json`: `p` packages, `d`
