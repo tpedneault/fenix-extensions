@@ -336,6 +336,12 @@ messages through the same path.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p><code>nats.open</code>, <code>nats.jetstream</code> can be run from outside Fenix, over the control channel
+(<code>fenix/runCommand</code>): their pages opened by a script or another tool, as
+the screenshots&#39; scripts do.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.2: a NATS client -- live subjects with their rates and messages, payloads pretty-printed, a subject tree, filters that become the server&#39;s subscriptions, highlight rules that notify, publish and request from a JSON buffer, messages sent again or exported as JSONL, JetStream&#39;s streams, consumers and key-value buckets, credentials in the keychain (user, token, NKey, .creds), and tools for coding agents -- storing within a memory budget and sampling under load, so a busy server never finds Fenix slow.</p></li>

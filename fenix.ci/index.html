@@ -193,6 +193,12 @@ another host than its own, the log can&#39;t be read (the browser can).</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p><code>ci.open</code> can be run from outside Fenix, over the control channel
+(<code>fenix/runCommand</code>): its page opened by a script or another tool, as
+the screenshots&#39; scripts do.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p>Jenkins: name your server and the project&#39;s job (<code>ci.jenkins_url</code>, <code>ci.jenkins_job</code>) and the branch&#39;s builds are on the modeline and the page as GitHub&#39;s runs and GitLab&#39;s pipelines are -- a multibranch pipeline&#39;s by the branch you&#39;re on, any other job&#39;s by the branch Git built. A build opens on its stages, a failed stage on its steps, and <code>Enter</code> on its part of the console; <code>r</code> builds the job again, <code>c</code> stops the build. Notifications and the agents&#39; <code>ci_failures</code> tool work as they do for the others.</p></li>

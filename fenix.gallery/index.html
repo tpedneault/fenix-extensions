@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget gallery · Fenix extensions</title>
+<meta name="description" content="Every ui-kit widget working on one page -- tables, trees, tabs, fields, lists, menus, splits, scrolled regions, styles and the mouse -- each with the code that draws it a key away: for people writing extensions">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Widget gallery</h1>
+<p class="id"><code>fenix.gallery</code></p>
+<p class="lead">Every ui-kit widget working on one page -- tables, trees, tabs, fields, lists, menus, splits, scrolled regions, styles and the mouse -- each with the code that draws it a key away: for people writing extensions</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>179 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/gallery">extensions/gallery</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Widget gallery</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/gallery-v1.0.0/fenix.gallery-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.gallery-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Nothing beyond running its own code in Fenix's sandbox: no programs, no network, no files outside its own.</p>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Every widget of <a href="https://github.com/tpedneault/fenix-extensions/blob/main/crates/ui-kit"><code>ui-kit</code></a> working on one page, for
+you writing an extension: what each looks like, how its keys and the
+mouse behave, and, a key away, the code that draws it. It&#39;s the kit&#39;s
+living documentation, and its visual regression test.</p>
+<p><code>gallery.open</code> (<code>SPC h g</code>) opens it. The sections are down the left;
+<code>[</code> and <code>]</code> go through them, or click one. Each is a widget working as
+it would in a real extension, on made-up data:</p>
+<div class="table"><table>
+<thead><tr><th>Section</th><th>What it shows</th></tr></thead>
+<tbody>
+<tr><td>Table</td><td><code>TableState</code>: 400 rows of a month&#39;s weather at twenty stations, asked for only as they&#39;re shown; fitted and fixed columns, wider than the pane, numbers on the right, cells coloured by <code>TableSource::style</code>; sorting, a selection of cells or rows, copied.</td></tr>
+<tr><td>Tree</td><td><code>TreeState</code>: a project&#39;s files, folders opened and closed, one (<code>tests/fixtures/</code>) a lazy branch read only when it&#39;s opened; what&#39;s selected beside it.</td></tr>
+<tr><td>Tabs</td><td><code>TabsState</code>: a response&#39;s parts, by Tab, Shift+Tab, a number or a click; badges; the same bar in 28 cells.</td></tr>
+<tr><td>Text field</td><td><code>TextField</code>: a name to edit, with a caret, a selection, words at a time, undo and pastes; a <code>/</code> filter narrowing a list as you type.</td></tr>
+<tr><td>List</td><td>A list is a tree of leaves: a release&#39;s checklist, rows styled, the day on the right, ticked with Enter; and its empty state.</td></tr>
+<tr><td>Popup menu</td><td><code>Canvas::popup</code>: a menu beside the focused row, which Fenix draws over the page while the page keeps the keys.</td></tr>
+<tr><td>Splits</td><td><code>Split</code>: a sidebar, an editor over two panes side by side, each saying the rectangle it got, resized as you go.</td></tr>
+<tr><td>Scrolling</td><td><code>ScrollState</code>: a build&#39;s 300 lines, only those shown drawn, a scrollbar to click and drag; <code>n</code> to the next problem.</td></tr>
+<tr><td>Styles</td><td>Every <code>Role</code> and <code>Fill</code>, underlines, the theme&#39;s palette as swatches, and <code>fit</code>, <code>fit_tail</code>, <code>slice</code> and <code>wrap</code> on a line with wide characters and a combining mark, at a width you choose.</td></tr>
+<tr><td>Mouse</td><td><code>Mouse::from(&amp;event)</code>: a pad to draw on, and each event said in words -- the button, clicks, drags, the wheel, what was held.</td></tr>
+</tbody>
+</table></div>
+<p>The strip at the page&#39;s foot has the keys of the section you&#39;re in.
+<code>c</code> opens that section&#39;s code beside the page, highlighted as Rust: its
+own source file, as built into the extension, so what you read is what
+runs.</p>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC h g</code></td><td>Open the gallery (<code>gallery.open</code>)</td></tr>
+<tr><td><code>[</code> <code>]</code></td><td>The section before, after</td></tr>
+<tr><td><code>c</code></td><td>The section&#39;s code, beside the page</td></tr>
+<tr><td><code>q</code>, <code>Esc</code></td><td>Close it</td></tr>
+</tbody>
+</table></div>
+<p>And each section&#39;s own, as its strip says: in the table <code>hjkl</code>, <code>J</code> <code>K</code>,
+<code>0</code> <code>$</code>, <code>s</code> to sort, <code>v</code> <code>V</code> to select, <code>y</code> to copy, <code>Enter</code>; in the
+tree <code>j</code> <code>k</code>, <code>l</code> <code>h</code>, <code>Enter</code>, <code>+</code> <code>-</code>; in the tabs Tab, Shift+Tab,
+<code>1</code>-<code>5</code>, <code>n</code>; in the field <code>e</code> to edit, <code>/</code> to filter, then <code>Enter</code> to
+keep, <code>Esc</code> to drop, Shift and Ctrl with the arrows, Ctrl+Z; in the
+menu <code>m</code> and <code>Enter</code>, then <code>j</code> <code>k</code> and a row&#39;s letter. These are the
+page&#39;s keys, the same with Vim keys and standard keys.</p>
+<h3 id="readme-where-to-start">Where to start</h3>
+<p>Copy the section nearest to what you want from <code>src/sections/</code>. Each
+is a <code>State</code> that renders into a <code>Rect</code> of a <code>ui_kit::Canvas</code> and
+answers a <code>KeyPress</code> and a <code>Mouse</code>, with nothing of Fenix&#39;s in it;
+<code>src/lib.rs</code> is the glue an extension needs around that: the page,
+<code>page_key</code>, <code>page_key_press</code>, <code>page_mouse</code>, <code>page_paste</code>, and the
+session (<code>page_state</code>, <code>page_restore</code>). The gallery keeps which section
+you were on and where you were in each with the session.</p>
+<h3 id="readme-settings">Settings</h3>
+<p>None.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<p>Nothing beyond its page: <code>[permissions]</code> is empty. A copy (<code>y</code> in the
+table, <em>Copy the path</em> in the menu) writes the clipboard, which needs
+no permission.</p>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/gallery dist
+cargo test --manifest-path extensions/gallery/Cargo.toml
+</code></pre>
+<p>It&#39;s built against the 1.0 extension API, as <code>ui-kit</code> is: the kit&#39;s
+conversions to the API&#39;s types are 1.0&#39;s, and the gallery&#39;s keys are
+the page&#39;s own, the same under either key scheme, so it needs nothing
+newer (no <code>key_for</code>).</p>
+<p><code>cargo test</code> checks that every section, in each state its keys put it
+in, draws only inside its rectangle at sizes from 120 by 40 down to 1
+by 1 and none; the page as text at 100 by 30 (and some at 80 by 24)
+against the snapshots in <code>tests/snapshots/</code> (<code>GALLERY_SNAPSHOTS=write cargo test</code> takes them again); each widget&#39;s keys and mouse; that the
+session keeps what it should; and that every section&#39;s file has its
+<code>// gallery:begin</code> and <code>// gallery:end</code> markers round the code <code>c</code>
+shows. The text a canvas becomes is drawn by <code>tests/support/mod.rs</code>.</p>
+<p>Not yet tried in a running Fenix: the snapshots are how it&#39;s been
+seen. The colours, the tints, the popup&#39;s box and the code&#39;s
+highlighting are Fenix&#39;s to draw, and are untested here.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>179 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/gallery-v1.0.0/fenix.gallery-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 39734d7a481412cf725dc6a32ab0a68ee185f14c4cd031de1ddfe1d6cbd02273">39734d7a48…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: every <code>ui-kit</code> widget working on one page -- a table of 400 rows sorted and selected, a tree with a folder read only when it&#39;s opened, tabs, a text field and a <code>/</code> filter, a list with its empty state, a popup menu, splits, a scrolled region, the theme&#39;s roles, tints and palette, and the mouse -- each with the code that draws it a key away (<code>c</code>), for people writing extensions.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
