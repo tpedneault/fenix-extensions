@@ -12,7 +12,7 @@ pub mod reader;
 pub mod sidebar;
 pub mod text;
 
-use fenix_extension_api::{export, host, page, surface, Command, Event, Extension, HomeSection, Key, Level, Page, PickerItem, SurfaceInput, SurfaceMark, SurfaceOptions, SurfaceScale};
+use fenix_extension_api::{export, host, page, surface, Command, Event, Extension, HomeSection, Key, KeyScheme, Level, Page, PickerItem, SurfaceInput, SurfaceMark, SurfaceOptions, SurfaceScale};
 
 use keys::Press;
 use reader::{OpenAt, Reader, Rgb};
@@ -126,6 +126,9 @@ impl reader::Host for Fenix {
             fenix_extension_api::warn!("{name}: {e}");
         }
     }
+    fn keys_for(&mut self, command: &str) -> Option<String> {
+        fenix_extension_api::key_for(command)
+    }
 }
 
 #[derive(Default)]
@@ -141,7 +144,7 @@ impl Pdf {
                 act(&mut self.reader, &mut Fenix, surface);
                 Ok(())
             }
-            None => Err("no PDF open -- SPC r f opens one".into()),
+            None => Err(format!("no PDF open -- {} opens one", reader::keys(&mut Fenix, "pdf.documents", "SPC r f"))),
         }
     }
 }
@@ -232,6 +235,10 @@ impl Extension for Pdf {
             "pdf.search" => self.reader.serve_search(&mut Fenix, call, payload),
             _ => Some(Err(format!("no service {name}"))),
         }
+    }
+
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        self.reader.keys_changed(&mut Fenix);
     }
 }
 

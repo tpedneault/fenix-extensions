@@ -94,6 +94,15 @@ pub trait Host {
     /// One of its files in `/data`.
     fn load(&mut self, name: &str) -> Option<String>;
     fn save(&mut self, name: &str, text: &str);
+    /// The keys that run `command` now, as the key scheme in use writes
+    /// them (`key-for`); none when no key does.
+    fn keys_for(&mut self, command: &str) -> Option<String>;
+}
+
+/// The keys that run `command` now -- `SPC r f`, `C-k r f` with standard
+/// keys, or yours -- else `vim`, its Vim keys.
+pub fn keys(host: &mut dyn Host, command: &str, vim: &str) -> String {
+    host.keys_for(command).unwrap_or_else(|| vim.to_string())
 }
 
 /// A place in a document: a page, and how far down it (0..1).
@@ -379,6 +388,12 @@ impl Reader {
         self.refresh_home(host);
     }
 
+    /// You switched between Vim keys and standard keys: Home's section
+    /// names the shelf's keys again.
+    pub fn keys_changed(&mut self, host: &mut dyn Host) {
+        self.activate(host);
+    }
+
     fn place_of(&self, path: &str) -> Option<&SavedPlace> {
         self.places.iter().find(|(p, _)| layout::same_path(p, path)).map(|(_, place)| place)
     }
@@ -428,7 +443,9 @@ impl Reader {
         if rows.is_empty() {
             host.home(None);
         } else {
-            host.home(Some(&HomeSection { title: "reading".into(), key: "SPC r f".into(), rows, most: HOME_ROWS as u32 }));
+            // Shown as it's given, right of the title: the shelf's keys.
+            let key = keys(host, "pdf.documents", "SPC r f");
+            host.home(Some(&HomeSection { title: "reading".into(), key, rows, most: HOME_ROWS as u32 }));
         }
     }
 
@@ -463,7 +480,8 @@ impl Reader {
         self.load(host);
         let items = self.shelf(host);
         if items.is_empty() {
-            host.say(Level::Error, "no documents yet -- add them in SPC , (reader.documents), or open a PDF and it's listed here");
+            let settings = keys(host, "settings.open", "SPC ,");
+            host.say(Level::Error, &format!("no documents yet -- add them to reader.documents on the settings page ({settings}), or open a PDF and it's listed here"));
             return;
         }
         let id = host.pick("Documents", &items);

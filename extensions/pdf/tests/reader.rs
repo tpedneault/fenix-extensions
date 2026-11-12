@@ -48,6 +48,9 @@ struct Fake {
     timers: Vec<u64>,
     data: HashMap<String, String>,
     ids: u64,
+    /// The keys that run each command, as Fenix's `key_for` gives them;
+    /// none, as for a command no key runs, unless a test says.
+    keys: HashMap<String, String>,
 }
 
 impl Fake {
@@ -199,6 +202,9 @@ impl Host for Fake {
     }
     fn save(&mut self, name: &str, text: &str) {
         self.data.insert(name.into(), text.into());
+    }
+    fn keys_for(&mut self, command: &str) -> Option<String> {
+        self.keys.get(command).cloned()
     }
 }
 
@@ -956,4 +962,33 @@ fn a_hidpi_pane_is_drawn_at_its_pixels() {
     let l = layout::layout(&[(612.0, 792.0); 10], Zoom::Percent(100), (1272.0, 800.0), 2.0, layout::PAGE_GAP);
     assert_eq!(l.pages[0].w, 1224.0, "100% is a point a point, times the scale");
     let _ = PAPER;
+}
+
+#[test]
+fn what_it_says_names_the_keys_of_the_scheme_in_use() {
+    // With Vim keys, as Fenix's key menu writes them.
+    let mut b = Bench::new();
+    b.host.keys.insert("pdf.documents".into(), "SPC r f".into());
+    b.host.keys.insert("settings.open".into(), "SPC ,".into());
+    b.reader.open_shelf(&mut b.host);
+    assert!(b.host.said("no documents yet -- add them to reader.documents on the settings page (SPC ,)"), "{:?}", b.host.said);
+    b.open("C:/refs/spec.pdf");
+    assert_eq!(b.host.home.as_ref().unwrap().key, "SPC r f");
+    // Switched to standard keys: Home's section says so at once.
+    b.host.keys.insert("pdf.documents".into(), "C-k r f".into());
+    b.host.keys.insert("settings.open".into(), "C-,".into());
+    b.reader.keys_changed(&mut b.host);
+    assert_eq!(b.host.home.as_ref().unwrap().key, "C-k r f");
+    assert_eq!(b.host.home.as_ref().unwrap().rows[0].name, "spec.pdf", "the section kept");
+    // Rebound by you, or none: yours, else its Vim keys.
+    b.host.keys.insert("pdf.documents".into(), "F7".into());
+    b.reader.keys_changed(&mut b.host);
+    assert_eq!(b.host.home.as_ref().unwrap().key, "F7");
+    b.host.keys.clear();
+    b.reader.keys_changed(&mut b.host);
+    assert_eq!(b.host.home.as_ref().unwrap().key, "SPC r f");
+    let mut empty = Bench::new();
+    empty.host.keys.insert("settings.open".into(), "C-,".into());
+    empty.reader.open_shelf(&mut empty.host);
+    assert!(empty.host.said("(C-,)"));
 }

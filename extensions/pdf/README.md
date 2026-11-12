@@ -54,7 +54,14 @@ sight, and only the strip that scrolled into view as you read on.
 `SPC m` on a PDF has them too. `pdf.documents` may run from outside Fenix
 (`fenix/runCommand`). The modeline says where you are: `PDF p. 38/212  Fit
 width  /packet 2/5`. Home's **reading** lists the PDFs read lately, with
-the page you were on.
+the page you were on. With standard keys, `SPC` is `Ctrl+K`: `Ctrl+K r f`,
+`Ctrl+K m`.
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys that run a command in the key scheme you use, and yours where you
+rebound them: Home's **reading** shows the shelf's keys (`C-k r f` with
+standard keys, `SPC r f` with Vim keys) and changes when you switch, and
+so does "no PDF open".
 
 ## Settings
 
