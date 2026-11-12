@@ -1,0 +1,13 @@
+[extension]
+id = "{{id}}"
+name = "{{name}}"
+version = "1.0.0"
+description = "Snippets for everyday editing"    # TODO(you): what they're for, and in which language
+authors = ["Your Name"]                          # TODO(you)
+license = "MIT OR Apache-2.0"
+repository = "{{repository}}"
+categories = ["snippets"]
+runtime = "none"
+
+[engine]
+fenix = ">=1.0, <2"

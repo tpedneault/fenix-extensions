@@ -1,0 +1,7 @@
+# {{name}}'s keys, after SPC m in a project or file of its context. Your
+# own keybindings.toml wins.
+
+[[local.{{folder}}]]
+keys = "d"
+label = "check the project again"
+command = "{{folder}}.doctor"

@@ -1,0 +1,56 @@
+# {{name}}: a light theme, in Fenix's theme format. Every colour here is
+# the template's own: change them, then pick the theme with SPC t p.
+# Fenix's own light themes keep body text and comments at 4.5:1 on the
+# surfaces they're drawn on, and accents at 3:1; so does this one.
+name = "{{name}}"
+tabs = "underline"
+
+[surfaces]
+bg = "#fbf9f4"
+sidebar_bg = "#fbf9f4"
+bg_modeline = "#ece8df"
+divider = "#d9d4c8"
+caret = "#2a5fa8"
+hl_line = "#f2eee5"
+selection = { color = "#2a5fa8", alpha = 0.18 }
+bracket_match = { color = "#2d7338", alpha = 0.18 }
+search_match = { color = "#8f5400", alpha = 0.22 }
+
+[text]
+fg = "#2e2c29"
+caret_text = "#2a5fa8"
+gutter_fg = "#6d675e"
+
+[modes]
+normal = "#2a5fa8"
+insert = "#2d7338"
+visual = "#8a3b8f"
+replace = "#8f5400"
+command = "#14688a"
+explorer = "#2a5fa8"
+picker = "#8a3b8f"
+text_dark = "#fbf9f4"
+
+[syntax]
+keyword = "#8a3b8f"
+string = "#2d7338"
+comment = "#6a655d"
+function = "#2a5fa8"
+type = "#8f5400"
+number = "#a0452a"
+constant = "#a0452a"
+variable = "#2e2c29"
+operator = "#14688a"
+punctuation = "#14688a"
+attribute = "#8f5400"
+
+[explorer]
+folder = "#2a5fa8"
+file = "#2e2c29"
+
+[git]
+modified = "#8f5400"
+staged = "#2d7338"
+untracked = "#2a5fa8"
+ignored = "#6d675e"
+conflicted = "#b3342a"
