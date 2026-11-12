@@ -63,6 +63,22 @@
           "permissions": {
             "editor": "read"
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.0, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/agenda-v1.1.0/fenix.agenda-1.1.0.fenixext",
+          "sha256": "535016f962fa0b3e82be82672835e3f0fd89ce9b8700d10db77c15e8f62c7bb4",
+          "size": 312227,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.0",
+          "permissions": {
+            "editor": "read"
+          }
         }
       ],
       "name": "Agenda",
