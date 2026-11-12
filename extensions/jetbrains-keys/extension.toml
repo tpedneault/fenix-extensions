@@ -10,4 +10,4 @@ categories = ["keymaps"]
 runtime = "none"
 
 [engine]
-fenix = ">=1.5.3, <2"           # a flavour's F-keys go over the debugger's after 1.5.2
+fenix = ">=1.6.0, <2"           # a flavour's F-keys go over the debugger's from 1.6; the nightlies count as 1.6.0

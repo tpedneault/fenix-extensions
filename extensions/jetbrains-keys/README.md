@@ -19,7 +19,7 @@ Switching it off on the same page brings Fenix's own keys back.
 Your own `keybindings.toml` goes over this one, so a chord you'd rather
 have as it was is a `[[keys]]` entry there.
 
-It needs a Fenix after 1.5.2: before that, the debugger kept `F9` for
+It needs Fenix 1.6 (the nightly counts): before that, the debugger kept `F9` for
 its breakpoint, whatever a keymap said.
 
 ## The keys
