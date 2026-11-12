@@ -23,6 +23,8 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
+mod screenshots;
+
 #[derive(Debug, Deserialize)]
 struct Manifest {
     extension: Info,
@@ -319,6 +321,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
         count += 1;
     }
     check_dependencies(&known, &here)?;
+    screenshots::validate_all(root)?;
     println!("{count} extension(s)");
     Ok(())
 }
@@ -467,7 +470,7 @@ fn pack(dir: &Path, dist: &Path) -> Result<(), String> {
     let name = format!("{}-{}.fenixext", m.extension.id, m.extension.version);
     let out = dist.join(&name);
     let mut zip = zip::ZipWriter::new(std::fs::File::create(&out).map_err(|e| e.to_string())?);
-    for rel in files(dir).into_iter().filter(|rel| !(code && source_only(rel))) {
+    for rel in files(dir).into_iter().filter(|rel| !(code && source_only(rel)) && !screenshots::is_script(rel)) {
         let entry = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect::<Vec<_>>().join("/");
         zip.start_file(entry, zip::write::SimpleFileOptions::default()).map_err(|e| e.to_string())?;
         zip.write_all(&std::fs::read(dir.join(&rel)).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
@@ -561,6 +564,7 @@ fn main() {
         Some("for-tag") => for_tag(&root, &arg(1)),
         Some("external-check") => external::check_command(&root, &args[1..]),
         Some("index-add-external") => external::add_command(&root, &args[1..]),
+        Some("screenshots") => screenshots::run(&root, &args[1..]),
         Some("index-add") => arg(5).parse::<u64>().map_err(|e| format!("size: {e}")).and_then(|size| index_add(Path::new(&arg(1)), Path::new(&arg(2)), &arg(3), &arg(4), size)),
         _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>]".into()),
     };

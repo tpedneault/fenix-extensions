@@ -1,0 +1,21 @@
+date,vehicle,site,payload,mass_kg,orbit,outcome,note
+2024-01-03,Falcon 9,SLC-40,Ovzon-3,1800,GTO,success,
+2024-01-09,Vulcan,SLC-41,Peregrine,1283,TLI,success,"first flight; the lander lost propellant after separation"
+2024-01-17,Kuaizhou-1A,Jiuquan,Tianmu-1 x4,320,SSO,success,
+2024-01-29,Electron,LC-1B,Four of Us,580,LEO,success,
+2024-02-08,PSLV,Sriharikota,INSAT-3DS,2274,GTO,success,
+2024-02-14,Falcon 9,LC-39A,USSF-124,2000,LEO,success,
+2024-02-17,GSLV,Sriharikota,INSAT-3DS,2275,GTO,success,
+2024-02-29,Falcon 9,SLC-40,Merah Putih 2,4000,GTO,success,
+2024-03-03,Soyuz-2.1b,Plesetsk,Kosmos 2575,,LEO,success,
+2024-03-14,Starship,Starbase,IFT-3,,suborbital,partial,"reached space; lost on re-entry"
+2024-03-21,H3,Tanegashima,CE-SAT-1E,500,SSO,success,
+2024-04-07,Ariane 6,ELA-4,test,,LEO,planned,
+2024-05-03,Long March 5,Wenchang,Chang'e 6,8350,TLI,success,"sample return from the far side"
+2024-06-06,Starship,Starbase,IFT-4,,suborbital,success,
+2024-07-09,Ariane 6,ELA-4,YPSat,1600,LEO,partial,"the APU stopped before the last burn"
+2024-07-12,Falcon 9,SLC-4E,Starlink 9-3,17400,LEO,failure,"second stage LOX leak"
+2024-08-16,Falcon 9,SLC-4E,Transporter-11,4300,SSO,success,
+2024-09-28,Falcon 9,SLC-40,Crew-9,13000,LEO,success,
+2024-10-13,Starship,Starbase,IFT-5,,suborbital,success,"booster caught by the tower"
+2024-10-14,Falcon Heavy,LC-39A,Europa Clipper,6065,heliocentric,success,

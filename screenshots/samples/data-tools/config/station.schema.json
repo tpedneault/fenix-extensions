@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ground station",
+  "type": "object",
+  "required": ["name", "antennas", "passes"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string" },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lon": { "type": "number", "minimum": -180, "maximum": 180 },
+        "alt_m": { "type": "number" }
+      }
+    },
+    "antennas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "band"],
+        "properties": {
+          "id": { "type": "string" },
+          "band": { "enum": ["S", "X", "Ka", "UHF"] },
+          "diameter_m": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    },
+    "passes": {
+      "type": "object",
+      "properties": {
+        "min_elevation_deg": { "type": "number", "minimum": 0, "maximum": 90 },
+        "lookahead_h": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

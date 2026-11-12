@@ -1,0 +1,12 @@
+{"ts": "2024-03-01T12:04:00.000Z", "level": "info", "target": "gs::pass", "msg": "pass scheduled", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:04:09.211Z", "level": "info", "target": "gs::uplink", "msg": "uplink window opened", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:04:18.422Z", "level": "debug", "target": "gs::pass", "msg": "command queued", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:04:27.633Z", "level": "warn", "target": "gs::uplink", "msg": "command retry", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:04:36.844Z", "level": "info", "target": "gs::pass", "msg": "command acknowledged", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:04:45.055Z", "level": "error", "target": "gs::uplink", "msg": "command rejected: checksum", "sat": "SAT-7", "cmd": "TC-17", "crc": "0x3a91"}
+{"ts": "2024-03-01T12:05:54.266Z", "level": "info", "target": "gs::pass", "msg": "telemetry frame stored", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:05:03.477Z", "level": "info", "target": "gs::uplink", "msg": "pass scheduled", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:05:12.688Z", "level": "debug", "target": "gs::pass", "msg": "queue depth", "sat": "SAT-7", "depth": 12}
+{"ts": "2024-03-01T12:05:21.899Z", "level": "info", "target": "gs::uplink", "msg": "uplink window closed", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:05:30.110Z", "level": "warn", "target": "gs::pass", "msg": "clock drift above 2 ms", "sat": "SAT-7"}
+{"ts": "2024-03-01T12:05:39.321Z", "level": "info", "target": "gs::uplink", "msg": "pass complete", "sat": "SAT-7"}

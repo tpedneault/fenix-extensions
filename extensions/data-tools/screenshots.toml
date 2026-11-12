@@ -1,0 +1,17 @@
+# The store's picture of Data tools, retaken with
+# `cargo xtask screenshots data-tools`; the format is
+# screenshots/README.md's. A JSON file checked against the schema it
+# names, a local file beside it: nothing is fetched.
+
+[[shot]]
+file = "schema-checks.png"
+note = "A station's config checked against its JSON Schema: a band it doesn't allow and a number written as text, underlined"
+project = "data-tools"
+open = ["config/station.json:8"]
+settle_ms = 1500
+
+[shot.wait]
+file = "config/station.json"
+diagnostics = 1
+idle = true
+timeout_s = 45

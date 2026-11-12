@@ -143,6 +143,13 @@ fenix = ">=1.0, <2"
 at most each) is packed with the rest and shown on the extension's
 details.
 
+Those pictures can be retaken unattended: an extension's
+`screenshots.toml` says what to open and run for each, and
+`cargo xtask screenshots [extension]` starts Fenix with a clean profile,
+drives it over its control channel and captures the window.
+[`screenshots/README.md`](screenshots/README.md) has the format, the house
+style, and what's known not to work.
+
 ```text
 cargo xtask validate                  # or: cargo xtask validate index.json
 cargo xtask pack extensions/my-themes dist

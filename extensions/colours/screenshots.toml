@@ -1,0 +1,16 @@
+# The store's picture of Colours, retaken with
+# `cargo xtask screenshots colours`; the format is screenshots/README.md's.
+# Colours starts with Fenix and puts a swatch beside every colour in the
+# file in focus: opening a stylesheet is all it takes.
+
+[[shot]]
+file = "swatches.png"
+note = "A stylesheet's colours -- hex, rgb(), hsl(), oklch(), names, see-through ones -- each with its swatch"
+project = "colours"
+open = ["web/theme.css:3"]
+settle_ms = 2000
+
+[shot.wait]
+file = "web/theme.css"
+idle = true
+timeout_s = 30

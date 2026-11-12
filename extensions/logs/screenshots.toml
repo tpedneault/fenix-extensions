@@ -1,0 +1,28 @@
+# The store's pictures of the Log viewer, retaken with
+# `cargo xtask screenshots logs`; the format is screenshots/README.md's.
+# A .log opens in the viewer however it's opened: fenix/open is all it
+# takes (logs.open isn't external).
+
+[[shot]]
+file = "server-log.png"
+note = "A log4j log: levels coloured, a stack trace folded into its entry, the counts and the timeline above"
+project = "logs"
+open = ["logs/server.log"]
+settle_ms = 1500
+
+[shot.wait]
+project = true
+idle = true
+timeout_s = 30
+
+[[shot]]
+file = "json-lines.png"
+note = "JSON lines read as entries: each one's level, time and fields"
+project = "logs"
+open = ["logs/events.log"]
+settle_ms = 1500
+
+[shot.wait]
+project = true
+idle = true
+timeout_s = 30

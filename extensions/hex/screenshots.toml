@@ -1,0 +1,16 @@
+# The store's picture of the hex view, retaken with
+# `cargo xtask screenshots hex`; the format is screenshots/README.md's.
+# A .bin opens in the hex view however it's opened (hex.open, for any
+# other file, isn't external).
+
+[[shot]]
+file = "hex-dump.png"
+note = "A made-up boot image: offsets, bytes and their text, the cursor's bytes read as numbers"
+project = "hex"
+open = ["firmware/boot.bin"]
+settle_ms = 1500
+
+[shot.wait]
+project = true
+idle = true
+timeout_s = 30
