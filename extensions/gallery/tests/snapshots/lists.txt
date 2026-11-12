@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ List  A list is a tree of leaves: styled, detailed, or empty
+  Tree       │
+  Tabs       │ Release 0.5.0 · 9 of 12 to do
+  Text field │
+› List       │ ✓ Bump the version in Cargo.toml and extension.toml       Mon 16
+  Popup menu │ ✓ Write the CHANGELOG entry                               Mon 16
+  Splits     │ ✓ Run cargo xtask validate                                Tue 17
+  Scrolling  │ ○ Fix the clippy warning in tides/harmonics.rs            Tue 17
+  Styles     │ ○ Retake the screenshots                                  Wed 18
+  Mouse      │ ○ Check the page at 80 columns                            Wed 18
+             │ ○ Try it on standard keys                                 Wed 18
+             │ ○ Review the permissions comment                          Thu 19
+             │ ○ Pack it and note the size                               Thu 19
+             │ ○ Install the package in a clean profile                  Thu 19
+             │ ○ Tag harbour-tides-v0.5.0                                Fri 20
+             │ ○ Tell the mailing list                                   Fri 20
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │ j k J K g G move the same way in tables, trees, lists and scrolled regions
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+j k move  J K a screen  g G first, last  Enter done, not done  x empty, full  [ ] section
+c its code
+----
+focus: line 6, cells 15..79
+typing: false

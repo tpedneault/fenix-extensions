@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.containers"
 name = "Containers"
-version = "1.0.0"
+version = "1.1.0"
 description = "Docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -25,10 +25,12 @@ filesystem = "project-read"
 [[contributes.commands]]
 id = "containers.open"
 title = "Containers: open"
+external = true
 
 [[contributes.commands]]
 id = "containers.performance"
 title = "Containers: performance"
+external = true
 
 [[contributes.commands]]
 id = "containers.build"

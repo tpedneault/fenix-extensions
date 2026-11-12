@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.protobuf"
 name = "Protobuf & gRPC"
-version = "1.0.0"
+version = "1.1.0"
 description = "Protocol Buffers and gRPC: the grammar, buf's language server, buf format, buf lint on save, buf breaking against the default branch, buf generate and buf build as tasks, the project's checks with fixes that install buf, protoc and grpcurl, snippets, and a gRPC client -- a server's services by reflection or the project's protos, a body made from the method's message, server streams as they come, status, trailers, timing and history"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -57,6 +57,7 @@ title = "Protobuf: breaking changes against the default branch (buf breaking)"
 [[contributes.commands]]
 id = "protobuf.client"
 title = "Protobuf: the gRPC client -- a server's services, a call, its answer"
+external = true
 
 [[contributes.commands]]
 id = "protobuf.invoke"

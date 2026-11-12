@@ -1,0 +1,10 @@
+# {{name}}'s keys, under SPC o. Your own keybindings.toml wins.
+#
+# TODO(you): SPC o is "open something"; other extensions put theirs there
+# too (Pomodoro has SPC o p), so choose a letter nobody you use has. SPC h ?
+# lists the keys in use.
+
+[[leader]]
+keys = "SPC o w"
+label = "{{name}}"
+command = "{{folder}}.open"

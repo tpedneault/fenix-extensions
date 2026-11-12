@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Mouse  Mouse::from(&event): clicks, drags, the wheel, mods
+  Tree       │
+  Tabs       │ The pad · brush ●                          Events, the last first
+  Text field │  ────────────────────────────────────────
+  List       │ │ click or drag here                     │ Nothing yet
+  Popup menu │ │                                        │
+  Splits     │ │                                        │
+  Scrolling  │ │                                        │
+  Styles     │ │                                        │
+› Mouse      │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │ │                                        │
+             │  ────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+click drag draw  right click rub out  wheel the brush  x clear  [ ] section  c its code
+----
+focus: none
+typing: false

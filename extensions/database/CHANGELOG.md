@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- `database.open`, `database.history` can be run from outside Fenix, over the control channel
+  (`fenix/runCommand`): their pages opened by a script or another tool, as
+  the screenshots' scripts do.
+
 ## 1.2.0
 
 For Fenix 1.5: with standard keys, Ctrl+Enter in a .sql buffer runs the

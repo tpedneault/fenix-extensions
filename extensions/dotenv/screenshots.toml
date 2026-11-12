@@ -1,0 +1,16 @@
+# The store's picture of Env files, retaken with
+# `cargo xtask screenshots dotenv`; the format is screenshots/README.md's.
+# Its page opens from a command, which the control channel runs since
+# 1.1.0 marked it external. Every value in the sample is made up.
+
+[[shot]]
+file = "1-side-by-side.png"
+note = "Every env file in the project, keys side by side, with what .env.example has and the others lack"
+project = "dotenv"
+commands = ["dotenv.page"]
+settle_ms = 2000
+
+[shot.wait]
+no_file = true
+idle = true
+timeout_s = 30

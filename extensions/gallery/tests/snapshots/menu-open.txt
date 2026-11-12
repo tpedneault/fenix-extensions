@@ -1,0 +1,39 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Popup menu  Canvas::popup: Fenix draws it, the page has the keys
+  Tree       │
+  Tabs       │ Cargo.toml                             612 B
+  Text field │ README.md                             3.8 KB
+  List       │ CHANGELOG.md                          1.2 KB
+› Popup menu │ src/main.rs                           2.1 KB
+  Splits     │ src/cli.rs                            4.3 KB
+  Scrolling  │ src/tides/mod.rs                       905 B
+  Styles     │ src/tides/harmonics.rs               14.5 KB
+  Mouse      │ src/tides/stations.rs                 7.1 KB
+             │ src/tides/predict.rs                  9.7 KB
+             │ tests/harmonics.rs                    5.3 KB
+             │ tests/predict.rs                      2.9 KB
+             │ docs/constituents.md                 11.2 KB
+             │ docs/datums.md                        2.6 KB
+             │ benches/year.rs                       1.8 KB
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+j k move  Enter pick  o b y r d pick that  m close it  [ ] section  c its code
+----
+focus: line 6, cells 15..59
+popup: beside line 6, from cell 29
+  › Open          o
+    Open beside   b
+    Copy the path y
+    Rename…       r
+    Delete        d
+typing: false

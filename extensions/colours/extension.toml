@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.colours"
 name = "Colours"
-version = "1.0.0"
+version = "1.1.0"
 description = "Colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), CSS names, a theme's), a picker that writes it back as it was written, conversions between hex, RGB, HSL and OKLCH, a WCAG contrast checker, and the project's palette"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -60,6 +60,7 @@ title = "Colours: check the contrast of the colour under the cursor (WCAG 2.x, A
 [[contributes.commands]]
 id = "colours.palette"
 title = "Colours: the project's palette -- every colour its files use, by hue and near-duplicates"
+external = true
 
 [[contributes.commands]]
 id = "colours.toggle_swatches"

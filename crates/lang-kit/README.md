@@ -81,7 +81,12 @@ the hosts it downloads from, `filesystem = "project-read"`, `editor =
 
 A pack tests its own wiring with the host lang-kit's tests use, the
 `mock` feature's `host::mock::{Mock, Shared}`: every call written down as
-a line, programs found from a map.
+a line, programs found from a map. Or, better, with the
+[test kit](../test-kit/README.md)'s `Fake` (its `lang-kit` feature), which
+is a `Host` writing the same lines, and answers too -- a process's
+output, a download -- sees the pack's own calls to the API, drives it as
+Fenix does and reads its pages as text. Zig's tests use it. lang-kit's own
+tests keep the mock, since the test kit depends on lang-kit.
 
 ```toml
 [dev-dependencies]

@@ -1,0 +1,27 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────
+  Table      │ Text field  TextField: a caret, selections, undo, a / filter
+  Tree       │
+  Tabs       │ Station name  Brest harbour gauge▏
+› Text field │               caret at 19 · 19 chars
+  List       │
+  Popup menu │ 36 elements: / filters them
+  Splits     │
+  Scrolling  │ Hydrogen                      H   1┃
+  Styles     │ Helium                        He  2┃
+  Mouse      │ Lithium                       Li  3┃
+             │ Beryllium                     Be  4┃
+             │ Boron                         B   5│
+             │ Carbon                        C   6│
+             │ Nitrogen                      N   7│
+             │ Oxygen                        O   8│
+             │ Fluorine                      F   9│
+             │ Neon                          Ne 10│
+             │ Sodium                        Na 11│
+             │ Magnesium                     Mg 12│
+────────────────────────────────────────────────────────────────────────────────
+
+Enter keep it  Esc put it back  S-←→ select  C-←→ a word  C-z undo  C-a all
+----
+focus: line 9, cells 15..50
+typing: true

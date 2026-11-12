@@ -1,0 +1,27 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────
+› Table      │ Table  TableState: 400 rows asked for as shown; sort, select
+  Tree       │
+  Tabs       │ 400 observations · row 1 of 400 · columns 1 to 6 of 7
+  Text field │
+  List       │ Station       Date        High °C  Low °C  Rain mm  Wind km/h
+  Popup menu │ ───────────────────────────────────────────────────────────────
+  Splits     │ Tromsø        2026-03-01      2.7    -3.5     11.7         35  ┃
+  Scrolling  │ Reykjavík     2026-03-01      4.4    -2.1      0.0         28  │
+  Styles     │ Hobart        2026-03-01     16.4     7.9      3.1         16  │
+  Mouse      │ 札幌 Sapporo  2026-03-01      2.2    -5.4      0.9         10  │
+             │ Ushuaia       2026-03-01     14.8     7.2      0.5         38  │
+             │ Valparaíso    2026-03-01     18.9    10.2      0.0         17  │
+             │ Marrakesh     2026-03-01     24.0     9.5      2.7          7  │
+             │ Tórshavn      2026-03-01      6.7     1.3      0.0         48  │
+             │ Darwin        2026-03-01     29.7    21.6      0.0         10  │
+             │ Halifax       2026-03-01     -0.2    -9.7      8.6         11  │
+             │ Kraków        2026-03-01      7.7    -2.5      3.9          9  │
+             │ Nairobi       2026-03-01     27.2    15.7      0.0          7  │
+────────────────────────────────────────────────────────────────────────────────
+
+hjkl move  J K a screen  0 $ first, last column  s sort  v V select  y copy
+Enter the row  [ ] section  c its code
+----
+focus: line 8, cells 15..78
+typing: false

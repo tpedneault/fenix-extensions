@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Splits  Split: a sidebar, one over the other, cells or percent
+  Tree       │
+  Tabs       │  Sidebar   Editor
+  Text field │  10×22 at… 74×11 at 25,4
+  List       │
+  Popup menu │  sidebar(… vertical(Percent(50))
+› Splits     │
+  Scrolling  │
+  Styles     │
+  Mouse      │
+             │
+             │
+             │
+             │            Output                               Problems
+             │            37×11 at 25,15                       37×11 at 62,15
+             │
+             │            horizontal(Percent(50)).min(8)
+             │
+             │
+             │
+             │
+             │
+             │
+             │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+< > the sidebar narrower, wider  + - the top taller, shorter  d dividers  r as they were
+[ ] section  c its code
+----
+focus: none
+typing: false

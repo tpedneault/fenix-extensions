@@ -1,0 +1,13 @@
+[extension]
+id = "{{id}}"
+name = "{{name}}"
+version = "1.0.0"
+description = "A light theme for Fenix"    # TODO(you): a line on what it is, not how good it is
+authors = ["Your Name"]                    # TODO(you)
+license = "MIT OR Apache-2.0"
+repository = "{{repository}}"
+categories = ["themes"]
+runtime = "none"
+
+[engine]
+fenix = ">=1.0, <2"

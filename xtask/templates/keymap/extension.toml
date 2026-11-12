@@ -1,0 +1,13 @@
+[extension]
+id = "{{id}}"
+name = "{{name}}"
+version = "1.0.0"
+description = "A few shortcuts over Fenix's standard keys"    # TODO(you): whose keys, and what it changes
+authors = ["Your Name"]                                       # TODO(you)
+license = "MIT OR Apache-2.0"
+repository = "{{repository}}"
+categories = ["keymaps"]
+runtime = "none"
+
+[engine]
+fenix = ">=1.5, <2"            # [[keys]] in an extension's keymaps

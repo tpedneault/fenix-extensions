@@ -446,6 +446,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fenix-test-kit"
+version = "1.0.0"
+dependencies = [
+ "fenix-extension-api",
+ "fenix-lang-kit",
+ "unicode-width",
+]
+
+[[package]]
 name = "fenix-ui-kit"
 version = "1.0.0"
 dependencies = [
@@ -460,6 +469,7 @@ dependencies = [
  "fenix-extension-api",
  "fenix-lang-kit",
  "fenix-snippets",
+ "fenix-test-kit",
  "serde",
  "toml",
  "tree-sitter",

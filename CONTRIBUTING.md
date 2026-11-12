@@ -16,6 +16,7 @@ to the store.
 - [What every extension carries](#what-every-extension-carries)
 - [Versions](#versions)
 - [Permissions](#permissions)
+- [Starting one](#starting-one)
 - [Building and checking](#building-and-checking)
 - [Screenshots](#screenshots)
 - [Tutorial lessons](#tutorial-lessons)
@@ -24,11 +25,12 @@ to the store.
 - [Reporting a security problem](#reporting-a-security-problem)
 - [Licence](#licence)
 
-Coming, and not here yet: `cargo xtask new` to start an extension from
-a template, `cargo xtask install` to pack and install in one step, a
-test kit, and a widget gallery
-([milestone 2](plans/roadmap.md#milestone-2-author-tooling)). Until
-then, copy the nearest extension here and change it.
+Start from a template: `cargo xtask new <kind> <name>`
+([Starting one](#starting-one)). For a page, the
+[widget gallery](extensions/gallery) (`gallery.open`, `SPC h g`) has
+every `ui-kit` widget working, each with the code that draws it a key
+away: copy the section nearest to what you want. To test one without
+Fenix, the [test kit](crates/test-kit/README.md).
 
 ## Two ways in
 
@@ -149,10 +151,16 @@ says so and the Fenix it's for: "The first release, for Fenix 1.0:
 on the extension's details.
 
 **Tests**, where it has code: unit tests in the crate, run on your
-machine by `cargo test`. Keep the logic -- parsing, layout, what a key
-does -- in functions that don't call the host, so they can be tested
-there. A language pack fakes the host with `lang-kit`'s `mock` feature
-(see its [README](crates/lang-kit/README.md)). Fixtures go in `tests/`.
+machine by `cargo test`. Natively the host's calls panic, so keep the
+logic -- parsing, layout, what a key does -- in functions that don't
+call the host, and test the rest on the
+[test kit](crates/test-kit/README.md): `fenix_test_kit::api` in place of
+the API under `#[cfg(test)]`, a fake host that writes down what it was
+asked and answers as Fenix would, a harness for commands, keys and
+events, and pages as text to snapshot. A language pack gives the same
+fake to its `lang-kit` kit. [Regex](extensions/regex/src/driven.rs) and
+[Zig](extensions/zig/src/lib.rs) are the examples. Fixtures and
+snapshots go in `tests/`.
 
 **`validate` also checks** a theme has a `name`; a snippet has its
 `# key:`, its `# --` line and a body; screenshots are PNG, JPEG, GIF or
@@ -280,6 +288,55 @@ checks it against the code.
       narrow as the rest.
 - [ ] An agent tool's `class` matches what it does.
 
+## Starting one
+
+```text
+cargo xtask new <kind> <name | publisher.name> [--name "Display name"]
+```
+
+`<kind>` is `theme`, `keymap`, `snippets`, `language-pack` or `tool`,
+and the name is the folder: `cargo xtask new tool word-count` writes
+`extensions/word-count/`, as `fenix.word-count`. What it writes is the smallest working
+extension of the kind -- the same files [What every extension
+carries](#what-every-extension-carries) lists, a README with its **What it
+may do**, a CHANGELOG for 1.0.0, and the narrowest permissions the kind
+needs -- and it passes `cargo xtask validate`, packs, and, for the two
+kinds with code, builds, tests and lints as it is:
+
+| Kind | What it starts you with |
+|---|---|
+| `theme` | A light theme in Fenix's theme format, its colours kept at a readable contrast |
+| `keymap` | A flavour over standard keys: three `[[keys]]`, as [JetBrains keys](extensions/jetbrains-keys) has them |
+| `snippets` | Two snippets for every language, as [Rust snippets](extensions/rust-snippets) has its own |
+| `language-pack` | A pack on lang-kit: a language file, a doctor check, tasks, a snippet, tests, and a placeholder tool, `example-tool`, that it installs nothing for |
+| `tool` | A command, a canvas page built with `ui-kit`, a setting, a key under `SPC o`, tests |
+
+Where something is yours to say -- the author, the description, the tool
+a language pack is about -- the file has a `TODO(you)` note saying what
+goes there; search the folder for them. A code kind's `Cargo.lock` is
+committed with it, so `--locked` holds from the start.
+
+- **The id.** A bare name is this repository's: `fenix.<name>`
+  ([Publisher ids](#publisher-ids)), as everything under `extensions/`
+  is. `publisher.name`, one dot, is one of your own, for a package you
+  build and host: `new` says so when it finishes, and what to move.
+- **Refused**, with nothing written: an id that isn't `publisher.name`
+  (the name is lower-case letters, digits and `-`, starting with a
+  letter), a kind it doesn't have, a folder or an id that's already taken.
+
+To try it in Fenix:
+
+```text
+cargo xtask install extensions/<name>             # packs it into a temporary folder, then: fenix --install-extension <the .fenixext>
+cargo xtask install extensions/<name> --watch     # and again each time a file under it changes; Ctrl+C stops
+```
+
+Fenix is `$FENIX` if it's set, else `fenix` on the `PATH`, else what
+`--fenix <path>` says; it works the same on Windows and Linux. `--watch`
+polls the folder's files twice a second, ignoring `target/`, `dist/`
+and the `extension.wasm` a build makes, and installs once things have been
+still for a moment. It's the old `package.ps1 -Install`, in one command.
+
 ## Building and checking
 
 You need Rust stable with Clippy, and the WebAssembly target, once:
@@ -316,8 +373,11 @@ Then try it in Fenix (Fenix's
 [Starting one](https://github.com/tpedneault/fenix/blob/master/docs/WRITING_EXTENSIONS.md#starting-one)):
 
 ```text
-fenix --install-extension dist/fenix.<name>-<version>.fenixext
+cargo xtask install extensions/<name>
 ```
+
+which is `pack` and then `fenix --install-extension` on the package
+(`dist/fenix.<name>-<version>.fenixext` does the same by hand).
 
 A running Fenix notices within a few seconds (themes and languages wait
 for `SPC q r`); `SPC h l` shows what it logs, and why it stopped if it
@@ -412,10 +472,14 @@ extensions depend on by path
 
 - [`ui-kit`](crates/ui-kit/README.md): widgets for canvas pages --
   tables, trees, tabs, text fields, splits, scrolled regions -- and
-  their keys and mouse. Use it rather than laying out your own.
+  their keys and mouse. Use it rather than laying out your own; the
+  [widget gallery](extensions/gallery) shows each one working.
 - [`lang-kit`](crates/lang-kit/README.md): what language packs share --
   the packages page, doctor checks, tasks, installing a server, a
   formatter and a linter -- and a fake host to test them with.
+- [`test-kit`](crates/test-kit/README.md): testing an extension without
+  Fenix -- a fake host, a harness, pages as text and snapshots. A
+  dev-dependency: nothing of it is packed.
 - `forge` (GitHub and GitLab), `jira`, `mib`, `ccsds`, `nats`,
   `diagram`: the code two extensions share, or an extension and its
   agent tools.

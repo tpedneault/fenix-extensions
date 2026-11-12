@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.dotnet"
 name = "C# and .NET"
-version = "1.0.0"
+version = "1.1.0"
 description = "C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution's tasks, the project's checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new's projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -46,6 +46,7 @@ languages = ["csharp"]
 [[contributes.commands]]
 id = "dotnet.packages"
 title = ".NET: packages -- outdated and vulnerable, upgrade, add, remove"
+external = true
 
 [[contributes.commands]]
 id = "dotnet.doctor"

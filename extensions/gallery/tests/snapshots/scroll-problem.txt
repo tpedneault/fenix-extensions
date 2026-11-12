@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Scrolling  ScrollState: only the lines shown are drawn
+  Tree       │
+  Tabs       │ cargo build, 6 runs · lines 80 to 100 of 300
+  Text field │
+  List       │   80 [09:15:19] warning: unused variable: `phase` --> src/tides/harmonics.rs:88:9  │
+  Popup menu │   81 [09:15:20] warning: field `datum` is never read --> src/tides/stations.rs:41:5│
+  Splits     │   82 [09:15:21] error[E0308]: mismatched types --> src/tides/predict.rs:132:24: ex…│
+› Scrolling  │   83 [09:15:22] error: could not compile `harbour-tides` (bin) due to 1 previous e…│
+  Styles     │   84 [09:15:23]                                                                    │
+  Mouse      │   85 [09:15:24] cargo build --release   (run 4 of 6)                               ┃
+             │   86 [09:15:25]    Compiling proc-macro2 v1.0.95                                   │
+             │   87 [09:15:26]    Compiling unicode-ident v1.0.18                                 │
+             │   88 [09:15:27]    Compiling libc v0.2.172                                         │
+             │   89 [09:15:28]    Compiling cfg-if v1.0.0                                         │
+             │   90 [09:15:29]    Compiling autocfg v1.4.0                                        │
+             │   91 [09:15:30]    Compiling serde v1.0.219                                        │
+             │   92 [09:15:31]    Compiling quote v1.0.40                                         │
+             │   93 [09:15:32]    Compiling syn v2.0.101                                          │
+             │   94 [09:15:33]    Compiling memchr v2.7.4                                         │
+             │   95 [09:15:34]    Compiling itoa v1.0.15                                          │
+             │   96 [09:15:35]    Compiling ryu v1.0.20                                           │
+             │   97 [09:15:36]    Compiling serde_json v1.0.140                                   │
+             │   98 [09:15:37]    Compiling num-traits v0.2.19                                    │
+             │   99 [09:15:38]    Compiling chrono v0.4.41                                        │
+             │  100 [09:15:39]    Compiling clap_lex v0.7.4                                       │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Line 80: [09:15:19] warning: unused variable: `phase` --> src/tides/harmonics.rs:88:9
+j k a line  J K PgUp PgDn a page  g G top, bottom  n the next problem  [ ] section  c its code
+----
+focus: none
+typing: false

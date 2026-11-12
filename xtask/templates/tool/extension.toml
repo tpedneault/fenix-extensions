@@ -1,0 +1,31 @@
+[extension]
+id = "{{id}}"
+name = "{{name}}"
+version = "1.0.0"
+description = "A page that counts the words in what you type"    # TODO(you): what it does, not how good it is
+authors = ["Your Name"]                                          # TODO(you)
+license = "MIT OR Apache-2.0"
+repository = "{{repository}}"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.0, <2"
+api = "1.0"
+
+# Its command loads it. It asks for no permissions: the page reads what
+# you type into it and its own setting, nothing else. When it needs
+# more, add a [permissions] table here with a comment on each line, and a
+# line in the README's "What it may do" for each.
+
+[[contributes.commands]]
+id = "{{folder}}.open"
+title = "{{name}}: open the page"
+external = true
+
+[[contributes.settings]]
+key = "{{folder}}.words_per_minute"
+kind = "int"
+label = "Reading speed"
+description = "How many words a minute you read, for the reading time the page shows."
+default = "200"

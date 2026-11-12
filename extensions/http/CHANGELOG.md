@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- `http.open`, `http.history` can be run from outside Fenix, over the control channel
+  (`fenix/runCommand`): their pages opened by a script or another tool, as
+  the screenshots' scripts do.
+
 ## 1.1.0
 
 - For Fenix 1.5: with standard keys, Ctrl+Enter in a .http file sends the

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.python"
 name = "Python"
-version = "1.0.0"
+version = "1.1.0"
 description = "Python: basedpyright with ruff's server beside it, debugging with debugpy (the project's scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -50,6 +50,7 @@ languages = ["python"]
 [[contributes.commands]]
 id = "python.packages"
 title = "Python: packages -- outdated and vulnerable, upgrade, add, remove"
+external = true
 
 [[contributes.commands]]
 id = "python.doctor"

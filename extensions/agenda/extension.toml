@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.agenda"
 name = "Agenda"
-version = "1.0.0"
+version = "1.1.0"
 description = "Tasks on a board, a clock for your time, and a week's timesheet -- linked to Jira issues when Jira is there"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -32,18 +32,22 @@ events = ["active"]
 [[contributes.commands]]
 id = "agenda.open"
 title = "Agenda: open where it was left"
+external = true
 
 [[contributes.commands]]
 id = "agenda.board"
 title = "Agenda: board"
+external = true
 
 [[contributes.commands]]
 id = "agenda.list"
 title = "Agenda: list"
+external = true
 
 [[contributes.commands]]
 id = "agenda.report"
 title = "Agenda: this week's time"
+external = true
 
 [[contributes.commands]]
 id = "agenda.new_task"
@@ -56,6 +60,7 @@ title = "Agenda: a task about the selection or line here"
 [[contributes.commands]]
 id = "agenda.find"
 title = "Agenda: find a task"
+external = true
 
 [[contributes.commands]]
 id = "agenda.toggle_clock"

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.notebook"
 name = "Notebook"
-version = "1.1.0"
+version = "1.2.0"
 description = "Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -44,10 +44,12 @@ languages = ["markdown", "mermaid"]
 [[contributes.commands]]
 id = "notebook.open"
 title = "Notebook: every note, journal day and diagram"
+external = true
 
 [[contributes.commands]]
 id = "notebook.new_note"
 title = "Notebook: a new note, from a template"
+external = true
 
 [[contributes.commands]]
 id = "notebook.new_diagram"
@@ -56,14 +58,17 @@ title = "Notebook: a new Mermaid diagram"
 [[contributes.commands]]
 id = "notebook.find"
 title = "Notebook: find a note or diagram by name"
+external = true
 
 [[contributes.commands]]
 id = "notebook.recent"
 title = "Notebook: reopen the note or diagram you touched last"
+external = true
 
 [[contributes.commands]]
 id = "notebook.journal"
 title = "Notebook: today's journal day"
+external = true
 
 [[contributes.commands]]
 id = "notebook.capture"
@@ -72,10 +77,12 @@ title = "Notebook: capture a line into the journal or the Inbox"
 [[contributes.commands]]
 id = "notebook.search"
 title = "Notebook: search every note and diagram"
+external = true
 
 [[contributes.commands]]
 id = "notebook.tags"
 title = "Notebook: every tag"
+external = true
 
 [[contributes.commands]]
 id = "notebook.project"

@@ -58,6 +58,10 @@ pub fn fit_tail(s: &str, max: usize) -> String {
         kept.push(c);
         w += cw;
     }
+    // Marks whose letter was cut off go with it.
+    while kept.last().is_some_and(|&c| char_width(c) == 0) {
+        kept.pop();
+    }
     std::iter::once('…').chain(kept.into_iter().rev()).collect()
 }
 
@@ -67,12 +71,21 @@ pub fn slice(s: &str, from: usize, w: usize) -> String {
     let mut out = String::new();
     let mut col = 0;
     let end = from + w;
+    // Whether the last letter is in the slice whole: its marks go with it.
+    let mut kept = false;
     for c in s.chars() {
         let cw = char_width(c);
+        if cw == 0 {
+            if kept {
+                out.push(c);
+            }
+            continue;
+        }
         if col >= end {
             break;
         }
-        if col >= from && col + cw <= end {
+        kept = col >= from && col + cw <= end;
+        if kept {
             out.push(c);
         } else if col + cw > from {
             // Cut by an edge: what of it shows is blank.
@@ -154,6 +167,17 @@ mod tests {
         assert_eq!(slice("abcdef", 2, 3), "cde");
         assert_eq!(slice("日本語", 1, 4), " 本 ");
         assert_eq!(slice("ab", 5, 3), "");
+    }
+
+    #[test]
+    fn a_combining_mark_goes_with_its_letter_at_a_cut() {
+        // "São" with its tilde combining: cut off the front, the mark
+        // goes with its "a", not onto the "…".
+        assert_eq!(fit_tail("Sa\u{303}o!", 3), "…o!");
+        assert_eq!(fit_tail("xSa\u{303}o!", 4), "…a\u{303}o!", "its letter kept, it with it");
+        assert_eq!(slice("Sa\u{303}o", 2, 2), "o", "its letter left of the slice");
+        assert_eq!(slice("Sa\u{303}o", 0, 2), "Sa\u{303}", "its letter the slice's last");
+        assert_eq!(slice("日\u{301}本", 1, 3), " 本", "on half a wide character, blanked");
     }
 
     #[test]

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ci"
 name = "CI status"
-version = "1.1.0"
+version = "1.2.0"
 description = "Your branch's CI on the modeline -- GitHub Actions, GitLab pipelines or Jenkins -- a page of its runs, jobs, steps and logs with re-runs and cancels, a notification when a run finishes, and the failing jobs' logs for your coding agent"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -51,6 +51,7 @@ events = ["git"]
 [[contributes.commands]]
 id = "ci.open"
 title = "CI: the branch's runs, jobs and logs"
+external = true
 
 [[contributes.commands]]
 id = "ci.refresh"

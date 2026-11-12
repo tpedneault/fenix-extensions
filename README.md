@@ -50,6 +50,7 @@ bundles install several at once, and are what the welcome's packs offer.
 | [`fenix.discord`](extensions/discord) | Discord | Discord Rich Presence: the project, the file and its language, what you're debugging or running, and how long you've been at it, on your Discord profile |
 | [`fenix.dotenv`](extensions/dotenv) | Env files | Env files (.env): values hidden but on the cursor's line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like |
 | [`fenix.dotnet`](extensions/dotnet) | C# and .NET | C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution's tasks, the project's checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new's projects |
+| [`fenix.gallery`](extensions/gallery) | Widget gallery | Every ui-kit widget working on one page -- tables, trees, tabs, fields, lists, menus, splits, scrolled regions, styles and the mouse -- each with the code that draws it a key away: for people writing extensions |
 | [`fenix.go`](extensions/go) | Go | Go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects |
 | [`fenix.haskell`](extensions/haskell) | Haskell | Haskell: its grammar, the Haskell Language Server, ormolu or fourmolu, hlint on save with its rewrites as fixes, Cabal's and Stack's tasks for each component, the project's checks with fixes that run ghcup, snippets, and a Cabal project |
 | [`fenix.hex`](extensions/hex) | Hex viewer | Binary files as a hex dump: offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor's bytes read as integers and floats both ways round and as UTF-8, selections copied as hex, text or code -- and any file at all shown in hex |
@@ -121,6 +122,21 @@ cargo xtask site index.json out       # then open out/index.html
 ## Making an extension
 
 [CONTRIBUTING.md](CONTRIBUTING.md) says how to add one or improve one.
+The quickest start is a template:
+
+```text
+cargo xtask new tool word-count --name "Word count"   # or theme, keymap, snippets, language-pack
+cargo xtask install extensions/word-count --watch     # packs it and installs it into Fenix, again whenever you save
+```
+
+`new` writes `extensions/<name>/` -- a manifest, README, CHANGELOG and
+what the kind needs, with `TODO(you)` where something is yours to say --
+and what it writes passes `cargo xtask validate`, packs, and (the two kinds
+with code) builds, tests and lints as it is. A bare name is this
+repository's, `fenix.<name>`; `publisher.name` starts one you'll host
+yourself. `install` runs
+`fenix --install-extension` on the package (`$FENIX`, or `--fenix <path>`,
+when Fenix isn't on the `PATH`).
 
 An extension carries data -- themes, snippets, project templates and
 keymaps, laid out like your own in Fenix's settings folder -- or code: a
@@ -133,10 +149,12 @@ one extension uses go under `crates/` (`crates/jira`, the Jira client the
 agenda and Jira share; `crates/ui-kit`, the widgets canvas pages are
 built from; `crates/lang-kit`, what the language packs share: the
 package manager page, doctor checks, tasks, installing a server, a
-formatter and a linter). So do stand-ins for crates that need C, which
-an extension's build has no compiler for: `crates/zstd-shim` is the
-`zstd` crate's decoder in pure Rust, patched in for it
-(`[patch.crates-io]`, as `extensions/parquet` does).
+formatter and a linter; `crates/test-kit`, a fake host, a harness and
+pages as text, so an extension's tests run in plain `cargo test`). So do
+stand-ins for crates that need C, which an extension's build has no
+compiler for: `crates/zstd-shim` is the `zstd` crate's decoder in pure
+Rust, patched in for it (`[patch.crates-io]`, as `extensions/parquet`
+does).
 
 ```text
 extensions/my-themes/
@@ -174,7 +192,7 @@ style, and what's known not to work.
 ```text
 cargo xtask validate                  # or: cargo xtask validate index.json
 cargo xtask pack extensions/my-themes dist
-fenix --install-extension dist/fenix.my-themes-1.0.0.fenixext   # try it
+cargo xtask install extensions/my-themes                        # try it: packs it, then fenix --install-extension
 ```
 
 ## Bundles

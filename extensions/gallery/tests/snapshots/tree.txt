@@ -1,0 +1,33 @@
+Widget gallery  ui-kit's widgets, live -- c shows the code that draws each
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Table      │ Tree  TreeState: folders opened, closed, one read when opened
+› Tree       │
+  Tabs       │ ▾ harbour-tides/                             │ harbour-tides/
+  Text field │   ▾ src/                                     │ a folder of 7
+  List       │     ▸ tides/                                 │ open
+  Popup menu │       main.rs                         2.1 KB │
+  Splits     │       cli.rs                          4.3 KB │
+  Scrolling  │   ▸ tests/                                   │
+  Styles     │   ▸ docs/                                    │
+  Mouse      │   ▸ benches/                                 │
+             │     Cargo.toml                         612 B │
+             │     README.md                         3.8 KB │
+             │     CHANGELOG.md                      1.2 KB │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+             │                                              │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+j k move  l open  h close, or up  Enter open, or the file  + - all open, closed  [ ] section
+c its code
+----
+focus: line 4, cells 15..59
+typing: false
