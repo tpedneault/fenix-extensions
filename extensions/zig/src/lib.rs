@@ -356,33 +356,36 @@ mod tests {
     use super::*;
     use crate::project::tests::temp;
     use fenix_extension_api::Health;
-    use fenix_lang_kit::host::mock::Shared;
+    use fenix_test_kit::{Fake, Harness, Ran};
 
     /// A command as a line, its program first.
     pub fn line(cmd: &Command) -> String {
-        std::iter::once(cmd.program.clone()).chain(cmd.args.iter().cloned()).collect::<Vec<_>>().join(" ")
+        fenix_test_kit::line(cmd)
     }
 
-    fn found(host: &Shared, programs: &[(&str, &str)]) {
-        host.0.borrow_mut().programs.extend(programs.iter().map(|(a, b)| (a.to_string(), b.to_string())));
-    }
-
-    fn pack(dir: &std::path::Path, host: &Shared, settings: fn() -> Settings) -> Zig {
-        let mut z = Zig::new(Box::new(host.clone()), &dir.to_string_lossy(), settings, Platform::new("linux", "x86_64"));
+    /// The pack for the project in `dir`, on `fake`, its tools folder in
+    /// `dir` too.
+    fn pack(dir: &std::path::Path, fake: &Fake, settings: fn() -> Settings) -> Harness<Zig> {
+        let mut z = Zig::new(fake.host(), &dir.to_string_lossy(), settings, Platform::new("linux", "x86_64"));
         z.kit.installer.tools = dir.join(".tools").to_string_lossy().into_owned();
-        z
+        Harness::wrap(fake.clone(), z)
     }
 
-    fn said(z: &mut Zig, process: u64, text: &str, code: i32) {
-        for l in text.lines() {
-            z.handle(Event::ProcessOutput(api::ProcessOutput { process, stderr: false, line: l.into() }));
-        }
-        z.handle(Event::ProcessExit((process, Some(code))));
+    /// The processes started, as lines, in order.
+    fn spawned(fake: &Fake) -> Vec<String> {
+        fake.spawned().into_iter().map(|(_, l)| l).collect()
     }
 
-    /// The processes started, by id, each as a line.
-    fn spawned(calls: &[String]) -> Vec<(u64, String)> {
-        calls.iter().filter_map(|c| c.strip_prefix("spawn ")?.split_once(' ')).map(|(id, l)| (id.parse().unwrap(), l.to_string())).collect()
+    /// Zig and ZLS installed, saying their versions; `zig build -l` its
+    /// steps.
+    fn installed(zig: &str, zls: &str) -> Fake {
+        let fake = Fake::new();
+        fake.program("zig", "/t/zig")
+            .program("zls", "/t/zls")
+            .on_spawn("zig version", Ran::ok(zig))
+            .on_spawn("zls --version", Ran::ok(zls))
+            .on_spawn("zig build -l", Ran::ok(include_str!("samples/zig-build-l.txt")));
+        fake
     }
 
     /// A project as `zig init` makes it.
@@ -398,67 +401,71 @@ mod tests {
     #[test]
     fn zls_zig_fmt_and_the_build_steps_are_set() {
         let dir = build("activate");
-        let host = Shared::default();
-        found(&host, &[("zig", "/t/zig"), ("zls", "/t/zls")]);
-        let mut z = pack(&dir, &host, Settings::default);
+        let fake = installed("0.17.0", "0.16.0");
+        let mut z = pack(&dir, &fake, Settings::default);
         z.activate().unwrap();
-        let calls = host.take();
-        for want in ["tasks build, build test, build run, fmt", "server zig: /t/zls", "formatter zig: /t/zig fmt --stdin"] {
+        let calls = fake.take();
+        // zig init's tasks first; then zig build -l's, once it answered.
+        for want in ["tasks build, build test, build run, fmt", "server zig: /t/zls", "formatter zig: /t/zig fmt --stdin", "tasks build, build run, build test, build docs, build bench-orbit, fmt"] {
             assert!(calls.iter().any(|c| c == want), "{want}: {calls:?}");
         }
-        assert_eq!(host.0.borrow().settings["zig"]["zls"]["zig_exe_path"], "/t/zig", "ZLS told which Zig");
+        assert_eq!(fake.server_settings("zig").unwrap()["zls"]["zig_exe_path"], "/t/zig", "ZLS told which Zig");
 
-        // The doctor and zig build -l, answered.
-        let procs = spawned(&calls);
-        let lines: Vec<&str> = procs.iter().map(|(_, l)| l.as_str()).collect();
-        assert_eq!(lines, ["/t/zig version", "/t/zls --version", "/t/zig build -l"]);
-        said(&mut z, procs[2].0, include_str!("samples/zig-build-l.txt"), 0);
-        assert!(host.take().contains(&"tasks build, build run, build test, build docs, build bench-orbit, fmt".to_string()));
-        said(&mut z, procs[0].0, "0.17.0", 0);
-        said(&mut z, procs[1].0, "0.16.0", 0);
-
-        // Zig said its version: ZLS is checked again against it.
-        let again = spawned(&host.take());
-        assert_eq!(again.iter().map(|(_, l)| l.as_str()).collect::<Vec<_>>(), ["/t/zig version", "/t/zls --version"]);
-        said(&mut z, again[0].0, "0.17.0", 0);
-        said(&mut z, again[1].0, "0.16.0", 0);
-        let checks: Vec<(String, Health, String)> = host.0.borrow().checks.iter().map(|c| (c.label.clone(), c.health, c.detail.clone())).collect();
+        // The doctor's checks; Zig said its version, so ZLS was checked
+        // again against it, once.
+        assert_eq!(spawned(&fake), ["/t/zig version", "/t/zls --version", "/t/zig build -l", "/t/zig version", "/t/zls --version"]);
+        let checks: Vec<(String, Health, String)> = fake.checks().iter().map(|c| (c.label.clone(), c.health, c.detail.clone())).collect();
         assert_eq!(checks[0], ("Zig".into(), Health::Ok, "0.17.0 (/t/zig)".into()));
         assert_eq!(checks[1], ("ZLS".into(), Health::Warn, "0.16.0, but Zig is 0.17.0: ZLS goes with the Zig of its own version".into()));
-        assert!(spawned(&host.take()).is_empty(), "checked once more, not again and again");
 
-        // A build.zig that doesn't build keeps the steps.
-        z.handle(Event::Saved("build.zig".into()));
-        let listing = spawned(&host.take()).into_iter().find(|(_, l)| l.ends_with("build -l")).unwrap();
-        said(&mut z, listing.0, "build.zig:4:9: error: expected ';' after statement", 1);
-        let calls = host.take();
-        assert!(calls.iter().any(|c| c.starts_with("log zig build -l: build.zig:4:9")), "{calls:?}");
-        assert!(z.kit.tasks.tasks.iter().any(|t| t.name == "build bench-orbit"));
+        // A build.zig that doesn't build keeps the steps, and says why.
+        fake.on_spawn("zig build -l", Ran::fails(1, "build.zig:4:9: error: expected ';' after statement"));
+        z.event(Event::Saved("build.zig".into()));
+        let calls = fake.take();
+        assert!(calls.iter().any(|c| c == "warn zig build -l: build.zig:4:9: error: expected ';' after statement"), "{calls:?}");
+        assert!(z.ext.kit.tasks.tasks.iter().any(|t| t.name == "build bench-orbit"));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn zig_steps_lists_the_build_steps_as_tasks() {
+        let dir = build("steps");
+        let fake = installed("0.17.0", "0.17.0");
+        let mut z = pack(&dir, &fake, || Settings { ast_check: true, build_steps: false });
+        z.activate().unwrap();
+        assert!(!spawned(&fake).iter().any(|l| l.ends_with("build -l")), "off: not listed as it starts");
+
+        // The command, the process, its output: the tasks.
+        z.ext.settings.build_steps = true;
+        z.command("zig.steps").unwrap();
+        let listing = fake.process("zig build -l").expect("zig build -l run");
+        assert_eq!(listing.cmd.cwd, None, "in the project, as Fenix runs it");
+        assert!(listing.stdin_closed, "its stdin closed, so it doesn't wait");
+        assert_eq!(fake.tasks().iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), ["build", "build run", "build test", "build docs", "build bench-orbit", "fmt"]);
+        assert_eq!(fake.tasks()[4].cmd.args, ["build", "bench-orbit"]);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
     fn a_saved_zig_file_is_ast_checked() {
         let dir = build("lint");
-        let host = Shared::default();
-        found(&host, &[("zig", "/t/zig")]);
-        let mut z = pack(&dir, &host, Settings::default);
+        let fake = Fake::new();
+        fake.program("zig", "/t/zig").on_spawn("/t/zig ast-check src/main.zig", Ran::fails(1, "src/main.zig:1:22: error: expected ';' after statement\npub fn main() !void {}\n                     ^"));
+        let mut z = pack(&dir, &fake, Settings::default);
         z.activate().unwrap();
-        host.take();
-        host.0.borrow_mut().here = Some((format!("{}/src/main.zig", dir.display()), Some(dir.to_string_lossy().into_owned())));
-        z.file_saved(&format!("{}/src/main.zig", dir.display()));
-        let check = spawned(&host.take()).into_iter().find(|(_, l)| l == "/t/zig ast-check src/main.zig").expect("ast-check run");
-        z.handle(Event::ProcessOutput(api::ProcessOutput { process: check.0, stderr: true, line: "src/main.zig:1:22: error: expected ';' after statement".into() }));
-        z.handle(Event::ProcessExit((check.0, Some(1))));
-        let problems = host.0.borrow().problems.values().next().cloned().unwrap();
-        assert_eq!((problems.len(), problems[0].start), (1, (0, 21)));
+        fake.take();
+        fake.in_file(&format!("{}/src/main.zig", dir.display()), "zig", "pub fn main() !void {}\n").project("lint", &dir.to_string_lossy());
+        z.saved(&format!("{}/src/main.zig", dir.display()));
+        assert!(fake.take().contains(&"problems /project/src/main.zig 1".to_string()));
+        let problems = fake.problems("/project/src/main.zig");
+        assert_eq!((problems.len(), problems[0].start, problems[0].source.as_deref()), (1, (0, 21), Some("zig")));
 
         // Off: no linter; and no listing of steps.
-        z.read_settings = || Settings { ast_check: false, build_steps: false };
-        z.handle(Event::SettingChanged("zig.ast_check".into()));
-        assert!(z.kit.lint.linters.is_empty());
-        assert!(!spawned(&host.take()).iter().any(|(_, l)| l.ends_with("build -l")));
-        assert_eq!(z.kit.tasks.tasks.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), ["build", "build test", "build run", "fmt"]);
+        z.ext.read_settings = || Settings { ast_check: false, build_steps: false };
+        z.event(Event::SettingChanged("zig.ast_check".into()));
+        assert!(z.ext.kit.lint.linters.is_empty());
+        assert!(!fake.take().iter().any(|c| c.ends_with("build -l")));
+        assert_eq!(z.ext.kit.tasks.tasks.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), ["build", "build test", "build run", "fmt"]);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -466,31 +473,31 @@ mod tests {
     fn without_zig_its_fix_row_installs_it_and_its_used() {
         let dir = temp("fix");
         std::fs::write(dir.join("hello.zig"), "pub fn main() void {}\n").unwrap();
-        let host = Shared::default();
-        let mut z = pack(&dir, &host, Settings::default);
+        let fake = Fake::new();
+        let mut z = pack(&dir, &fake, Settings::default);
         z.activate().unwrap();
-        let calls = host.take();
+        let calls = fake.take();
         assert!(!calls.iter().any(|c| c.starts_with("server") || c.starts_with("formatter")), "nothing found, nothing set: {calls:?}");
-        assert_eq!(z.kit.doctor.programs.iter().map(|p| p.fix.clone().map(|f| f.1)).collect::<Vec<_>>(), [Some("zig.install.zig".into()), Some("zig.install.zls".into())]);
-        z.run_command("zig.install.zig").unwrap();
-        let download = host.take().into_iter().find(|c| c.starts_with("download ")).unwrap();
+        assert_eq!(z.ext.kit.doctor.programs.iter().map(|p| p.fix.clone().map(|f| f.1)).collect::<Vec<_>>(), [Some("zig.install.zig".into()), Some("zig.install.zls".into())]);
+        z.command("zig.install.zig").unwrap();
+        let download = fake.take().into_iter().find(|c| c.starts_with("download ")).unwrap();
         assert!(download.contains("https://files.pythonhosted.org/packages/fe/6f/") && download.ends_with(" 97079827064a7492cce5541ceb438ae8003ce1e54e399676da2d62fb7a5dc08b"), "{download}");
-        assert!(z.run_command("zig.steps").is_err(), "no build.zig");
-        assert!(z.run_command("zig.nothing").is_err());
+        assert!(z.command("zig.steps").is_err(), "no build.zig");
+        assert!(z.command("zig.nothing").is_err());
 
         // Installed some other way, by a task: found and used.
-        found(&host, &[("zig", "/h/.zvm/bin/zig"), ("zls", "/h/.zvm/bin/zls")]);
-        z.handle(Event::TaskFinished((99, true)));
-        let calls = host.take();
+        fake.program("zig", "/h/.zvm/bin/zig").program("zls", "/h/.zvm/bin/zls");
+        z.event(Event::TaskFinished((99, true)));
+        let calls = fake.take();
         for want in ["server zig: /h/.zvm/bin/zls", "formatter zig: /h/.zvm/bin/zig fmt --stdin", "tasks run hello.zig, test hello.zig, fmt"] {
             assert!(calls.iter().any(|c| c == want), "{want}: {calls:?}");
         }
-        assert_eq!(z.kit.lint.linters.iter().map(|l| l.name.as_str()).collect::<Vec<_>>(), ["zig ast-check"]);
+        assert_eq!(z.ext.kit.lint.linters.iter().map(|l| l.name.as_str()).collect::<Vec<_>>(), ["zig ast-check"]);
 
         // A new file at the top: its tasks.
         std::fs::write(dir.join("orbit.zig"), "test \"x\" {}\n").unwrap();
-        z.handle(Event::Saved("orbit.zig".into()));
-        assert!(z.kit.tasks.tasks.iter().any(|t| t.name == "test orbit.zig"));
+        z.event(Event::Saved("orbit.zig".into()));
+        assert!(z.ext.kit.tasks.tasks.iter().any(|t| t.name == "test orbit.zig"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }
