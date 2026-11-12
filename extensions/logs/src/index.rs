@@ -25,6 +25,39 @@ const SAMPLE: u64 = 256 * 1024;
 /// How many of its first bytes tell a file from the one it replaced.
 const HEAD: usize = 256;
 
+/// The heads of the first lines of `src` (`len` of it), for the grouping.
+fn sample(src: &Source, len: u64, rules: &Rules) -> Vec<Seen> {
+    let mut lines = Lines::new(0, len.min(SAMPLE));
+    let mut out = Vec::new();
+    while let Next::Line(l) = lines.next(src, false) {
+        if !l.text.is_empty() {
+            out.push(detect(l.text, rules));
+        }
+        if out.len() >= 2000 {
+            break;
+        }
+    }
+    out
+}
+
+/// How lines make entries, from a sample of the first ones' heads.
+fn grouping_from(src: &Source, sample: &[Seen]) -> Grouping {
+    // A journal export's entries are a field a line, one in twenty or so
+    // its head.
+    if src.read(0, 9) == b"__CURSOR=" {
+        Grouping::Heads
+    } else {
+        Grouping::guess(sample)
+    }
+}
+
+/// How `src`'s lines make entries, guessed from its first lines as the
+/// index guesses it: what the agents' tools read a log by, so they find
+/// the entries the page shows.
+pub fn grouping_of(src: &Source, rules: &Rules) -> Grouping {
+    grouping_from(src, &sample(src, src.len(), rules))
+}
+
 /// A run of entries, a chunk of the file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Chunk {
@@ -194,9 +227,7 @@ impl Index {
                 self.finish(src);
                 return false;
             }
-            // A journal export's entries are a field a line, one in twenty
-            // or so its head.
-            let g = if src.read(0, 9) == b"__CURSOR=" { Grouping::Heads } else { Grouping::guess(&sample) };
+            let g = grouping_from(src, &sample);
             self.grouping = Some(g);
             self.grouper = Grouper::new(g);
             self.head = src.read(0, HEAD);
@@ -221,17 +252,7 @@ impl Index {
 
     /// The first lines' heads, for the grouping.
     fn sample(&self, src: &Source) -> Vec<Seen> {
-        let mut lines = Lines::new(0, self.len.min(SAMPLE));
-        let mut out = Vec::new();
-        while let Next::Line(l) = lines.next(src, false) {
-            if !l.text.is_empty() {
-                out.push(detect(l.text, &self.rules));
-            }
-            if out.len() >= 2000 {
-                break;
-            }
-        }
-        out
+        sample(src, self.len, &self.rules)
     }
 
     /// At the end of what's there: the open entry, and a last line
