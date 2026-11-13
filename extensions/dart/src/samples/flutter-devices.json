@@ -1,0 +1,88 @@
+Waiting for another flutter command to release the startup lock...
+[
+  {
+    "name": "sdk gphone64 x86 64",
+    "id": "emulator-5554",
+    "isSupported": true,
+    "targetPlatform": "android-x64",
+    "emulator": true,
+    "sdk": "Android 14 (API 34) (emulator)",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": true,
+      "fastStart": true,
+      "flutterExit": true,
+      "hardwareRendering": true,
+      "startPaused": true
+    }
+  },
+  {
+    "name": "Pixel 8",
+    "id": "37271FDJG0023A",
+    "isSupported": true,
+    "targetPlatform": "android-arm64",
+    "emulator": false,
+    "sdk": "Android 15 (API 35)",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": true,
+      "fastStart": true,
+      "flutterExit": true,
+      "hardwareRendering": true,
+      "startPaused": true
+    }
+  },
+  {
+    "name": "Linux (desktop)",
+    "id": "linux",
+    "isSupported": true,
+    "targetPlatform": "linux-x64",
+    "emulator": false,
+    "sdk": "Ubuntu 24.04.1 LTS 6.8.0-45-generic",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": false,
+      "fastStart": false,
+      "flutterExit": true,
+      "hardwareRendering": true,
+      "startPaused": true
+    }
+  },
+  {
+    "name": "Chrome (web)",
+    "id": "chrome",
+    "isSupported": true,
+    "targetPlatform": "web-javascript",
+    "emulator": false,
+    "sdk": "Google Chrome 130.0.6723.91",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": false,
+      "fastStart": false,
+      "flutterExit": false,
+      "hardwareRendering": false,
+      "startPaused": true
+    }
+  },
+  {
+    "name": "Old tablet",
+    "id": "R52N90KQXZD",
+    "isSupported": false,
+    "targetPlatform": "android-arm",
+    "emulator": false,
+    "sdk": "Android 5.0 (API 21)",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": true,
+      "fastStart": true,
+      "flutterExit": true,
+      "hardwareRendering": true,
+      "startPaused": true
+    }
+  }
+]

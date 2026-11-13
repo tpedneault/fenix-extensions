@@ -1,0 +1,11 @@
+# A Dart program already running, which wrote its VM service's address to
+# a file when it started: the `run (attachable)` task does that, or by
+# hand
+#   dart run --enable-vm-service --write-service-info=.dart_tool/fenix-vm-service.json bin/x.dart
+name = "Dart: attach to a program started with --write-service-info"
+languages = ["dart"]
+request = "attach"
+cwd = "${project}"
+
+[attributes]
+vmServiceInfoFile = "${project}/.dart_tool/fenix-vm-service.json"

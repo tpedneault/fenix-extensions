@@ -1,0 +1,36 @@
+[package]
+name = "fenix-dart"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Dart and Flutter in Fenix: the analysis server, dart format, the SDK's debug adapters, tasks for Dart and for Flutter, flutter run on a device picked, hot reload, the project doctor's checks and the package manager page for pub."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+
+[dev-dependencies]
+# lang-kit's test host, and a fake Fenix its kit and the pack talk to.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+fenix-test-kit = { path = "../../crates/test-kit", default-features = false, features = ["lang-kit"] }
+# The snippets and project templates read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The language file, the launch files and the manifest, read as Fenix reads them.
+serde = { version = "1", features = ["derive"] }
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+# Dart's grammar loaded and its queries run as Fenix does: tree-sitter
+# 0.26's WebAssembly store (fenix-syntax's).
+tree-sitter = { version = "0.26.13", features = ["wasm"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

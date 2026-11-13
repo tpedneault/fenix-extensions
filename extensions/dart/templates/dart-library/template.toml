@@ -1,0 +1,11 @@
+[template]
+name = "Dart · library"
+kind = "other"
+group = "Dart"
+description = "A Dart package to publish on pub.dev: its public API in lib/, its parts in lib/src/, an example, and package:test tests."
+needs = ["dart"]
+open = ["lib/src/{{name_snake}}_base.dart", "lib/{{name_snake}}.dart"]
+
+[[run]]
+exec = "dart"
+args = ["pub", "get"]

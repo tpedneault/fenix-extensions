@@ -1,0 +1,43 @@
+# Dart's keys, after SPC m in a Dart package or file. Your own
+# keybindings.toml wins. dart fix --apply has none: it rewrites files
+# across the project, so it's a task you pick by name (SPC p t).
+
+[[local.dart]]
+keys = "p"
+label = "pub packages"
+command = "dart.packages"
+
+[[local.dart]]
+keys = "d"
+label = "check the project again"
+command = "dart.doctor"
+
+[[local.dart]]
+keys = "g"
+label = "pub get"
+command = "dart.pub-get"
+
+[[local.dart]]
+keys = "e"
+label = "Flutter: run on a device"
+command = "dart.run-on-device"
+
+[[local.dart]]
+keys = "r"
+label = "Flutter: hot reload"
+command = "dart.hot-reload"
+
+[[local.dart]]
+keys = "R"
+label = "Flutter: hot restart"
+command = "dart.hot-restart"
+
+[[local.dart]]
+keys = "x"
+label = "Flutter: stop the run"
+command = "dart.stop"
+
+[[local.dart]]
+keys = "D"
+label = "Flutter: list devices"
+command = "dart.devices"

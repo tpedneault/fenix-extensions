@@ -1,0 +1,40 @@
+[template]
+name = "Flutter · app"
+kind = "other"
+group = "Dart"
+description = "A Flutter app, made by flutter create: the counter app for the platforms you pick, with widget tests, flutter run and hot reload from Fenix."
+needs = ["flutter"]
+open = ["lib/main.dart"]
+
+[[ask]]
+key = "org"
+label = "Organisation"
+default = "com.example"
+hint = "the reverse domain its Android and iOS ids start with (com.example.{{name_snake}})"
+
+[[ask]]
+key = "platforms"
+label = "Platforms"
+choices = ["all", "mobile", "web", "desktop"]
+default = "all"
+hint = "mobile is Android and iOS; desktop is Linux, macOS and Windows"
+
+[[run]]
+exec = "flutter"
+args = ["create", "--project-name", "{{name_snake}}", "--org", "{{org}}", ".", "--platforms=android,ios"]
+when = "platforms == mobile"
+
+[[run]]
+exec = "flutter"
+args = ["create", "--project-name", "{{name_snake}}", "--org", "{{org}}", ".", "--platforms=web"]
+when = "platforms == web"
+
+[[run]]
+exec = "flutter"
+args = ["create", "--project-name", "{{name_snake}}", "--org", "{{org}}", ".", "--platforms=linux,macos,windows"]
+when = "platforms == desktop"
+
+[[run]]
+exec = "flutter"
+args = ["create", "--project-name", "{{name_snake}}", "--org", "{{org}}", "."]
+when = "platforms == all"

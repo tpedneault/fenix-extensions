@@ -1,0 +1,11 @@
+name: {{name_snake}}
+description: "A library for ... (TODO, say what it does, in a line pub.dev can show)."
+version: 0.1.0
+# repository: https://github.com/you/{{name_kebab}}
+
+environment:
+  sdk: ^3.3.0
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0

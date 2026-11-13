@@ -1,0 +1,9 @@
+# The Dart file you're in, run under the debugger: bin/<name>.dart, a
+# test file, a script. dart debug_adapter starts it with the VM service on
+# and stops at your breakpoints. Its output is in the debug console: a
+# program that reads the keyboard can't be answered there (Fenix doesn't
+# answer the adapter's runInTerminal), so run it as a task instead.
+name = "Dart: run this file"
+languages = ["dart"]
+program = "${file}"
+cwd = "${project}"
