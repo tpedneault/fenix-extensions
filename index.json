@@ -1565,6 +1565,20 @@
           ],
           "api": "1.0",
           "permissions": {}
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/gallery-v1.1.0/fenix.gallery-1.1.0.fenixext",
+          "sha256": "3b920d620d7ed85b517e8a37c556fddb6f76432cc21984a9cd3e57bfbb9b56a7",
+          "size": 179903,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {}
         }
       ],
       "name": "Widget gallery",
