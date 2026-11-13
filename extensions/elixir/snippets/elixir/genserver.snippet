@@ -1,0 +1,21 @@
+# name: GenServer
+# key: genserver
+# scope: elixir
+# --
+defmodule ${1:MyApp.Server} do
+  use GenServer
+
+  # Client
+
+  def start_link(${2:opts} \\\\ []) do
+    GenServer.start_link(__MODULE__, $2, name: __MODULE__)
+  end
+
+  # Server
+
+  @impl true
+  def init(${3:state}) do
+    {:ok, $3}
+  end
+  $0
+end

@@ -1,0 +1,7 @@
+[template]
+name = "Elixir · library"
+kind = "other"
+group = "Elixir"
+description = "A Mix library: a module with documented functions and doctests, ExUnit tests that run them, and the formatter's settings."
+needs = ["mix"]
+open = ["lib/{{name_snake}}.ex", "README.md"]

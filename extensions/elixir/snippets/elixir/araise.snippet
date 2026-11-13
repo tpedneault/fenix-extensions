@@ -1,0 +1,7 @@
+# name: assert_raise
+# key: araise
+# scope: elixir
+# --
+assert_raise ${1:ArgumentError}, ${2:"message"}, fn ->
+  $0
+end

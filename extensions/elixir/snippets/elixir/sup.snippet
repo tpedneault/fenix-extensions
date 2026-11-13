@@ -1,0 +1,20 @@
+# name: Supervisor
+# key: sup
+# scope: elixir
+# --
+defmodule ${1:MyApp.Supervisor} do
+  use Supervisor
+
+  def start_link(${2:init_arg}) do
+    Supervisor.start_link(__MODULE__, $2, name: __MODULE__)
+  end
+
+  @impl true
+  def init(_init_arg) do
+    children = [
+      $0
+    ]
+
+    Supervisor.init(children, strategy: :one_for_one)
+  end
+end

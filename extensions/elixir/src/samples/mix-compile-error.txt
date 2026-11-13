@@ -1,0 +1,12 @@
+Compiling 1 file (.ex)
+    error: undefined variable "undefined_thing"
+    │
+  3 │     undefined_thing + 1
+    │     ^^^^^^^^^^^^^^^
+    │
+    └─ lib/broken.ex:3:5: Orbit.Broken.a/0
+
+
+== Compilation error in file lib/broken.ex ==
+** (CompileError) lib/broken.ex: cannot compile module Orbit.Broken (errors have been logged)
+

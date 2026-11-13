@@ -1,0 +1,21 @@
+    warning: variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
+    │
+ 11 │     unused = 1
+    │     ~~~~~~
+    │
+    └─ lib/orbit.ex:11:5: Orbit.period/1
+
+    warning: function nothing/0 is unused
+    │
+ 20 │   defp nothing, do: :ok
+    │        ~
+    │
+    └─ lib/orbit.ex:20:8: Orbit (module)
+
+    warning: Orbit.Missing.run/0 is undefined (module Orbit.Missing is not available or is yet to be defined)
+    │
+ 23 │     Orbit.Missing.run()
+    │                   ~
+    │
+    └─ lib/orbit.ex:23:19: Orbit.call/0
+
