@@ -181,15 +181,30 @@ fn location(at: &At) -> api::Location {
 /// `f`'s groups not yet given, then `f`, onto `out`. A case's parent is
 /// its template.
 fn push_found(out: &mut Vec<api::Report>, f: &Found, sent: &mut HashSet<String>) {
-    let mut parent: Option<String> = None;
-    for g in &f.groups {
-        let id = child_id(parent.as_deref().unwrap_or(""), &g.label);
-        if !sent.contains(&id) {
-            sent.insert(id.clone());
-            out.push(api::Report::Found(group_found(g, id.clone(), parent.clone())));
+    push_found_after(out, f, sent, &mut None);
+}
+
+/// [`push_found`], with the groups of the `Found` given before and their
+/// innermost id in `last`: consecutive tests of a scan share them, so
+/// their ids are made once (a scan of 2,000 tests must take a few
+/// milliseconds).
+fn push_found_after(out: &mut Vec<api::Report>, f: &Found, sent: &mut HashSet<String>, last: &mut Option<(Vec<Group>, Option<String>)>) {
+    let mut parent: Option<String> = match last {
+        Some((groups, id)) if *groups == f.groups => id.clone(),
+        _ => {
+            let mut parent: Option<String> = None;
+            for g in &f.groups {
+                let id = child_id(parent.as_deref().unwrap_or(""), &g.label);
+                if !sent.contains(&id) {
+                    sent.insert(id.clone());
+                    out.push(api::Report::Found(group_found(g, id.clone(), parent.clone())));
+                }
+                parent = Some(id);
+            }
+            *last = Some((f.groups.clone(), parent.clone()));
+            parent
         }
-        parent = Some(id);
-    }
+    };
     if let Some(t) = &f.of {
         parent = Some(cut_id(&t.0).into_owned());
     }
@@ -451,8 +466,9 @@ impl Tests {
         p.memory.scanned(path, &found);
         let mut out = Vec::new();
         let mut sent = HashSet::new();
+        let mut last = None;
         for f in &found {
-            push_found(&mut out, f, &mut sent);
+            push_found_after(&mut out, f, &mut sent, &mut last);
         }
         out.into_iter()
             .map(|r| match r {
