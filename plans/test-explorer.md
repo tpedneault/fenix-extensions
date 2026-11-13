@@ -1550,7 +1550,7 @@ the other stream's lines between them; a line of exactly 64 KiB at a
 stream's end; a `crashed` or `broken` with no id in a step whose `covers`
 is empty; whether `broken` errors tests that already ended; a template
 that never gets its own `ended`; whether a plan goes on after a step
-Fenix failed; `found` in a build-first plan and `broken` in a listing; a
+Fenix failed, and what a plan of no steps does to its ask; `found` in a build-first plan and `broken` in a listing; a
 `found` before its parent and an id twice in one scan; a group's state
 with failed and errored children; which of a file's tests an ask leaves
 out past 10,000; whether `test-provider-set`'s runner survives the pack

@@ -333,7 +333,8 @@ each of these is a question for Fenix's step 2 or 3:
   it" by the letter of §8.5. lang-kit sends one for it from its cases, so
   its packs don't meet this.
 - **A step Fenix fails before it starts**: the plan's later steps still
-  run.
+  run. **A plan of no steps** for a run: what was asked is judged at once,
+  errored "the run ended without a result for it".
 - **`found` in a build-first plan**: kept as a run's. **`broken` in a
   listing**: errors nothing, and the listing isn't complete.
 - **A `found` whose parent Fenix doesn't have**, **an id twice in one
