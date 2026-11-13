@@ -3816,6 +3816,35 @@
               "standardrb"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ruby-v1.1.0/fenix.ruby-1.1.0.fenixext",
+          "sha256": "92153b145258761e56a9cbd02a1b932d6d9dafcc113955184a03e9a271600705",
+          "size": 500831,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "ruby",
+              "gem",
+              "bundle",
+              "rake",
+              "rspec",
+              "ruby-lsp",
+              "solargraph",
+              "rubocop",
+              "standardrb"
+            ]
+          }
         }
       ],
       "name": "Ruby",
