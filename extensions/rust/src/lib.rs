@@ -525,6 +525,26 @@ impl Extension for Rust {
     fn file_saved(&mut self, path: &str) {
         self.kit.file_saved(path);
     }
+
+    fn tests_scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<api::tests::Found> {
+        self.kit.tests_scan(provider, path, text)
+    }
+
+    fn tests_plan(&mut self, provider: &str, run: u64, ask: api::tests::Ask) -> Result<api::tests::Plan, String> {
+        self.kit.tests_plan(provider, run, ask)
+    }
+
+    fn tests_read(&mut self, provider: &str, run: u64, step: u32, lines: Vec<api::tests::Line>) -> Vec<api::tests::Report> {
+        self.kit.tests_read(provider, run, step, lines)
+    }
+
+    fn tests_step_ended(&mut self, provider: &str, run: u64, step: u32, end: api::tests::StepEnd) -> Vec<api::tests::Report> {
+        self.kit.tests_step_ended(provider, run, step, end)
+    }
+
+    fn tests_launch(&mut self, provider: &str, run: u64, test: api::tests::Found) -> Result<api::tests::Launch, String> {
+        self.kit.tests_launch(provider, run, test)
+    }
 }
 
 export!(Rust);
@@ -572,6 +592,12 @@ mod tests {
 
     fn spawned(calls: &[String], what: &str) -> u64 {
         calls.iter().find_map(|c| c.strip_prefix("spawn ").filter(|c| c.ends_with(what)).and_then(|c| c.split(' ').next()?.parse().ok())).unwrap_or_else(|| panic!("{what}: {calls:?}"))
+    }
+
+    /// The newest spawn of `what`: the doctor asks `cargo nextest
+    /// --version` too, as the pack starts, before the test provider does.
+    fn spawned_last(calls: &[String], what: &str) -> u64 {
+        calls.iter().rev().find_map(|c| c.strip_prefix("spawn ").filter(|c| c.ends_with(what)).and_then(|c| c.split(' ').next()?.parse().ok())).unwrap_or_else(|| panic!("{what}: {calls:?}"))
     }
 
     fn rustup_host() -> Shared {
@@ -712,7 +738,7 @@ mod tests {
         said(&mut r, metadata, METADATA, 0);
         assert!(!host.take().iter().any(|c| c.starts_with("test-provider")), "the same runner: Fenix isn't told again");
         assert_eq!(r.tests.borrow().metadata.as_ref().map(|m| m.packages.len()), Some(2));
-        let nextest = spawned(&calls, "/c/cargo nextest --version");
+        let nextest = spawned_last(&calls, "/c/cargo nextest --version");
         said(&mut r, nextest, "cargo-nextest 0.9.151 (6b3f99457 2026-11-02)", 0);
         assert_eq!(host.take(), ["test-provider rust: cargo nextest 0.9.151"]);
         // One too old to stream its results: cargo test.
@@ -744,6 +770,26 @@ mod tests {
         assert!(host.0.borrow().launches[0].attributes.contains("1.82.0-x86_64-unknown-linux-gnu/lib/rustlib/etc/lldb_lookup.py"));
         let checks: Vec<String> = r.kit.doctor.programs.iter().map(|p| p.label.clone()).collect();
         assert!(checks.contains(&"CodeLLDB".to_string()), "{checks:?}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// What the manifest offers is what the pack answers for: its provider's
+    /// id, on API 1.6, and the five exports forwarded to the kit.
+    #[test]
+    fn the_provider_the_manifest_offers_is_the_one_the_exports_answer_for() {
+        let manifest = include_str!("../extension.toml");
+        assert!(manifest.contains(&format!("[[contributes.test_providers]]\nid = \"{}\"\n", provider::PROVIDER)), "offered under its id");
+        assert!(manifest.contains("api = \"1.6\"") && manifest.contains("fenix = \">=1.6, <2\""), "for Fenix 1.6");
+        assert!(manifest.contains(&format!("version = \"{}\"", env!("CARGO_PKG_VERSION"))), "one version in both");
+        let dir = workspace("offered");
+        std::fs::write(dir.join("Cargo.toml"), "[package]\nname = \"orbit\"\nversion = \"0.1.0\"\nedition = \"2021\"\n").unwrap();
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("src/lib.rs"), "").unwrap();
+        let host = Shared::default();
+        let mut pack = pack(&dir, &host, "false").0;
+        let found = Extension::tests_scan(&mut pack, provider::PROVIDER, "/project/src/lib.rs", "#[test]\nfn adds() {}\n");
+        assert!(found.iter().any(|f| f.label == "adds"), "{found:?}");
+        assert!(Extension::tests_scan(&mut pack, "other", "/project/src/lib.rs", "#[test]\nfn adds() {}\n").is_empty(), "only its own provider");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

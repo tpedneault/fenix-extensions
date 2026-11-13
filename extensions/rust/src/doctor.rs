@@ -1,7 +1,8 @@
 //! The project doctor's Rust checks: the toolchain `rust-toolchain.toml`
 //! pins, installed; rustc, held to `rust-version`; cargo; rust-analyzer,
 //! clippy and rustfmt, rustup's components; lldb-dap or CodeLLDB;
-//! cargo-audit and cargo-outdated. Each that isn't right has a fix row: `rustup
+//! cargo-audit, cargo-outdated and cargo-nextest (which gives the test
+//! provider each test's time). Each that isn't right has a fix row: `rustup
 //! toolchain install`, `rustup component add`, `cargo install`.
 
 use fenix_extension_api::{Command, Health};
@@ -19,6 +20,7 @@ pub const INSTALL_RUSTFMT: &str = "rust.install-rustfmt";
 pub const INSTALL_LLDB_DAP: &str = "rust.install-lldb-dap";
 pub const INSTALL_CARGO_AUDIT: &str = "rust.install-cargo-audit";
 pub const INSTALL_CARGO_OUTDATED: &str = "rust.install-cargo-outdated";
+pub const INSTALL_CARGO_NEXTEST: &str = "rust.install-cargo-nextest";
 
 /// What a failed run said, in a line: its first `error:` line, since
 /// rustup's proxies may print a backtrace after it.
@@ -144,10 +146,14 @@ pub fn programs(project: &Project, metadata: Option<&Metadata>, tools: &Tools, d
     };
     out.push(adapter.version_args(Vec::<String>::new()).optional().fix("How to install the debugger", INSTALL_LLDB_DAP, Fix::Own));
 
-    for (name, command) in [("cargo-audit", INSTALL_CARGO_AUDIT), ("cargo-outdated", INSTALL_CARGO_OUTDATED)] {
+    for (name, command, gives) in [
+        ("cargo-audit", INSTALL_CARGO_AUDIT, ""),
+        ("cargo-outdated", INSTALL_CARGO_OUTDATED, ""),
+        ("cargo-nextest", INSTALL_CARGO_NEXTEST, " (gives each test's time)"),
+    ] {
         let sub = name.trim_start_matches("cargo-");
         let p = program("cargo", name).version_args([sub, "--version"]).optional().judge(subcommand);
-        out.push(fix(p, &format!("Install {name}"), command, tools.install_crate(name)));
+        out.push(fix(p, &format!("Install {name}{gives}"), command, tools.install_crate(name)));
     }
     out
 }
@@ -243,6 +249,7 @@ mod tests {
                 ("lldb-dap".into(), "lldb-dap-18".into(), false, Some(INSTALL_LLDB_DAP.into())),
                 ("cargo-audit".into(), "cargo".into(), false, Some(INSTALL_CARGO_AUDIT.into())),
                 ("cargo-outdated".into(), "cargo".into(), false, Some(INSTALL_CARGO_OUTDATED.into())),
+                ("cargo-nextest".into(), "cargo".into(), false, Some(INSTALL_CARGO_NEXTEST.into())),
             ],
             "pinned: rustup update isn't the fix"
         );

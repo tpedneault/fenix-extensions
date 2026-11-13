@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.rust"
 name = "Rust"
-version = "1.2.0"
+version = "1.3.0"
 description = "Rust: rust-analyzer, debugging with lldb-dap or CodeLLDB (each binary and example, the tests in your file, built by cargo first), clippy on save with its suggestions as fixes, rustfmt, tasks from Cargo.toml's targets, the toolchain checked with its fixes, outdated and vulnerable crates, snippets, and an Axum service"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,10 +10,10 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.5, <2"
-# The keys a hint names (`key_for`, 1.5); lang-kit, the kit it's built on,
-# is on 1.5.
-api = "1.5"
+fenix = ">=1.6, <2"
+# The test provider (tests-scan .. tests-launch, test-provider-set);
+# the keys a hint names (key_for, 1.5).
+api = "1.6"
 
 # The everyday snippets are rust-snippets', which stays installable on
 # its own.
@@ -55,6 +55,13 @@ events = ["saved"]
 name = "rust"
 markers = ["Cargo.toml", "rust-toolchain.toml", "rust-toolchain"]
 languages = ["rust"]
+
+[[contributes.test_providers]]
+id = "rust"
+name = "cargo test"
+languages = ["rust"]
+markers = ["Cargo.toml"]
+scan = ["src/**/*.rs", "tests/**/*.rs", "*/src/**/*.rs", "*/tests/**/*.rs", "*/*/src/**/*.rs", "*/*/tests/**/*.rs"]
 
 [[contributes.commands]]
 id = "rust.packages"
@@ -100,6 +107,10 @@ title = "Rust: install cargo-audit"
 [[contributes.commands]]
 id = "rust.install-cargo-outdated"
 title = "Rust: install cargo-outdated"
+
+[[contributes.commands]]
+id = "rust.install-cargo-nextest"
+title = "Rust: install cargo-nextest"
 
 [[contributes.settings]]
 key = "rust.clippy"

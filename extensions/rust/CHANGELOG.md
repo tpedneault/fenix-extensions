@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.3.0
+
+- For Fenix 1.6 (extension API 1.6): your tests on Fenix's tests
+  page (`SPC T T`), in the gutter and after each test's line, run
+  from any of them and debugged with `SPC T d`. A test is found as
+  you type (`#[test]`, `#[tokio::test]` and any `#[<crate>::test]`,
+  `#[ignore]`d ones as skipped, `#[rstest]` and `#[test_case]` cases
+  once run); what a macro makes and doc tests come from `cargo test
+  -- --list`, which builds the tests first. Runs are `cargo test
+  --no-fail-fast`, by exact names, a step per package; with
+  cargo-nextest 0.9.103 or later installed, `cargo nextest run`,
+  which gives each test's time (cargo test doesn't). A failure is
+  shown at its panic, with its message and output; a build that
+  fails says so and fails no test; a binary that crashes errors its
+  own tests only. Debugging a test builds its binary, then runs it
+  under lldb-dap or CodeLLDB with `<name> --exact --nocapture`. The
+  project doctor has a row for cargo-nextest, optional, with a fix
+  that installs it. On Fenix 1.5, 1.2.0 stays the one you have.
+
 ## 1.2.0
 
 - For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,

@@ -6,8 +6,8 @@ Cargo.toml's targets, the project doctor's checks with their fixes,
 outdated and vulnerable crates, snippets, and an Axum service in the
 new-project wizard. Built on lang-kit (`crates/lang-kit`), as each
 language pack is. It depends on `fenix.rust-snippets`, which stays
-installable on its own. It needs Fenix 1.5 or later (extension API 1.5);
-on an older Fenix, Rust 1.1.0 is the one you get.
+installable on its own. It needs Fenix 1.6 or later (extension API 1.6); on Fenix 1.5, Rust
+1.2.0 is the one you get, and on an older Fenix, 1.1.0.
 
 What it knows of the project's packages and targets is `cargo metadata
 --no-deps`'s, asked when it starts and when `Cargo.toml` is saved.
@@ -87,11 +87,12 @@ same name in `.fenix/tools.json` wins.
 
 ## Tests, for Fenix 1.6
 
-Fenix 1.6 brings a test explorer, and this pack carries the test
-provider it will call: built and tested here, but not offered yet.
-Fenix asks for it only once this pack is released for extension API
-1.6, after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5
-as on a nightly. What it will do, as tested on recorded cargo output:
+Fenix 1.6's tests page (`SPC T T`; `C-k T T` with standard keys) lists a
+project's tests before anything has run, runs one or all of them, and
+shows each result on the page, in the gutter and after the test's line.
+This pack is its test provider for Rust: `cargo test`, or cargo-nextest
+when it's installed. Verified against cargo 1.100 and cargo-nextest
+0.9.151, on recorded output and run for real. What it does:
 
 - **Find the tests in a file as you type**, nothing run: `#[test]`,
   `#[tokio::test]` and any `#[<crate>::test]`, at their `fn`'s line, in
@@ -114,7 +115,10 @@ as on a nightly. What it will do, as tested on recorded cargo output:
 
 What it can't: a test whose module comes from `#[path]` or `include!` is
 found when listed or run, not as you type; a doc test's id holds its
-line, so editing above it makes it another test.
+line, so editing above it makes it another test. The listing builds the
+tests, which runs the project's build scripts, so Fenix lists only in a
+project you trust. The runner Fenix shows is `cargo test`, or `cargo
+nextest` and its version.
 
 ## The project doctor
 
@@ -128,9 +132,10 @@ line, so editing above it makes it another test.
   `rustup component add`.
 - **lldb-dap** (or **CodeLLDB**, the one used, else the one asked
   for): how to install it, for each system.
-- **cargo-audit**, **cargo-outdated**: for the package page. Fix:
-  `cargo binstall` when there's cargo-binstall, else `cargo install
-  --locked`.
+- **cargo-audit**, **cargo-outdated**: for the package page.
+  **cargo-nextest**: optional, and gives each test's time on the tests
+  page. Fix for each: `cargo binstall` when there's cargo-binstall, else
+  `cargo install --locked`.
 
 A fix that installs something is checked again, and what it installed
 is used at once.
