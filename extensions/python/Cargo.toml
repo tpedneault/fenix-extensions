@@ -10,7 +10,7 @@ description = "Python in Fenix: basedpyright with ruff's server beside it, debug
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 # The later host calls: ruff's server beside basedpyright, fixes, launches.
 fenix-lang-kit = { path = "../../crates/lang-kit" }
 serde = { version = "1", features = ["derive"] }
