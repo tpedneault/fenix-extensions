@@ -10,8 +10,10 @@ categories = ["languages", "data", "tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# The keys of the scheme in use in what it says (key_for,
+# key-scheme-changed: 1.5), as ui-kit, which it's built on, is.
+api = "1.5"
 
 [permissions]
 # The notebook's Python, which runs fenix_kernel.py from the extension's

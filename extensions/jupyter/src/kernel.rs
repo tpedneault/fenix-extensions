@@ -97,6 +97,12 @@ pub enum State {
     Busy,
     /// It ended, and why.
     Dead(String),
+    /// Its program ended with this code, not 0: what it said last is in
+    /// the extensions' log, whose keys are said when it's shown.
+    Ended(i32),
+    /// It couldn't start, for want of a Python: the settings' keys are
+    /// said when it's shown.
+    NoPython,
 }
 
 impl State {
@@ -107,8 +113,33 @@ impl State {
             State::Idle => "idle".into(),
             State::Busy => "busy".into(),
             State::Dead(why) => format!("stopped: {why}"),
+            State::Ended(code) => format!("stopped: it ended ({code}); {} has why", crate::keys::log()),
+            State::NoPython => format!("stopped: {}", no_python()),
         }
     }
+
+    /// It couldn't start, and `why`.
+    pub fn not_started(why: String) -> State {
+        if why.starts_with(NO_PYTHON) {
+            State::NoPython
+        } else {
+            State::Dead(why)
+        }
+    }
+
+    /// Whether it's gone, or never came: the next cell run starts it.
+    pub fn stopped(&self) -> bool {
+        matches!(self, State::Off | State::Dead(_) | State::Ended(_) | State::NoPython)
+    }
+}
+
+/// How what's said of no Python found begins.
+const NO_PYTHON: &str = "no Python found:";
+
+/// What's said when no Python is found, with the keys of the settings,
+/// where `jupyter.python` is, as the scheme in use has them now.
+pub fn no_python() -> String {
+    format!("{NO_PYTHON} install one, or set jupyter.python ({})", crate::keys::settings())
 }
 
 /// The Pythons there are to run it with, as found.
@@ -156,7 +187,7 @@ pub fn launch(found: &Found) -> Result<Launch, String> {
     if let Some(p) = &found.path {
         return Ok(python(p, p.rsplit(['/', '\\']).next().unwrap_or(p)));
     }
-    Err("no Python found: install one, or set jupyter.python (SPC ,)".into())
+    Err(no_python())
 }
 
 /// How to install ipykernel for `launch`'s Python, so cells run on a
@@ -208,6 +239,22 @@ mod tests {
         f.chosen = Some("/opt/py/bin/python".into());
         assert_eq!(launch(&f).unwrap().program, "/opt/py/bin/python");
         assert!(launch(&Found::default()).unwrap_err().contains("jupyter.python"));
+        // The settings' keys, as the scheme in use has them.
+        let fake = fenix_test_kit::Fake::new();
+        fake.key("settings.open", "SPC ,");
+        assert_eq!(launch(&Found::default()).unwrap_err(), "no Python found: install one, or set jupyter.python (SPC ,)");
+        fake.key_scheme(fenix_test_kit::api::KeyScheme::Standard);
+        assert_eq!(launch(&Found::default()).unwrap_err(), "no Python found: install one, or set jupyter.python (C-k ,)");
+        // On the page it's said as it's drawn: in the scheme in use then.
+        let state = State::not_started(launch(&Found::default()).unwrap_err());
+        assert_eq!(state, State::NoPython);
+        assert_eq!(state.label(), "stopped: no Python found: install one, or set jupyter.python (C-k ,)");
+        fake.key_scheme(fenix_test_kit::api::KeyScheme::Vim);
+        assert_eq!(state.label(), "stopped: no Python found: install one, or set jupyter.python (SPC ,)");
+        fake.no_key("settings.open");
+        assert_eq!(state.label(), "stopped: no Python found: install one, or set jupyter.python (SPC ,)", "no key: Fenix's keymap's");
+        assert_eq!(State::not_started("python3: not allowed".into()), State::Dead("python3: not allowed".into()));
+        assert!(state.stopped() && State::Ended(1).stopped() && !State::Idle.stopped());
     }
 
     #[test]
