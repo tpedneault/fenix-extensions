@@ -1,0 +1,1 @@
+cargo test --no-fail-fast --message-format=json -p orbit --doc -- --exact src/lib.rs - add (line 6)

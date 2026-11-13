@@ -17,13 +17,16 @@ pub mod doctor;
 pub mod keys;
 pub mod packages;
 pub mod project;
+pub mod provider;
 pub mod tasks;
 pub mod tools;
 
 #[cfg(test)]
 mod data;
 
+use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
+use std::rc::Rc;
 
 use fenix_extension_api::{self as api, export, Command, Event, Extension, Key, LaunchConfig, MouseEvent, Page};
 use fenix_lang_kit::exec::Runs;
@@ -40,6 +43,8 @@ enum Ask {
     Metadata,
     /// `rustc --print sysroot`: where rustc's lldb formatters are.
     Sysroot,
+    /// `cargo nextest --version`: whether the test provider runs nextest.
+    Nextest,
 }
 
 /// The project, as the extension sees it.
@@ -94,6 +99,10 @@ pub struct Rust {
     set_adapter: Option<(Command, bool)>,
     set_formatter: Option<Command>,
     set_launches: Option<Vec<LaunchConfig>>,
+    /// What the test provider reads of the project (Fenix 1.6).
+    tests: provider::SharedFacts,
+    /// Activated: the kit has told Fenix the test runner once.
+    started: bool,
 }
 
 impl Default for Rust {
@@ -112,7 +121,8 @@ impl Rust {
         let latest = Latest::default();
         let mut cargo = Cargo::new(tools.cargo(), root);
         cargo.latest = latest.clone();
-        let kit = Kit::with_host("rust", host).packages(Box::new(cargo));
+        let tests = Rc::new(RefCell::new(provider::Facts { root: root.into(), ..provider::Facts::default() }));
+        let kit = Kit::with_host("rust", host).packages(Box::new(cargo)).tests(Box::new(provider::Provider::new(tests.clone())));
         let mut r = Rust {
             kit,
             root: root.into(),
@@ -132,6 +142,8 @@ impl Rust {
             set_adapter: None,
             set_formatter: None,
             set_launches: None,
+            tests,
+            started: false,
         };
         r.configure();
         r
@@ -183,6 +195,43 @@ impl Rust {
             cargo.add_to = add_to;
             page.manager = Box::new(cargo);
         }
+        self.share();
+    }
+
+    /// The test provider's facts as they are now, and Fenix told the
+    /// runner where it changed.
+    fn share(&mut self) {
+        let project_dir = self.project_root();
+        let mut f = self.tests.borrow_mut();
+        if f.metadata != self.metadata || f.project_dir != project_dir {
+            f.generation += 1;
+            f.metadata = self.metadata.clone();
+            f.project_dir = project_dir;
+        }
+        f.cargo_project = self.project.cargo;
+        f.cargo = self.tools.cargo.clone();
+        f.sysroot = self.sysroot.clone();
+        if self.tools.cargo_nextest.is_none() {
+            f.nextest = None;
+        }
+        drop(f);
+        if self.started {
+            self.kit.tests_runner_changed();
+        }
+    }
+
+    /// `cargo nextest --version`, when it's installed: the provider runs
+    /// the tests with it when it's new enough.
+    fn read_nextest(&mut self) {
+        if !self.project.cargo || self.tools.cargo_nextest.is_none() {
+            return;
+        }
+        let cmd = self.tools.cargo().args(["nextest", "--version"]).cwd(PROJECT);
+        let host = self.kit.host.as_mut();
+        self.reading.kill_where(host, |a| *a == Ask::Nextest);
+        if let Err(why) = self.reading.start(host, &cmd, Ask::Nextest) {
+            host.log(&format!("cargo nextest --version: {why}"));
+        }
     }
 
     /// The server, the adapter and the formatter set in Fenix, where they
@@ -230,8 +279,12 @@ impl Rust {
     fn follow(&mut self) {
         let tools = Tools::find(self.kit.host.as_mut());
         if tools != self.tools {
+            let nextest = tools.cargo_nextest != self.tools.cargo_nextest;
             self.tools = tools;
             self.configure();
+            if nextest {
+                self.read_nextest();
+            }
             if let Err(why) = self.kit.tasks.apply(self.kit.host.as_mut()) {
                 self.kit.host.log(&format!("tasks: {why}"));
             }
@@ -304,11 +357,16 @@ impl Rust {
     fn own(&mut self, event: &Event) -> bool {
         if self.reading.owns(event) {
             match self.reading.event(event) {
+                Some((Ask::Nextest, out)) => {
+                    self.tests.borrow_mut().nextest = provider::nextest_version(&out.stdout).filter(|_| out.ok());
+                    self.share();
+                }
                 Some((Ask::Sysroot, out)) => {
                     let sysroot = out.stdout.lines().map(str::trim).find(|l| !l.is_empty());
                     match sysroot.filter(|_| out.ok()) {
                         Some(path) => {
                             self.sysroot = Some(path.to_string());
+                            self.share();
                             self.apply();
                         }
                         None => self.kit.host.log(&format!("rustc --print sysroot: {}", doctor::error_line(&out))),
@@ -399,9 +457,11 @@ impl Rust {
 impl Extension for Rust {
     fn activate(&mut self) -> Result<(), String> {
         self.kit.activate()?;
+        self.started = true;
         self.apply();
         self.read_metadata();
         self.read_sysroot();
+        self.read_nextest();
         Ok(())
     }
 

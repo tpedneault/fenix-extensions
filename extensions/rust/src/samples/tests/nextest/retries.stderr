@@ -1,0 +1,85 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+────────────
+ Nextest run ID 2fcc1a67-d6b2-4257-bc1f-9b4119d7ccf2 with nextest profile: default
+    Starting 2 tests across 2 binaries (9 tests skipped)
+        PASS [   0.005s] (1/2) orbit tests::adds
+  TRY 1 FAIL [   0.094s] (───) orbit tests::fails_on_purpose
+  output ───
+
+    running 1 test
+    some output before the failure
+
+    thread 'tests::fails_on_purpose' (13476) panicked at src/lib.rs:25:9:
+    assertion `left == right` failed: two and two
+      left: 4
+     right: 5
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+       1: core::panicking::panic_fmt
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+       2: core::panicking::assert_failed_inner
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:447:23
+       3: core::panicking::assert_failed::<i32, i32>
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:407:5
+       4: orbit::tests::fails_on_purpose
+                 at ./src/lib.rs:25:9
+       5: orbit::tests::fails_on_purpose::{closure#0}
+                 at ./src/lib.rs:23:26
+       6: <orbit::tests::fails_on_purpose::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+       7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test tests::fails_on_purpose ... FAILED
+
+    failures:
+
+    failures:
+        tests::fails_on_purpose
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.09s
+
+
+  TRY 2 FAIL [   0.086s] (2/2) orbit tests::fails_on_purpose
+  output ───
+
+    running 1 test
+    some output before the failure
+
+    thread 'tests::fails_on_purpose' (13478) panicked at src/lib.rs:25:9:
+    assertion `left == right` failed: two and two
+      left: 4
+     right: 5
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+       1: core::panicking::panic_fmt
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+       2: core::panicking::assert_failed_inner
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:447:23
+       3: core::panicking::assert_failed::<i32, i32>
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:407:5
+       4: orbit::tests::fails_on_purpose
+                 at ./src/lib.rs:25:9
+       5: orbit::tests::fails_on_purpose::{closure#0}
+                 at ./src/lib.rs:23:26
+       6: <orbit::tests::fails_on_purpose::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+       7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test tests::fails_on_purpose ... FAILED
+
+    failures:
+
+    failures:
+        tests::fails_on_purpose
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.08s
+
+
+────────────
+     Summary [   0.183s] 2 tests run: 1 passed, 1 failed, 9 skipped
+  TRY 2 FAIL [   0.086s] (2/2) orbit tests::fails_on_purpose
+error: test run failed

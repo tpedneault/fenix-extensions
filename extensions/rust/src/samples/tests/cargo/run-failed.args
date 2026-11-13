@@ -1,0 +1,1 @@
+cargo test --no-fail-fast --message-format=json -p orbit --lib --test it -- --exact geo::tests::unwraps_none tests::case_negative tests::fails_on_purpose integration_fails

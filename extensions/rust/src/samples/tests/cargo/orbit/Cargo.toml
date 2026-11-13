@@ -1,0 +1,12 @@
+[package]
+name = "orbit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[workspace]
+
+[[test]]
+name = "custom"
+harness = false

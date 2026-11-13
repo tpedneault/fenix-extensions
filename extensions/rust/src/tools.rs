@@ -1,6 +1,6 @@
 //! The programs the pack runs, found on this machine: cargo, rustup,
 //! rustc, rustfmt, rust-analyzer, lldb-dap or CodeLLDB, cargo-audit,
-//! cargo-outdated and cargo-binstall. rustup's and cargo's go into `~/.cargo/bin`, which
+//! cargo-outdated, cargo-binstall and cargo-nextest. rustup's and cargo's go into `~/.cargo/bin`, which
 //! an editor started from the desktop may not have on its `PATH`, and
 //! LLVM's lldb-dap is under a name of its version in Linux's packages and
 //! in no folder on `PATH` in Homebrew's or Xcode's, so those are looked
@@ -69,6 +69,9 @@ pub struct Tools {
     pub cargo_audit: Option<String>,
     pub cargo_outdated: Option<String>,
     pub cargo_binstall: Option<String>,
+    /// cargo-nextest, which `cargo nextest` runs: the test provider runs
+    /// the tests with it.
+    pub cargo_nextest: Option<String>,
 }
 
 impl Tools {
@@ -87,6 +90,7 @@ impl Tools {
             cargo_audit: find("cargo-audit"),
             cargo_outdated: find("cargo-outdated"),
             cargo_binstall: find("cargo-binstall"),
+            cargo_nextest: find("cargo-nextest"),
         }
     }
 

@@ -1,0 +1,1 @@
+cargo nextest run --workspace --no-fail-fast --message-format libtest-json-plus

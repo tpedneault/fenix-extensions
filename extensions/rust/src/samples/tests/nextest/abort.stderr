@@ -1,0 +1,17 @@
+   Compiling orbit v0.1.0 (/project)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+────────────
+ Nextest run ID cdb8631d-489a-4521-b350-d6ac5dc8399a with nextest profile: default
+    Starting 2 tests across 1 binary (2 binaries skipped)
+        PASS [   0.005s] (1/2) orbit::crash before_the_crash
+     SIGABRT [   0.056s] (2/2) orbit::crash aborts
+  output ───
+
+    running 1 test
+
+    (test aborted with signal 6: SIGABRT)
+
+────────────
+     Summary [   0.057s] 2 tests run: 1 passed, 1 failed, 0 skipped
+     SIGABRT [   0.056s] (2/2) orbit::crash aborts
+error: test run failed

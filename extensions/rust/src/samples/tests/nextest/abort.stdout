@@ -1,0 +1,6 @@
+{"type":"suite","event":"started","test_count":2,"nextest":{"crate":"orbit","test_binary":"crash","kind":"test"}}
+{"type":"test","event":"started","name":"orbit::crash$before_the_crash"}
+{"type":"test","event":"started","name":"orbit::crash$aborts"}
+{"type":"test","event":"ok","name":"orbit::crash$before_the_crash","exec_time":0.005365252}
+{"type":"test","event":"failed","name":"orbit::crash$aborts","exec_time":0.055920921,"stdout":""}
+{"type":"suite","event":"failed","passed":1,"failed":1,"ignored":0,"measured":0,"filtered_out":0,"exec_time":0.061286173,"nextest":{"crate":"orbit","test_binary":"crash","kind":"test"}}

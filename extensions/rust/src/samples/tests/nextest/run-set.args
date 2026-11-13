@@ -1,0 +1,1 @@
+cargo nextest run --no-fail-fast --message-format libtest-json-plus -p orbit -E test(=tests::adds) | test(=geo::tests::unwraps_none)
