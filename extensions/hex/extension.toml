@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.hex"
 name = "Hex viewer"
-version = "1.0.1"
+version = "1.1.0"
 description = "Binary files as a hex dump: offsets, bytes and their text, read a block at a time so a file of any size opens at once, searched for bytes or text, the cursor's bytes read as integers and floats both ways round and as UTF-8, selections copied as hex, text or code -- and any file at all shown in hex"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,9 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# Built on ui-kit, which is on extension API 1.5.
+api = "1.5"
 
 [permissions]
 # A file in the project is read where it is, as far as each read needs;
