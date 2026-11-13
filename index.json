@@ -1817,6 +1817,23 @@
             "editor": "read",
             "filesystem": "project-read"
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/hex-v1.1.0/fenix.hex-1.1.0.fenixext",
+          "sha256": "82e73488a63d28522a6de706c6372646b37ce92ea5bda609561a84ab519fde6a",
+          "size": 134439,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read"
+          }
         }
       ],
       "name": "Hex viewer",
