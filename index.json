@@ -3133,6 +3133,22 @@
           "permissions": {
             "draw": "over"
           }
+        },
+        {
+          "version": "1.3.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/pets-v1.3.0/fenix.pets-1.3.0.fenixext",
+          "sha256": "2e1f8ffe9b66768a7f920c33342a769c76eccf104522ba009a1ee4c235a673ba",
+          "size": 669419,
+          "dependencies": {},
+          "categories": [
+            "fun"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "draw": "over"
+          }
         }
       ],
       "name": "Pets",
