@@ -17,6 +17,8 @@ to the store.
 - [Versions](#versions)
 - [Permissions](#permissions)
 - [Starting one](#starting-one)
+- [A theme from VS Code](#a-theme-from-vs-code)
+- [Snippets from VS Code](#snippets-from-vs-code)
 - [Building and checking](#building-and-checking)
 - [Screenshots](#screenshots)
 - [Tutorial lessons](#tutorial-lessons)
@@ -162,7 +164,12 @@ fake to its `lang-kit` kit. [Regex](extensions/regex/src/driven.rs) and
 [Zig](extensions/zig/src/lib.rs) are the examples. Fixtures and
 snapshots go in `tests/`.
 
-**`validate` also checks** a theme has a `name`; a snippet has its
+**`validate` also checks** a theme reads as Fenix reads it -- every key
+one it knows, each colour `#rrggbb`, `#rrggbbaa` or `{ color, alpha }`,
+text never see-through -- in the oldest Fenix its `engine.fenix` takes
+(a key newer than that makes that Fenix refuse the whole theme: the
+terminal's colours are 1.4's, `[brackets]` 1.5's, `interface`,
+`parameter` and `macro` 1.5.2's); a snippet has its
 `# key:`, its `# --` line and a body; screenshots are PNG, JPEG, GIF or
 WebP, 2 MB at most; ids are unique; every dependency is here or in the
 index, in a version its range takes, with no circle.
@@ -339,6 +346,112 @@ polls the folder's files twice a second, ignoring `target/`, `dist/`
 and the `extension.wasm` a build makes, and installs once things have been
 still for a moment. It's the old `package.ps1 -Install`, in one command.
 
+## A theme from VS Code
+
+```text
+cargo xtask theme-import <theme.json> [--out <dir>] [--name "Its name"] [--fenix <version>] [--source "<URL at a commit>"]
+```
+
+converts a VS Code colour theme -- its JSON, comments and trailing
+commas and all, with what it `include`s -- into a Fenix theme file in
+`<dir>` (`.` unless said), and prints a report of what it did. Start
+with `cargo xtask new theme <name>`, delete its sample theme, and import
+into its `themes/`.
+
+- **Only a theme whose licence lets you.** MIT, Apache-2.0, BSD or ISC,
+  checked in its own repository, not a marketplace page: its licence
+  file goes beside the manifest as `LICENSE-<theme>`, the manifest's
+  `license` is that licence, and the README says where the theme is
+  from, at which commit, under which licence. Import from the file at
+  that commit, and pass its URL as `--source`: the theme file's header
+  keeps it.
+- **`--name` is the name VS Code gives the theme**: the `label` (or
+  `id`) in its `package.json`'s `contributes.themes`, which is what
+  `workbench.colorTheme` holds. Fenix's settings import (`SPC h i`)
+  then brings someone's VS Code theme over as this one, once it's
+  installed. Never one of Fenix's own names: that would take its place.
+- **`--fenix`** is the oldest Fenix the extension is for, as its
+  `engine.fenix` says (1.0 unless said). Fenix refuses a whole theme with
+  a key it doesn't know, so the theme's own terminal colours are only
+  written for 1.4 and later, its bracket pair colours for 1.5, and
+  interface, parameter and macro colours for 1.5.2; the report says what
+  was left out and which `--fenix` keeps it.
+
+How it maps, by what each colour is for: the editor's page and text are
+VS Code's; Fenix's popups and status line are drawn on the first of VS
+Code's popup, tab strip, title bar, status bar and side bar colours that
+keeps the text readable; syntax colours are found the way VS Code
+colours a token -- the TextMate scopes a grammar gives each kind of thing
+(`keyword.control`, `entity.name.function`, `constant.numeric`, ...),
+matched against the theme's rules, the most specific winning -- and a
+kind no rule colours is body text, as VS Code would draw it; Git's
+colours are `gitDecoration.*`, "added" being Fenix's staged. What VS
+Code has no colour for is worked out from the theme's own and said: the
+mode badges by hue from its terminal, Git and syntax colours (Normal
+blue, Insert green, Visual purple, Replace amber, Command cyan, a hue
+turned where it has none), their lettering whichever of its page and
+text reads better, folder icons Normal's blue. Text with alpha is laid
+over its page.
+
+**The report** lists what each Fenix key was given and from where, what
+was worked out and how, what was left for Fenix to work out, what the
+Fenix it's for can't read, every workbench colour with no place in a
+Fenix theme, the token rules no Fenix colour came from, font styles and
+token backgrounds (Fenix's themes have neither), semantic colours it
+didn't use, and body text, comments or line numbers under 4.5:1 as
+published. Say what it couldn't map in the README, as
+[Vitesse themes](extensions/vitesse-themes/README.md) does.
+
+Every theme it writes is checked against Fenix's own rules before it's
+written, as `validate` checks them, so it loads. Nothing here opens it
+in Fenix: install it (`cargo xtask install`) and look before you send
+it.
+
+## Snippets from VS Code
+
+```text
+cargo xtask snippets-import <snippets.json> --language <id> [--into <extension dir>] [--approximate] [--indent <n>]
+```
+
+converts a VS Code snippets file (`rust.json`, `x.code-snippets`) into
+Fenix's `.snippet` files: one per prefix, in
+`snippets/<language>/<prefix>.snippet` under `--into` (an extension's
+folder; nothing there is ever overwritten -- if a file is there already,
+nothing is written). Without `--into` it prints them. `<language>` is
+the language as Fenix names it (`rust`, `cpp`, `bash`, `tsx`); a
+snippet whose `scope` names other languages is left out.
+
+**Exactly**: text, `$1` stops, `${1:text}` placeholders, `$0`, a stop
+again (a mirror), `TM_FILENAME`, `TM_FILENAME_BASE`, `TM_FILEPATH`,
+`TM_DIRECTORY`, `CURRENT_YEAR`, `CURRENT_YEAR-CURRENT_MONTH-CURRENT_DATE`
+(Fenix's `DATE`), `CURRENT_HOUR:CURRENT_MINUTE:CURRENT_SECOND` (`TIME`),
+an upper- or lower-casing transform of a whole stop or variable
+(`${1|upper}`), and `TM_SELECTED_TEXT`, which is empty -- or its default
+-- whenever a snippet is expanded from its prefix, the only way Fenix
+expands one.
+
+**What Fenix's format can't say is left out**, with the reason in the
+report, rather than written to behave differently: a choice
+(`${1|a,b|}`), a placeholder inside another, `${0:text}`, two defaults
+for one stop, a variable Fenix doesn't have (`CLIPBOARD`, `UUID`, ...)
+or a variable's default, any other regular expression transform, a
+transform of a stop you never type into, an unknown `$name`, a prefix
+with a space, a snippet with no prefix. **`--approximate`** writes the
+nearest instead -- a choice's first option, the first default, the
+value untransformed -- and lists each one; nested placeholders are
+refused either way.
+
+Bodies that indent with tabs: VS Code indents them as you do, Fenix
+inserts the tab. `--indent 4` writes each as four spaces. Descriptions
+aren't kept (a Fenix snippet has a name, and the name is the snippet's
+own). Every body written is read by a copy of Fenix's snippet parser
+first, so Fenix loads what's written.
+
+Snippets someone else wrote come in only under a licence that lets them
+(MIT, Apache-2.0, BSD, ISC), checked in their own repository, with the
+licence file and a line in the README saying where from and at which
+commit -- as a theme's colours do.
+
 ## Building and checking
 
 You need Rust stable with Clippy, and the WebAssembly target, once:
@@ -352,7 +465,7 @@ From the repository's root, the same steps CI runs:
 ```text
 cargo clippy --locked -- -D warnings          # xtask
 cargo test --locked -p xtask                  # xtask's tests
-cargo xtask validate                          # every manifest, keymap, snippet, theme, screenshot
+cargo xtask validate                          # every manifest, keymap, snippet, theme (as Fenix reads it), screenshot
 cargo test --locked --manifest-path extensions/<name>/Cargo.toml   # your extension's tests
 cargo xtask pack extensions/<name> dist       # builds, then packs dist/<id>-<version>.fenixext
 ```

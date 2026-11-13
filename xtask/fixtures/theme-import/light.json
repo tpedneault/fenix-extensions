@@ -1,0 +1,13 @@
+{
+  "name": "Fixture Light",
+  "include": "./base-light.json",
+  "colors": {
+    "editor.background": "#fdfdfd",
+    "editor.foreground": "#383a42",
+    "editor.lineHighlightBorder": "#eeeeee"
+  },
+  "tokenColors": [
+    { "scope": "string", "settings": { "foreground": "#2e7d32" } },
+    { "scope": "comment", "settings": { "foreground": "#c0c0c0" } }
+  ]
+}

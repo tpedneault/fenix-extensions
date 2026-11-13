@@ -1,0 +1,24 @@
+// Snippets in the shape VS Code's take, written for these tests.
+{
+  "Function": {
+    "prefix": ["fn", "func"],
+    "body": ["fn ${1:name}(${2}) {", "\t$0", "}"],
+    "description": "A function",
+  },
+  "Test": {
+    "prefix": "test",
+    "body": "#[test]\nfn ${1:it_works}() {\n    assert_eq!(${2:2 + 2}, ${3:4});\n}",
+  },
+  "Header": {
+    "prefix": "hdr",
+    "body": "// ${TM_FILENAME}, ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}\n$0",
+  },
+  "Pick": {
+    "prefix": "pick",
+    "body": "let ${1|a,b,c|} = $0;",
+  },
+  "Python only": { "scope": "python", "prefix": "def", "body": "def ${1:f}():\n    $0" },
+  "No prefix": { "body": "nothing" },
+  "Spaced": { "prefix": "my snip", "body": "x" },
+  "Again": { "prefix": "fn", "body": "fn again() {}" },
+}

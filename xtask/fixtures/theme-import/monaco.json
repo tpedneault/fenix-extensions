@@ -1,0 +1,1 @@
+{ "name": "Monaco Style", "base": "vs", "colors": { "editor.background": "#f0f0f0" }, "rules": [] }
