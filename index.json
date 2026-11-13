@@ -1029,6 +1029,36 @@
               "editor"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/data-tools-v1.1.0/fenix.data-tools-1.1.0.fenixext",
+          "sha256": "bbfab166a2de2f011e94a4954a168ffc01a5885f3709404185cc172bffbd60e7",
+          "size": 1135490,
+          "dependencies": {},
+          "categories": [
+            "data",
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-read",
+            "network": [
+              "www.schemastore.org",
+              "json.schemastore.org",
+              "raw.githubusercontent.com",
+              "${setting:data-tools.schema_host}"
+            ],
+            "process": [
+              "jq"
+            ],
+            "settings": [
+              "editor"
+            ]
+          }
         }
       ],
       "name": "Data tools",
