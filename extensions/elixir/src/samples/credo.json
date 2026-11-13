@@ -1,0 +1,52 @@
+{
+  "issues": [
+    {
+      "category": "readability",
+      "check": "Credo.Check.Readability.ModuleDoc",
+      "column": 11,
+      "column_end": 16,
+      "filename": "lib/orbit/crew.ex",
+      "line_no": 1,
+      "message": "Modules should have a @moduledoc tag.",
+      "priority": 1,
+      "scope": "Orbit.Crew",
+      "trigger": "Crew"
+    },
+    {
+      "category": "warning",
+      "check": "Credo.Check.Warning.IoInspect",
+      "column": 5,
+      "column_end": 15,
+      "filename": "lib/orbit/crew.ex",
+      "line_no": 14,
+      "message": "There should be no calls to `IO.inspect/1`.",
+      "priority": 12,
+      "scope": "Orbit.Crew.roster",
+      "trigger": "IO.inspect"
+    },
+    {
+      "category": "design",
+      "check": "Credo.Check.Design.TagTODO",
+      "column": null,
+      "column_end": null,
+      "filename": "lib/orbit/crew.ex",
+      "line_no": 20,
+      "message": "Found a TODO tag in a comment: # TODO: sort by rank",
+      "priority": -5,
+      "scope": "Orbit.Crew.roster",
+      "trigger": "# TODO: sort by rank"
+    },
+    {
+      "category": "refactor",
+      "check": "Credo.Check.Refactor.Nesting",
+      "column": 7,
+      "column_end": 9,
+      "filename": "lib/orbit/dock.ex",
+      "line_no": 33,
+      "message": "Function body is nested too deep (max depth is 2, was 3).",
+      "priority": 8,
+      "scope": "Orbit.Dock.berth",
+      "trigger": "if"
+    }
+  ]
+}

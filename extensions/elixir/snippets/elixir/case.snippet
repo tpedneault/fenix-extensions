@@ -1,0 +1,11 @@
+# name: case
+# key: case
+# scope: elixir
+# --
+case ${1:expression} do
+  ${2:{:ok, value}} ->
+    ${3:value}
+
+  ${4:{:error, reason}} ->
+    ${5:reason}
+end$0

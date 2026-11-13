@@ -1,0 +1,11 @@
+Compiling 2 files (.ex)
+warning: variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  lib/orbit.ex:11: Orbit.period/1
+
+warning: function nothing/0 is unused
+  lib/orbit.ex:20: Orbit (module)
+
+warning: Orbit.Missing.run/0 is undefined (module Orbit.Missing is not available or is yet to be defined)
+  lib/orbit.ex:23: Orbit.call/0
+
+Generated orbit app

@@ -1,0 +1,7 @@
+# name: for into
+# key: forinto
+# scope: elixir
+# --
+for ${1:x} <- ${2:enumerable}, into: ${3:%{}} do
+  {${4:key}, ${5:value}}
+end$0

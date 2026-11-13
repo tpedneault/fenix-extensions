@@ -1,0 +1,73 @@
+[extension]
+id = "fenix.elixir"
+name = "Elixir"
+version = "1.0.0"
+description = "Elixir: its grammar and HEEx's, Expert, mix format, the compiler's warnings and Credo on save, mix's tasks, the project's checks with fixes that install Hex and Expert, and snippets"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Mix compiles, tests, formats and runs Credo; Elixir and iex are asked
+# their version and started in a terminal; Expert serves. Expert is where
+# the pack installs it (the tools folder) or where it's found.
+process = ["mix", "elixir", "iex", "expert", "/tools/*"]
+# Expert's releases, and where GitHub sends their downloads.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# mix.exs, .formatter.exs, .credo.exs and .env, read.
+filesystem = "project-read"
+# The file saved, for the linters.
+editor = "read"
+
+[contributes]
+# A file saved: compiled and checked; mix.exs, .formatter.exs and
+# .credo.exs, read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "elixir"
+markers = ["mix.exs"]
+languages = ["elixir", "heex"]
+
+[[contributes.commands]]
+id = "elixir.doctor"
+title = "Elixir: check the project again (Elixir, Hex, Expert)"
+
+[[contributes.commands]]
+id = "elixir.iex"
+title = "Elixir: iex -S mix, in a terminal"
+
+[[contributes.commands]]
+id = "elixir.install-hex"
+title = "Elixir: install Hex (mix local.hex), which mix deps.get needs"
+
+[[contributes.commands]]
+id = "elixir.install.expert"
+title = "Elixir: install Expert 0.2.3, the Elixir language server (its download isn't checksummed: see the README)"
+
+[[contributes.settings]]
+key = "elixir.compiler_warnings"
+kind = "bool"
+label = "Compiler warnings on save"
+description = "Run mix compile --all-warnings when an Elixir or HEEx file is saved, and show its warnings and errors with Expert's. Off: only Expert's."
+default = "true"
+
+[[contributes.settings]]
+key = "elixir.credo"
+kind = "bool"
+label = "Credo on save"
+description = "In a project that has Credo, run mix credo on a saved Elixir file and show what it finds with the compiler's."
+default = "true"

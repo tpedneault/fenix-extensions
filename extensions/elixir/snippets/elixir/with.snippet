@@ -1,0 +1,10 @@
+# name: with
+# key: with
+# scope: elixir
+# --
+with ${1:{:ok, a}} <- ${2:first()},
+     ${3:{:ok, b}} <- ${4:second(a)} do
+  ${5:{:ok, b}}
+else
+  ${6:{:error, reason}} -> $6
+end$0

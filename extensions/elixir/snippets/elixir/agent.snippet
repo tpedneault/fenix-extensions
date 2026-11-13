@@ -1,0 +1,6 @@
+# name: Agent
+# key: agent
+# scope: elixir
+# --
+{:ok, ${1:agent}} = Agent.start_link(fn -> ${2:%{}} end)
+Agent.update($1, fn state -> $0 end)

@@ -1,0 +1,35 @@
+[package]
+name = "fenix-elixir"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Elixir in Fenix: its grammars, Expert, mix format, the compiler's warnings and Credo on save, mix's tasks, and the project doctor's checks with their fixes."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+
+[dev-dependencies]
+# A fake host for its tests, which its kit talks to as well.
+fenix-test-kit = { path = "../../crates/test-kit", default-features = false, features = ["lang-kit"] }
+# The snippets and project templates read by Fenix's own code.
+fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+# The language files, read as fenix-gui reads them.
+serde = { version = "1", features = ["derive"] }
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+# The grammars loaded and their queries run as Fenix does: tree-sitter
+# 0.26's WebAssembly store (fenix-syntax's).
+tree-sitter = { version = "0.26.13", features = ["wasm"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

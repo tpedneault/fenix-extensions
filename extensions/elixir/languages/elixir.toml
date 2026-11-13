@@ -1,0 +1,9 @@
+# Elixir, which Fenix doesn't highlight itself: tree-sitter-elixir's
+# grammar, compiled to WebAssembly (0.3.5), and the pack's queries from
+# queries/elixir. .exs is Elixir's scripts: mix.exs, config, tests. The
+# server is the extension's to set, once it has found Expert.
+language = "elixir"
+grammar = "grammars/tree-sitter-elixir.wasm"
+extensions = ["ex", "exs"]
+filenames = ["mix.lock"]
+comment = "#"

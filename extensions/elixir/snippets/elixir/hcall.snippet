@@ -1,0 +1,9 @@
+# name: GenServer handle_call
+# key: hcall
+# scope: elixir
+# --
+@impl true
+def handle_call(${1:request}, _from, ${2:state}) do
+  {:reply, ${3:reply}, $2}
+end
+$0

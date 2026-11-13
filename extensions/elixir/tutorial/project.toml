@@ -1,0 +1,67 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor, a task, formatting and linting on save -- filled in for
+# Elixir. It has no packages page and no debug session to teach, so it's
+# shorter than Go's, and ends in iex. See "Tutorial lessons" in the
+# repository's CONTRIBUTING.md.
+id = "elixir.project"
+track = "Elixir"
+order = 1
+title = "An Elixir project: doctor, tasks, formatting, iex"
+about = "In a Mix project of yours (a mix.exs at its top; mix new makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Mix project in Fenix: what it needs, its tasks, mix format and the
+compiler's warnings as you save, and iex with your code loaded.
+
+SPC p h   the project doctor: Elixir, Hex and Expert, each checked, and a
+          fix for Hex and Expert (f runs the fix on the row, r checks
+          again, q closes it)
+SPC p t   the tasks: deps.get, compile, test, test --failed, the format
+          checks, and phx.server or credo when the project has them
+SPC m i   iex -S mix, in a terminal (SPC m d checks the project again)
+SPC ,     the settings: editor.format_on_save, elixir.compiler_warnings,
+          elixir.credo
+
+Practice in any .ex file; save it and its warnings appear:
+
+defmodule Practice do
+  def letters(words) do
+    unused = 1
+    words |> Enum.map(&String.length/1) |> Enum.sum()
+  end
+end
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Elixir, Hex and Expert, each checked."
+hint = "SPC p, then h. In a Mix project: the checks are for the project you're in, and Elixir is held to the version its mix.exs asks for."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix: f on Expert's installs the language server (a download into the tools folder), on Hex's runs mix local.hex --force. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC p t: the project's tasks."
+hint = "SPC p, then t. Without Elixir there are none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick test and Enter: mix test runs in Task Output (q there closes it). Or Esc. test --failed runs only what failed last time."
+hint = "Type test to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "SPC m i: iex -S mix, your project's code loaded in a shell in a terminal pane. Type h Enum.map/2 there, and Ctrl+C twice to leave it."
+hint = "SPC m, then i. It needs iex on the PATH: without Elixir, s on the tutorial page skips this."
+terminal = "pane"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving an Elixir file then runs mix format on it, with your .formatter.exs."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save an Elixir file now: it's formatted, and compiled -- the compiler's warnings (elixir.compiler_warnings) and Credo's, if the project has it (elixir.credo), show beside Expert's problems."
+hint = "q, on the settings page."
+closed = "settings"

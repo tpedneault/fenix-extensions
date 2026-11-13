@@ -1,0 +1,17 @@
+<%!-- The crew's page. --%>
+<.header class="mb-4">
+  Crew <%= @count %>
+  <:actions>
+    <.link navigate={~p"/crew/new"}>Board</.link>
+  </:actions>
+</.header>
+
+<ul id="crew">
+  <li :for={member <- @crew} class={["member", member.captain && "captain"]}>
+    {member.name}
+  </li>
+</ul>
+
+<%= if @count > 7 do %>
+  <p>Full.</p>
+<% end %>

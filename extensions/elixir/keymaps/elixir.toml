@@ -1,0 +1,12 @@
+# Elixir's keys, after SPC m in an Elixir project or file. Your own
+# keybindings.toml wins.
+
+[[local.elixir]]
+keys = "d"
+label = "check the project again"
+command = "elixir.doctor"
+
+[[local.elixir]]
+keys = "i"
+label = "iex -S mix in a terminal"
+command = "elixir.iex"

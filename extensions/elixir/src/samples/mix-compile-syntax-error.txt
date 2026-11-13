@@ -1,0 +1,11 @@
+Compiling 1 file (.ex)
+
+== Compilation error in file lib/broken.ex ==
+** (SyntaxError) invalid syntax found on lib/broken.ex:8:3:
+    error: syntax error before: end. "end" is a reserved word in Elixir and therefore its usage is limited. For instance, it can't be used as a variable or be defined nor invoked as a regular function
+    │
+  8 │   end
+    │   ^
+    │
+    └─ lib/broken.ex:8:3
+    (elixir 1.20.5) lib/kernel/parallel_compiler.ex:545: anonymous fn/5 in Kernel.ParallelCompiler.spawn_workers/8

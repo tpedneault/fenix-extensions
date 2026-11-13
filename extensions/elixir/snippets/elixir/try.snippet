@@ -1,0 +1,11 @@
+# name: try / rescue
+# key: try
+# scope: elixir
+# --
+try do
+  ${1:risky()}
+rescue
+  ${2:e in RuntimeError} -> ${3:{:error, e.message}}
+after
+  ${4:cleanup()}
+end$0

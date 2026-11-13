@@ -1,0 +1,9 @@
+# name: Macro
+# key: defmacro
+# scope: elixir
+# --
+defmacro ${1:name}(${2:arg}) do
+  quote do
+    $0
+  end
+end
