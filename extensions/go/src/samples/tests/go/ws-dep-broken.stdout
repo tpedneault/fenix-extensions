@@ -1,0 +1,18 @@
+{"ImportPath":"example.com/lib","Action":"build-output","Output":"# example.com/lib\n"}
+{"ImportPath":"example.com/lib","Action":"build-output","Output":"lib/lib.go:3:33: invalid operation: n * \"2\" (mismatched types int and untyped string)\n"}
+{"ImportPath":"example.com/lib","Action":"build-fail"}
+{"Time":"2026-11-13T17:29:48.077820316Z","Action":"start","Package":"example.com/app"}
+{"Time":"2026-11-13T17:29:48.077982565Z","Action":"output","Package":"example.com/app","Output":"FAIL\texample.com/app [build failed]\n"}
+{"Time":"2026-11-13T17:29:48.078011021Z","Action":"fail","Package":"example.com/app","Elapsed":0,"FailedBuild":"example.com/lib"}
+{"Time":"2026-11-13T17:29:48.078068455Z","Action":"start","Package":"example.com/lib"}
+{"Time":"2026-11-13T17:29:48.078075082Z","Action":"output","Package":"example.com/lib","Output":"FAIL\texample.com/lib [build failed]\n"}
+{"Time":"2026-11-13T17:29:48.0780804Z","Action":"fail","Package":"example.com/lib","Elapsed":0,"FailedBuild":"example.com/lib"}
+{"Time":"2026-11-13T17:29:48.234183169Z","Action":"start","Package":"example.com/lib/util"}
+{"Time":"2026-11-13T17:29:48.236097544Z","Action":"run","Package":"example.com/lib/util","Test":"TestTriple"}
+{"Time":"2026-11-13T17:29:48.236183192Z","Action":"output","Package":"example.com/lib/util","Test":"TestTriple","Output":"=== RUN   TestTriple\n"}
+{"Time":"2026-11-13T17:29:48.236218691Z","Action":"output","Package":"example.com/lib/util","Test":"TestTriple","Output":"    /project/lib/util/util_test.go:7: wrong\n"}
+{"Time":"2026-11-13T17:29:48.236237446Z","Action":"output","Package":"example.com/lib/util","Test":"TestTriple","Output":"--- FAIL: TestTriple (0.00s)\n"}
+{"Time":"2026-11-13T17:29:48.236247202Z","Action":"fail","Package":"example.com/lib/util","Test":"TestTriple","Elapsed":0}
+{"Time":"2026-11-13T17:29:48.236258358Z","Action":"output","Package":"example.com/lib/util","Output":"FAIL\n"}
+{"Time":"2026-11-13T17:29:48.236558662Z","Action":"output","Package":"example.com/lib/util","Output":"FAIL\texample.com/lib/util\t0.002s\n"}
+{"Time":"2026-11-13T17:29:48.236643533Z","Action":"fail","Package":"example.com/lib/util","Elapsed":0.002}

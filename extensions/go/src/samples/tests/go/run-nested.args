@@ -1,0 +1,1 @@
+go test -json -fullpath -run ^TestNested$/^outer$/^inner$ example.com/orbit

@@ -1,0 +1,36 @@
+example.com/orbit [group] -- unknown  <scan>
+  extra_test.go [file] -- unknown  <scan>
+    TestExternal :11 -- unknown  <scan>
+    TestParallel [template] :17 -- unknown  <scan>
+    TestFromHelper :30 -- unknown  <scan>
+    TestPrints :34 -- unknown  <scan>
+    TestSpecial [template] :40 -- unknown  <scan>
+    ExampleAdd_wrong :46 -- unknown  <scan>
+    FuzzAdd [template] :55 -- unknown  <scan>
+  orbit_test.go [file] -- unknown  <scan>
+    TestAdds :8 -- unknown  <scan>
+    TestFailsOnPurpose :14 -- unknown  <scan>
+    TestSkipped :21 -- unknown  <scan>
+    TestTable [template] :25 -- unknown  <scan>
+    TestNested [template] :43 -- unknown  <scan>
+    ExampleAdd :49 -- unknown  <scan>
+example.com/orbit/geo [group] -- unknown  <scan>
+  geo/geo_test.go [file] -- unknown  <scan>
+    TestDist :5 -- unknown  <scan>
+    TestPanics :11 -- unknown  <scan>
+    TestNeverRuns :16 -- unknown  <scan>
+example.com/orbit/crash [group] -- unknown  <scan>
+  crash/crash_test.go [file] -- unknown  <scan>
+    TestBefore :8 -- unknown  <scan>
+    TestExits :12 -- unknown  <scan>
+    TestAfter :16 -- unknown  <scan>
+example.com/orbit/slow [group] -- unknown  <scan>
+  slow/slow_test.go [file] -- unknown  <scan>
+    TestQuick :8 -- unknown  <scan>
+    TestSlow :10 -- unknown  <scan>
+example.com/orbit/boot [group] -- unknown  <scan>
+  boot/boot_test.go [file] -- unknown  <scan>
+    TestNever :9 -- unknown  <scan>
+example.com/orbit/tagged [group] -- unknown  <scan>
+  tagged/tagged_test.go [file] -- unknown  <scan>
+    TestNeedsTag :7 -- unknown (skip: not built here: //go:build integration)  <scan>

@@ -1,0 +1,12 @@
+{"Time":"2026-11-13T17:12:29.1735705Z","Action":"start","Package":"example.com/app"}
+{"Time":"2026-11-13T17:12:29.176062301Z","Action":"run","Package":"example.com/app","Test":"TestDouble"}
+{"Time":"2026-11-13T17:12:29.176117169Z","Action":"output","Package":"example.com/app","Test":"TestDouble","Output":"=== RUN   TestDouble\n"}
+{"Time":"2026-11-13T17:12:29.176165548Z","Action":"run","Package":"example.com/app","Test":"TestDouble/same_name_as_lib's"}
+{"Time":"2026-11-13T17:12:29.176167903Z","Action":"output","Package":"example.com/app","Test":"TestDouble/same_name_as_lib's","Output":"=== RUN   TestDouble/same_name_as_lib's\n"}
+{"Time":"2026-11-13T17:12:29.176173498Z","Action":"output","Package":"example.com/app","Test":"TestDouble/same_name_as_lib's","Output":"--- PASS: TestDouble/same_name_as_lib's (0.00s)\n"}
+{"Time":"2026-11-13T17:12:29.176175772Z","Action":"pass","Package":"example.com/app","Test":"TestDouble/same_name_as_lib's","Elapsed":0}
+{"Time":"2026-11-13T17:12:29.176179855Z","Action":"output","Package":"example.com/app","Test":"TestDouble","Output":"--- PASS: TestDouble (0.00s)\n"}
+{"Time":"2026-11-13T17:12:29.176183324Z","Action":"pass","Package":"example.com/app","Test":"TestDouble","Elapsed":0}
+{"Time":"2026-11-13T17:12:29.176185095Z","Action":"output","Package":"example.com/app","Output":"PASS\n"}
+{"Time":"2026-11-13T17:12:29.176596Z","Action":"output","Package":"example.com/app","Output":"ok  \texample.com/app\t0.003s\n"}
+{"Time":"2026-11-13T17:12:29.176892114Z","Action":"pass","Package":"example.com/app","Elapsed":0.003}

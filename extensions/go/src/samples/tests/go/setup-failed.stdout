@@ -1,0 +1,6 @@
+{"ImportPath":"./...","Action":"build-output","Output":"# ./...\n"}
+{"ImportPath":"./...","Action":"build-output","Output":"pattern ./...: directory prefix . does not contain modules listed in go.work or their selected dependencies\n"}
+{"ImportPath":"./...","Action":"build-fail"}
+{"Time":"2026-11-13T17:12:29.494009222Z","Action":"start","Package":"./..."}
+{"Time":"2026-11-13T17:12:29.494060107Z","Action":"output","Package":"./...","Output":"FAIL\t./... [setup failed]\n"}
+{"Time":"2026-11-13T17:12:29.494065152Z","Action":"fail","Package":"./...","Elapsed":0,"FailedBuild":"./..."}

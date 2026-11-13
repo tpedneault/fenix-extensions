@@ -1,0 +1,42 @@
+{"Time":"2026-11-13T17:12:26.456980021Z","Action":"start","Package":"example.com/orbit/slow"}
+{"Time":"2026-11-13T17:12:26.459292444Z","Action":"run","Package":"example.com/orbit/slow","Test":"TestQuick"}
+{"Time":"2026-11-13T17:12:26.459317619Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestQuick","Output":"=== RUN   TestQuick\n"}
+{"Time":"2026-11-13T17:12:26.459352524Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestQuick","Output":"--- PASS: TestQuick (0.00s)\n"}
+{"Time":"2026-11-13T17:12:26.459355039Z","Action":"pass","Package":"example.com/orbit/slow","Test":"TestQuick","Elapsed":0}
+{"Time":"2026-11-13T17:12:26.459359268Z","Action":"run","Package":"example.com/orbit/slow","Test":"TestSlow"}
+{"Time":"2026-11-13T17:12:26.459361089Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"=== RUN   TestSlow\n"}
+{"Time":"2026-11-13T17:12:27.46186501Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"panic: test timed out after 1s\n"}
+{"Time":"2026-11-13T17:12:27.461926872Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\trunning tests:\n"}
+{"Time":"2026-11-13T17:12:27.461931814Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t\tTestSlow (1s)\n"}
+{"Time":"2026-11-13T17:12:27.46193485Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\n"}
+{"Time":"2026-11-13T17:12:27.461942947Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"goroutine 5 [running]:\n"}
+{"Time":"2026-11-13T17:12:27.461945614Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"testing.(*M).startAlarm.func1()\n"}
+{"Time":"2026-11-13T17:12:27.461948377Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:2484 +0x394\n"}
+{"Time":"2026-11-13T17:12:27.461952828Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"created by time.goFunc\n"}
+{"Time":"2026-11-13T17:12:27.461955282Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/time/sleep.go:215 +0x2d\n"}
+{"Time":"2026-11-13T17:12:27.461971434Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\n"}
+{"Time":"2026-11-13T17:12:27.461973526Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"goroutine 1 [chan receive]:\n"}
+{"Time":"2026-11-13T17:12:27.461975947Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"testing.(*T).Run(0xc000082540, {0x5778cf?, 0xc0000a0b30?}, 0x584390)\n"}
+{"Time":"2026-11-13T17:12:27.461985402Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1859 +0x431\n"}
+{"Time":"2026-11-13T17:12:27.461987921Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"testing.runTests.func1(0xc000082540)\n"}
+{"Time":"2026-11-13T17:12:27.461990484Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:2279 +0x37\n"}
+{"Time":"2026-11-13T17:12:27.461992918Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"testing.tRunner(0xc000082540, 0xc0000a0c70)\n"}
+{"Time":"2026-11-13T17:12:27.461994695Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1792 +0xf4\n"}
+{"Time":"2026-11-13T17:12:27.461997102Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"testing.runTests(0xc0000a4168, {0x6a2080, 0x2, 0x2}, {0x6abea0?, 0x7?, 0x6aad20?})\n"}
+{"Time":"2026-11-13T17:12:27.462002887Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:2277 +0x4b4\n"}
+{"Time":"2026-11-13T17:12:27.462005694Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"testing.(*M).Run(0xc0000a6640)\n"}
+{"Time":"2026-11-13T17:12:27.462008193Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:2142 +0x64a\n"}
+{"Time":"2026-11-13T17:12:27.462010577Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"main.main()\n"}
+{"Time":"2026-11-13T17:12:27.462012838Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t_testmain.go:47 +0x9b\n"}
+{"Time":"2026-11-13T17:12:27.462015266Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\n"}
+{"Time":"2026-11-13T17:12:27.46201744Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"goroutine 19 [sleep]:\n"}
+{"Time":"2026-11-13T17:12:27.462020077Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"time.Sleep(0x77359400)\n"}
+{"Time":"2026-11-13T17:12:27.462023734Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/runtime/time.go:338 +0x165\n"}
+{"Time":"2026-11-13T17:12:27.462025925Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"example.com/orbit/slow.TestSlow(0xc000082a80?)\n"}
+{"Time":"2026-11-13T17:12:27.462037398Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/project/slow/slow_test.go:11 +0x18\n"}
+{"Time":"2026-11-13T17:12:27.462043109Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"testing.tRunner(0xc000082a80, 0x584390)\n"}
+{"Time":"2026-11-13T17:12:27.462045372Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1792 +0xf4\n"}
+{"Time":"2026-11-13T17:12:27.462047791Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"created by testing.(*T).Run in goroutine 1\n"}
+{"Time":"2026-11-13T17:12:27.462068823Z","Action":"output","Package":"example.com/orbit/slow","Test":"TestSlow","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1851 +0x413\n"}
+{"Time":"2026-11-13T17:12:27.462276944Z","Action":"output","Package":"example.com/orbit/slow","Output":"FAIL\texample.com/orbit/slow\t1.005s\n"}
+{"Time":"2026-11-13T17:12:27.462312995Z","Action":"fail","Package":"example.com/orbit/slow","Elapsed":1.005}

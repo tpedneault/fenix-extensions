@@ -1,0 +1,27 @@
+{"Time":"2026-11-13T17:09:17.973300309Z","Action":"start","Package":"example.com/orbit/geo"}
+{"Time":"2026-11-13T17:09:17.982898898Z","Action":"run","Package":"example.com/orbit/geo","Test":"TestDist"}
+{"Time":"2026-11-13T17:09:17.982939239Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestDist","Output":"=== RUN   TestDist\n"}
+{"Time":"2026-11-13T17:09:17.982983078Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestDist","Output":"--- PASS: TestDist (0.00s)\n"}
+{"Time":"2026-11-13T17:09:17.982987726Z","Action":"pass","Package":"example.com/orbit/geo","Test":"TestDist","Elapsed":0}
+{"Time":"2026-11-13T17:09:17.982992453Z","Action":"run","Package":"example.com/orbit/geo","Test":"TestPanics"}
+{"Time":"2026-11-13T17:09:17.982994116Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"=== RUN   TestPanics\n"}
+{"Time":"2026-11-13T17:09:17.982997734Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"--- FAIL: TestPanics (0.00s)\n"}
+{"Time":"2026-11-13T17:09:17.985183361Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"panic: assignment to entry in nil map [recovered]\n"}
+{"Time":"2026-11-13T17:09:17.985207788Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\tpanic: assignment to entry in nil map\n"}
+{"Time":"2026-11-13T17:09:17.985210717Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\n"}
+{"Time":"2026-11-13T17:09:17.985213188Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"goroutine 7 [running]:\n"}
+{"Time":"2026-11-13T17:09:17.985218407Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"testing.tRunner.func1.2({0x54fea0, 0x6a0810})\n"}
+{"Time":"2026-11-13T17:09:17.985220179Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1734 +0x21c\n"}
+{"Time":"2026-11-13T17:09:17.985222479Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"testing.tRunner.func1()\n"}
+{"Time":"2026-11-13T17:09:17.985224034Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1737 +0x35e\n"}
+{"Time":"2026-11-13T17:09:17.985225755Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"panic({0x54fea0?, 0x6a0810?})\n"}
+{"Time":"2026-11-13T17:09:17.985227372Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\t/usr/local/go1.24.7/src/runtime/panic.go:792 +0x132\n"}
+{"Time":"2026-11-13T17:09:17.98522895Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"example.com/orbit/geo.TestPanics(0xc000003c00?)\n"}
+{"Time":"2026-11-13T17:09:17.985230564Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\t/project/geo/geo_test.go:13 +0x28\n"}
+{"Time":"2026-11-13T17:09:17.985235911Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"testing.tRunner(0xc000003c00, 0x5843a0)\n"}
+{"Time":"2026-11-13T17:09:17.985237298Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1792 +0xf4\n"}
+{"Time":"2026-11-13T17:09:17.985238576Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"created by testing.(*T).Run in goroutine 1\n"}
+{"Time":"2026-11-13T17:09:17.985240226Z","Action":"output","Package":"example.com/orbit/geo","Test":"TestPanics","Output":"\t/usr/local/go1.24.7/src/testing/testing.go:1851 +0x413\n"}
+{"Time":"2026-11-13T17:09:17.985623025Z","Action":"fail","Package":"example.com/orbit/geo","Test":"TestPanics","Elapsed":0}
+{"Time":"2026-11-13T17:09:17.985663116Z","Action":"output","Package":"example.com/orbit/geo","Output":"FAIL\texample.com/orbit/geo\t0.012s\n"}
+{"Time":"2026-11-13T17:09:17.985682942Z","Action":"fail","Package":"example.com/orbit/geo","Elapsed":0.012}

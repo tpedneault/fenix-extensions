@@ -1,0 +1,7 @@
+{"ImportPath":"example.com/orbit/geo [example.com/orbit/geo.test]","Action":"build-output","Output":"# example.com/orbit/geo\n"}
+{"ImportPath":"example.com/orbit/geo [example.com/orbit/geo.test]","Action":"build-output","Output":"# [example.com/orbit/geo]\n"}
+{"ImportPath":"example.com/orbit/geo [example.com/orbit/geo.test]","Action":"build-output","Output":"geo/geo_test.go:7:3: (*testing.common).Errorf format %d has arg \"x\" of wrong type string\n"}
+{"ImportPath":"example.com/orbit/geo [example.com/orbit/geo.test]","Action":"build-fail"}
+{"Time":"2026-11-13T17:12:26.160390736Z","Action":"start","Package":"example.com/orbit/geo"}
+{"Time":"2026-11-13T17:12:26.160500192Z","Action":"output","Package":"example.com/orbit/geo","Output":"FAIL\texample.com/orbit/geo [build failed]\n"}
+{"Time":"2026-11-13T17:12:26.160511612Z","Action":"fail","Package":"example.com/orbit/geo","Elapsed":0,"FailedBuild":"example.com/orbit/geo [example.com/orbit/geo.test]"}
