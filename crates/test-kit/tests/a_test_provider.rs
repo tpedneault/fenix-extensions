@@ -572,3 +572,19 @@ fn a_stop_puts_back_what_hadnt_ended_and_a_timeout_errors_it() {
     fenix.run("tally", &[FILE]);
     assert_eq!((fenix.state("tally", FAILS), fenix.detail("tally", FAILS).message.as_deref()), (State::Errored, Some("timed out")), "as it was before");
 }
+
+#[test]
+fn a_cases_record_goes_when_its_template_runs_again_without_it() {
+    let (mut fenix, _) = fenix();
+    fenix.on_command("run", Recorded::stdout(RUN_ALL).exits(1));
+    fenix.run_all("tally");
+    assert!(fenix.record("tally", "src/math.tally::table[2]").is_some());
+    // The template again, its second case gone from the runner's output.
+    fenix.on_command("run src/math.tally", Recorded::stdout("PASS src/math.tally::table[1] 1\n"));
+    let run = fenix.run("tally", &[TABLE]);
+    assert!(run.complete);
+    assert!(fenix.record("tally", "src/math.tally::table[1]").is_some());
+    assert!(fenix.record("tally", "src/math.tally::table[2]").is_none(), "not named by a complete run of its template");
+    assert!(fenix.record("tally", "src/math.tally::dynamic").is_some(), "its group didn't run");
+    assert_eq!(fenix.state("tally", TABLE), State::Passed);
+}

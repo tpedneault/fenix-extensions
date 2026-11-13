@@ -3,7 +3,8 @@
 What every language pack's code extension shares, through `Host`, so
 each pack says only what its language has: the package manager page, the
 project doctor's checks, tasks, a server or a debug adapter installed
-into the tools folder, a formatter and a linter.
+into the tools folder, a formatter and a linter; and, for Fenix 1.6, a
+test provider ([Tests](#tests)).
 
 ```toml
 [dependencies]
@@ -79,7 +80,114 @@ from that tag too, and needs Fenix 1.5 (`fenix = ">=1.5, <2"`).
 | `Linter`, `Lint`, `compiler_lines` | Run on `saved` in `/project` (or `Kit::file_saved`'s path), its output read into `Problem`s (`path:line:col: severity: message`, MSBuild's, or the pack's own parser) and set with `diagnostics-set`. `Linter::with_fixes` gives each problem its fixes (`diagnostics-set-ex`, `SPC c a`); `Linter::across` speaks of several files (clippy, a package's vet), each set and those it no longer speaks of made clean. |
 | `Risk`, `cvss` | An advisory's severity as tools say it: a word, a score, or a CVSS 2 or 3 vector. |
 | `formatter` | `project::formatter`: Fenix runs it on `SPC c F` and on save. |
-| `Host` | Every host call; `Fenix` makes them. The later ones -- HTTP, `platform`, `open_url`, a server added or given settings, an adapter over a socket, problems with fixes, background tasks, launches and their variables, a notification and its dismissal -- have defaults that say the host can't (a notification is said in the message line), so a host of a pack's own needn't have them. |
+| `tests` | A test provider for Fenix 1.6: below. |
+| `Host` | Every host call; `Fenix` makes them. The later ones -- HTTP, `platform`, `open_url`, a server added or given settings, an adapter over a socket, problems with fixes, background tasks, launches and their variables, a notification and its dismissal, a test provider's runner (`test_provider_set`, nothing on API 1.5) -- have defaults that say the host can't (a notification is said in the message line), so a host of a pack's own needn't have them. |
+
+## Tests
+
+For Fenix 1.6 (extension API 1.6), a pack can be a **test provider**:
+Fenix's tests page, gutter and `SPC T` run its tests and show their
+results, and the pack says only what its runner knows -- how to find
+tests in a file's text, what commands list and run them, how to read
+what they print, how to debug one. The design is
+[`plans/test-explorer.md`](../../plans/test-explorer.md) and Fenix's
+`docs/plans/test-explorer.md`. API 1.6 isn't released: `tests::api` is a
+copy of its types, nothing here calls more than 1.5 has, and the five
+exports are wired on the `api-1.6` branch (`plans/test-explorer.md`,
+§8.2).
+
+A pack implements `tests::TestRunner` for each
+`[[contributes.test_providers]]` of its manifest and gives it to its kit
+with `Kit::tests`, as it gives a `PackageManager` with `Kit::packages`:
+
+| `TestRunner` | |
+|---|---|
+| `provider()` | The manifest's provider id. |
+| `runner()` | The runner in use and why it can't run, when it can't (`("cargo nextest", None)`); `("", None)`: nothing to run in this project. Asked as the pack starts, on each save and on `Kit::tests_runner_changed`, so keep it quick. |
+| `scan(path, text)` | The tests in a file's text, nothing run: `Found`s with a key, a label, their `groups` root first (a target or package, a file, suites), a line from 1, `skip`, `template` for a test whose cases only a run finds, `of` for a case, `data` of the pack's own. |
+| `plan(ask)` | The `Step`s that list (`Ask::Discover`), run (`Ask::Run`, `Ask::RunAll`) or build before debugging (`Ask::Debug`): a command, a label, what it `covers` (keys, or a group by its labels, which stands for all under it; empty: judged when the plan ends), `needs` and `files`. An asked file or suite comes with the tests Fenix has under it (`Asked::Group.tests`); none: name it with the runner's own filter. `list_after(ask)`: listing is cheap once this ran. |
+| `reader(ask, step)` | A `Reader` for one step: whole lines, one at a time, as `Report`s -- `Found`, `Started`, `Ended`, `Output`, `Broken` (didn't build or load, `under` a group), `Crashed` (`under` the group whose process died), `Keep` (for `launch`). Hold a result until it's whole. |
+| `launch(test, kept)` | `Launching::Now(LaunchConfig)`, or `BuildFirst(steps)`, read as a run's; then asked again with what their readers kept. |
+| `assets()` | Reporter files its commands read: written to `/data/lang-kit/tests/` as the pack starts, where they differ. |
+| `is_case`, `reader_after_restart` | Rarely needed: a reported key that's a template's case when nothing else says, and a reader for a run this start of the pack didn't plan. |
+
+What the kit does for it, behind `Kit::tests_scan`, `tests_plan`,
+`tests_read`, `tests_step_ended` and `tests_launch` (the five exports):
+
+| | |
+|---|---|
+| **Ids and groups** | A test's id is its key, cut to 1 KiB as Fenix cuts one. A group's id is its labels, root first, each after U+001F (`\u{1f}orbit (lib)\u{1f}src/lib.rs`), so it's never a key; each group a `Found` names goes to Fenix first, once an answer. Lines from 1 become Fenix's from 0; a relative path becomes `/project/<path>`. |
+| **Readers** | One per run and step, made at its first lines, dropped at its end; a run it didn't plan (the pack started again) gets a fresh one, and a line in the log. |
+| **Cut lines** | Fenix cuts a line at 64 KiB; the pieces are joined, per stream and across calls, up to 1 MiB, before the reader sees the line. |
+| **What it remembers** | The last scan of each file and the last listing: a listing's or a run's `Found` for a key a scan found keeps the scan's groups, file and line; a key a run reports that a known template's key starts at a separator (`TestTable/negative_one`, `test_cases[negative]`, `tests::x::case_1`) or that sits at a template's line is that template's case, sent as `found` before its result; a file or suite asked with no tests after it comes with the tests it remembers under it (`known`). |
+| **One result per test** | A second `Ended` for a key in a run is merged into the first, the worse outcome, its message and place winning, the texts joined; Fenix keeps the last, so it keeps the whole. A template whose cases ended in a step and that had no result of its own gets theirs (`1 of its 2 cases didn't pass`). |
+| **Long command lines** | `tests::split(items, limit, make)` makes several commands of one selection, each under `limit` as Windows quotes it: `DIRECT` (Fenix's 32,766 less 1,024 for `${data}` filled in and the program's full path) or `BATCH_FILE` (8,191, the same, for a `.cmd` shim). A plan of more than 256 steps is an error: plan by groups. |
+| **Reporters and files** | An asset its args or env name (`${data}/lang-kit/tests/fenix_tests.py`) is put in the step's `needs`; a step's `files` are written under `/data/lang-kit/tests/runs/<run>-<step>/` (`${step_files}` in its args), named in `needs`, and deleted when it ends. |
+| **The runner in use** | `test-provider-set` only when `runner()` says something else than it last told. |
+
+A made-up runner, `tally`, whose files say `# test <name>` and whose
+`tally run <keys>` prints `PASS <key> <ms>` or `FAIL <key> <why>`:
+
+```rust,no_run
+use fenix_extension_api::Command;
+use fenix_lang_kit::tests::{split, Ask, Asked, Ended, Found, Group, Line, Outcome, Reader, Report, Step, TestRunner, DIRECT};
+use fenix_lang_kit::Kit;
+
+struct Tally;
+
+impl TestRunner for Tally {
+    fn provider(&self) -> &str { "tally" }
+    fn runner(&mut self) -> (String, Option<String>) { ("tally".into(), None) }
+    fn scan(&mut self, path: &str, text: &str) -> Vec<Found> {
+        let file = path.strip_prefix("/project/").unwrap_or(path);
+        text.lines().enumerate()
+            .filter_map(|(i, l)| l.strip_prefix("# test ").map(|name| (i, name)))
+            .map(|(i, name)| Found::test(format!("{file}::{name}"), name).under([Group::package("tally"), Group::file(file)]).line(i as u32 + 1))
+            .collect()
+    }
+    fn plan(&mut self, ask: &Ask) -> Result<Vec<Step>, String> {
+        let keys: Vec<String> = match ask {
+            Ask::Run(items) => items.iter().flat_map(|a| match a {
+                Asked::Test(f) => vec![f.key.0.clone()],
+                Asked::Group { tests, .. } => tests.iter().map(|t| t.key.0.clone()).collect(),
+            }).collect(),
+            _ => Vec::new(),
+        };
+        // Every key, in as many steps as the command line needs.
+        Ok(split(&keys, DIRECT, |some| Command::new("tally").arg("run").args(some.iter().cloned()))
+            .into_iter()
+            .map(|cmd| { let covered = cmd.args[1..].to_vec(); Step::new(cmd, "tally").covering(covered) })
+            .collect())
+    }
+    fn reader(&mut self, _ask: &Ask, _step: &Step) -> Box<dyn Reader> { Box::new(Results) }
+}
+
+struct Results;
+
+impl Reader for Results {
+    fn line(&mut self, line: Line, out: &mut Vec<Report>) {
+        let mut words = line.text.splitn(3, ' ');
+        match (words.next(), words.next(), words.next()) {
+            (Some("PASS"), Some(key), ms) => out.push(Report::Ended(Ended::new(key, Outcome::Passed).ms(ms.and_then(|m| m.parse().ok()).unwrap_or(0.0)))),
+            (Some("FAIL"), Some(key), why) => out.push(Report::Ended(Ended::new(key, Outcome::Failed).message(why.unwrap_or("")))),
+            _ => {} // not a result: passed over
+        }
+    }
+}
+
+let kit = Kit::new("tally").tests(Box::new(Tally));
+// The pack's `impl Extension` hands Fenix's five calls to it:
+// fn tests_scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<tests::Found> {
+//     self.kit.tests_scan(provider, path, text)
+// }
+// ... and `tests_plan`, `tests_read`, `tests_step_ended`, `tests_launch` the same.
+# drop(kit);
+```
+
+Its tests go on the [test kit](../test-kit/README.md)'s driver,
+`fenix_test_kit::tests::Fenix`, which plays Fenix's part on recorded
+output of its runner; `crates/test-kit/tests/a_test_provider.rs` is this
+runner grown to every rule.
 
 A pack tests its own wiring with the host lang-kit's tests use, the
 `mock` feature's `host::mock::{Mock, Shared}`: every call written down as

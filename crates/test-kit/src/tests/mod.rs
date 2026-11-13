@@ -287,9 +287,13 @@ struct Cx {
     provider: String,
     purpose: Purpose,
     queued: Vec<String>,
+    /// The nodes asked for; none: all of them.
+    asked: Option<HashSet<String>>,
     /// Each test's state before the run, to go back to on a stop.
     before: HashMap<String, (State, Detail)>,
     ended: HashSet<String>,
+    /// What the provider's reports named: found, or ended.
+    named: HashSet<String>,
     found: HashSet<String>,
     listed: HashSet<String>,
     /// The step's covers and what's ended in it.
@@ -673,6 +677,9 @@ impl<E: Exports> Fenix<E> {
         };
         let purpose = if ask == Ask::Discover { Purpose::Listing } else { Purpose::Tests };
         let mut cx = self.cx(provider, id, purpose, queued);
+        if let Ask::Run(records) = &ask {
+            cx.asked = Some(records.iter().map(|r| r.id.clone()).collect());
+        }
         for t in cx.queued.clone() {
             self.set_state(&mut cx, &t, State::Queued);
         }
@@ -698,8 +705,10 @@ impl<E: Exports> Fenix<E> {
             provider: provider.into(),
             purpose,
             queued,
+            asked: None,
             before: HashMap::new(),
             ended: HashSet::new(),
+            named: HashSet::new(),
             found: HashSet::new(),
             listed: HashSet::new(),
             covers: Vec::new(),
@@ -921,15 +930,16 @@ impl<E: Exports> Fenix<E> {
                 }
             }
             Purpose::Tests => {
-                let asked: HashSet<&String> = cx.queued.iter().collect();
+                let asked = cx.asked.as_ref();
                 let gone: Vec<String> = model
                     .nodes
                     .iter()
-                    .filter(|(k, n)| n.records[Source::Run as usize].is_some() && !cx.found.contains(*k) && !cx.ended.contains(*k))
+                    .filter(|(k, n)| n.records[Source::Run as usize].is_some() && !cx.named.contains(*k))
                     .filter(|(k, _)| {
+                        let Some(asked) = asked else { return true };
                         let mut cur = model.record(k).and_then(|r| r.parent);
                         while let Some(p) = cur {
-                            if asked.contains(&p) || cx.queued.is_empty() {
+                            if asked.contains(&p) {
                                 return true;
                             }
                             cur = model.record(&p).and_then(|r| r.parent);
@@ -1012,6 +1022,7 @@ impl<E: Exports> Fenix<E> {
                     let path = f.path.as_deref().map(|p| place(p, cx.cwd.as_deref()));
                     let source = if cx.purpose == Purpose::Listing { Source::Listing } else { Source::Run };
                     self.model_mut(&cx.provider).set(&id, source, Record::from(&f, path));
+                    cx.named.insert(id.clone());
                     if cx.purpose == Purpose::Listing {
                         cx.listed.insert(id);
                     } else {
@@ -1049,6 +1060,7 @@ impl<E: Exports> Fenix<E> {
                     let n = self.model_mut(&cx.provider).nodes.get_mut(&id).expect("known");
                     n.result = Detail { message: e.message.clone(), at, text: e.text.clone(), duration_ms: e.duration_ms };
                     cx.ended.insert(id.clone());
+                    cx.named.insert(id.clone());
                     cx.step_ended.insert(id);
                 }
                 Report::Output { id, text } => {

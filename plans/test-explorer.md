@@ -1505,3 +1505,54 @@ FENIX-TEST {"kind":"result","file":".../src/orbit.test.js","names":["adds"],"lin
 {"Action":"pass","Package":"example.com/orbit","Test":"TestAdds","Elapsed":0}
 {"Action":"output","Package":"example.com/orbit","Output":"ok  \texample.com/orbit\t(cached)\n"}
 ```
+
+## As built: E1a
+
+Built on 13 November 2026 on `main`'s API 1.5: `crates/lang-kit/src/tests/`
+(`mod.rs` the trait and `Kit`'s five methods, `api.rs` the copy of Fenix
+§6.6 and §6.3 with §18's four changes, `adapter.rs`, `memory.rs`,
+`line.rs`), `Host::test_provider_set` (nothing on 1.5), and the test
+kit's driver, `fenix_test_kit::tests::Fenix` (feature `lang-kit`). The
+made-up runner `tally` and recorded `go test -json` output go through
+both in `crates/test-kit/tests/`. Where it differs from §4:
+
+| §4 said | As built | Why |
+|---|---|---|
+| `scan`, `plan`, `reader` take `&self` | `&mut self` for all but `provider` and `assets`; `assets` gives a `Vec` | A pack keeps what it reads once (`cargo metadata`) without a `RefCell`. |
+| `Found` as sketched | Gains `data` | F6, as ruled. |
+| `Asked::Group { groups, tests: Vec<Key> }` from lang-kit's memory | `{ groups, tests: Vec<Found>, known: Vec<Key> }`: `tests` what Fenix sent after a file or suite, `known` the memory's only when Fenix sent none | F2 as ruled: Fenix sends them, never under a group, and none past 10,000, when the runner's own filter is right; the memory's may be fewer than there are. |
+| `Ask { Discover, Run, RunAll }` | Also `Ask::Debug(Found)` | A build-first plan's reader is told it's reading a build. |
+| `plan` returns steps | Steps; `list_after(ask)` beside it | F7 (`Plan.list_after`). |
+| `Step { command, label, covers }` | Also `needs` (more under `/data`) and `files` (written for the step under `runs/<run>-<step>/`, `${step_files}` in its args, deleted at its end) | Pytest's file of ids, with nothing but the step to name it. |
+| `Report::Ended { .. }` inline | `Report::Ended(Ended)`, with a builder | Readers build results in pieces (held until whole). |
+| A crash: lang-kit errors the group's known tests itself and sends `crashed` at the step's end | `Crashed { under }` goes at once as `crashed { id }` | F4 as ruled: Fenix scopes it. |
+| Cases placed for a `Found` | Also for an `Ended` or `Started` whose key nothing found: a `found` (kind case, labelled by what the key adds) goes first | Go's subtests and pytest's cases come as results; without it Fenix adds them as tests under the file (§4, rule 3). |
+| One `ended` per test: merged in a step | Merged per run; and a template whose cases ended in a step, with no result of its own, gets theirs | Fenix judges a covered test without an `ended` as errored (Fenix §8.5), which a parametrize or `test.each` template never gets from its runner. |
+| `split(command, items, budget)`, 24,000 | `split(items, limit, make)`; `DIRECT` = 32,766 − 1,024 and `BATCH_FILE` = 8,191 − 1,024, the limit the pack's per program | Fenix §6.5's numbers; the 1,024 is for `${data}` filled in and the program's full path, which Fenix's plan doesn't say it counts. `make` lets a step's names go in one argument (Go's `-run` regex). |
+| More than 256 steps: lang-kit runs the groups instead | An error from `tests_plan` | Only the pack knows its groups' commands. |
+| The runner told when it differs from the manifest's `name` | Told as the pack starts, then on each change | Fenix ignores a call that says what it has (F8 as ruled), and lang-kit doesn't read the manifest. |
+| Ids over 1 KiB: the pack cuts with a SHA-1 | lang-kit cuts every id at 1,024 bytes, as Fenix does (`cut_id`); a pack that wants a hash makes its key with one | Fenix cuts the same way everywhere (§4), so a cut key still matches; `data` names such a case to its runner. |
+| Fixtures in `crates/lang-kit/src/tests/samples/` | `crates/test-kit/tests/samples/go/` | The recorded run is driven through the driver, which lives in the test kit. |
+| The driver times calls at 5 ms | 5 ms in a release build, 50 ms in a debug one | Unoptimised code is about ten times slower; wasm's own cost is still the nightly's. |
+
+For E1b: `Fenix`'s `Host::test_provider_set` calls `tests::api::provider`,
+so once that's the real import every lang-kit pack's component imports
+`test-provider-set` (the vtable keeps it), runner or not. If a 1.6-built
+pack with `api = "1.5"` must load on Fenix 1.5 (F15, D-A2), make the call
+reachable only through `Kit::tests` (a function pointer it sets), not
+through `Fenix`'s impl.
+
+What Fenix's plan leaves unspecified, each read strictly by the driver and
+listed in `crates/test-kit/README.md` ("Not yet specified by Fenix"): how
+an id over 1 KiB is cut; what the 32,766 and 8,191 count (`${data}`
+filled in, the program's full path); whether a cut line's pieces can have
+the other stream's lines between them; a line of exactly 64 KiB at a
+stream's end; a `crashed` or `broken` with no id in a step whose `covers`
+is empty; whether `broken` errors tests that already ended; a template
+that never gets its own `ended`; whether a plan goes on after a step
+Fenix failed; `found` in a build-first plan and `broken` in a listing; a
+`found` before its parent and an id twice in one scan; a group's state
+with failed and errored children; which of a file's tests an ask leaves
+out past 10,000; whether `test-provider-set`'s runner survives the pack
+starting again; and a case dropped by a complete run although Fenix had
+just errored it.

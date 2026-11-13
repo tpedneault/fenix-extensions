@@ -574,6 +574,12 @@ extensions depend on by path
 - [`test-kit`](crates/test-kit/README.md): testing an extension without
   Fenix -- a fake host, a harness, pages as text and snapshots. A
   dev-dependency: nothing of it is packed.
+
+  Test providers for Fenix 1.6 are being added to lang-kit and the test
+  kit: lang-kit's `tests` (a pack's `TestRunner` on the five exports) and
+  the test kit's driver (Fenix's side, on recorded output), against a copy
+  of API 1.6's types until 1.6 is released; see
+  [`plans/test-explorer.md`](plans/test-explorer.md).
 - `forge` (GitHub and GitLab), `jira`, `mib`, `ccsds`, `nats`,
   `diagram`: the code two extensions share, or an extension and its
   agent tools.
