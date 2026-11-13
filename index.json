@@ -2326,6 +2326,31 @@
               "${setting:jupyter.python}"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/jupyter-v1.1.0/fenix.jupyter-1.1.0.fenixext",
+          "sha256": "8bbc09ae7d034b5c371a7d5fca1f911774dc730e6fc8c03b8becf9c3cb0ef525",
+          "size": 188916,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "data",
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-read",
+            "process": [
+              "python3",
+              "python",
+              "uv",
+              "${setting:jupyter.python}"
+            ]
+          }
         }
       ],
       "name": "Jupyter notebooks",
