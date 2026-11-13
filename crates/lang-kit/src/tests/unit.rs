@@ -280,6 +280,33 @@ fn an_ask_is_told_apart_by_its_records_parents() {
     let _ = std::fs::remove_dir_all(&r.data);
 }
 
+/// A case with cases of its own (Go's `t.Run` inside a `t.Run`) is part of
+/// a file's fill-in with them: they're not told as selected on their own,
+/// which a run would plan as one more step.
+#[test]
+fn a_case_under_a_case_is_part_of_the_fill_in() {
+    let mut r = rig("ask-nested");
+    let (tally, file) = ("\u{1f}tally", "\u{1f}tally\u{1f}a.tally");
+    let mut file_rec = rec(file, Some(tally), "a.tally", Kind::File);
+    file_rec.path = Some("/project/a.tally".into());
+    let mut nested = rec("t nested", Some(file), "nested", Kind::Test);
+    nested.template = true;
+    let records = vec![
+        file_rec,
+        nested,
+        rec("t nested/outer", Some("t nested"), "outer", Kind::Case),
+        rec("t nested/outer/inner", Some("t nested/outer"), "inner", Kind::Case),
+        rec("t other", Some(file), "other", Kind::Test),
+    ];
+    r.kit.tests_plan("tally", 1, api::Ask::Run(records)).unwrap();
+    let asks = &r.seen.borrow().asks;
+    let Ask::Run(items) = &asks[0] else { panic!() };
+    assert_eq!(items.len(), 1, "{items:?}");
+    let Asked::Group { tests: Some(tests), .. } = &items[0] else { panic!("{items:?}") };
+    assert_eq!(tests.iter().map(|t| (t.key.0.as_str(), t.of.as_ref().map(|k| k.0.as_str()))).collect::<Vec<_>>(), [("t nested", None), ("t nested/outer", Some("t nested")), ("t nested/outer/inner", Some("t nested/outer")), ("t other", None)]);
+    let _ = std::fs::remove_dir_all(&r.data);
+}
+
 /// Fenix §19, finding 2: after the pack starts again (no memory) or
 /// Fenix does (no `data`), a test asked is planned from what Fenix sent:
 /// its id, its place, its parent's labels.
