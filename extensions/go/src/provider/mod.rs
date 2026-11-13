@@ -32,6 +32,7 @@ use std::rc::Rc;
 use fenix_extension_api::LaunchConfig;
 use fenix_lang_kit::serde_json::json;
 use fenix_lang_kit::tests::{Ask, Found, Group, Launching, Reader, Step, TestRunner};
+use fenix_lang_kit::Version;
 
 use index::{Index, Known, Shared};
 use layout::{ignored, package_group, parse_key, project_dir, quote_meta, Layout};
@@ -39,6 +40,9 @@ use read::Ctx;
 
 /// The manifest's `[[contributes.test_providers]].id`.
 pub const PROVIDER: &str = "go";
+
+/// The Go that has `go test -fullpath` (1.21; 1.20.14 doesn't).
+const FULLPATH_SINCE: &str = "1.21";
 
 /// What the pack knows that its provider needs, kept up to date by the
 /// pack ([`crate::Go`]) and read by the provider when Fenix asks.
@@ -164,6 +168,9 @@ impl TestRunner for Provider {
             return ("go test".into(), Some("Go isn't installed: the doctor's fix row installs it with Homebrew or winget, else go.dev/dl".into()));
         }
         match &f.version {
+            // `-fullpath`, which every plan passes, came with Go 1.21: Go
+            // 1.20's test binary answers "flag provided but not defined".
+            Some(v) if Version::parse(v).zip(Version::parse(FULLPATH_SINCE)).is_some_and(|(v, least)| v < least) => ("go test".into(), Some(format!("Go {v} can't run these tests: go test -fullpath needs Go 1.21 or later"))),
             Some(v) => (format!("go test (go{v})"), None),
             None => ("go test".into(), None),
         }

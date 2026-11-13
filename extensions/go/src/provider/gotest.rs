@@ -413,7 +413,10 @@ impl GoTestReader {
         } else if let Some(panic) = panic_message(&outputs) {
             out.push(Report::Crashed { under, message: format!("{panic} (before any test ran)") });
         } else if !saw_tests {
-            let last = outputs.iter().rev().find(|l| !l.trim().is_empty() && !is_summary(l)).map(|l| l.trim().to_string());
+            // A flag Go's too old for is the first line (`flag provided but not
+            // defined`, then the usage); a `TestMain` failing says it last.
+            let flag = outputs.iter().find(|l| l.starts_with("flag provided but not defined")).cloned();
+            let last = flag.or_else(|| outputs.iter().rev().find(|l| !l.trim().is_empty() && !is_summary(l)).map(|l| l.trim().to_string()));
             let message = match last {
                 Some(l) => format!("its test binary failed before running a test: {l}"),
                 None => "its test binary failed before running a test".to_string(),

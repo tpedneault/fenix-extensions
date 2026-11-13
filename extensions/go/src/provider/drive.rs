@@ -716,7 +716,7 @@ fn what_go_says_when_it_cannot_run_is_broken() {
 fn a_test_that_prints_a_great_deal_is_read_within_bounds() {
     let (mut fenix, _) = orbit();
     let mut out = String::from("{\"Action\":\"run\",\"Package\":\"example.com/orbit/geo\",\"Test\":\"TestPanics\"}\n");
-    let long = "x".repeat(200 * 1024);
+    let long = "x".repeat(30 * 1024);
     for i in 0..5000 {
         let line = if i == 2500 { long.clone() } else { format!("line {i}") };
         out.push_str(&format!("{{\"Action\":\"output\",\"Package\":\"example.com/orbit/geo\",\"Test\":\"TestPanics\",\"Output\":\"{line}\\n\"}}\n"));
@@ -731,7 +731,7 @@ fn a_test_that_prints_a_great_deal_is_read_within_bounds() {
     assert_eq!(fenix.at(PROVIDER, PANICS), Some(("geo/geo_test.go".into(), 13, None)));
     let text = fenix.detail(PROVIDER, PANICS).text.unwrap_or_default();
     assert!(text.starts_with("line 0\n") && text.contains("lines left out") && text.ends_with("geo_test.go:13 +0x28"), "{}", &text[..text.len().min(200)]);
-    assert!(text.len() < 150 * 1024, "{} bytes", text.len());
+    assert!(text.len() < 30 * 1024, "{} bytes: the 30 KiB line in the middle is left out", text.len());
 }
 
 /// The listing reads the files the scan missed a few at a time and the
@@ -772,4 +772,39 @@ fn a_dependency_that_doesnt_build_breaks_the_packages_that_import_it() {
     assert_eq!(broken, [(Some("\u{1f}example.com/app".into()), message.replace("example.com/lib didn't", "example.com/app didn't")), (Some("\u{1f}example.com/lib".into()), message.into())]);
     fenix.assert_states(PROVIDER, &[(APP_DOUBLE, State::Errored), (LIB_DOUBLE, State::Errored), (TRIPLE, State::Failed)]);
     assert_eq!(fenix.at(PROVIDER, APP_DOUBLE), Some(("lib/lib.go".into(), 3, Some(33))), "where the error is, in the dependency");
+}
+
+/// Fenix runs 256 steps at most: a selection that would take more (a test
+/// in each of 300 packages, every set of names its own) runs those
+/// packages whole instead, coarser and never wrong.
+#[test]
+fn a_selection_of_more_than_two_hundred_steps_runs_its_packages_whole() {
+    let mut p = Provider::new(facts());
+    for (path, text) in FILES {
+        p.scan(&format!("/project/{path}"), text);
+    }
+    let asked: Vec<Asked> = (0..300).map(|i| Asked::Test(fenix_lang_kit::tests::Found::test(format!("example.com/orbit/p{i:03} TestN{i:03}"), format!("TestN{i:03}")))).collect();
+    let steps = p.plan(&Ask::Run(asked)).unwrap();
+    assert!(steps.len() < 10 && steps.iter().all(|s| DIRECT.fits(&s.command) && !s.command.args.contains(&"-run".to_string())), "{} steps", steps.len());
+    assert_eq!(steps.iter().map(|s| s.covers.len()).sum::<usize>(), 300, "each still named by the step that runs it");
+}
+
+/// Without Go there's nothing to run: the plan says why, as the runner did.
+#[test]
+fn without_go_the_plan_says_why() {
+    let facts = Rc::new(RefCell::new(Facts { root: format!("{GO}/orbit"), module: true, ..Facts::default() }));
+    let mut p = Provider::new(facts.clone());
+    let (runner, problem) = p.runner();
+    assert_eq!(runner, "go test");
+    assert!(problem.as_deref().is_some_and(|p| p.starts_with("Go isn't installed")));
+    assert_eq!(p.plan(&Ask::RunAll).unwrap_err(), problem.unwrap());
+    // Go 1.20 has no -fullpath: said before a run fails for it.
+    facts.borrow_mut().go = Some("go".into());
+    facts.borrow_mut().version = Some("1.20.14".into());
+    assert_eq!(p.runner(), ("go test".to_string(), Some("Go 1.20.14 can't run these tests: go test -fullpath needs Go 1.21 or later".to_string())));
+    facts.borrow_mut().version = Some("1.21.0".into());
+    assert_eq!(p.runner(), ("go test (go1.21.0)".to_string(), None));
+    // And with no go.mod and no go.work: nothing to run here, no problem.
+    facts.borrow_mut().module = false;
+    assert_eq!(p.runner(), (String::new(), None));
 }
