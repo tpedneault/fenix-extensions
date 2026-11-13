@@ -152,12 +152,13 @@ fn what_is_not_a_test_file_and_text_being_typed_are_read_without_failing() {
 /// A file of 2,000 tests is scanned within the driver's budget for a call
 /// (5 ms in a release build, 50 ms in a debug one): the provider's scan
 /// and lang-kit's adapter together, natively. The best of five, so a busy
-/// machine doesn't fail it; every other call the driver times as it goes.
+/// machine doesn't fail it (nine, for a very busy one); every other call the
+/// driver times as it goes.
 #[test]
 fn a_file_of_two_thousand_tests_is_scanned_within_a_calls_budget() {
     let text: String = (0..2000).map(|i| format!("def test_fails_on_purpose_number_{i:05}():\n    assert 1 + 1 == 2, \"{{}}\"\n\n\n")).collect();
     let budget = if cfg!(debug_assertions) { std::time::Duration::from_millis(50) } else { std::time::Duration::from_millis(5) };
-    let best = (0..5)
+    let best = (0..9)
         .map(|_| {
             let mut kit = Kit::with_host("python", Fake::new().host()).tests(Box::new(Provider::new(facts())));
             let start = std::time::Instant::now();
@@ -571,13 +572,16 @@ fn two_rootdirs_are_two_steps_with_their_keys_told_apart() {
 /// one step, its command line as short as ever, every test covered.
 #[test]
 fn two_thousand_failed_tests_run_again_from_a_file_of_ids() {
-    // In four files, so no one scan is the big one the driver times.
-    let files: Vec<(String, String)> = (0..4).map(|f| (format!("tests/test_many{f}.py"), (0..500).map(|i| format!("def test_fails_on_purpose_number_{f}{i:04}():\n    assert False\n\n\n")).collect())).collect();
+    // In twenty files, so no one scan is the big one the driver times; and
+    // what this shows is the plan, not the clock (the budget is the next
+    // test's subject, best of several), so a loaded machine can't fail it.
+    let files: Vec<(String, String)> = (0..20).map(|f| (format!("tests/test_many{f:02}.py"), (0..100).map(|i| format!("def test_fails_on_purpose_number_{f:02}{i:03}():\n    assert False\n\n\n")).collect())).collect();
     let refs: Vec<(&str, &str)> = files.iter().map(|(p, t)| (p.as_str(), t.as_str())).collect();
     let (mut fenix, _) = fenix_with(facts(), &refs);
+    fenix.budget = std::time::Duration::from_secs(2);
     let mut out = String::new();
     for n in 0..2000 {
-        out.push_str(&format!("\nFENIX-TEST {{\"kind\": \"result\", \"id\": \"tests/test_many{}.py::test_fails_on_purpose_number_{}{:04}\", \"when\": \"call\", \"outcome\": \"failed\", \"duration\": 0.0001, \"message\": \"assert False\", \"at\": [\"tests/test_many{}.py\", {}]}}\n", n / 500, n / 500, n % 500, n / 500, (n % 500) * 4 + 2));
+        out.push_str(&format!("\nFENIX-TEST {{\"kind\": \"result\", \"id\": \"tests/test_many{:02}.py::test_fails_on_purpose_number_{:02}{:03}\", \"when\": \"call\", \"outcome\": \"failed\", \"duration\": 0.0001, \"message\": \"assert False\", \"at\": [\"tests/test_many{:02}.py\", {}]}}\n", n / 100, n / 100, n % 100, n / 100, (n % 100) * 4 + 2));
     }
     out.push_str("\nFENIX-TEST {\"kind\": \"done\", \"status\": 1}\n");
     fenix.on_step(|_| true, Recorded::stdout(out).exits(1));

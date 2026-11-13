@@ -369,8 +369,7 @@ fn pass(lines: &[&str], rules: &Rules, ignore: &[(Opener, At)]) -> Result<Scanne
             let starts = trimmed.starts_with("def ") || trimmed.starts_with("async def ") || trimmed.starts_with("class ");
             if !walk.brackets.is_empty() && starts && indent_of(line) <= start.0 {
                 walk.brackets.clear();
-                let text = logical.trim_start().to_string();
-                p.statement(start.0, start.1, &text, rules);
+                p.statement(start.0, start.1, &logical, rules);
                 p.last_content = number - 1;
                 logical.clear();
                 start = (indent_of(line), number);
@@ -431,13 +430,20 @@ fn pass(lines: &[&str], rules: &Rules, ignore: &[(Opener, At)]) -> Result<Scanne
             }
             i += 1;
         }
+        let piece = line.get(..end).unwrap_or(line).trim();
+        let whole = walk.triple.is_none() && walk.brackets.is_empty() && !walk.backslash;
+        // A statement on one line, the common one, is read where it lies.
+        if whole && logical.is_empty() {
+            p.statement(start.0, start.1, piece, rules);
+            p.last_content = number;
+            continue;
+        }
         if !logical.is_empty() {
             logical.push('\n');
         }
-        logical.push_str(line.get(..end).unwrap_or(line).trim());
-        if walk.triple.is_none() && walk.brackets.is_empty() && !walk.backslash {
-            let text = logical.trim_start().to_string();
-            p.statement(start.0, start.1, &text, rules);
+        logical.push_str(piece);
+        if whole {
+            p.statement(start.0, start.1, &logical, rules);
             p.last_content = number;
             logical.clear();
         }
