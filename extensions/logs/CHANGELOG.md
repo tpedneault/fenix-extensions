@@ -2,9 +2,10 @@
 
 ## 1.1.0
 
-For Fenix 1.1 (extension API 1.2): tools for your coding agents, which
-read a log in the project as the viewer does. Fenix 1.0 keeps Log viewer
-1.0.0.
+For Fenix 1.5 (extension API 1.5), as the shared `ui-kit` it draws with
+now is: tools for your coding agents, which read a log in the project as
+the viewer does. The viewer works as it did. On Fenix 1.0 to 1.4, 1.0.0
+stays the one you have.
 
 - `logs_query` (read): a log's entries as JSON -- level, time, offset,
   lines and text, a stack trace with its entry -- filtered by level (this

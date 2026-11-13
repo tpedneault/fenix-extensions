@@ -85,7 +85,7 @@ level a line matching it has, checked first.
 | `F` | Follow the log as it grows, as `tail -f` does: the cursor stays at the end while it's there |
 | `y` | Copy the entry's first line |
 | `Y` | Copy the whole entry; a JSON line pretty-printed |
-| `r` | The file's text, at the entry's line (`SPC f o` comes back) |
+| `r` | The file's text, at the entry's line (`SPC f o`, `Ctrl+K f o` with standard keys, comes back) |
 | `h` `l`, Left Right | Scroll across; `0` back |
 | `R` | Read the file again from its start |
 | `q`, Esc | Close it |
@@ -138,7 +138,7 @@ is read whole again each time.
 
 ## For coding agents
 
-Two tools for your coding agents (Fenix 1.1), in the `logs` toolset,
+Two tools for your coding agents, in the `logs` toolset,
 both class `read`: they read a log and change nothing.
 
 | Tool | What it answers |
@@ -186,6 +186,9 @@ first, or refuse, by toolset, tool or class.
   and where the project is.
 
 ## Building
+
+It needs Fenix 1.5 or later (extension API 1.5), as the `ui-kit` it's
+built on is.
 
 ```text
 cargo xtask pack extensions/logs dist

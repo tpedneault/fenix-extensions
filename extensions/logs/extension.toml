@@ -10,11 +10,11 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-# Agent tools: Fenix 1.1, the first to offer extension API 1.2 -- their
-# classes and deadlines. The crate still builds against API 1.0.0, which
-# its kit (ui-kit) is pinned to; serve and answer are there already.
-fenix = ">=1.1, <2"
-api = "1.2"
+# Built on ui-kit, which is on extension API 1.5, so Fenix 1.5. (Its
+# agent tools alone, their classes and deadlines, would be API 1.2 and
+# Fenix 1.1.)
+fenix = ">=1.5, <2"
+api = "1.5"
 
 [permissions]
 # A log in the project is read where it is, as far as each step needs;
