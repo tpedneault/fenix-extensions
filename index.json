@@ -1739,6 +1739,37 @@
               "fourmolu"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/haskell-v1.1.0/fenix.haskell-1.1.0.fenixext",
+          "sha256": "e5d31b9d6ec62e90415b8f203f44bdb1b2aa9ac75067e6c4bcf04d4ea50f9930",
+          "size": 642268,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "ghc",
+              "runghc",
+              "cabal",
+              "stack",
+              "ghcup",
+              "haskell-language-server-wrapper",
+              "haskell-language-server",
+              "hlint",
+              "ormolu",
+              "fourmolu"
+            ]
+          }
         }
       ],
       "name": "Haskell",
