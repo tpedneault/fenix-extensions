@@ -611,6 +611,23 @@
             "editor": "write",
             "filesystem": "project-read"
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/colours-v1.2.0/fenix.colours-1.2.0.fenixext",
+          "sha256": "ed3b9ae78b3d366d38a1185bffdffb7cf5da4e132cd51a7d4cb77018ff385335",
+          "size": 185062,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-read"
+          }
         }
       ],
       "name": "Colours",
