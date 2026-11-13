@@ -1,0 +1,9 @@
+{
+  "name": "Base Light",
+  "type": "light",
+  "colors": { "editor.background": "#fafafa" },
+  "tokenColors": [
+    { "scope": "keyword", "settings": { "foreground": "#a626a4" } },
+    { "scope": "string", "settings": { "foreground": "#50a14f" } }
+  ]
+}
