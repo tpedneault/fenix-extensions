@@ -487,6 +487,9 @@ mod tests {
         if let Some(page) = d.kit.packages.as_mut() {
             page.cache_dir = None;
         }
+        // An install downloads under the tools folder: the test's own,
+        // not the real `/tools`, which a test may not write.
+        d.kit.installer.tools = dir.join(".tools").to_string_lossy().into_owned();
         d
     }
 
