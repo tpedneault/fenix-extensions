@@ -1,0 +1,16 @@
+{"Time":"2026-11-13T17:09:16.933295364Z","Action":"start","Package":"example.com/orbit"}
+{"Time":"2026-11-13T17:09:16.93910307Z","Action":"run","Package":"example.com/orbit","Test":"TestNested"}
+{"Time":"2026-11-13T17:09:16.939133117Z","Action":"output","Package":"example.com/orbit","Test":"TestNested","Output":"=== RUN   TestNested\n"}
+{"Time":"2026-11-13T17:09:16.939243303Z","Action":"run","Package":"example.com/orbit","Test":"TestNested/outer"}
+{"Time":"2026-11-13T17:09:16.939248479Z","Action":"output","Package":"example.com/orbit","Test":"TestNested/outer","Output":"=== RUN   TestNested/outer\n"}
+{"Time":"2026-11-13T17:09:16.939322589Z","Action":"run","Package":"example.com/orbit","Test":"TestNested/outer/inner"}
+{"Time":"2026-11-13T17:09:16.939326299Z","Action":"output","Package":"example.com/orbit","Test":"TestNested/outer/inner","Output":"=== RUN   TestNested/outer/inner\n"}
+{"Time":"2026-11-13T17:09:16.939387351Z","Action":"output","Package":"example.com/orbit","Test":"TestNested/outer/inner","Output":"--- PASS: TestNested/outer/inner (0.00s)\n"}
+{"Time":"2026-11-13T17:09:16.939426717Z","Action":"pass","Package":"example.com/orbit","Test":"TestNested/outer/inner","Elapsed":0}
+{"Time":"2026-11-13T17:09:16.939443988Z","Action":"output","Package":"example.com/orbit","Test":"TestNested/outer","Output":"--- PASS: TestNested/outer (0.00s)\n"}
+{"Time":"2026-11-13T17:09:16.939480377Z","Action":"pass","Package":"example.com/orbit","Test":"TestNested/outer","Elapsed":0}
+{"Time":"2026-11-13T17:09:16.939494741Z","Action":"output","Package":"example.com/orbit","Test":"TestNested","Output":"--- PASS: TestNested (0.00s)\n"}
+{"Time":"2026-11-13T17:09:16.939517969Z","Action":"pass","Package":"example.com/orbit","Test":"TestNested","Elapsed":0}
+{"Time":"2026-11-13T17:09:16.939612943Z","Action":"output","Package":"example.com/orbit","Output":"PASS\n"}
+{"Time":"2026-11-13T17:09:16.940171121Z","Action":"output","Package":"example.com/orbit","Output":"ok  \texample.com/orbit\t0.007s\n"}
+{"Time":"2026-11-13T17:09:16.940860601Z","Action":"pass","Package":"example.com/orbit","Elapsed":0.008}

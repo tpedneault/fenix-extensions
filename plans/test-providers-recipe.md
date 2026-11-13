@@ -615,3 +615,44 @@ E3c"):
   does.
 - **Recording**: a removal of a relative glob after `cd` is refused by
   the session's safety check; give absolute paths.
+
+## 19. Added by Go (E3b), 13 November 2026
+
+What §16 got wrong or left out for Go, checked on Go 1.24.7 (1.23.8 and
+1.20.14 by `GOTOOLCHAIN`; `go` downloads a toolchain through the proxy):
+
+- **A cached package replays the elapsed times of the run it replays**
+  (`TestSlow` 2,000 ms again), not 0: 0 is a quick test's.
+- **`go test ./...` at a `go.work` whose top isn't a module fails**
+  (`directory prefix . does not contain modules listed in go.work`, as
+  `FailedBuild` of a package named `./...`): name the `use` folders
+  (`./app/... ./lib/...`). Such a `Broken` has no group to name: `under:
+  None`, or the driver fails the step. Modules with no `go.work` need a
+  step each, in their own folder.
+- **A test's `skip` is not a result.** A run of all errors a test the run
+  gave no result for, `skip` or not; a test Go doesn't build (a build tag)
+  needs an `Ended { Skipped }` from the reader once its package ended.
+- **A fill-in drops a case under a case** (kit defect, fixed in lang-kit
+  `adapter.rs` with a test): Go's nested `t.Run`. Check a nested case in a
+  file's fill-in with the driver (`ask_for`).
+- **`os.Exit` in a test leaves no line**: the test's `run`, then the
+  package's `fail`, nothing about the exit under `-json`. A timeout's panic
+  is attributed to the test it caught. A panic in a test ends the binary:
+  its `fail`, then the package's, the later tests never run.
+- **Pre-1.24 build errors and stdout have no order between them:** hold the
+  package until `end`, then read stderr's `# pkg [pkg.test]` block.
+- **`-fullpath` is Go 1.21's.** Go 1.20's binary says `flag provided but not
+  defined: -fullpath` as package output: say it in `runner()`.
+- **`go list -f` with a Go slice (`{{.TestGoFiles}}`) breaks on a space in a
+  path**: `join` with a separator and tabs between fields. `-e` lists a
+  package that doesn't load.
+- **A listing reader may read files** (`std::fs` under `/project`): to put
+  tests the scan missed in the tree, give it a queue (a few a call, the
+  rest at `end`) and a cap.
+- **A test's lines are unbounded**: keep its first and last few hundred.
+- **`split` again was too slow** for 2,000 names (quoting each name for the
+  regex 14 times, in debug 70 ms): quote once, measure by batches.
+- **An Example with no `// Output:` isn't run**, and `go test -list` doesn't
+  list it; vet (run by `go test` since 1.24) refuses an example of a name
+  that isn't in the package (`ExampleNoOutput`), so record with
+  `ExampleAdd_silent`.

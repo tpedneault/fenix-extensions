@@ -320,7 +320,10 @@ fn ask_from(ask: api::Ask, memory: &Memory) -> Ask {
                     continue;
                 }
                 let f = found_from(r, memory, groups.clone(), template);
-                if f.template {
+                // What may have records of its own under it: a template, and
+                // a case (Go's `t.Run` in a `t.Run`), whose cases are of it.
+                // Left out, they'd be told as selected on their own.
+                if f.template || f.kind == Kind::Case {
                     owner.insert(&r.id, (item, groups, Some(f.key.clone())));
                 }
                 if let Some(Asked::Group { tests, .. }) = items.get_mut(item) {

@@ -1,0 +1,50 @@
+example.com/orbit [group] -- failed  <scan+run>
+  extra_test.go [file] -- failed  <scan+run>
+    TestExternal :11 -- passed 0ms  <scan>
+    TestParallel [template] :17 -- failed 0ms: a subtest failed  <scan>
+      one [case] :17 -- passed 10ms  <run>
+      two [case] :17 -- failed 10ms: two is broken at extra_test.go:24  <run>
+      three [case] :17 -- passed 10ms  <run>
+    TestFromHelper :30 -- failed 0ms: got 2, want 3 at helper_test.go:7  <scan>
+    TestPrints :34 -- passed 0ms  <scan>
+    TestSpecial [template] :40 -- passed 0ms  <scan>
+      a+b_(c) [case] :40 -- passed 0ms  <run>
+      x|y [case] :40 -- passed 0ms  <run>
+      [z] [case] :40 -- passed 0ms  <run>
+      naïve [case] :40 -- passed 0ms  <run>
+    ExampleAdd_wrong :46 -- failed 0ms: got: 4, want: 5  <scan>
+    FuzzAdd [template] :55 -- passed 0ms  <scan>
+      seed#0 [case] :55 -- passed 0ms  <run>
+      seed#1 [case] :55 -- passed 0ms  <run>
+  orbit_test.go [file] -- failed  <scan+run>
+    TestAdds :8 -- passed 0ms  <scan>
+    TestFailsOnPurpose :14 -- failed 0ms: Add(2, 2) = 4, want 5 at orbit_test.go:17  <scan>
+    TestSkipped :21 -- skipped 0ms: slow  <scan>
+    TestTable [template] :25 -- failed 0ms: a subtest failed  <scan>
+      small [case] :25 -- passed 0ms  <run>
+      negative_one [case] :25 -- failed 0ms: got -2, want -3 at orbit_test.go:37  <run>
+      a/b [case] :25 -- passed 0ms  <run>
+    TestNested [template] :43 -- passed 0ms  <scan>
+      outer [case] :43 -- passed 0ms  <run>
+        inner [case] :43 -- passed 0ms  <run>
+    ExampleAdd :49 -- passed 0ms  <scan>
+example.com/orbit/geo [group] -- failed  <scan>
+  geo/geo_test.go [file] -- failed  <scan>
+    TestDist :5 -- passed 0ms  <scan>
+    TestPanics :11 -- failed 0ms: panic: assignment to entry in nil map at geo/geo_test.go:13  <scan>
+    TestNeverRuns :16 -- errored: TestPanics panicked, which ends the test binary: panic: assignment to entry in nil map  <scan>
+example.com/orbit/crash [group] -- errored  <scan>
+  crash/crash_test.go [file] -- errored  <scan>
+    TestBefore :8 -- passed 0ms  <scan>
+    TestExits :12 -- errored: its test binary ended while TestExits was running (os.Exit, or a crash)  <scan>
+    TestAfter :16 -- errored: its test binary ended while TestExits was running (os.Exit, or a crash)  <scan>
+example.com/orbit/slow [group] -- passed  <scan>
+  slow/slow_test.go [file] -- passed  <scan>
+    TestQuick :8 -- passed 0ms  <scan>
+    TestSlow :10 -- passed 2000ms  <scan>
+example.com/orbit/boot [group] -- errored  <scan>
+  boot/boot_test.go [file] -- errored  <scan>
+    TestNever :9 -- errored: panic: setup failed (before any test ran)  <scan>
+example.com/orbit/tagged [group] -- unknown  <scan>
+  tagged/tagged_test.go [file] -- unknown  <scan>
+    TestNeedsTag :7 -- skipped (skip: not built here: //go:build integration): not built here: //go:build integration  <scan>

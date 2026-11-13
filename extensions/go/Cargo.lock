@@ -287,6 +287,7 @@ dependencies = [
  "fenix-lang-kit",
  "fenix-project",
  "fenix-snippets",
+ "fenix-test-kit",
  "serde",
  "toml",
 ]
@@ -348,6 +349,15 @@ dependencies = [
  "tempfile",
  "toml_edit",
  "windows-sys",
+]
+
+[[package]]
+name = "fenix-test-kit"
+version = "1.0.0"
+dependencies = [
+ "fenix-extension-api",
+ "fenix-lang-kit",
+ "unicode-width",
 ]
 
 [[package]]

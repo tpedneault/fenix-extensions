@@ -13,11 +13,15 @@ pub mod doctor;
 pub mod lint;
 pub mod packages;
 pub mod project;
+pub mod provider;
 pub mod tasks;
 pub mod tools;
 
 #[cfg(test)]
 mod data;
+
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use fenix_extension_api::{self as api, export, Command, Event, Extension, Key, MouseEvent, Page};
 use fenix_lang_kit::{find_version, Fenix, Host, Kit, PackageManager};
@@ -110,6 +114,10 @@ pub struct Go {
     set_server: Option<Command>,
     set_adapter: Option<Adapter>,
     set_formatter: Option<Command>,
+    /// What the test provider reads of the project (Fenix 1.6).
+    tests: provider::SharedFacts,
+    /// Activated: the kit has told Fenix the test runner once.
+    started: bool,
 }
 
 impl Default for Go {
@@ -127,7 +135,8 @@ impl Go {
     pub fn new(mut host: Box<dyn Host>, root: &str, read_settings: fn() -> Settings, connect: Connect, os: &str) -> Go {
         let mut tools = Tools::find(host.as_mut());
         tools.os = os.into();
-        let kit = Kit::with_host("go", host).packages(manager(&tools, root));
+        let tests = Rc::new(RefCell::new(provider::Facts { root: root.into(), ..provider::Facts::default() }));
+        let kit = Kit::with_host("go", host).packages(manager(&tools, root)).tests(Box::new(provider::Provider::new(tests.clone())));
         let mut g = Go {
             kit,
             root: root.into(),
@@ -140,6 +149,8 @@ impl Go {
             set_server: None,
             set_adapter: None,
             set_formatter: None,
+            tests,
+            started: false,
         };
         g.configure();
         g
@@ -166,6 +177,34 @@ impl Go {
         }
         if let Some(page) = self.kit.packages.as_mut() {
             page.manager = manager(tools, &self.root);
+        }
+        self.share();
+    }
+
+    /// The test provider's facts as they are now, and Fenix told the
+    /// runner where it changed. Go's version is the doctor's, once it has
+    /// asked.
+    fn share(&mut self) {
+        let version = self.kit.doctor.checks().into_iter().find(|c| c.label == "Go").and_then(|c| find_version(&c.detail)).map(|v| v.to_string());
+        let mut f = self.tests.borrow_mut();
+        let (module, work) = (self.project.module.is_some(), self.project.work);
+        if f.module != module || f.work != work {
+            f.generation += 1;
+            (f.module, f.work) = (module, work);
+        }
+        f.go = self.tools.go.clone();
+        // The doctor's checks are empty while it asks again (a go.mod saved):
+        // the version it last said stays, so Fenix isn't told the runner
+        // twice for nothing.
+        match (&f.go, version) {
+            (None, _) => f.version = None,
+            (Some(_), Some(v)) => f.version = Some(v),
+            (Some(_), None) => {}
+        }
+        f.os = self.tools.os.clone();
+        drop(f);
+        if self.started {
+            self.kit.tests_runner_changed();
         }
     }
 
@@ -225,12 +264,15 @@ impl Go {
             }
             self.apply();
         }
+        self.share();
     }
 
     /// The project's files changed: read again, and checked again.
     fn reload(&mut self) {
         self.project = Project::read(&self.root);
         self.go_mod = std::fs::read_to_string(format!("{}/go.mod", self.root)).ok();
+        // The provider reads go.mod and go.work again.
+        self.tests.borrow_mut().generation += 1;
         self.configure();
         let host = self.kit.host.as_mut();
         if let Err(why) = self.kit.tasks.apply(host) {
@@ -244,6 +286,7 @@ impl Go {
 impl Extension for Go {
     fn activate(&mut self) -> Result<(), String> {
         self.kit.activate()?;
+        self.started = true;
         self.apply();
         self.follow();
         Ok(())
@@ -437,6 +480,53 @@ mod tests {
         std::fs::write(dir.join("go.mod"), "module example.com/orbit\n\ngo 1.23\n\nrequire golang.org/x/text v0.43.0\n").unwrap();
         g.handle(Event::TaskFinished((100, true)));
         assert!(host.take().iter().any(|c| c.starts_with("tasks")));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// The runner Fenix is told: nothing to run without a `go.mod` or
+    /// `go.work`, `go test` once there's one, with Go's version once the
+    /// doctor has it, and a problem when Go isn't installed.
+    #[test]
+    fn the_test_provider_says_go_test_with_the_version_and_tells_again_when_a_fact_changes() {
+        let dir = temp("tests");
+        let host = Shared::default();
+        found(&host, &[("go", "/g/go")]);
+        let mut g = pack(&dir, &host, defaults);
+        g.activate().unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"test-provider go: ".to_string()), "no go.mod, no go.work: nothing to run here: {calls:?}");
+
+        // A go.mod saved: go test.
+        std::fs::write(dir.join("go.mod"), "module example.com/orbit\n\ngo 1.22\n").unwrap();
+        g.handle(Event::Saved("go.mod".into()));
+        let calls = host.take();
+        assert!(calls.contains(&"test-provider go: go test".to_string()), "{calls:?}");
+        let go = calls.iter().find_map(|c| c.strip_prefix("spawn ").and_then(|c| c.split_once(' ')).filter(|(_, rest)| rest.ends_with("/g/go version")).map(|(id, _)| id.parse::<u64>().unwrap()));
+        said(&mut g, go.expect("the doctor asks Go's version"), "go version go1.24.7 linux/amd64");
+        assert_eq!(host.take(), ["test-provider go: go test (go1.24.7)"]);
+        assert_eq!(g.tests.borrow().version.as_deref(), Some("1.24.7"));
+        // Nothing changed: Fenix isn't told again.
+        g.handle(Event::Saved("go.mod".into()));
+        assert!(!host.take().iter().any(|c| c.starts_with("test-provider")));
+        std::fs::remove_dir_all(&dir).unwrap();
+
+        // Without Go: why it can't run.
+        let dir = module("tests-nogo");
+        let host = Shared::default();
+        let mut g = pack(&dir, &host, defaults);
+        g.activate().unwrap();
+        let calls = host.take();
+        assert!(calls.iter().any(|c| c.starts_with("test-provider go: go test (Go isn't installed")), "{calls:?}");
+        std::fs::remove_dir_all(&dir).unwrap();
+
+        // A go.work alone is a project too.
+        let dir = temp("tests-work");
+        std::fs::write(dir.join("go.work"), "go 1.22\n\nuse ./app\n").unwrap();
+        let host = Shared::default();
+        found(&host, &[("go", "/g/go")]);
+        let mut g = pack(&dir, &host, defaults);
+        g.activate().unwrap();
+        assert!(host.take().contains(&"test-provider go: go test".to_string()));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

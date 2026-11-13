@@ -1,0 +1,3 @@
+example.com/app	/project/app	app_test.go	
+example.com/lib	/project/lib	lib_test.go	
+example.com/lib/util	/project/lib/util	util_test.go	

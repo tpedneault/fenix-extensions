@@ -1,0 +1,2 @@
+# example.com/orbit/geo [example.com/orbit/geo.test]
+geo/geo_test.go:6:13: cannot use "3" (untyped string constant) as float64 value in argument to Dist
