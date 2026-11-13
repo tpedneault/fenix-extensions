@@ -1241,6 +1241,24 @@
             "filesystem": "project-write",
             "fonts": true
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/diagrams-v1.1.0/fenix.diagrams-1.1.0.fenixext",
+          "sha256": "9a3432b90dc52b4f84609d825e99f48658f93602e6b3c43511cc174aee5b047b",
+          "size": 1748230,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "fonts": true
+          }
         }
       ],
       "name": "Diagrams",
