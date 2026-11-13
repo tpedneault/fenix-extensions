@@ -1724,3 +1724,105 @@ ask conversion (its own `tally` test does the same at 2,000); debug, which
 CI runs, is well inside 50 ms. Only in a nightly: everything Fenix does
 with these answers, the cost in wasm, a stop while a test binary runs,
 the debug session itself.
+
+## As built: E3a (Python)
+
+Built on 13 November 2026 on `main`'s API 1.5, in
+`extensions/python/src/provider/` (lang-kit's feature `tests`, the test
+kit's as a dev-dependency; `Cargo.lock` gains `fenix-test-kit` and nothing
+else), recorded and run with pytest 9.2.0, pytest-xdist 3.8.0 and Python
+3.13.18 (a venv in a scratch folder; `uv run --with pytest python -c ...`,
+the form for a uv project, run once by hand too). Not offered to Fenix:
+the manifest section, the engine lines, 1.3.0 and the five forwards are
+the `api-1.6` branch's, listed below and in
+`plans/test-providers-recipe.md` §12. Where it differs from §6.2:
+
+| §6.2 said | As built | Why |
+|---|---|---|
+| The plugin is the first version's 46 lines, unchanged | 56 lines: two hooks more, `start` (a test starts) and `done` (the session's exit status) | A process that dies prints no summary, and the summary can't be read anyway: a project's `addopts = -q` makes our `-q` a `-qq`, which prints no last line (verified), and `-v` puts `=====` round it. `done` says exactly whether pytest ended; `start` names the test that was running and gives `Started`. xdist forwards both (verified) |
+| `-q -p fenix_tests` | `-q -p fenix_tests --rootdir=.` | Node ids are below the rootdir, which is the step's `cwd` only if pytest takes it there: with no configuration in the project it walked up into a parent folder's (found by accident in the sample: the pack's own `src/samples/pyproject.toml`) and the ids no longer matched the keys. The configuration is still found and used |
+| `item.location` is the `def`'s line (test_skipped at 15, its decorator at 14) | The first decorator's line, 1-based (test_skipped 15, its `def` 16; Python 3.8's `co_firstlineno`; verified) | The scan puts a test at its `def`, which is where a gutter mark reads best; a case is given its template's line (the scan's), a test no scan found the plugin's |
+| `cwd` the folder of pytest's configuration, else the project; one step | `cwd` the nearest folder up from the file with pytest's own configuration (`pytest.ini`, `pyproject.toml` with `[tool.pytest]` or `[tool.pytest.ini_options]`, `tox.ini` `[pytest]`, `setup.cfg` `[tool:pytest]`), else with a `setup.py`, else with a `pyproject.toml` and the like, else the project's; one step for each such folder (run of all and the listing: those of the files scanned), a key is the node id below the **project** | The same file name in two folders each with a `pytest.ini` is two tests. The configuration's `python_files`, `python_classes` and `python_functions` decide what the scan finds |
+| More than a few ids: `@/data/lang-kit/tests/runs/<run>-0.txt`, in `needs`; `split` for the rest | More than 8 ids, or 1,500 bytes of them: `@${step_files}/ids.txt` (a `Step::file`, one a line: ids with brackets and spaces verified), else arguments. No `split`: the line is as short for 2,000 ids as for 9 | pytest reads the file, so there's no limit to meet |
+| A file or a class asked with its fill-in | Its own node id (`path`, `path::Class`) whether or not Fenix sent the fill-in | pytest's ids for a file and a class are exact: everything under it runs, which libtest's substring filter can't say |
+| The listing is `--collect-only`; Found from `test` lines | Also from a run's `test` lines (the plugin prints each item at collection in a run too; under xdist it doesn't: the workers' stdout isn't forwarded, so the reader finds a test from its first `start` or `result`) for what no scan has: a test in a file nobody scanned under its file and classes, a case under its template, a fixture's params' cases under their test, found again as a template (the scan took it for a plain one) | §5 of the recipe: a listing isn't placed by the kit |
+| `result` held until the next test's first result | Held until the next test starts (`start`) or the step ends; a result already sent that wasn't a pass is joined with a phase that comes late (xdist: another worker's test began between a test's call and its teardown) and sent again, Fenix keeping the last | Under xdist the workers' lines interleave |
+| `xfail` → skipped "xfail: …" | The same; a non-strict `xpass` passes with the message "xfail: …, but it passed"; a strict one is failed, "[XPASS(strict)] …" (no place: pytest gives none); a dead xdist worker (`when` "???") is errored with "worker 'gw0' crashed while running …"; pytest-rerunfailures' `rerun` attempt isn't a result | Recorded for the first three; the fourth by hand |
+| `collect-error` → `Broken { under: none }`; exit 5 nothing | The same, with the first `E` line and the place (`tests/test_x.py:3`, or a SyntaxError's); under xdist **collection errors don't stop the run** (verified): the files that loaded run and their results stand. A start error (exit 4: a `conftest.py` that doesn't import, a path that's gone: pytest's `ERROR:` line) is `Broken` too; no `done` and no start error: `Crashed { under: none }` naming Python's `Fatal Python error:` line or the exit code or the signal, and "while running <the test it started last and didn't end>"; `INTERNALERROR` (`done` 3) is `Crashed` | Never a test's failure |
+| `No module named pytest` → runner() says "pytest isn't installed in this environment" | As it says, and so does the pack beforehand: it asks `python -m pytest --version` as it starts (a background process, nothing a user sees on `main`; for the environment's Python only: through uv, `uv run --with pytest` brings pytest, and `uv.lock` says which). The runner is `pytest 9.2.0`; a step that finds pytest missing sets the same fact, `Broken` says it, and the next plan fails with it until the project's files are saved | F8: told only on a change |
+| A boot that takes the plugin's folder as its first argument (needs by `${data}`) | The same; `needs` names `/data/lang-kit/tests/fenix_tests.py` itself, because the arguments hold the folder, not the file | lang-kit adds a need only for a path that holds the asset's name |
+
+What's verified against real pytest here (recorded, and run again by
+`FENIX_TEST_PYTHON=<venv>/bin/python cargo test -- --ignored
+against_real_pytest` in the pack, plain, with `PYTEST_ADDOPTS="-n 2"` and
+with `-qq`): the listing; a run of all and the failed again; ids in a
+file; a class, a file, a template, a case with brackets and spaces; a
+case whose id is over 1 KiB by its `data` and, once Fenix has lost it, by
+its template; a file that doesn't load; a process that exits and one that
+aborts; nothing to collect (exit 5); a path that's gone; a conftest that
+doesn't import; no pytest; xdist's results, starts, dead worker and broken
+file. Only against recordings or by hand: Windows (a place with
+backslashes and a drive, by hand); a remote project's `needs` (the driver
+checks them, not a remote copy); a pytest older than 7 (`--version` on
+stderr, by hand); pytest-rerunfailures (by hand); a `uv.lock`'s pytest
+(by hand; `uv run` itself was run once); what Fenix does with any of it.
+Only in a nightly: the cost in wasm (below), a stop while pytest runs,
+the debug session.
+
+Kit findings (nothing in lang-kit or the test kit was changed):
+
+- A step that read no line has no reader when it ends, so `Reader::end`
+  never runs and a process that died before printing anything (a
+  segfault importing a C extension) is reported by nothing: Fenix then
+  errors its tests "the run ended without a result for it", without
+  saying why. The adapter knows the step (`r.steps`), so it could build the
+  reader at the end as it does after a restart; left, as pytest's plugin
+  prints before the first test.
+- The 2,000-test scan is about 21 ms in debug best of nine, alone (the
+  driver's budget is 50), half of it the pack's scanner and a third
+  lang-kit's adapter; 3.8 ms in release (the budget is 5). On a
+  4-core machine kept at a load of 10 and more by other builds, the test
+  for it failed in about one run in five, never alone; the other
+  2,000-test test (a re-run by ids) scans in twenty files and sets a
+  generous budget, since it shows the plan and not the clock.
+
+- The `Asked::Group.tests` fill-in is of no use to pytest and is
+  ignored, as are `known` and `list_after`.
+
+For the `api-1.6` branch, for Python: the manifest block of §6.2, with
+`[engine] fenix = ">=1.6, <2"`, `api = "1.6"` and `markers`, `scan` as there;
+no `permissions.process` change (`uv`, `python3`, `python` and
+`${setting:python.interpreter}` are listed); the five forwards of the
+recipe's §12.3 in `impl Extension for Python`; `1.3.0` in
+`extension.toml` and `Cargo.toml`; the CHANGELOG entry (below); the
+README's "Tests, for Fenix 1.6" section reworded for what's offered
+(keys, the page, pytest 9.2.0 and pytest-xdist 3.8.0 verified); and the
+check that `wasm-tools component wit` lists `test-provider-set` among
+`host`'s imports and the five exports. Optionally a doctor row for pytest
+(`python -m pytest --version`, "runs your tests", fix `uv add --dev pytest`
+or `pip install pytest`), which the tests page already says as the
+runner's problem. On `main` today: package 415,550 → 477,582 bytes,
+`extension.wasm` 1,072,487 → 1,258,390; the component's WIT (909 lines)
+and its 175 core import names identical.
+
+> ## 1.3.0
+>
+> - For Fenix 1.6 (extension API 1.6): your pytest tests on Fenix's tests
+>   page (`SPC T T`), in the gutter and after each test's line, run from
+>   any of them and debugged with `SPC T d`. A test is found as you type
+>   (`test*` functions, `Test*` and `unittest.TestCase` classes,
+>   `@pytest.mark.skip` as skipped, `@pytest.mark.parametrize` as a test
+>   whose cases appear once listed or run); `pytest --collect-only` lists
+>   what the scan can't see, and imports your test modules to do it, so
+>   Fenix lists only in a project you trust. Runs go through a small
+>   plugin of the pack's (loaded with `-p`, nothing installed in your
+>   project): `uv run python` in a uv project (`--with pytest` when the
+>   project doesn't ask for it), else your Python; by pytest's own ids, in
+>   a file when there are many, a step for each folder with its own
+>   pytest configuration, with your `.env`. A failure is shown at its
+>   assertion, with its message, traceback and output; a fixture that
+>   raises is errored, not failed; a file that doesn't load says so and
+>   fails no test; a process that dies errors the tests that hadn't
+>   ended and names the one running; pytest-xdist works. Debugging a test
+>   runs pytest under debugpy on its node id. On Fenix 1.5, 1.2.0 stays
+>   the one you have.

@@ -520,3 +520,52 @@ Rust's: package 450,072 → 519,797 bytes, `extension.wasm` 1,200,519 →
   its last step.
 - Frames: read `at` from the stack's end (`:9:21)`) so a drive letter's
   colon stays; take the first frame in the project, `file://` off.
+
+## 17. What Python (E3a) found the recipe lacked
+
+(`plans/test-explorer.md`, "As built: E3a" has the whole table.)
+
+- **§16's "its `${data}` path puts it in `needs` for you" holds only for
+  a path that names the asset.** The boot takes the plugin's *folder*, so
+  the step names `/data/lang-kit/tests/fenix_tests.py` in `needs` itself
+  (`Step::needs`); the driver fails the step otherwise.
+- **A runner whose process can die with nothing said needs a marker of
+  its own end.** pytest's last line is gone under `-qq` (a project's
+  `addopts = -q` makes our `-q` one) and decorated under `-v`; exit codes
+  are ambiguous (`os._exit(1)` is "tests failed"). The plugin says
+  `done` with the exit status; no `done` is a crash, and a `start` line
+  per test names the one running. Add the same to any reporter you ship.
+- **A listing run is also a run's first lines**: pytest's plugin prints
+  each `test` in a run too (not under xdist, whose workers' stdout isn't
+  forwarded: a test is found from its first `start` or `result` then).
+  Send a `Found` only for what no scan has (`read::found`), and keep what
+  you listed so a run doesn't send it again (`Index::listed`).
+- **Pin the rootdir** (`--rootdir=.`) when node ids are your keys: pytest
+  walks up for configuration, outside the project too, and a sample
+  project with no `pyproject.toml` of its own found the pack's.
+- **Key by the project, step by the root.** A monorepo's two
+  `tests/test_x.py` are two tests; the key is below the project, the
+  step's `cwd` and its node ids below the rootdir, the reader's `Ctx` has
+  the prefix.
+- **An id file replaces `split`**: `Step::file("ids.txt", ..)` with
+  `@${step_files}/ids.txt` in the args; the driver's `on_step_with` can
+  read the file back through `fenix.data_dir()` to answer it (the run
+  number is in its path, so `on_recorded` can't match such a step).
+- **A heavy fixture belongs in many small scans**: one driver-timed call
+  that scans 2,000 tests fails the budget on a loaded machine; twenty
+  files of 100 don't, and the test for the clock stays alone, best of
+  several.
+- **A step that printed nothing never gets `Reader::end`** (§14 of the
+  plan's As built: E3a): a runner that can die before its first line is
+  reported by nothing; the tests are errored "the run ended without a
+  result for it".
+- **Ids and `Found` details that bit**: a case's id holds `::` and
+  brackets (`test_url[http://x::y]`): split the test at the first `[`;
+  a template is a `Found` with `template` set and its cases `Found::case`
+  with `of`; `Found.data` is for a key over 1 KiB only, and not past 4
+  KiB (the driver refuses it); cases take their template's line.
+- **Run a real runner once through the driver**: an `#[ignore]`d test
+  whose `on_step_with` runs each step's command for real
+  (`against_real_pytest`) found what recordings couldn't (xdist's
+  collection errors don't stop a run; a dead worker is a test's result,
+  not the process's end).
