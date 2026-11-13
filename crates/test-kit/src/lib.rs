@@ -18,7 +18,9 @@
 //! - [`render`]: a page, or a `ui-kit` canvas, as plain text; and
 //!   [`assert_snapshot!`] to keep it in a file and compare.
 //! - With the `lang-kit` feature, [`Fake`] is lang-kit's `Host` too, so a
-//!   language pack's kit and its own code talk to the one fake.
+//!   language pack's kit and its own code talk to the one fake; and
+//!   [`tests::Fenix`] is Fenix's side of a test provider (API 1.6), to
+//!   test one on its runner's recorded output.
 //!
 //! It's for `[dev-dependencies]`: nothing of it is in an extension's
 //! WebAssembly.
@@ -30,6 +32,8 @@ pub mod harness;
 pub mod lang;
 pub mod render;
 pub mod snapshot;
+#[cfg(feature = "lang-kit")]
+pub mod tests;
 
 pub use fake::{line, notification_line, Choice, Fake, Keys, OpenPage, Picker, Process, Progress, Prompt, Ran, ServiceCall, State, Timer};
 pub use harness::{parse_keys, Harness};

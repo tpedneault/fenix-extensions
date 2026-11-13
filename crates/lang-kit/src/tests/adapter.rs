@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use fenix_extension_api::Command;
 
 use super::memory::{below, Memory};
-use super::{api, cut_id, cut_label, group_id, At, Ask, Asked, Covered, Found, Group, Key, Kind, Launching, Line, Outcome, Reader, Report, Step, StepEnd, TestRunner, GROUP};
+use super::{api, child_id, cut_id, cut_label, group_id, At, Ask, Asked, Covered, Found, Group, Key, Kind, Launching, Line, Outcome, Reader, Report, Step, StepEnd, TestRunner, GROUP};
 use crate::host::Host;
 
 /// The runs a provider keeps at most: a build-first plan Fenix never
@@ -70,6 +70,8 @@ struct Run {
     sent: HashSet<String>,
     /// Cases found in it, by id: their template's id.
     case_of: HashMap<String, String>,
+    /// The ids found in it.
+    found: HashSet<String>,
     /// The templates asked, for `is_case`.
     templates: Vec<Found>,
     /// A listing: the ids it gave, and whether it's complete so far.
@@ -100,6 +102,7 @@ impl Run {
             ended: HashMap::new(),
             sent: HashSet::new(),
             case_of: HashMap::new(),
+            found: HashSet::new(),
             templates,
             seen: HashSet::new(),
             complete: true,
@@ -193,11 +196,10 @@ fn location(at: &At) -> api::Location {
 /// its template.
 fn push_found(out: &mut Vec<api::Report>, f: &Found, sent: &mut HashSet<String>) {
     let mut parent: Option<String> = None;
-    let mut labels: Vec<&str> = Vec::with_capacity(f.groups.len());
     for g in &f.groups {
-        labels.push(&g.label);
-        let id = group_id(&labels);
-        if sent.insert(id.clone()) {
+        let id = child_id(parent.as_deref().unwrap_or(""), &g.label);
+        if !sent.contains(&id) {
+            sent.insert(id.clone());
             out.push(api::Report::Found(group_found(g, id.clone(), parent.clone())));
         }
         parent = Some(id);
@@ -606,10 +608,15 @@ fn convert(out: &mut Vec<api::Report>, reports: Vec<Report>, runner: &mut dyn Te
                 } else {
                     place(&mut f, runner, memory, run);
                 }
+                run.found.insert(cut_id(&f.key.0).into_owned());
                 push_found(out, &f, &mut run.sent);
             }
-            Report::Started(k) => out.push(api::Report::Started(cut_id(&k.0).into_owned())),
+            Report::Started(k) => {
+                unfound_case(out, &k, runner, memory, run);
+                out.push(api::Report::Started(cut_id(&k.0).into_owned()));
+            }
             Report::Ended(e) => {
+                unfound_case(out, &e.key, runner, memory, run);
                 let id = cut_id(&e.key.0).into_owned();
                 let ended = api::Ended { id: id.clone(), outcome: e.outcome, duration_ms: e.ms, message: e.message, at: e.at.as_ref().map(location), text: e.text };
                 let ended = match run.ended.get(&id) {
@@ -650,6 +657,25 @@ fn convert(out: &mut Vec<api::Report>, reports: Vec<Report>, runner: &mut dyn Te
             Report::Keep { name, value } => run.kept.push((name, value)),
         }
     }
+}
+
+/// A result for a key nothing found, which is a template's case by its
+/// key ([`place`]): its `found` first, so Fenix puts it under its template
+/// (Fenix §4, matching rule 2), labelled by what its key adds to the
+/// template's (`negative_one` of `TestTable/negative_one`).
+fn unfound_case(out: &mut Vec<api::Report>, key: &Key, runner: &mut dyn TestRunner, memory: &Memory, run: &mut Run) {
+    let id = cut_id(&key.0).into_owned();
+    if matches!(run.purpose, Purpose::Listing | Purpose::Build) || run.found.contains(&id) || run.case_of.contains_key(&id) || memory.known(&id).is_some() {
+        return;
+    }
+    let mut f = Found::test(key.clone(), key.0.clone());
+    place(&mut f, runner, memory, run);
+    let Some(t) = f.of.clone() else { return };
+    let rest = key.0.strip_prefix(t.0.as_str()).unwrap_or(&key.0);
+    let label = rest.trim_start_matches([':', '/', '[', '.', ' ', '-', '#']).trim_end_matches(']');
+    f.label = if label.is_empty() { key.0.clone() } else { label.to_string() };
+    run.found.insert(id);
+    push_found(out, &f, &mut run.sent);
 }
 
 /// A test a run found that the pack didn't say is a case: a case of a

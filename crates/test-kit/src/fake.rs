@@ -339,6 +339,9 @@ pub struct State {
     pub checks: Vec<Check>,
     pub tasks: Vec<Task>,
     pub launches: Vec<LaunchConfig>,
+    /// What its test providers said they run (`test-provider-set`, API
+    /// 1.6, through lang-kit's `Host`): provider, runner, problem, in order.
+    pub test_providers: Vec<(String, String, Option<String>)>,
     pub launch_variables: BTreeMap<String, Vec<PickerItem>>,
     pub language_servers: BTreeMap<String, Option<Command>>,
     pub server_settings: BTreeMap<String, String>,
@@ -424,6 +427,7 @@ impl Default for State {
             checks: Vec::new(),
             tasks: Vec::new(),
             launches: Vec::new(),
+            test_providers: Vec::new(),
             launch_variables: BTreeMap::new(),
             language_servers: BTreeMap::new(),
             server_settings: BTreeMap::new(),

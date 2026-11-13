@@ -124,12 +124,27 @@ impl Host for Fake {
     fn dismiss(&mut self, tag: &str) {
         self.state_mut().notify_dismiss(tag)
     }
+    /// What a test provider runs (`test-provider-set`, API 1.6), written
+    /// down as lang-kit's mock writes it: `test-provider rust: cargo
+    /// nextest`.
+    fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
+        let mut s = self.state_mut();
+        s.call(fenix_lang_kit::host::provider_line(provider, runner, problem));
+        s.test_providers.push((provider.into(), runner.into(), problem.map(String::from)));
+        Ok(())
+    }
 }
 
 impl Fake {
     /// The fake, boxed as a kit's host: `Kit::with_host("zig", fake.host())`.
     pub fn host(&self) -> Box<dyn Host> {
         Box::new(self.clone())
+    }
+
+    /// What its test providers said they run, in order: provider, runner,
+    /// problem (`test-provider-set`).
+    pub fn test_providers(&self) -> Vec<(String, String, Option<String>)> {
+        self.state().test_providers.clone()
     }
 
     /// A server's settings as it last set them (lang-kit's

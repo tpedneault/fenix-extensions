@@ -1,0 +1,17 @@
+example.com/orbit [group] -- failed  <scan+run>
+  orbit_test.go [file] -- failed  <scan+run>
+    TestAdds :8 -- passed 0ms  <scan>
+    TestFailsOnPurpose :14 -- failed 0ms: orbit_test.go:17: Add(2, 2) = 4, want 5  <scan>
+    TestSkipped :21 -- skipped 0ms: orbit_test.go:22: slow  <scan>
+    TestTable [template] :25 -- failed 0ms  <scan>
+      a/b [case] :25 -- passed 0ms  <run>
+      negative_one [case] :25 -- failed 0ms: orbit_test.go:37: got -2, want -3  <run>
+      small [case] :25 -- passed 0ms  <run>
+    TestNested [template] :43 -- passed 0ms  <scan>
+      outer [case] :43 -- passed 0ms  <run>
+      outer/inner [case] :43 -- passed 0ms  <run>
+    ExampleAdd :49 -- passed 0ms  <scan>
+example.com/orbit/geo [group] -- failed  <scan>
+  geo/geo_test.go [file] -- failed  <scan>
+    TestDist :5 -- passed 0ms  <scan>
+    TestPanics :11 -- failed 0ms: /usr/local/go1.24.7/src/testing/testing.go:1851 +0x413  <scan>

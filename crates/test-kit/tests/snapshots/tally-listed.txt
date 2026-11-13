@@ -1,0 +1,9 @@
+tally [group] -- unknown  <scan+listing>
+  src/math.tally [file] -- unknown  <scan+listing>
+    adds :1 -- unknown  <scan+listing>
+    fails :2 -- unknown  <scan>
+    slow :3 -- unknown (skip: too slow)  <scan>
+    deep [suite] :4 -- unknown  <scan+listing>
+      inner :5 -- unknown  <scan+listing>
+    table [template] :7 -- unknown  <scan>
+    gen_one -- unknown  <listing>

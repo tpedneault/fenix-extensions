@@ -41,12 +41,20 @@ pub const GROUP: char = '\u{1f}';
 /// A group's id in Fenix: its labels, root first, each after [`GROUP`];
 /// cut to [`ID_MAX`] as Fenix cuts an id.
 pub fn group_id<S: AsRef<str>>(labels: &[S]) -> String {
-    let mut id = String::new();
-    for l in labels {
-        id.push(GROUP);
-        id.push_str(&cut_label(l.as_ref()));
+    labels.iter().fold(String::new(), |id, l| child_id(&id, l.as_ref()))
+}
+
+/// The id of group `label` in the group whose id is `parent` ("" for
+/// none).
+pub(crate) fn child_id(parent: &str, label: &str) -> String {
+    let mut id = String::with_capacity(parent.len() + 1 + label.len());
+    id.push_str(parent);
+    id.push(GROUP);
+    id.push_str(&cut_label(label));
+    match cut_id(&id) {
+        std::borrow::Cow::Borrowed(_) => id,
+        std::borrow::Cow::Owned(cut) => cut,
     }
-    cut_id(&id).into_owned()
 }
 
 /// A runner's own name for a test, the same in what the pack scans, lists

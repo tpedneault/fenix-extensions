@@ -139,6 +139,16 @@ pub fn notification_line(n: &Notification) -> String {
     out
 }
 
+/// A `test-provider-set` as a line of a test host's log: `test-provider
+/// rust: cargo nextest`, `test-provider python: pytest (pytest isn't
+/// installed)`. The test kit's `Fake` writes the same.
+pub fn provider_line(provider: &str, runner: &str, problem: Option<&str>) -> String {
+    match problem {
+        Some(p) => format!("test-provider {provider}: {runner} ({p})"),
+        None => format!("test-provider {provider}: {runner}"),
+    }
+}
+
 /// The real thing: each call is Fenix's.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Fenix;
@@ -503,15 +513,6 @@ pub mod mock {
         }
     }
 
-    /// A `test-provider-set` as a line of the log: `test-provider rust:
-    /// cargo nextest`, `test-provider python: pytest (pytest isn't
-    /// installed)`. The test kit's `Fake` writes the same.
-    pub fn provider_line(provider: &str, runner: &str, problem: Option<&str>) -> String {
-        match problem {
-            Some(p) => format!("test-provider {provider}: {runner} ({p})"),
-            None => format!("test-provider {provider}: {runner}"),
-        }
-    }
     /// The mock, shared: a test keeps one and gives the [`crate::Kit`]
     /// the other, and looks at the calls while the kit has it.
     #[derive(Clone, Default)]

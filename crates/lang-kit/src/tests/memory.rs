@@ -8,7 +8,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use super::{cut_id, group_id, Found, Group, Key, Kind, GROUP};
+use super::{child_id, cut_id, group_id, Found, Group, Key, Kind, GROUP};
 
 /// A test or case as the memory has it.
 #[derive(Debug, Clone)]
@@ -54,11 +54,14 @@ impl Memory {
 
     fn remember_groups(&mut self, groups: &[Group]) -> Option<String> {
         let mut parent: Option<String> = None;
-        let mut labels: Vec<&str> = Vec::new();
         for g in groups {
-            labels.push(&g.label);
-            let id = group_id(&labels);
-            self.groups.insert(id.clone(), (g.clone(), parent.take()));
+            let id = child_id(parent.as_deref().unwrap_or(""), &g.label);
+            match self.groups.get(&id) {
+                Some((had, p)) if had == g && *p == parent => {}
+                _ => {
+                    self.groups.insert(id.clone(), (g.clone(), parent.take()));
+                }
+            }
             parent = Some(id);
         }
         parent
