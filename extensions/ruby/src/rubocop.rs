@@ -174,7 +174,6 @@ pub fn parse(out: &Output, file: &str, style: Style) -> Result<Vec<Problem>, Str
             let message = o.message.lines().next().unwrap_or_default().to_string();
             let mut p = Problem::new(severity(&o.severity), from_one(l.start_line, l.start_column), (l.last_line.saturating_sub(1), l.last_column), message).source(style.program());
             p.code = Some(o.cop_name.clone());
-            let mut p = p;
             if let Some(c) = o.correction.filter(|c| !c.edits.is_empty()) {
                 let edits: Option<Vec<TextEdit>> = c.edits.into_iter().map(Edit::text_edit).collect();
                 if let Some(edits) = edits {

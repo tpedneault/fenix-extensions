@@ -5,7 +5,8 @@ Ruby LSP (or Solargraph) as the language server, RuboCop -- or Standard
 -- as the formatter and the linter on save with its corrections,
 Bundler's, Rake's and the tests' tasks, the project doctor's checks with
 their fixes, and snippets. Built on lang-kit (`crates/lang-kit`), as each
-language pack is.
+language pack is. It needs Fenix 1.5 or later (extension API 1.5); on an
+older Fenix, Ruby 1.0.0 is the one you get.
 
 Fenix has no Ruby of its own, so the pack brings the grammar
 (`languages/ruby.toml`, `grammars/`, `queries/ruby/`). It works for a
@@ -115,9 +116,9 @@ checks again.
 
 ## Keys
 
-After `SPC m` in a Ruby file: `d` checks the project again, `b` installs
-the gems (`bundle install`), `r` reads the project again and asks Rake for
-its tasks.
+After `SPC m` in a Ruby file (`C-k m` with standard keys): `d` checks the
+project again, `b` installs the gems (`bundle install`), `r` reads the
+project again and asks Rake for its tasks.
 
 ## Not yet
 
