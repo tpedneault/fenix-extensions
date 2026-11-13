@@ -1,0 +1,28 @@
+PASS src/orbit.test.js
+  ✓ adds (2 ms)
+  ○ skipped fails on purpose
+  ○ skipped skipped
+  ○ skipped to do
+  ○ skipped add(1, 1) is 2
+  ○ skipped add(-1, -1) is -3
+  outer
+    ○ skipped in describe
+    inner
+      ○ skipped deep
+  names
+    ○ skipped twice
+    ○ skipped twice
+    ○ skipped add(-1, -1) [regex] $x
+    ○ skipped adds 1
+    ○ skipped adds 2
+    ○ skipped from a variable
+  a > b
+    ○ skipped c
+  left out
+    ○ skipped with its describe
+
+Test Suites: 1 passed, 1 total
+Tests:       15 skipped, 1 passed, 16 total
+Snapshots:   0 total
+Time:        0.271 s, estimated 1 s
+Ran all test suites matching /src/orbit\.test\.js$ with tests matching "^(?:adds)$".

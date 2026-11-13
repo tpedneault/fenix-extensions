@@ -1,0 +1,45 @@
+FAIL src/orbit.test.js
+  ✓ add(1, 1) is 2 (7 ms)
+  ✕ add(-1, -1) is -3 (3 ms)
+  ○ skipped adds
+  ○ skipped fails on purpose
+  ○ skipped skipped
+  ○ skipped to do
+  outer
+    ○ skipped in describe
+    inner
+      ○ skipped deep
+  names
+    ○ skipped twice
+    ○ skipped twice
+    ○ skipped add(-1, -1) [regex] $x
+    ○ skipped adds 1
+    ○ skipped adds 2
+    ○ skipped from a variable
+  a > b
+    ○ skipped c
+  left out
+    ○ skipped with its describe
+
+  ● add(-1, -1) is -3
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: -3
+    Received: -2
+
+      17 |   [-1, -1, -3],
+      18 | ])('add(%i, %i) is %i', (a, b, want) => {
+    > 19 |   expect(add(a, b)).toBe(want)
+         |                     ^
+      20 | })
+      21 |
+      22 | describe('outer', () => {
+
+      at toBe (src/orbit.test.js:19:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 14 skipped, 1 passed, 16 total
+Snapshots:   0 total
+Time:        0.35 s, estimated 1 s
+Ran all test suites matching /src/orbit\.test\.js$ with tests matching "^(?:add\(.*, .*\) is .*)$".

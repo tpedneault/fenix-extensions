@@ -1,0 +1,8 @@
+
+FENIX-TEST {"kind":"test","file":"/project/packages/app/src/orbit.test.js","names":["adds"],"line":3,"column":1,"mode":"skip","cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"test","file":"/project/packages/app/src/orbit.test.js","names":["fails here"],"line":7,"column":1,"mode":"skip","cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"result","file":"/project/packages/app/src/orbit.test.js","names":["adds"],"line":3,"state":"skipped","duration":null,"errors":[],"cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"result","file":"/project/packages/app/src/orbit.test.js","names":["fails here"],"line":7,"state":"skipped","duration":null,"errors":[],"cwd":"/project/packages/app"}

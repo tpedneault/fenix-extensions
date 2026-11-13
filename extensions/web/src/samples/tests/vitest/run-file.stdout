@@ -1,0 +1,18 @@
+
+ RUN  v5.1.0 /project
+
+
+FENIX-TEST {"kind":"test","file":"/project/src/geo.test.ts","names":["dist is symmetric"],"line":5,"column":1,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/geo.test.ts","names":["a > b","c"],"line":10,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/geo.test.ts","names":["dist is symmetric"],"line":5,"state":"passed","duration":1.6844020000000057,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/geo.test.ts","names":["a > b","c"],"line":10,"state":"passed","duration":0.22056100000000356,"errors":[],"cwd":"/project"}
+ ✓ src/geo.test.ts (2 tests) 4ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  17:11:36
+   Duration  185ms (import 50%, transform 20%, tests 15%, worker 14%)
+

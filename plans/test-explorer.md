@@ -1826,3 +1826,83 @@ and its 175 core import names identical.
 >   ended and names the one running; pytest-xdist works. Debugging a test
 >   runs pytest under debugpy on its node id. On Fenix 1.5, 1.2.0 stays
 >   the one you have.
+
+## As built: E3c (Web)
+
+Built on 13 November 2026 on `main`'s API 1.5, in
+`extensions/web/src/provider/` (lang-kit's feature `tests`, the test
+kit's as a dev-dependency; `Cargo.lock` gained `fenix-test-kit` only),
+recorded with Vitest 5.1.0 and Jest 30.5.2 on Node 22.23.4 (installed
+from npm in a scratch folder) for three samples kept beside the
+fixtures: `src/samples/tests/vitest/orbit`, `.../jest/orbit` (§6.4's,
+grown by a repeated name, a title with regex characters, a loop's
+template-literal title, a title from a variable, a skipped describe, a
+`describe('a > b')`) and `.../workspace/mono` (npm workspaces, Vitest in
+`packages/app`, Jest in `packages/lib`, both hoisted to the root, a test
+`adds` in each). Not offered: the manifest section, the engine lines,
+1.3.0 and the five forwards are the `api-1.6` branch's (below). Where
+it differs from §6.4:
+
+| §6.4 said | As built | Why |
+|---|---|---|
+| `runner()` "vitest", "jest", "vitest and jest"; neither: a problem | `Vitest 5.1.0`, `Jest 30.5.2`, `Vitest 5.1.0 and Jest 30.5.2` (each package's installed version); neither: `("", None)`, hidden (F8 as ruled); a problem when a package's runner isn't in a `node_modules` Node would look in, when Vitest is older than 3.0 (the reporter's API), without Node, or Yarn PnP without Yarn | the recipe's §4 |
+| The runner from `package.json`'s dependencies | Also from config files alone (`vitest.config.*`, `vitest.workspace.*`, `jest.config.*`, `package.json`'s `jest`); with both, the one with a config, else the one the `test` script runs, else Vitest. A root whose Vitest or Jest config runs `projects` is one package: its members of that runner aren't steps of their own (**not verified**: read from the config's text, not run) | a workspace's hoisted runner leaves only its config in the member |
+| Yarn PnP: "isn't served yet" | Served as `yarn vitest` / `yarn jest` (a `.cmd` on Windows: split under `BATCH_FILE`), launched with `runtimeExecutable` yarn (**not verified**: no Yarn 2+ here) | the brief asked for the shim where it applies; nothing else needs one |
+| Ids `<file> > <names>`; repeated ` (2)` | As said; `data` the names as JSON for a repeated name and a name holding ` > ` (F6 as ruled), so Jest's space-joined `-t` is right for `describe('a > b')` | §4.4's last bullet, fixed |
+| Groups the package (two or more), file, describes | Package label `packages/app (vitest)` | its runner, at a glance |
+| Vitest a template by `<file>:<line>` | By its title, placeholders (`%i`, `$a`, `${..}`) as `.*` in `-t`, for both runners; a case is placed under its template by the reported line falling in the template's call, else by its title | F18: never a line |
+| A file or tests, one step | A file asked runs whole in a step of its own; tests beside it in another step (a `-t` would filter the file) | |
+| Jest `<files> -t ..` | `-t .. -- <path regexes>` (`/src/orbit\.test\.js$`): `--reporters` is an array option that eats the files after it (verified: "Could not resolve a module for a custom reporter") | |
+| The reporters "unchanged" | Changed: each line has `cwd` (the runner's folder), so paths are made the project's without knowing its full path (the folder less the package's own); Vitest's also prints `log` (`onUserConsoleLog`, a test's output) and `run-error` (`onTestRunEnd`'s errors, with their `cause`); Jest's `file-error` has the stack | a worker's death is only in `run-error`'s cause; nothing else names the test that logged |
+| Vitest `result` in a run: `Ended` | Not for a `skipped` result `-t` left out: both runners report every collected test, the left-out ones skipped (verified); a step with `-t` knows its selection (exact keys, describe prefixes, template titles) from its `covers` | else a run of one test skips the rest |
+| Jest `test` in a run: `Ended` skipped | The same rule; and not when a `result` already ended it (`todo` comes as both) | |
+| Jest `file-error`: `Broken` (not verified) | Verified: a syntax error is `Broken` on the file, at Babel's `(3:0)` as line 3 column 1; a worker killed (`A jest worker process (pid=…) was terminated by another process: signal=SIGKILL`) is `Crashed` on the file | |
+| A worker killed (to record) | Vitest: no result for any of the file's tests, only `run-error` whose cause says `Worker exited unexpectedly with signal SIGKILL … while running test file <path>`: `Crashed` on that file; Jest with workers: the tests that ended keep their results, the rest `Crashed`; Jest in band (one quick file, or cached fast timings) dies with the step: `Exited(None)`, `Crashed` for the step | verified, each |
+| — | A step that exits non-zero having printed no reporter line (a config that doesn't load, no test file found) is `Broken` for the step, with the runner's error line | |
+| Launch Vitest `run <file>:<line>` | `run <file> -t ^(?:<names>)$`; Jest `--runInBand --watchAll=false -t .. -- <path regex>`; the program the package's (hoisted) script under `${project}`, `cwd` the package, `runtimeExecutable` the Node found | F18 |
+
+What's verified against the runners: every command line in the
+fixtures, as the planner makes it (`.args`), run in the samples: the
+listing through the reporter (`-t FENIX_NOTHING`, exit 0, every test
+with its line, cases expanded; Jest's as `pending`); `-t` anchored
+`^(?:..)$` on names joined by ` > ` (Vitest) and spaces (Jest);
+escaped regex characters; a template's `.*`; a describe's start; file
+filters; the run from a workspace package's folder with the hoisted
+script; failures' stacks and Vitest's diffs; a syntax error in each; a
+worker killed in each, and Jest killed in band. Only against
+recordings or by hand: Windows paths and stacks (`C:\…`, `file:///C:/…`),
+the streams' order (the driver's shuffles), Yarn PnP, Vitest's and
+Jest's `projects`, pnpm's `pnpm-workspace.yaml` (read, not run), Vitest
+before 5.1 and Jest before 30.5. Measured natively: a 2,000-test file
+scans in ~4 ms in release (~1 ms of it the scanner), ~23 ms in debug;
+2,000 tests planned again ~2.5 ms in release. Only in a nightly:
+everything Fenix does with the answers, wasm's cost, the debug session.
+
+Size (`cargo xtask pack`, Rust 1.100): the package 404,410 → 465,611
+bytes, `extension.wasm` 1,016,007 → 1,191,059; the component's WIT and
+core imports unchanged (`wasm-tools component wit`).
+
+**For the `api-1.6` branch** (the recipe's §12, Web's): `[engine]
+fenix = ">=1.6, <2"`, `api = "1.6"`; §6.4's manifest block with `name =
+"Vitest or Jest"`; the version 1.3.0 in `extension.toml` and
+`Cargo.toml`; the five forwards in `impl Extension for Web`; no
+`permissions.process` change (`node` and `yarn` are listed); the README
+section reworded for what's offered; and the CHANGELOG entry:
+
+> ## 1.3.0
+>
+> - For Fenix 1.6 (extension API 1.6): your Vitest and Jest tests on
+>   Fenix's tests page (`SPC T T`), in the gutter and after each test's
+>   line, run from any of them and debugged with `SPC T d`. Each package
+>   folder's runner is found from its `package.json` or config, a
+>   workspace's packages each a step of their own, run by Node from
+>   `node_modules` (a Yarn Plug'n'Play project by `yarn vitest`, `yarn
+>   jest`). A test is found as you type (`describe`, `it`, `test`,
+>   `.skip` and `.todo`, `.each` and `${..}` titles as templates whose
+>   cases come when listed or run); what the scan can't name comes from
+>   a listing that loads the test files and runs none. Runs are by file
+>   and by name; a failure is shown at its stack's first frame in the
+>   project with its message and diff; a file that doesn't load says so
+>   and fails no test; a worker that dies errors its own file's tests.
+>   Debugging a test runs its runner under js-debug with its file and
+>   name. On Fenix 1.5, 1.2.0 stays the one you have.

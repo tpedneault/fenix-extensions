@@ -1,0 +1,21 @@
+src/geo.test.ts [file] -- unknown  <scan>
+  dist is symmetric :5 -- unknown  <scan>
+  a > b [suite] :9 -- unknown  <scan>
+    c :10 -- unknown  <scan>
+src/orbit.test.js [file] -- unknown  <scan>
+  adds :4 -- unknown  <scan>
+  fails on purpose :8 -- unknown  <scan>
+  skipped :13 -- unknown (skip: )  <scan>
+  to do :14 -- unknown (skip: todo)  <scan>
+  add(%i, %i) is %i [template] :16 -- unknown  <scan>
+  outer [suite] :23 -- unknown  <scan>
+    in describe :24 -- unknown  <scan>
+    inner [suite] :25 -- unknown  <scan>
+      deep :26 -- unknown  <scan>
+  names [suite] :32 -- unknown  <scan>
+    twice :33 -- unknown  <scan>
+    twice (2) :34 -- unknown  <scan>
+    add(-1, -1) [regex] $x :37 -- unknown  <scan>
+    adds ${n} [template] :39 -- unknown  <scan>
+  left out [suite] :47 -- unknown  <scan>
+    with its describe :48 -- unknown (skip: )  <scan>

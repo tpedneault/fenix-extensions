@@ -1,0 +1,7 @@
+test('before the crash', () => {})
+
+test('kills its worker', () => {
+  process.kill(process.pid, 'SIGKILL')
+})
+
+test('after the crash', () => {})
