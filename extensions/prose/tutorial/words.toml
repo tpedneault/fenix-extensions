@@ -1,0 +1,52 @@
+# A lesson of Fenix's tutorial (SPC h T). See "Tutorial lessons" in the
+# repository's CONTRIBUTING.md.
+id = "prose.words"
+track = "Prose"
+order = 1
+title = "Spelling and grammar: Harper, and the project's words"
+about = "In any project: the doctor's check for Harper, the settings that say what it reads, and the project's word list. It needs Harper installed to find anything (the doctor's fix row installs it, a download of about 14 MB); s on the tutorial page skips a step that needs it. The last step makes .fenix/words.txt in the project, with the word Fenix in it: delete the file to undo it."
+text = """
+Prose checks spelling and grammar in the languages you name, offline,
+with Harper. Its findings show in the problems list and the margin of a
+Markdown file (by default), like any server's.
+
+SPC p h   the project doctor: Harper's check, and a row that installs it
+SPC ,     the settings: prose.languages, prose.severity, prose.dialect
+SPC m w   add the word under the cursor to the project's word list
+SPC m W   open the list (.fenix/words.txt)
+
+Harper doesn't know the word below, so in Markdown it's a finding until
+it's on the list; the cursor goes on it for the last step.
+
+Fenix checks the sentence as you type it.
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Harper's check, and Prose checking: what it reads, or why it reads nothing."
+hint = "SPC p, then h."
+page = "doctor"
+
+[[step]]
+say = "On Harper's row, f installs it (a download of about 14 MB, checked against its SHA-256); r checks again. Then q."
+hint = "j and k to the row, f runs its fix. Harper installed already? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC ,: the settings. Find prose.languages -- the languages it reads, markdown to begin with -- and prose.dialect."
+hint = "SPC, then a comma. Type prose to narrow the list. s on the tutorial page skips this."
+page = "settings"
+
+[[step]]
+say = "q closes them. A change there takes hold at once: Harper is started again for the new languages."
+hint = "q, on the settings page."
+closed = "settings"
+
+[[step]]
+say = "SPC :, the commands: type prose to see the pack's -- add the word under the cursor, open the word list, install Harper."
+hint = "SPC, then a colon (Ctrl+Shift+P with standard keys). Type prose."
+picker = "commands"
+
+[[step]]
+say = "With the cursor on Fenix in the practice text, pick Prose: add the word under the cursor, and Enter. The message line says it's in .fenix/words.txt; in a Markdown file SPC m w does the same."
+hint = "Enter on the row; Esc puts the list away instead, and s on the tutorial page skips the step."
+picker = "none"
