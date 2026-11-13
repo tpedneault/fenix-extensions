@@ -318,6 +318,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
             }
         }
         check_agent_tools(&dir)?;
+        check_test_providers(&dir)?;
         check_chords(&dir)?;
         let version = semver::Version::parse(&m.extension.version).map_err(|e| e.to_string())?;
         let entry = known.entry(m.extension.id.clone()).or_insert(Known { versions: Vec::new(), dependencies: BTreeMap::new() });
@@ -332,6 +333,84 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
     screenshots::validate_all(root)?;
     lessons::validate_all(root)?;
     println!("{count} extension(s)");
+    Ok(())
+}
+
+/// What a test provider's table may hold (Fenix's `TestProviderContribution`
+/// denies the rest).
+const TEST_PROVIDER_KEYS: &[&str] = &["id", "name", "languages", "markers", "scan"];
+
+/// `[[contributes.test_providers]]` (API 1.6), held to what Fenix's
+/// manifest check says (`check_test_providers` in `fenix-extensions`): an id
+/// in lowercase letters, digits and `-_.` that is the extension's name or
+/// starts with it (`rust`, `rust.nextest`; or the whole id and a dot), once
+/// each; a name; files of some languages, projects by their markers, or
+/// both; markers that are file names in a project's top folder; scan
+/// patterns below the project; and an extension built for API 1.6, which
+/// is what makes Fenix ask it.
+fn check_test_providers(dir: &Path) -> Result<(), String> {
+    let path = dir.join("extension.toml");
+    let at = path.display();
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("{at}: {e}"))?;
+    let table: toml::Table = toml::from_str(&text).map_err(|e| format!("{at}: {}", e.message()))?;
+    let Some(providers) = table.get("contributes").and_then(|c| c.get("test_providers")) else { return Ok(()) };
+    let providers = providers.as_array().ok_or(format!("{at}: contributes.test_providers is a list of tables ([[contributes.test_providers]])"))?;
+    let id_of = table.get("extension").and_then(|e| e.get("id")).and_then(|i| i.as_str()).unwrap_or_default();
+    let short = id_of.rsplit('.').next().unwrap_or_default();
+    let own = format!("{short}.");
+    let api = table.get("engine").and_then(|e| e.get("api")).and_then(|a| a.as_str()).and_then(|a| {
+        let full = match a.matches('.').count() { 0 => format!("{a}.0.0"), 1 => format!("{a}.0"), _ => a.to_string() };
+        semver::Version::parse(&full).ok()
+    });
+    let mut seen = BTreeSet::new();
+    for provider in providers {
+        let provider = provider.as_table().ok_or(format!("{at}: a test provider is a table"))?;
+        if let Some(key) = provider.keys().find(|k| !TEST_PROVIDER_KEYS.contains(&k.as_str())) {
+            return Err(format!("{at}: test provider -- {key:?} isn't one of {}", TEST_PROVIDER_KEYS.join(", ")));
+        }
+        let text_of = |key: &str| match provider.get(key) {
+            None => Ok(String::new()),
+            Some(v) => v.as_str().map(String::from).ok_or(format!("{at}: test provider {key} is text")),
+        };
+        let list_of = |key: &str| -> Result<Vec<String>, String> {
+            match provider.get(key) {
+                None => Ok(Vec::new()),
+                Some(v) => v
+                    .as_array()
+                    .and_then(|a| a.iter().map(|i| i.as_str().map(String::from)).collect())
+                    .ok_or(format!("{at}: test provider {key} is a list of text")),
+            }
+        };
+        let id = text_of("id")?;
+        if id.is_empty() || !id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '-' | '_' | '.')) {
+            return Err(format!("{at}: test provider {id:?} -- a test provider's id is lowercase letters, digits, -, _ and ."));
+        }
+        if !(id == short || id.starts_with(&own) || id.starts_with(&format!("{id_of}."))) {
+            return Err(format!("{at}: test provider {id:?} -- an extension's test providers are called by its name ({short}, or {own}...)"));
+        }
+        if !seen.insert(id.clone()) {
+            return Err(format!("{at}: test provider {id:?} is there twice"));
+        }
+        if api.as_ref().is_none_or(|v| *v < semver::Version::new(1, 6, 0)) {
+            return Err(format!("{at}: test provider {id} -- test providers need engine.api 1.6"));
+        }
+        if text_of("name")?.trim().is_empty() {
+            return Err(format!("{at}: test provider {id} has no name"));
+        }
+        let (languages, markers, scan) = (list_of("languages")?, list_of("markers")?, list_of("scan")?);
+        if languages.is_empty() && markers.is_empty() {
+            return Err(format!("{at}: test provider {id} -- it serves files of its languages, projects by their markers, or both: it needs one or the other"));
+        }
+        if languages.iter().any(|l| l.trim().is_empty()) {
+            return Err(format!("{at}: test provider {id} -- its languages are Fenix's names for them (rust, python)"));
+        }
+        if markers.iter().any(|m| m.trim().is_empty() || m.contains("..") || m.starts_with(['/', '\\'])) {
+            return Err(format!("{at}: test provider {id} -- its markers are file names in a project's top folder (Cargo.toml)"));
+        }
+        if scan.iter().any(|p| p.trim().is_empty() || p.contains("..") || p.starts_with(['/', '\\'])) {
+            return Err(format!("{at}: test provider {id} -- a scan pattern is a name (test_*.py) or a path below the project (tests/**/*.rs)"));
+        }
+    }
     Ok(())
 }
 
@@ -642,6 +721,46 @@ mod tests {
         std::fs::write(dir.join("extension.toml"), "[extension]\nid = \"acme.x\"\n[engine]\napi = \"1.4\"\n").unwrap();
         keymap(&dir, "[[keys]]\nkeys = \"F5\"\ncommand = \"x.run\"\n");
         assert!(check_chords(&dir).unwrap_err().contains("1.5"));
+    }
+
+    /// A test provider (1.6), as Fenix's own manifest check holds it: the
+    /// extension's name or one starting with it, once, with a name and
+    /// what it serves, patterns below the project, and API 1.6.
+    #[test]
+    fn a_test_provider_is_named_by_its_extension_and_needs_api_1_6() {
+        let t = Temp::new("providers");
+        let with = |api: &str, extra: &str| {
+            let dir = extension(&t.0, "rust", "1.3.0", "wasm", &format!("api = \"{api}\"\n\n{extra}"));
+            check_test_providers(&dir)
+        };
+        let rust = "[[contributes.test_providers]]\nid = \"rust\"\nname = \"cargo test\"\nlanguages = [\"rust\"]\nmarkers = [\"Cargo.toml\"]\nscan = [\"src/**/*.rs\", \"tests/**/*.rs\"]\n";
+        assert_eq!(with("1.6", rust), Ok(()));
+        assert_eq!(with("1.6.0", rust), Ok(()));
+        assert_eq!(with("1.5", ""), Ok(()), "none is none");
+        let nextest = "[[contributes.test_providers]]\nid = \"rust.nextest\"\nname = \"cargo nextest\"\nmarkers = [\"Cargo.toml\"]\n";
+        assert_eq!(with("1.6", &format!("{rust}\n{nextest}")), Ok(()));
+        let provider = |fields: &str| with("1.6", &format!("[[contributes.test_providers]]\n{fields}\n"));
+        assert_eq!(provider("id = \"acme.rust.x\"\nname = \"x\"\nlanguages = [\"rust\"]"), Ok(()), "or by its whole id");
+        assert!(with("1.5", rust).unwrap_err().contains("test providers need engine.api 1.6"));
+        assert!(with("1.0", rust).unwrap_err().contains("need engine.api 1.6"));
+        assert!(provider("id = \"python\"\nname = \"pytest\"\nlanguages = [\"python\"]").unwrap_err().contains("called by its name (rust, or rust."));
+        assert!(provider("id = \"rustic\"\nname = \"x\"\nlanguages = [\"rust\"]").unwrap_err().contains("called by its name"));
+        assert!(provider("id = \"Rust\"\nname = \"x\"\nlanguages = [\"rust\"]").unwrap_err().contains("lowercase"));
+        assert!(provider("name = \"x\"\nlanguages = [\"rust\"]").unwrap_err().contains("lowercase"), "no id");
+        assert!(with("1.6", &format!("{rust}\n{rust}")).unwrap_err().contains("\"rust\" is there twice"));
+        assert!(provider("id = \"rust\"\nname = \" \"\nlanguages = [\"rust\"]").unwrap_err().contains("has no name"));
+        assert!(provider("id = \"rust\"\nlanguages = [\"rust\"]").unwrap_err().contains("has no name"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nscan = [\"*.rs\"]").unwrap_err().contains("one or the other"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nlanguages = [\" \"]").unwrap_err().contains("its languages"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nmarkers = [\"../Cargo.toml\"]").unwrap_err().contains("markers are file names"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nmarkers = [\"/Cargo.toml\"]").unwrap_err().contains("markers are file names"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nmarkers = [\"\"]").unwrap_err().contains("markers are file names"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nlanguages = [\"rust\"]\nscan = [\"../**/*.rs\"]").unwrap_err().contains("scan pattern"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nlanguages = [\"rust\"]\nscan = [\"\\\\src\\\\*.rs\"]").unwrap_err().contains("scan pattern"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nlanguages = [\"rust\"]\nscan = [\"/src/*.rs\"]").unwrap_err().contains("scan pattern"));
+        assert!(provider("id = \"rust\"\nname = \"x\"\nlanguages = [\"rust\"]\nrunner = \"cargo\"").unwrap_err().contains("\"runner\" isn't one of"), "nothing it doesn't know");
+        assert!(provider("id = \"rust\"\nname = \"x\"\nlanguages = \"rust\"").unwrap_err().contains("a list of text"));
+        assert!(provider("id = 3\nname = \"x\"\nlanguages = [\"rust\"]").unwrap_err().contains("id is text"));
     }
 
     #[test]
