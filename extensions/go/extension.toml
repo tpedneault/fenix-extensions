@@ -10,12 +10,9 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# The debug adapter, the formatter, a linter's problems (0.8.3); Delve's
-# DAP server over TCP, and the system, for the fix that installs Go
-# (0.8.4); a process picked to attach to (0.8.6); the language file's
-# `comment` (0.8.7).
-api = "1.0"
+fenix = ">=1.5, <2"
+# lang-kit, the kit it's built on, is on 1.5.
+api = "1.5"
 
 # With Fenix: the project doctor's checks and the language server are
 # there from the start.

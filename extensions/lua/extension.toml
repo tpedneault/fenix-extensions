@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.lua"
 name = "Lua"
-version = "1.0.0"
+version = "1.1.0"
 description = "Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project's checks with their fixes, snippets, and LÖVE game and LuaRocks module projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,12 +10,10 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# The language server, the formatter, a linter's problems (0.8.3); the
-# saved file's path, and the system, for the release to install (0.8.4);
-# the server given its settings (0.8.6); LuaRocks' `busted.bat` and
-# `luacheck.bat` found on Windows (0.8.7).
-api = "1.0"
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
 
 # With Fenix: the server is there for the first Lua file, and the project
 # doctor's checks from the start.

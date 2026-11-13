@@ -6,6 +6,9 @@ doctor's checks with their fixes, snippets, and LÖVE game and LuaRocks
 module projects in the new-project wizard. Built on lang-kit (`crates/lang-kit`), as each language
 pack is.
 
+It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, Lua
+1.0.0 is the one you get.
+
 Fenix highlights Lua itself and knows its comment, so the pack brings no
 grammar. It starts with Fenix: the server is set for every Lua file, and
 the doctor and the tasks are there in a project with Lua in it (a `.lua`
@@ -17,7 +20,12 @@ file, a rockspec or a `.luarc.json`).
 Fenix's own, when it's found. Its fix row installs LuaLS 3.19.2's release
 for this machine (Linux and macOS on x86_64 and arm64, Windows on
 x86_64), checked against the SHA-256 the pack knows and unpacked into the
-pack's tools folder, where only the pack looks. One you installed
+pack's tools folder, where only the pack looks. Starting an install is
+said in the message line; how it ended is a notification, since a
+download can take a while: "Installed lua-language-server 3.19.2", or
+"Couldn't install ..." with which step failed and why, and *Try again*.
+StyLua's and selene's installs end the same way; luacheck and busted are
+installed by `luarocks`, as a task, and are as they were. One you installed
 yourself is used instead: the pack looks on `PATH` and in Neovim's Mason
 folder, Homebrew's, LuaRocks' and Scoop's.
 
@@ -115,8 +123,8 @@ Two in the new-project wizard, under Lua:
 
 ## Keys
 
-After `SPC m` in a Lua file or project: `d` checks the project again, `s`
-installs lua-language-server, `f` StyLua.
+After `SPC m` in a Lua file or project (`C-k m` with standard keys): `d`
+checks the project again, `s` installs lua-language-server, `f` StyLua.
 
 ## Not yet
 

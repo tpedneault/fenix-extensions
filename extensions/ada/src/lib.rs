@@ -496,4 +496,30 @@ mod tests {
         assert!(a.kit.doctor.programs.iter().any(|p| p.label == "GNATprove"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
+
+    /// An install takes minutes: how it ended is a notification, offering
+    /// it again when it failed; starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_alire_is_a_notification_that_offers_it_again() {
+        let dir = temp("install-told");
+        let host = Shared::default();
+        let mut a = pack(&dir, &host, Settings::default);
+        a.activate().unwrap();
+        host.take();
+        a.run_command("ada.install.alr").unwrap();
+        let calls = host.take();
+        assert!(calls.iter().any(|c| c == "notify Downloading Alire 2.1.1…"), "{calls:?}");
+        let id: u64 = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse().ok()).unwrap();
+        a.handle(Event::HttpResponse((id, Err("its SHA-256 isn't the release's".into()))));
+        let calls = host.take();
+        let told = calls.iter().find(|c| c.starts_with("notification ")).unwrap();
+        assert!(told.starts_with("notification normal #install.alr: Couldn't install Alire 2.1.1 -- Its download from https://"), "{told}");
+        assert!(told.ends_with("failed: its SHA-256 isn't the release's. [Try again -> ada.install.alr]"), "{told}");
+
+        // Again: the old toast goes as it starts.
+        a.run_command("ada.install.alr").unwrap();
+        let calls = host.take();
+        assert!(calls.iter().any(|c| c == "dismiss install.alr"), "{calls:?}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

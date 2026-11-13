@@ -159,6 +159,33 @@ impl Default for Java {
 /// What can be installed, by name.
 const INSTALLS: &[&str] = &["jre", "jdtls", "java-debug", "kotlin-language-server", "google-java-format", "ktlint"];
 
+/// The keys that run `command` now, as the key scheme in use writes them
+/// (`SPC u u`, or `C-k u u` with standard keys, or yours); `literal`, in
+/// Vim's, when none does, and natively, where there's no Fenix to ask.
+fn keys(command: &str, literal: &str) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        api::key_for(command).unwrap_or_else(|| literal.to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = command;
+        literal.to_string()
+    }
+}
+
+/// Why JDT LS can't start without it; `doctor` are the keys that open the
+/// project doctor.
+fn jdtls_missing(doctor: &str) -> String {
+    format!("Eclipse JDT LS isn't installed: the project doctor ({doctor}) installs it")
+}
+
+/// What it says of a program held for the debugger; `start` are the keys
+/// that start a debug session.
+fn waiting_says(name: &str, start: &str) -> String {
+    format!("{name}: waiting for the debugger on port {}. {start}, then Java: attach", debug::PORT)
+}
+
 impl Java {
     pub fn new(mut host: Box<dyn Host>, wire: Box<dyn Wire>, root: &str, platform: Platform, settings: Settings) -> Java {
         platform.hide_jre_java(fenix_lang_kit::Installer::new().tools.as_str());
@@ -414,7 +441,7 @@ impl Java {
     /// How JDT LS starts here, or why it can't.
     pub fn launch(&self) -> Result<Launch, String> {
         if !self.installed("jdtls") {
-            return Err("Eclipse JDT LS isn't installed: the project doctor (SPC p d) installs it".into());
+            return Err(jdtls_missing(&keys("project.doctor", "SPC p h")));
         }
         let java = if self.installed("jre") {
             self.platform.jre_java()
@@ -506,7 +533,7 @@ impl Java {
     fn run_held(&mut self, name: &str, cmd: &Command) {
         let host = self.kit.host.as_mut();
         match host.run_task(name, cmd) {
-            Ok(_) => host.notify(&format!("{name}: waiting for the debugger on port {}. SPC u u, then Java: attach", debug::PORT)),
+            Ok(_) => host.notify(&waiting_says(name, &keys("debug.start_or_continue", "SPC u u"))),
             Err(why) => host.notify(&format!("{name}: {why}")),
         }
     }
@@ -926,6 +953,44 @@ mod tests {
         std::fs::remove_dir_all(&tools).unwrap();
     }
 
+    /// What it says names the keys that open the doctor and start a debug
+    /// session as the key scheme in use writes them.
+    #[test]
+    fn what_it_says_names_the_keys_in_use() {
+        assert_eq!(jdtls_missing("SPC p h"), "Eclipse JDT LS isn't installed: the project doctor (SPC p h) installs it");
+        assert_eq!(jdtls_missing("C-k p h"), "Eclipse JDT LS isn't installed: the project doctor (C-k p h) installs it");
+        assert_eq!(waiting_says("debug App", "SPC u u"), format!("debug App: waiting for the debugger on port {}. SPC u u, then Java: attach", debug::PORT));
+        assert_eq!(waiting_says("debug App", "C-k u u"), format!("debug App: waiting for the debugger on port {}. C-k u u, then Java: attach", debug::PORT));
+        assert_eq!(keys("project.doctor", "SPC p h"), "SPC p h", "natively, Vim's");
+    }
+
+    /// An install takes minutes: how it ended is a notification, offering
+    /// it again when it failed; starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_java_debug_is_a_notification_that_offers_it_again() {
+        let dir = orbit("install-told");
+        let tools = project::tests::temp("tools-install-told");
+        let host = host();
+        let mut j = pack(&dir, &tools, &host, &[]);
+        j.activate().unwrap();
+        host.take();
+        j.run_command("java.install.java-debug").unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"notify Downloading java-debug 0.53.1…".to_string()), "{calls:?}");
+        let id: u64 = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse().ok()).unwrap();
+        j.handle(Event::HttpResponse((id, Err("its SHA-256 isn't the release's".into()))));
+        let calls = host.take();
+        let told = calls.iter().find(|c| c.starts_with("notification ")).unwrap();
+        assert!(told.starts_with("notification normal #install.java-debug: Couldn't install java-debug 0.53.1 -- Its download from https://"), "{told}");
+        assert!(told.ends_with("failed: its SHA-256 isn't the release's. [Try again -> java.install.java-debug]"), "{told}");
+
+        // Again: the old toast goes as it starts.
+        j.run_command("java.install.java-debug").unwrap();
+        assert!(host.take().contains(&"dismiss install.java-debug".to_string()));
+        std::fs::remove_dir_all(&dir).unwrap();
+        std::fs::remove_dir_all(&tools).unwrap();
+    }
+
     #[test]
     fn without_jdtls_fenix_is_answered_and_installing_it_restarts_the_server() {
         let dir = orbit("no-jdtls");
@@ -937,7 +1002,7 @@ mod tests {
         j.lsp_message(3, &init(&dir.to_string_lossy()));
         let calls = host.take();
         assert!(calls.len() == 1 && calls[0].starts_with("lsp 3 ") && calls[0].contains("\"capabilities\":{}"), "{calls:?}");
-        assert_eq!(j.found().missing.as_deref(), Some("Eclipse JDT LS isn't installed: the project doctor (SPC p d) installs it"));
+        assert_eq!(j.found().missing.as_deref(), Some("Eclipse JDT LS isn't installed: the project doctor (SPC p h) installs it"));
         // Its fix row installs it; once it's there, the server starts again.
         let i = j.kit.installer.get("jdtls").unwrap().clone();
         std::fs::create_dir_all(tools.join("jdtls")).unwrap();

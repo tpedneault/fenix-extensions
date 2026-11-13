@@ -14,7 +14,9 @@ It reads the build: Gradle's `settings.gradle(.kts)`, each project's
 class, Kotlin, Spring Boot, and the Java release the build asks for (a
 toolchain, `jvmToolchain`, `sourceCompatibility`,
 `maven.compiler.release`) come from there. Gradle's files are code, so
-they're read for the forms people write, not run.
+they're read for the forms people write, not run. It needs Fenix 1.5 or
+later (extension API 1.5); on an older Fenix, Java 1.1.0 is the one you
+get.
 
 ## Java's language server
 
@@ -29,7 +31,11 @@ SHA-256 checked) and, since it runs on Java 25 or later, Temurin's JRE 25
 when the machine's Java is older. That runtime is called `fenix-java` in
 the tools folder, so that `java` is still the project's. JDT LS's
 workspace is the pack's own folder's (`${data}/jdtls-workspace/<project>`),
-apart from what it installs. Eclipse's `.project`, `.classpath` and
+apart from what it installs. Starting an install is said in the message
+line; how it ended is a notification, since a download can take a while:
+"Installed Eclipse JDT LS 1.63.0", or "Couldn't install ..." with which
+step failed and why, and *Try again*. Each newer one for a tool takes the
+last one's place. Eclipse's `.project`, `.classpath` and
 `.settings` stay in that workspace; JDT LS's own build goes to `bin/`.
 
 ## Kotlin
@@ -72,7 +78,8 @@ which a launch file can't carry, so every session attaches, on 5005:
 | Java: the tests | *Java: debug the tests* (`SPC m t`): the test class you're in, else its module's, by `./gradlew test --debug-jvm` or `mvn test -Dmaven.surefire.debug` |
 | Java: attach (remote, port 5005) | a JVM started with `-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005` |
 
-Each runs as a task; `SPC u u` and the launch file then attach. The
+Each runs as a task; `SPC u u` (`C-k u u` with standard keys) and the
+launch file then attach. The
 adapter is Java's: breakpoints in Kotlin files weren't tried, and
 java-debug finds a breakpoint's class through JDT LS, which doesn't read
 Kotlin.
@@ -143,9 +150,14 @@ the wizard can't write the wrapper's jar.
 
 ## Keys
 
-After `SPC m` in a Gradle or Maven project: `p` dependencies, `d` check
-again, `m` debug a main class, `t` debug the tests, `r` read the build
-again.
+After `SPC m` in a Gradle or Maven project (`C-k m` with standard keys):
+`p` dependencies, `d` check again, `m` debug a main class, `t` debug the
+tests, `r` read the build again.
+
+What the pack says when JDT LS isn't installed (the project doctor's
+keys) or a program is waiting for the debugger (the keys that start a
+debug session) names them as the scheme in use has them, or what you or
+Fenix bound.
 
 ## Not yet
 

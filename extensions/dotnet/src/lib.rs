@@ -112,6 +112,27 @@ impl Default for Dotnet {
     }
 }
 
+/// The keys that run `command` now, as the key scheme in use writes them
+/// (`SPC u u`, or `C-k u u` with standard keys, or yours); `literal`, in
+/// Vim's, when none does, and natively, where there's no Fenix to ask.
+fn keys(command: &str, literal: &str) -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        api::key_for(command).unwrap_or_else(|| literal.to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = command;
+        literal.to_string()
+    }
+}
+
+/// What it says of a test host held for the debugger; `start` are the
+/// keys that start a debug session.
+fn held_says(pid: u32, start: &str) -> String {
+    format!("dotnet test holds process {pid} for the debugger: {start}, then .NET: the tests")
+}
+
 impl Dotnet {
     /// The pack for the project in `root`, talking to `host`.
     pub fn new(mut host: Box<dyn Host>, root: &str, platform: Platform, lint_on_save: Option<bool>, launches: Launches) -> Dotnet {
@@ -277,7 +298,7 @@ impl Dotnet {
         self.held = pid;
         self.apply();
         if let Some(pid) = pid {
-            self.kit.host.notify(&format!("dotnet test holds process {pid} for the debugger: SPC u u, then .NET: the tests"));
+            self.kit.host.notify(&held_says(pid, &keys("debug.start_or_continue", "SPC u u")));
         }
     }
 
@@ -610,6 +631,40 @@ mod tests {
         said(&mut d, build, &include_str!("samples/build-warn.txt").replace("/home/u/orbit", &dir.to_string_lossy()), 0);
         assert_eq!(host.0.borrow().problems["/project/src/Orbit.Core/Class1.cs"].len(), 2);
         assert!(formatter(&Solution { csharpier: Some("0.30.6".into()), ..Solution::default() }, &Tools { dotnet: Some("dotnet".into()), ..Tools::default() }).is_none(), "CSharpier 0.x has no format");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// What it says names the keys that start a debug session as the key
+    /// scheme in use writes them.
+    #[test]
+    fn a_held_test_host_says_the_keys_that_attach() {
+        assert_eq!(held_says(24793, "SPC u u"), "dotnet test holds process 24793 for the debugger: SPC u u, then .NET: the tests");
+        assert_eq!(held_says(24793, "C-k u u"), "dotnet test holds process 24793 for the debugger: C-k u u, then .NET: the tests");
+        assert_eq!(keys("debug.start_or_continue", "SPC u u"), "SPC u u", "natively, Vim's");
+    }
+
+    /// An install takes minutes: how it ended is a notification, offering
+    /// it again when it failed; starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_netcoredbg_is_a_notification_that_offers_it_again() {
+        let dir = orbit("install-told");
+        let host = host();
+        let mut d = pack(&dir, &host);
+        d.activate().unwrap();
+        host.take();
+        d.run_command("dotnet.install.netcoredbg").unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"notify Downloading netcoredbg…".to_string()), "{calls:?}");
+        let id: u64 = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse().ok()).unwrap();
+        d.handle(Event::HttpResponse((id, Err("its SHA-256 isn't the release's".into()))));
+        let calls = host.take();
+        let told = calls.iter().find(|c| c.starts_with("notification ")).unwrap();
+        assert!(told.starts_with("notification normal #install.netcoredbg: Couldn't install netcoredbg -- Its download from https://"), "{told}");
+        assert!(told.ends_with("failed: its SHA-256 isn't the release's. [Try again -> dotnet.install.netcoredbg]"), "{told}");
+
+        // Again: the old toast goes as it starts.
+        d.run_command("dotnet.install.netcoredbg").unwrap();
+        assert!(host.take().contains(&"dismiss install.netcoredbg".to_string()));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

@@ -414,7 +414,7 @@ mod tests {
 
     #[test]
     fn a_neovim_config_gets_luajit_and_vim_and_the_servers_formatting() {
-        let dir = temp("nvim");
+        let dir = temp("nvim-settings");
         write(&dir, &["init.lua=vim.g.mapleader = ' '\n", "lua/plugins/ui.lua", ".luacheckrc"]);
         let host = Shared::default();
         found(&host, &[(tools::SERVER, "/m/lua-language-server"), ("stylua", "/m/stylua"), ("luacheck", "/m/luacheck")]);
@@ -465,6 +465,32 @@ mod tests {
         l.run_command(&row).unwrap();
         let calls = host.take();
         assert!(calls.iter().any(|c| c.starts_with("download ") && c.contains("lua-language-server-3.19.2-linux-x64.tar.gz") && c.ends_with(" 93ad326b10f6c00911dd8c450fa098332dbd8f9f45d1052f5636a2d54479b947")), "{calls:?}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// An install takes minutes: how it ended is a notification, offering
+    /// it again when it failed; starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_stylua_is_a_notification_that_offers_it_again() {
+        let dir = temp("install-told");
+        write(&dir, &["main.lua"]);
+        let host = Shared::default();
+        let mut l = pack(&dir, &host, Settings::default);
+        l.activate().unwrap();
+        host.take();
+        l.run_command("lua.install.stylua").unwrap();
+        let calls = host.take();
+        assert!(calls.iter().any(|c| c.starts_with("notify Downloading StyLua")), "{calls:?}");
+        let id: u64 = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse().ok()).unwrap();
+        l.handle(Event::HttpResponse((id, Err("its SHA-256 isn't the release's".into()))));
+        let calls = host.take();
+        let told = calls.iter().find(|c| c.starts_with("notification ")).unwrap();
+        assert!(told.starts_with("notification normal #install.stylua: Couldn't install StyLua"), "{told}");
+        assert!(told.ends_with("failed: its SHA-256 isn't the release's. [Try again -> lua.install.stylua]"), "{told}");
+
+        // Again: the old toast goes as it starts.
+        l.run_command("lua.install.stylua").unwrap();
+        assert!(host.take().contains(&"dismiss install.stylua".to_string()));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
