@@ -1,0 +1,17 @@
+# Prose's keys, after SPC m in a Markdown file or a project with a word
+# list. Your own keybindings.toml wins.
+
+[[local.prose]]
+keys = "w"
+label = "add the word under the cursor to the project's list"
+command = "prose.add-word"
+
+[[local.prose]]
+keys = "W"
+label = "open the project's word list"
+command = "prose.words"
+
+[[local.prose]]
+keys = "d"
+label = "check again (Harper, what it reads)"
+command = "prose.doctor"
