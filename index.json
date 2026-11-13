@@ -3386,6 +3386,38 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/protobuf-v1.2.0/fenix.protobuf-1.2.0.fenixext",
+          "sha256": "d2ee591a69f0f77d4ae54d7aebc4b744af627251740cbceb4018891ca4476602",
+          "size": 486857,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "web",
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "buf",
+              "grpcurl",
+              "protoc",
+              "protols",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Protobuf & gRPC",
