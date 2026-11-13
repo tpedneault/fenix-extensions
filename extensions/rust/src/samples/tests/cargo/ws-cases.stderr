@@ -1,0 +1,5 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.28s
+     Running unittests src/main.rs (target/debug/build/orbit-cli/e69e6b53be2238f3/out/orbit_cli-e69e6b53be2238f3)
+error: test failed, to rerun pass `-p orbit-cli --bin orbit-cli`
+error: 1 target failed:
+    `-p orbit-cli --bin orbit-cli`

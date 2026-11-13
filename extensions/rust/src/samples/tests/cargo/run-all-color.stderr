@@ -1,0 +1,9 @@
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/build/orbit/b1fa5706f773b725/out/orbit-b1fa5706f773b725)
+[1m[91merror[0m: test failed, to rerun pass `--lib`
+[1m[92m     Running[0m tests/it.rs (target/debug/build/orbit/fde6b73f68d80ec0/out/it-fde6b73f68d80ec0)
+[1m[91merror[0m: test failed, to rerun pass `--test it`
+[1m[92m   Doc-tests[0m orbit
+[1m[91merror[0m: 2 targets failed:
+    `--lib`
+    `--test it`

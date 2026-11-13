@@ -1,0 +1,20 @@
+
+ RUN  v5.1.0 /project/packages/app
+
+
+FENIX-TEST {"kind":"test","file":"/project/packages/app/src/orbit.test.js","names":["adds"],"line":3,"column":1,"mode":"run","cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"test","file":"/project/packages/app/src/orbit.test.js","names":["fails here"],"line":7,"column":1,"mode":"run","cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"result","file":"/project/packages/app/src/orbit.test.js","names":["adds"],"line":3,"state":"passed","duration":1.607406999999995,"errors":[],"cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"result","file":"/project/packages/app/src/orbit.test.js","names":["fails here"],"line":7,"state":"failed","duration":3.5927350000000047,"errors":[{"message":"expected 2 to be 3 // Object.is equality","stack":"AssertionError: expected 2 to be 3 // Object.is equality\n    at /project/packages/app/src/orbit.test.js:8:17\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3922:64","diff":"- Expected\n+ Received\n\n- 3\n+ 2"}],"cwd":"/project/packages/app"}
+ ❯ src/orbit.test.js (2 tests | 1 failed) 6ms
+   ✓ adds 2ms
+   × fails here 4ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  17:12:34
+   Duration  176ms (import 47%, tests 24%, worker 15%, transform 14%, environment 1%)
+

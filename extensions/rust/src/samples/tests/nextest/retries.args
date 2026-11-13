@@ -1,0 +1,1 @@
+cargo nextest run --workspace --no-fail-fast --message-format libtest-json-plus --retries 1 -E test(=tests::fails_on_purpose) | test(=tests::adds)

@@ -1,0 +1,63 @@
+
+ RUN  v5.1.0 /tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest
+
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/geo.test.ts","names":["dist is symmetric"],"line":null,"column":null,"mode":"run"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["adds"],"line":null,"column":null,"mode":"run"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["fails on purpose"],"line":null,"column":null,"mode":"run"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["skipped"],"line":null,"column":null,"mode":"skip"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["to do"],"line":null,"column":null,"mode":"todo"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["add(1, 1) is 2"],"line":null,"column":null,"mode":"run"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["add(-1, -1) is -3"],"line":null,"column":null,"mode":"run"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["outer","in describe"],"line":null,"column":null,"mode":"run"}
+
+FENIX-TEST {"kind":"test","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["outer","inner","deep"],"line":null,"column":null,"mode":"run"}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/geo.test.ts","names":["dist is symmetric"],"line":null,"state":"passed","duration":1.5262519999999995,"errors":[]}
+ ✓ src/geo.test.ts (1 test) 3ms
+stdout | src/orbit.test.js > fails on purpose
+some output before the failure
+
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["adds"],"line":null,"state":"passed","duration":2.5490680000000054,"errors":[]}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["fails on purpose"],"line":null,"state":"failed","duration":11.243835000000004,"errors":[{"message":"expected 4 to be 5 // Object.is equality","stack":"AssertionError: expected 4 to be 5 // Object.is equality\n    at /tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js:10:21\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3922:64","diff":"- Expected\n+ Received\n\n- 5\n+ 4"}]}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["skipped"],"line":null,"state":"skipped","duration":null,"errors":[]}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["to do"],"line":null,"state":"skipped","duration":null,"errors":[]}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["add(1, 1) is 2"],"line":null,"state":"passed","duration":0.247366999999997,"errors":[]}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["add(-1, -1) is -3"],"line":null,"state":"failed","duration":0.7860780000000034,"errors":[{"message":"expected -2 to be -3 // Object.is equality","stack":"AssertionError: expected -2 to be -3 // Object.is equality\n    at /tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js:20:21\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2885:79\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)","diff":"- Expected\n+ Received\n\n- -3\n+ -2"}]}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["outer","in describe"],"line":null,"state":"passed","duration":0.1291750000000036,"errors":[]}
+
+FENIX-TEST {"kind":"result","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js","names":["outer","inner","deep"],"line":null,"state":"failed","duration":0.6084649999999954,"errors":[{"message":"expected +0 to be 1 // Object.is equality","stack":"AssertionError: expected +0 to be 1 // Object.is equality\n    at /tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js:27:25\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)\n    at file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3922:64","diff":"- Expected\n+ Received\n\n- 1\n+ 0"}]}
+ ❯ src/orbit.test.js (8 tests | 3 failed | 1 skipped | 1 todo) 19ms
+   ✓ adds 3ms
+   × fails on purpose 11ms
+   ↓ skipped
+   □ to do
+   ✓ add(1, 1) is 2 0ms
+   × add(-1, -1) is -3 1ms
+   ❯ outer (2)
+     ✓ in describe 0ms
+     ❯ inner (1)
+       × deep 1ms
+ ❯ src/broken.test.js (0 test)
+
+FENIX-TEST {"kind":"module-error","file":"/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/broken.test.js","errors":[{"message":"Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.","stack":"Error: Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.\n    at TransformPluginContext._formatLog (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vite/dist/node/chunks/node.js:8865:39)\n    at TransformPluginContext.error (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vite/dist/node/chunks/node.js:8862:14)\n    at TransformPluginContext.transform (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vite/dist/node/chunks/node.js:26516:10)\n    at async EnvironmentPluginContainer.transform (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vite/dist/node/chunks/node.js:8636:14)\n    at async loadAndTransform (file:///tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/node_modules/vite/dist/node/chunks/node.js:20112:26)"}]}
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  3 failed | 4 passed | 1 skipped | 1 todo (9)
+   Start at  03:39:13
+   Duration  230ms (import 37%, tests 29%, transform 18%, worker 15%, environment 1%)
+

@@ -104,6 +104,15 @@ pub trait Host {
     }
     /// Its toast tagged `tag` taken away, if one is showing (`notify-dismiss`).
     fn dismiss(&mut self, _tag: &str) {}
+    /// What its test provider `provider` runs in this project now, and why
+    /// it can't when it can't (`test-provider-set`, API 1.6; `runner` ""
+    /// with no problem: nothing to run here). A host without it -- Fenix
+    /// on API 1.5 -- does nothing. Only with the feature `tests`: a pack
+    /// that runs no tests has no way to reach the import.
+    #[cfg(feature = "tests")]
+    fn test_provider_set(&mut self, _provider: &str, _runner: &str, _problem: Option<&str>) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// A notification as a line of a test host's log: `notification low
@@ -130,6 +139,17 @@ pub fn notification_line(n: &Notification) -> String {
         out.push_str(&format!(" ({:.0}%)", p * 100.0));
     }
     out
+}
+
+/// A `test-provider-set` as a line of a test host's log: `test-provider
+/// rust: cargo nextest`, `test-provider python: pytest (pytest isn't
+/// installed)`. The test kit's `Fake` writes the same.
+#[cfg(feature = "tests")]
+pub fn provider_line(provider: &str, runner: &str, problem: Option<&str>) -> String {
+    match problem {
+        Some(p) => format!("test-provider {provider}: {runner} ({p})"),
+        None => format!("test-provider {provider}: {runner}"),
+    }
 }
 
 /// The real thing: each call is Fenix's.
@@ -256,6 +276,12 @@ impl Host for Fenix {
     fn dismiss(&mut self, tag: &str) {
         api::notify_dismiss(tag)
     }
+    /// The one call of `test-provider-set` in the kit: under the feature
+    /// `tests` only, so a pack without it never links the import.
+    #[cfg(feature = "tests")]
+    fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
+        crate::tests::api::provider(provider, runner, problem)
+    }
 }
 
 /// A host for tests: ids counted up, each call written down as a line,
@@ -292,6 +318,9 @@ pub mod mock {
         pub variables: HashMap<String, Vec<PickerItem>>,
         /// Its notifications, in order.
         pub notifications: Vec<Notification>,
+        /// What its test providers said they run (`test-provider-set`):
+        /// provider, runner, problem, in order.
+        pub test_providers: Vec<(String, String, Option<String>)>,
     }
 
     pub fn line(cmd: &Command) -> String {
@@ -483,7 +512,14 @@ pub mod mock {
         fn dismiss(&mut self, tag: &str) {
             self.calls.push(format!("dismiss {tag}"));
         }
+        #[cfg(feature = "tests")]
+        fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
+            self.calls.push(provider_line(provider, runner, problem));
+            self.test_providers.push((provider.into(), runner.into(), problem.map(String::from)));
+            Ok(())
+        }
     }
+
     /// The mock, shared: a test keeps one and gives the [`crate::Kit`]
     /// the other, and looks at the calls while the kit has it.
     #[derive(Clone, Default)]
@@ -508,6 +544,10 @@ pub mod mock {
                 }
                 fn notification(&mut self, n: &Notification) {
                     self.0.borrow_mut().notification(n)
+                }
+                #[cfg(feature = "tests")]
+                fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
+                    self.0.borrow_mut().test_provider_set(provider, runner, problem)
                 }
             }
         };

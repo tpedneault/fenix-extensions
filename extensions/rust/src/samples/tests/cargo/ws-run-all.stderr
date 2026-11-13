@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/main.rs (target/debug/build/orbit-cli/e69e6b53be2238f3/out/orbit_cli-e69e6b53be2238f3)
+error: test failed, to rerun pass `-p orbit-cli --bin orbit-cli`
+     Running tests/empty.rs (target/debug/build/orbit-cli/7d361b20b1d597cf/out/empty-7d361b20b1d597cf)
+     Running unittests src/lib.rs (target/debug/build/orbit-core/c313fcd8eba631ef/out/orbit_core-c313fcd8eba631ef)
+     Running tests/it_works.rs (target/debug/build/orbit-core/b37f4eb9f33e447c/out/it_works-b37f4eb9f33e447c)
+error: test failed, to rerun pass `-p orbit-core --test it_works`
+   Doc-tests orbit_core
+error: 2 targets failed:
+    `-p orbit-cli --bin orbit-cli`
+    `-p orbit-core --test it_works`

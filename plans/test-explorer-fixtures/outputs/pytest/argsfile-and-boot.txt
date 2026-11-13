@@ -1,0 +1,25 @@
+$ pytest -q @ids.txt   (ids.txt: tests/test_basic.py::test_adds / tests/test_basic.py::test_cases[strings [odd] id])
+..                                                                       [100%]
+2 passed in 0.01s
+
+$ python -c "import sys; sys.path.insert(0, sys.argv.pop(1)); import pytest; raise SystemExit(pytest.main(sys.argv[1:]))" "../data dir/it's/pytest" -q -p fenix_tests --collect-only
+tests/sub/test_unit.py::TestUnit::test_bad
+tests/sub/test_unit.py::TestUnit::test_ok
+tests/test_basic.py::test_adds
+tests/test_basic.py::test_fails_on_purpose
+tests/test_basic.py::test_skipped
+tests/test_basic.py::test_known_bug
+tests/test_basic.py::test_cases[small]
+tests/test_basic.py::test_cases[negative]
+tests/test_basic.py::test_cases[strings [odd] id]
+tests/test_basic.py::TestOuter::test_in_class
+tests/test_basic.py::TestOuter::TestInner::test_deep
+tests/test_basic.py::TestOuter::test_param_in_class[1]
+tests/test_basic.py::TestOuter::test_param_in_class[2]
+tests/test_basic.py::test_uses_broken_fixture
+
+FENIX-TEST {"kind": "test", "id": "tests/sub/test_unit.py::TestUnit::test_bad", "file": "tests/sub/test_unit.py", "line": 8, "name": "TestUnit.test_bad"}
+
+FENIX-TEST {"kind": "test", "id": "tests/sub/test_unit.py::TestUnit::test_ok", "file": "tests/sub/test_unit.py", "line": 5, "name": "TestUnit.test_ok"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_adds", "file": "tests/test_basic.py", "line": 6, "name": "test_adds"}

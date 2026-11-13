@@ -1,0 +1,26 @@
+$ cargo test adds
+     Running unittests src/lib.rs (target/debug/deps/orbit-70212efb4b280c76)
+test tests::adds ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+     Running tests/it.rs (target/debug/deps/it-dcb5ae38382e8ca5)
+test integration_adds ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+$ cargo test --no-fail-fast -- --exact tests::case_negative geo::tests::unwraps_none integration_fails
+     Running unittests src/lib.rs (target/debug/deps/orbit-70212efb4b280c76)
+test geo::tests::unwraps_none ... FAILED
+test tests::case_negative ... FAILED
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+error: test failed, to rerun pass `--lib`
+     Running tests/it.rs (target/debug/deps/it-dcb5ae38382e8ca5)
+test integration_fails ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+error: test failed, to rerun pass `--test it`
+   Doc-tests orbit
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+error: 2 targets failed:
+
+$ cargo test --lib -- geo::
+test geo::tests::dist_is_symmetric ... ok
+test geo::tests::unwraps_none ... FAILED
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s

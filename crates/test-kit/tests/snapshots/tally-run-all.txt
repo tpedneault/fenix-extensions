@@ -1,0 +1,12 @@
+tally [group] -- failed  <scan+run>
+  src/math.tally [file] -- failed  <scan+run>
+    adds :1 -- passed 3ms  <scan>
+    fails :2 -- failed: expected 4, got 5 at src/math.tally:2:3  <scan>
+    slow :3 -- skipped (skip: too slow): too slow  <scan>
+    deep [suite] :4 -- passed  <scan>
+      inner :5 -- passed 1ms  <scan>
+    table [template] :7 -- failed  <scan>
+      1 [case] :7 -- passed 1ms  <run>
+      2 [case] :7 -- failed: two isn't one  <run>
+    dynamic -- passed 2ms  <run>
+src/math.tally::gen_two -- passed 1ms (found in a run)  <run>

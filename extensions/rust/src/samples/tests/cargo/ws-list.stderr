@@ -1,0 +1,7 @@
+   Compiling orbit-core v0.1.0 (/project/orbit-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running unittests src/main.rs (target/debug/build/orbit-cli/e69e6b53be2238f3/out/orbit_cli-e69e6b53be2238f3)
+     Running tests/empty.rs (target/debug/build/orbit-cli/7d361b20b1d597cf/out/empty-7d361b20b1d597cf)
+     Running unittests src/lib.rs (target/debug/build/orbit-core/c313fcd8eba631ef/out/orbit_core-c313fcd8eba631ef)
+     Running tests/it_works.rs (target/debug/build/orbit-core/b37f4eb9f33e447c/out/it_works-b37f4eb9f33e447c)
+   Doc-tests orbit_core

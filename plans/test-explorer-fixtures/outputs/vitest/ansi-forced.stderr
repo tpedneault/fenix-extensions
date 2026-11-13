@@ -1,0 +1,22 @@
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/orbit.test.js[2m:8[22m[2m > [22mfails on purpose
+[31m[1mAssertionError[22m: expected 4 to be 5 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 5[39m
+[31m+ 4[39m
+
+[36m [2m❯[22m src/orbit.test.js:[2m10:21[22m[39m
+    [90m  8|[39m [34mtest[39m([32m'fails on purpose'[39m[33m,[39m () [33m=>[39m {
+    [90m  9|[39m   console[33m.[39m[34mlog[39m([32m'some output before the failure'[39m)
+    [90m 10|[39m   [34mexpect[39m([34madd[39m([34m2[39m[33m,[39m [34m2[39m))[33m.[39m[34mtoBe[39m([34m5[39m)
+    [90m   |[39m                     [31m^[39m
+    [90m 11|[39m })
+    [90m 12|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+

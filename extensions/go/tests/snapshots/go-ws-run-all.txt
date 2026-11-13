@@ -1,0 +1,11 @@
+example.com/app [group] -- passed  <scan+run>
+  app/app_test.go [file] -- passed  <scan+run>
+    TestFour :5 -- passed 0ms  <scan>
+    TestDouble [template] :11 -- passed 0ms  <scan>
+      same_name_as_lib's [case] :11 -- passed 0ms  <run>
+example.com/lib [group] -- passed  <scan>
+  lib/lib_test.go [file] -- passed  <scan>
+    TestDouble :5 -- passed 0ms  <scan>
+example.com/lib/util [group] -- failed  <scan>
+  lib/util/util_test.go [file] -- failed  <scan>
+    TestTriple :5 -- failed 0ms: wrong at lib/util/util_test.go:7  <scan>

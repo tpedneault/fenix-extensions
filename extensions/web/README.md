@@ -102,6 +102,50 @@ background, beside the task pane, so the browser launch has
 its server; run again, it shows its output; *Web: stop the dev server*
 stops it.
 
+## Tests, for Fenix 1.6
+
+Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call for Vitest and Jest: built and tested here,
+offered from Fenix 1.6. Fenix asks for it only once this pack is
+released for extension API 1.6, after Fenix 1.6.0; until then nothing
+changes for you, on Fenix 1.5 as on a nightly. What it will do, as
+tested on what Vitest 5.1 and Jest 30.5 printed:
+
+- **Find the runner** for each package folder, the project's and each
+  workspace's (`workspaces`, `pnpm-workspace.yaml`): Vitest or Jest in
+  its `package.json`, or their config files; where the root's config
+  runs its packages as `projects`, the root's. Run by Node from the
+  `node_modules` Node finds it in (a workspace's hoisted one too), as
+  the launch files run it, never by `npx` or a `.bin` shim; a Yarn
+  Plug'n'Play project by `yarn vitest`, `yarn jest`. A runner that isn't
+  installed says so, and a project without one has no tests page.
+- **Find the tests in a file as you type**, nothing run: `describe`,
+  `it` and `test` with a string for a title, at their lines, in their
+  describes; `.skip`, `xit` and a skipped describe's tests as skipped,
+  `.todo` as "todo"; `.each` and a title with `${..}` as templates whose
+  cases appear once listed or run. A title that isn't a string, and a
+  `describe.each`'s tests, come from the listing: a run whose `-t`
+  matches nothing, through the pack's reporter, which loads every test
+  file but runs none.
+- **Run** one, a describe, a file, a package, everything or the failed
+  ones, a step per package: a file by its path, tests by their names as
+  `-t`'s regex (escaped; joined by ` > ` for Vitest, spaces for Jest).
+  Two tests of one name are kept apart (the second is `name (2)`), but
+  run together: `-t` can't tell them apart.
+- **Read** each result as it ends: a failure at its stack's first frame
+  in the project, with its message, its diff and (Vitest) what it
+  logged; a file that doesn't load as "didn't load", never as failing
+  tests; a worker that dies errors its file's tests, and the others'
+  results stand.
+- **Debug one test**: at once, js-debug runs the runner's script with
+  its file and `-t` its name (Jest `--runInBand`), as *Vitest: current
+  file* and *Jest: current file* do.
+
+What it can't: tests a config's own `include` or `testMatch` adds
+outside `*.test.*`, `*.spec.*` (and Jest's `__tests__`) aren't found as
+you type, only when listed or run; Jest gives no test's output of its
+own; Deno's and bun's runners aren't served.
+
 ## The project doctor
 
 - **Node**: held to `.nvmrc` or `.node-version` (`20.11.0` is that or a

@@ -1,0 +1,20 @@
+orbit-core (lib) [group] -- passed  <scan+listing>
+  orbit-core/src/lib.rs [file] -- passed  <scan+listing>
+    tests [suite] :11 -- passed  <scan+listing>
+      it_works :13 -- passed  <scan+listing>
+orbit-core (test it_works) [group] -- failed  <scan+listing>
+  orbit-core/tests/it_works.rs [file] -- failed  <scan+listing>
+    it_works :2 -- failed: assertion `left == right` failed: three doubled at orbit-core/tests/it_works.rs:3:5  <scan+listing>
+orbit-cli (bin orbit-cli) [group] -- failed  <scan+listing+run>
+  orbit-cli/src/main.rs [file] -- failed  <scan+listing+run>
+    tests [suite] :10 -- failed  <scan+listing+run>
+      it_works :16 -- passed  <scan+listing>
+      sums [template] :23 -- failed  <scan>
+        case_1 [case] :23 -- passed  <listing+run>
+        case_2_negative [case] :23 -- failed: assertion `left == right` failed at orbit-cli/src/main.rs:24:9  <listing+run>
+      adds [template] :29 -- failed  <scan>
+        test_case_1_small [case] :29 -- passed  <listing+run>
+        test_case_2_wrong [case] :29 -- failed: assertion `left == right` failed at orbit-cli/src/main.rs:27:5  <listing+run>
+orbit-core (doc) [group] -- passed  <listing+run>
+  orbit-core/src/lib.rs [file] -- passed  <listing+run>
+    double (line 3) :3 -- passed  <listing+run>

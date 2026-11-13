@@ -1,0 +1,17 @@
+{"Time":"2026-11-13T17:09:16.428479316Z","Action":"start","Package":"example.com/orbit"}
+{"Time":"2026-11-13T17:09:16.435950728Z","Action":"run","Package":"example.com/orbit","Test":"TestTable"}
+{"Time":"2026-11-13T17:09:16.436024433Z","Action":"output","Package":"example.com/orbit","Test":"TestTable","Output":"=== RUN   TestTable\n"}
+{"Time":"2026-11-13T17:09:16.43612681Z","Action":"run","Package":"example.com/orbit","Test":"TestTable/small"}
+{"Time":"2026-11-13T17:09:16.436131447Z","Action":"output","Package":"example.com/orbit","Test":"TestTable/small","Output":"=== RUN   TestTable/small\n"}
+{"Time":"2026-11-13T17:09:16.436156137Z","Action":"output","Package":"example.com/orbit","Test":"TestTable/small","Output":"--- PASS: TestTable/small (0.00s)\n"}
+{"Time":"2026-11-13T17:09:16.436161589Z","Action":"pass","Package":"example.com/orbit","Test":"TestTable/small","Elapsed":0}
+{"Time":"2026-11-13T17:09:16.436167748Z","Action":"run","Package":"example.com/orbit","Test":"TestTable/negative_one"}
+{"Time":"2026-11-13T17:09:16.436169911Z","Action":"output","Package":"example.com/orbit","Test":"TestTable/negative_one","Output":"=== RUN   TestTable/negative_one\n"}
+{"Time":"2026-11-13T17:09:16.436172661Z","Action":"output","Package":"example.com/orbit","Test":"TestTable/negative_one","Output":"    /project/orbit_test.go:37: got -2, want -3\n"}
+{"Time":"2026-11-13T17:09:16.436196611Z","Action":"output","Package":"example.com/orbit","Test":"TestTable/negative_one","Output":"--- FAIL: TestTable/negative_one (0.00s)\n"}
+{"Time":"2026-11-13T17:09:16.436217297Z","Action":"fail","Package":"example.com/orbit","Test":"TestTable/negative_one","Elapsed":0}
+{"Time":"2026-11-13T17:09:16.436234958Z","Action":"output","Package":"example.com/orbit","Test":"TestTable","Output":"--- FAIL: TestTable (0.00s)\n"}
+{"Time":"2026-11-13T17:09:16.436239965Z","Action":"fail","Package":"example.com/orbit","Test":"TestTable","Elapsed":0}
+{"Time":"2026-11-13T17:09:16.43624268Z","Action":"output","Package":"example.com/orbit","Output":"FAIL\n"}
+{"Time":"2026-11-13T17:09:16.436328452Z","Action":"output","Package":"example.com/orbit","Output":"FAIL\texample.com/orbit\t0.006s\n"}
+{"Time":"2026-11-13T17:09:16.436339808Z","Action":"fail","Package":"example.com/orbit","Elapsed":0.008}

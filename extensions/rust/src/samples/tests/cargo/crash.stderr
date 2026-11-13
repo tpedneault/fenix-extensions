@@ -1,0 +1,31 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/build/orbit/b1fa5706f773b725/out/orbit-b1fa5706f773b725)
+error: test failed, to rerun pass `--lib`
+     Running tests/crash.rs (target/debug/build/orbit/9b97ab68d9639c84/out/crash-9b97ab68d9639c84)
+error: test failed, to rerun pass `--test crash`
+
+Caused by:
+  process didn't exit successfully: `/project/target/debug/build/orbit/9b97ab68d9639c84/out/crash-9b97ab68d9639c84` (signal: 6, SIGABRT: process abort signal)
+     Running tests/custom.rs (target/debug/build/orbit/85c817f77d6ffbe1/out/custom-85c817f77d6ffbe1)
+
+thread 'main' (11532) panicked at tests/custom.rs:4:5:
+the fixtures folder is missing
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+   1: core::panicking::panic_fmt
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+   2: custom::main
+             at ./tests/custom.rs:4:5
+   3: <fn() as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+error: test failed, to rerun pass `--test custom`
+     Running tests/it.rs (target/debug/build/orbit/fde6b73f68d80ec0/out/it-fde6b73f68d80ec0)
+error: test failed, to rerun pass `--test it`
+   Doc-tests orbit
+error: 4 targets failed:
+    `--lib`
+    `--test crash`
+    `--test custom`
+    `--test it`

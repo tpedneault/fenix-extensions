@@ -1,0 +1,4 @@
+{ "type": "suite", "event": "started", "test_count": 2 }
+{ "type": "test", "event": "started", "name": "aborts" }
+{ "type": "test", "event": "started", "name": "before_the_crash" }
+{ "type": "test", "name": "before_the_crash", "event": "ok" }

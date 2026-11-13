@@ -13,6 +13,11 @@ ui-kit = ["dep:fenix-ui-kit"]
 # `Fake` as lang-kit's `Host`, so a language pack's kit and its own code
 # talk to the one fake.
 lang-kit = ["dep:fenix-lang-kit"]
+# `tests::Fenix`, Fenix's side of a test provider, and `Fake` answering
+# `test-provider-set`: turns on lang-kit's own `tests`, which a pack's
+# provider needs anyway. Only a dev-dependency's, so a pack's WebAssembly
+# is as its own `fenix-lang-kit` features make it.
+tests = ["lang-kit", "fenix-lang-kit/tests"]
 
 [dependencies]
 # The tag the kits pin: an extension's types and the kit's are the same
@@ -25,7 +30,7 @@ unicode-width = "0.2"
 
 [dev-dependencies]
 # Its own tests have every feature, so plain `cargo test` runs them all.
-fenix-test-kit = { path = ".", features = ["ui-kit", "lang-kit"] }
+fenix-test-kit = { path = ".", features = ["ui-kit", "lang-kit", "tests"] }
 fenix-ui-kit = { path = "../ui-kit" }
 fenix-lang-kit = { path = "../lang-kit" }
 

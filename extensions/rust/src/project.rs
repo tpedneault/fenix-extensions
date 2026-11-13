@@ -139,6 +139,17 @@ pub struct Target {
     pub src_path: String,
     #[serde(default, rename = "required-features")]
     pub required_features: Vec<String>,
+    /// `cargo test` runs its tests (`test = false` in Cargo.toml turns
+    /// it off; benches and examples are off unless it's on), and its doc
+    /// tests (`doctest`, a library's).
+    #[serde(default = "yes")]
+    pub test: bool,
+    #[serde(default)]
+    pub doctest: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 impl Target {

@@ -21,6 +21,12 @@ lzma-rust2 = { version = "0.24", default-features = false, features = ["std", "x
 [features]
 # The test host (`host::mock`), for a pack's own tests.
 mock = []
+# A test provider for Fenix 1.6 (`tests`): the TestRunner trait, its
+# adapter on the five exports and `test-provider-set`. Only a pack that
+# runs tests turns it on; without it nothing of the module is built, so
+# a pack's component can't import `test-provider-set` and still loads on
+# Fenix 1.5 with `api = "1.5"`.
+tests = []
 
 [dev-dependencies]
 # Sample archives made in the tests.

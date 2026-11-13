@@ -1,0 +1,18 @@
+
+ RUN  v5.1.0 /project/packages/app
+
+
+FENIX-TEST {"kind":"test","file":"/project/packages/app/src/orbit.test.js","names":["adds"],"line":3,"column":1,"mode":"run","cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"test","file":"/project/packages/app/src/orbit.test.js","names":["fails here"],"line":7,"column":1,"mode":"skip","cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"result","file":"/project/packages/app/src/orbit.test.js","names":["adds"],"line":3,"state":"passed","duration":2.2130949999999956,"errors":[],"cwd":"/project/packages/app"}
+
+FENIX-TEST {"kind":"result","file":"/project/packages/app/src/orbit.test.js","names":["fails here"],"line":7,"state":"skipped","duration":null,"errors":[],"cwd":"/project/packages/app"}
+ ✓ src/orbit.test.js (2 tests | 1 skipped) 4ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 1 skipped (2)
+   Start at  17:12:35
+   Duration  155ms (import 51%, worker 17%, tests 16%, transform 16%, environment 1%)
+

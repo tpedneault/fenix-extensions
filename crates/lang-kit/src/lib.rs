@@ -8,6 +8,13 @@
 //!
 //! Every host call goes through [`Host`]: [`Fenix`] in the sandbox, a
 //! test's own on the host, so all of it is tested natively.
+//!
+//! With the feature `tests`, `tests` is a pack's test provider for Fenix
+//! 1.6 (API 1.6): a `tests::TestRunner` given with `Kit::tests`, on the
+//! five exports through `Kit::tests_scan` and the rest. Built on a copy
+//! of 1.6's types until 1.6 is released. Without the feature none of it
+//! is built, so a pack that runs no tests links nothing of it -- in
+//! particular not `test-provider-set`, which Fenix 1.5 refuses.
 
 pub mod archive;
 pub mod cvss;
@@ -19,6 +26,8 @@ pub mod lint;
 pub mod packages;
 pub mod page;
 pub mod tasks;
+#[cfg(feature = "tests")]
+pub mod tests;
 pub mod version;
 
 use std::collections::HashSet;
@@ -39,8 +48,9 @@ pub use version::{find_version, Requirement, Version};
 /// The JSON reader packs parse their managers' output with.
 pub use serde_json;
 
-/// The README's example, compiled.
-#[cfg(doctest)]
+/// The README's examples, compiled: one is a test provider's, so with
+/// the feature `tests` (`cargo test --features tests`).
+#[cfg(all(doctest, feature = "tests"))]
 #[doc = include_str!("../README.md")]
 pub struct Readme;
 
@@ -58,6 +68,9 @@ pub struct Kit {
     pub installer: Installer,
     pub lint: Lint,
     pub formatters: Vec<(Vec<String>, Command)>,
+    /// Its test providers (`Kit::tests`; the feature `tests`).
+    #[cfg(feature = "tests")]
+    pub tests: tests::Tests,
     /// Fix rows' tasks running: the doctor checks again when one ends.
     fixing: HashSet<u64>,
 }
@@ -81,6 +94,8 @@ impl Kit {
             installer,
             lint: Lint::new(),
             formatters: Vec::new(),
+            #[cfg(feature = "tests")]
+            tests: tests::Tests::default(),
             fixing: HashSet::new(),
         }
     }
@@ -129,10 +144,13 @@ impl Kit {
     /// `Event::Saved`'s names aren't linted too.
     pub fn file_saved(&mut self, path: &str) {
         self.lint.file_saved(self.host.as_mut(), path);
+        #[cfg(feature = "tests")]
+        self.tests.tell(self.host.as_mut());
     }
 
     /// When the extension starts: its tasks and formatters set, what it
-    /// installed used, and the checks made. What Fenix refuses (a program
+    /// installed used, the checks made, and its test providers' reporters
+    /// written and their runners told. What Fenix refuses (a program
     /// the manifest doesn't name) goes to its output page, and the rest
     /// goes on.
     pub fn activate(&mut self) -> Result<(), String> {
@@ -149,6 +167,8 @@ impl Kit {
         }
         self.installer.apply_installed(host);
         self.doctor.run(host);
+        #[cfg(feature = "tests")]
+        self.tests.activate(host);
         Ok(())
     }
 
@@ -219,6 +239,8 @@ impl Kit {
             }
             Event::Saved(name) => {
                 self.lint.saved(host, name);
+                #[cfg(feature = "tests")]
+                self.tests.tell(host);
                 false
             }
             _ => false,
@@ -270,7 +292,7 @@ impl Kit {
 }
 
 #[cfg(test)]
-mod tests {
+mod wiring {
     use super::*;
     use crate::host::mock::Shared;
     use fenix_extension_api::{Health, HttpResponse, Section};

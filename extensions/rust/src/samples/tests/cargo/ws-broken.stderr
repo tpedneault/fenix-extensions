@@ -1,0 +1,7 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling rustc_version v0.4.1
+   Compiling regex-automata v0.4.18
+   Compiling orbit-core v0.1.0 (/project/orbit-core)
+   Compiling rstest_macros v0.26.1
+error: could not compile `orbit-core` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

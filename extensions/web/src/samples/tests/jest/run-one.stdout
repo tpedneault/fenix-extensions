@@ -1,0 +1,32 @@
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["adds"],"line":3,"state":"passed","duration":2,"failures":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["fails on purpose"],"line":7,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["skipped"],"line":12,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["to do"],"line":13,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["add(1, 1) is 2"],"line":18,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["add(-1, -1) is -3"],"line":18,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["outer","in describe"],"line":23,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["outer","inner","deep"],"line":25,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","twice"],"line":32,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","twice"],"line":33,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","add(-1, -1) [regex] $x"],"line":36,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","adds 1"],"line":38,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","adds 2"],"line":38,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","from a variable"],"line":43,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["a > b","c"],"line":47,"state":"pending","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["left out","with its describe"],"line":51,"state":"pending","cwd":"/project"}

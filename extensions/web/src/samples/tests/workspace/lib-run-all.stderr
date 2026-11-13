@@ -1,0 +1,25 @@
+FAIL src/orbit.test.js
+  ✓ adds (4 ms)
+  ✕ fails here (2 ms)
+
+  ● fails here
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 3
+    Received: 2
+
+      4 |
+      5 | test('fails here', () => {
+    > 6 |   expect(1 + 1).toBe(3)
+        |                 ^
+      7 | })
+      8 |
+
+      at Object.toBe (src/orbit.test.js:6:17)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        0.246 s
+Ran all test suites.

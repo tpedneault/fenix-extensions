@@ -1,0 +1,14 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.1.0 [39m[90m/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest[39m
+
+[90mstdout[2m | src/orbit.test.js[2m:8[22m[2m[2m > [22m[2mfails on purpose
+[22m[39msome output before the failure
+
+ [31m❯[39m src/orbit.test.js [2m([22m[2m8 tests[22m[2m | [22m[31m1 failed[39m[2m | [22m[33m7 skipped[39m[2m)[22m[32m 7[2mms[22m[39m
+[31m   [31m×[31m fails on purpose[39m[32m 6[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[33m7 skipped[39m[90m (8)[39m
+[2m   Start at [22m 03:39:22
+[2m   Duration [22m 138ms[2m (import 47%, transform 24%, tests 20%, worker 8%)[22m
+

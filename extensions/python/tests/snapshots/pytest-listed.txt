@@ -1,0 +1,42 @@
+tests/sub/test_unit.py [file] -- unknown  <scan>
+  TestUnit [suite] :4 -- unknown  <scan>
+    test_ok :5 -- unknown  <scan>
+    test_bad :8 -- unknown  <scan>
+tests/test_basic.py [file] -- unknown  <scan+listing>
+  test_adds :6 -- unknown  <scan>
+  test_fails_on_purpose :10 -- unknown  <scan>
+  test_skipped :16 -- unknown (skip: slow)  <scan>
+  test_known_bug :21 -- unknown  <scan>
+  test_cases [template] :26 -- unknown  <scan>
+    small [case] :26 -- unknown  <listing>
+    negative [case] :26 -- unknown  <listing>
+    strings [odd] id [case] :26 -- unknown  <listing>
+  TestOuter [suite] :30 -- unknown  <scan+listing>
+    test_in_class :31 -- unknown  <scan>
+    TestInner [suite] :34 -- unknown  <scan>
+      test_deep :35 -- unknown  <scan>
+    test_param_in_class [template] :39 -- unknown  <scan>
+      1 [case] :39 -- unknown  <listing>
+      2 [case] :39 -- unknown  <listing>
+  test_uses_broken_fixture :48 -- unknown  <scan>
+tests/test_extra.py [file] -- unknown  <scan+listing>
+  test_teardown_fails :12 -- unknown  <scan>
+  test_strict_xpass :17 -- unknown  <scan>
+  test_xpass :22 -- unknown  <scan>
+  test_名前 :26 -- unknown  <scan>
+  test_skipif :31 -- unknown  <scan>
+  test_skips_inside :35 -- unknown  <scan>
+  test_long_id [template] :40 -- unknown  <scan>
+    yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy [case] :40 -- unknown  <listing>
+    short [case] :40 -- unknown  <listing>
+  test_stacked [template] :46 -- unknown  <scan>
+    3-1 [case] :46 -- unknown  <listing>
+    3-2 [case] :46 -- unknown  <listing>
+    4-1 [case] :46 -- unknown  <listing>
+    4-2 [case] :46 -- unknown  <listing>
+  test_marked_case [template] :51 -- unknown  <scan>
+    1 [case] :51 -- unknown  <listing>
+    2 [case] :51 -- unknown  <listing>
+  test_fixture_param [template] :60 -- unknown  <scan>
+    10 [case] :60 -- unknown  <listing>
+    20 [case] :60 -- unknown  <listing>

@@ -1,0 +1,1 @@
+python3 -c import sys; sys.path.insert(0, sys.argv.pop(1)); import pytest; raise SystemExit(pytest.main(sys.argv[1:])) ${data}/lang-kit/tests -q -p fenix_tests --rootdir=.

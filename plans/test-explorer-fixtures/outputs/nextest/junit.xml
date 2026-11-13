@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="nextest-run" tests="10" skipped="0" failures="4" errors="0" uuid="362ca0db-c134-4e1b-a611-57f88ba8fda6" timestamp="2026-11-13T03:32:12.743+00:00" time="0.016">
+    <testsuite name="orbit" tests="8" skipped="0" errors="0" failures="3">
+        <testcase name="geo::tests::dist_is_symmetric" classname="orbit" timestamp="2026-11-13T03:32:12.743+00:00" time="0.005"/>
+        <testcase name="geo::tests::unwraps_none" classname="orbit" timestamp="2026-11-13T03:32:12.743+00:00" time="0.005">
+            <failure message="thread &apos;geo::tests::unwraps_none&apos; (10171) panicked at src/geo/mod.rs:15:11" type="test failure with exit code 101">thread &apos;geo::tests::unwraps_none&apos; (10171) panicked at src/geo/mod.rs:15:11:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace</failure>
+            <system-out>
+running 1 test
+test geo::tests::unwraps_none ... FAILED
+
+failures:
+
+failures:
+    geo::tests::unwraps_none
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+</system-out>
+            <system-err>
+thread &apos;geo::tests::unwraps_none&apos; (10171) panicked at src/geo/mod.rs:15:11:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+</system-err>
+        </testcase>
+        <testcase name="tests::case_negative" classname="orbit" timestamp="2026-11-13T03:32:12.743+00:00" time="0.005">
+            <failure message="thread &apos;tests::case_negative&apos; (10172) panicked at src/lib.rs:43:5" type="test failure with exit code 101">thread &apos;tests::case_negative&apos; (10172) panicked at src/lib.rs:43:5:
+assertion `left == right` failed
+  left: -2
+ right: -3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace</failure>
+            <system-out>
+running 1 test
+test tests::case_negative ... FAILED
+
+failures:
+
+failures:
+    tests::case_negative
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+</system-out>
+            <system-err>
+thread &apos;tests::case_negative&apos; (10172) panicked at src/lib.rs:43:5:
+assertion `left == right` failed
+  left: -2
+ right: -3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+</system-err>
+        </testcase>
+        <testcase name="tests::adds" classname="orbit" timestamp="2026-11-13T03:32:12.743+00:00" time="0.007"/>
+        <testcase name="tests::nested::deep" classname="orbit" timestamp="2026-11-13T03:32:12.749+00:00" time="0.005"/>
+        <testcase name="tests::case_small" classname="orbit" timestamp="2026-11-13T03:32:12.748+00:00" time="0.005"/>
+        <testcase name="tests::fails_on_purpose" classname="orbit" timestamp="2026-11-13T03:32:12.749+00:00" time="0.006">
+            <failure message="thread &apos;tests::fails_on_purpose&apos; (10182) panicked at src/lib.rs:25:9" type="test failure with exit code 101">thread &apos;tests::fails_on_purpose&apos; (10182) panicked at src/lib.rs:25:9:
+assertion `left == right` failed: two and two
+  left: 4
+ right: 5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace</failure>
+            <system-out>
+running 1 test
+some output before the failure
+test tests::fails_on_purpose ... FAILED
+
+failures:
+
+failures:
+    tests::fails_on_purpose
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+</system-out>
+            <system-err>
+thread &apos;tests::fails_on_purpose&apos; (10182) panicked at src/lib.rs:25:9:
+assertion `left == right` failed: two and two
+  left: 4
+ right: 5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+</system-err>
+        </testcase>
+        <testcase name="tests::panics_as_it_should" classname="orbit" timestamp="2026-11-13T03:32:12.750+00:00" time="0.006"/>
+    </testsuite>
+    <testsuite name="orbit::it" tests="2" skipped="0" errors="0" failures="1">
+        <testcase name="integration_adds" classname="orbit::it" timestamp="2026-11-13T03:32:12.754+00:00" time="0.005"/>
+        <testcase name="integration_fails" classname="orbit::it" timestamp="2026-11-13T03:32:12.754+00:00" time="0.005">
+            <failure message="thread &apos;integration_fails&apos; (10185) panicked at tests/it.rs:8:5" type="test failure with exit code 101">thread &apos;integration_fails&apos; (10185) panicked at tests/it.rs:8:5:
+zero is not one
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace</failure>
+            <system-out>
+running 1 test
+test integration_fails ... FAILED
+
+failures:
+
+failures:
+    integration_fails
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+</system-out>
+            <system-err>
+thread &apos;integration_fails&apos; (10185) panicked at tests/it.rs:8:5:
+zero is not one
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+</system-err>
+        </testcase>
+    </testsuite>
+</testsuites>

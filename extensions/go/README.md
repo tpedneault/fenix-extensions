@@ -132,6 +132,48 @@ error type with `Unwrap`), `erras`. Tests: `tt` (table-driven), `test`,
 `wg`, `ch`, `sel` (with the context), `pool`, `ctx`. Types: `st`, `meth`,
 `new`, `iface`, `str`. And `main`.
 
+## Tests, for Fenix 1.6
+
+Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call: built and tested here, but not offered yet.
+Fenix asks for it only once this pack is released for extension API 1.6,
+after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5 as
+on a nightly. What it will do, as tested on recorded `go test -json`
+output (Go 1.24.7, and 1.23.8 for a build that fails):
+
+- **Find the tests in a file as you type**, nothing run: `TestXxx`,
+  `FuzzXxx` and `ExampleXxx` (an example with an `// Output:` comment, the
+  only kind `go test` runs) at their `func`'s line, in their package's
+  and file's groups. A test that calls `t.Run` and a fuzz target are
+  templates: their subtests appear once run, under them, named as `go
+  test` names them (spaces as `_`). A file `go test` doesn't build here
+  (`//go:build integration`, `_windows_test.go`) has its tests marked
+  skipped. A benchmark isn't run without `-bench`, so it isn't listed.
+- **List** what the scan hasn't seen with `go list`, which says each
+  package's test files without building them: those it names that Fenix
+  hasn't opened are read and scanned.
+- **Run** one test, a subtest, a package, everything or the failed ones
+  with `go test -json -fullpath`: tests by anchored `-run` regexes, a
+  level to each `/` (so `TestTable/a/b` runs the subtest Go reads as two),
+  names quoted, by import path so a name two packages share runs in the
+  one you asked. A `go.work` runs from the project's folder (`./app/...
+  ./lib/...`); modules with none, each from its own folder. Go's test
+  cache stays on: a package that's cached reports the results it had.
+- **Read** each result as its package prints it: a failure at the last
+  `file_test.go:37:` line the test printed (a panic at its first frame in
+  your code), with its message and output; a package that doesn't build as
+  "didn't build", never as failing tests, the others' results standing; a
+  test binary that exits, panics or times out errors its own package's
+  tests and the next packages still run.
+- **Debug one test**: Delve's test mode on its package's folder, with
+  `-test.run` the test, as *Go: test this package* does.
+
+What it can't: a subtest has no line of its own (it's at its parent's) and
+exists only once run; a `t.Error` and a `t.Log` look alike to `go test`, so
+a failure's place is the last line the test printed; a file under a build
+tag shows its tests as skipped (with the tag set in `GOFLAGS` they run and
+report like any); a project opened below its `go.mod` isn't found.
+
 ## Project templates
 
 Fenix's wizard has no Go templates; this adds three, each asking for the

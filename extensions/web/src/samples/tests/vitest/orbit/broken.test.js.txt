@@ -1,0 +1,4 @@
+import { test, expect } from 'vitest'
+
+test('never loads', () => {
+  expect(1).toBe(1)

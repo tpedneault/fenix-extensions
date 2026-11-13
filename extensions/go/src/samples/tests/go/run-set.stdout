@@ -1,0 +1,14 @@
+{"Time":"2026-11-13T17:09:15.935769756Z","Action":"start","Package":"example.com/orbit"}
+{"Time":"2026-11-13T17:09:15.938862255Z","Action":"run","Package":"example.com/orbit","Test":"TestAdds"}
+{"Time":"2026-11-13T17:09:15.938886519Z","Action":"output","Package":"example.com/orbit","Test":"TestAdds","Output":"=== RUN   TestAdds\n"}
+{"Time":"2026-11-13T17:09:15.939043445Z","Action":"output","Package":"example.com/orbit","Test":"TestAdds","Output":"--- PASS: TestAdds (0.00s)\n"}
+{"Time":"2026-11-13T17:09:15.939075647Z","Action":"pass","Package":"example.com/orbit","Test":"TestAdds","Elapsed":0}
+{"Time":"2026-11-13T17:09:15.939097868Z","Action":"run","Package":"example.com/orbit","Test":"TestFailsOnPurpose"}
+{"Time":"2026-11-13T17:09:15.939100411Z","Action":"output","Package":"example.com/orbit","Test":"TestFailsOnPurpose","Output":"=== RUN   TestFailsOnPurpose\n"}
+{"Time":"2026-11-13T17:09:15.939145158Z","Action":"output","Package":"example.com/orbit","Test":"TestFailsOnPurpose","Output":"    /project/orbit_test.go:15: some output before the failure\n"}
+{"Time":"2026-11-13T17:09:15.939171513Z","Action":"output","Package":"example.com/orbit","Test":"TestFailsOnPurpose","Output":"    /project/orbit_test.go:17: Add(2, 2) = 4, want 5\n"}
+{"Time":"2026-11-13T17:09:15.939196354Z","Action":"output","Package":"example.com/orbit","Test":"TestFailsOnPurpose","Output":"--- FAIL: TestFailsOnPurpose (0.00s)\n"}
+{"Time":"2026-11-13T17:09:15.939318071Z","Action":"fail","Package":"example.com/orbit","Test":"TestFailsOnPurpose","Elapsed":0}
+{"Time":"2026-11-13T17:09:15.939346259Z","Action":"output","Package":"example.com/orbit","Output":"FAIL\n"}
+{"Time":"2026-11-13T17:09:15.939667557Z","Action":"output","Package":"example.com/orbit","Output":"FAIL\texample.com/orbit\t0.003s\n"}
+{"Time":"2026-11-13T17:09:15.939734928Z","Action":"fail","Package":"example.com/orbit","Elapsed":0.004}

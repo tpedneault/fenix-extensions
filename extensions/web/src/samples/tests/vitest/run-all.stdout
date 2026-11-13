@@ -1,0 +1,103 @@
+
+ RUN  v5.1.0 /project
+
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["adds"],"line":4,"column":1,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["fails on purpose"],"line":8,"column":1,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["skipped"],"line":13,"column":6,"mode":"skip","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["to do"],"line":14,"column":6,"mode":"todo","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["add(1, 1) is 2"],"line":19,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["add(-1, -1) is -3"],"line":19,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["outer","in describe"],"line":24,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["outer","inner","deep"],"line":26,"column":5,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","twice"],"line":33,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","twice"],"line":34,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","add(-1, -1) [regex] $x"],"line":37,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","adds 1"],"line":39,"column":5,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","adds 2"],"line":39,"column":5,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["names","from a variable"],"line":44,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/orbit.test.js","names":["left out","with its describe"],"line":48,"column":3,"mode":"skip","cwd":"/project"}
+stdout | src/orbit.test.js:8 > fails on purpose
+some output before the failure
+
+
+FENIX-TEST {"kind":"log","file":"/project/src/orbit.test.js","names":["fails on purpose"],"stream":"stdout","text":"some output before the failure\n","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/geo.test.ts","names":["dist is symmetric"],"line":5,"column":1,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"test","file":"/project/src/geo.test.ts","names":["a > b","c"],"line":10,"column":3,"mode":"run","cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["adds"],"line":4,"state":"passed","duration":2.014384000000007,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["fails on purpose"],"line":8,"state":"failed","duration":6.899923000000001,"errors":[{"message":"expected 4 to be 5 // Object.is equality","stack":"AssertionError: expected 4 to be 5 // Object.is equality\n    at /project/src/orbit.test.js:10:21\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3922:64","diff":"- Expected\n+ Received\n\n- 5\n+ 4"}],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["skipped"],"line":13,"state":"skipped","duration":null,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["to do"],"line":14,"state":"skipped","duration":null,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["add(1, 1) is 2"],"line":19,"state":"passed","duration":0.3790440000000217,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["add(-1, -1) is -3"],"line":19,"state":"failed","duration":1.1642830000000117,"errors":[{"message":"expected -2 to be -3 // Object.is equality","stack":"AssertionError: expected -2 to be -3 // Object.is equality\n    at /project/src/orbit.test.js:20:21\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2885:79\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)","diff":"- Expected\n+ Received\n\n- -3\n+ -2"}],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["outer","in describe"],"line":24,"state":"passed","duration":0.23172700000000646,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["outer","inner","deep"],"line":26,"state":"failed","duration":0.904564999999991,"errors":[{"message":"expected +0 to be 1 // Object.is equality","stack":"AssertionError: expected +0 to be 1 // Object.is equality\n    at /project/src/orbit.test.js:27:25\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3922:64","diff":"- Expected\n+ Received\n\n- 1\n+ 0"}],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["names","twice"],"line":33,"state":"passed","duration":6.357401999999979,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["names","twice"],"line":34,"state":"failed","duration":3.7312900000000013,"errors":[{"message":"expected 2 to be 3 // Object.is equality","stack":"AssertionError: expected 2 to be 3 // Object.is equality\n    at /project/src/orbit.test.js:35:23\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)\n    at file:///project/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3922:64","diff":"- Expected\n+ Received\n\n- 3\n+ 2"}],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["names","add(-1, -1) [regex] $x"],"line":37,"state":"passed","duration":0.651678000000004,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["names","adds 1"],"line":39,"state":"passed","duration":0.39869600000000105,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["names","adds 2"],"line":39,"state":"passed","duration":0.22940499999998565,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["names","from a variable"],"line":44,"state":"passed","duration":0.09544900000000212,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/orbit.test.js","names":["left out","with its describe"],"line":48,"state":"skipped","duration":null,"errors":[],"cwd":"/project"}
+ ❯ src/orbit.test.js (15 tests | 4 failed | 2 skipped | 1 todo) 29ms
+   ✓ adds 2ms
+   × fails on purpose 7ms
+   ↓ skipped
+   □ to do
+   ✓ add(1, 1) is 2 0ms
+   × add(-1, -1) is -3 1ms
+   ❯ outer (2)
+     ✓ in describe 0ms
+     ❯ inner (1)
+       × deep 1ms
+   ❯ names (6)
+     ✓ twice 6ms
+     × twice 4ms
+     ✓ add(-1, -1) [regex] $x 1ms
+     ✓ adds 1 0ms
+     ✓ adds 2 0ms
+     ✓ from a variable 0ms
+   ↓ left out (1)
+     ↓ with its describe
+
+FENIX-TEST {"kind":"result","file":"/project/src/geo.test.ts","names":["dist is symmetric"],"line":5,"state":"passed","duration":2.7051870000000235,"errors":[],"cwd":"/project"}
+
+FENIX-TEST {"kind":"result","file":"/project/src/geo.test.ts","names":["a > b","c"],"line":10,"state":"passed","duration":0.35040599999999245,"errors":[],"cwd":"/project"}
+ ✓ src/geo.test.ts (2 tests) 5ms
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  4 failed | 10 passed | 2 skipped | 1 todo (17)
+   Start at  17:11:35
+   Duration  257ms (import 44%, tests 32%, transform 14%, worker 10%)
+

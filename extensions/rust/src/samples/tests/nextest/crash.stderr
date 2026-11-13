@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+error: creating test list failed
+
+Caused by:
+  for `orbit::custom`, command `/project/target/debug/build/orbit/85c817f77d6ffbe1/out/custom-85c817f77d6ffbe1 --list --format terse` exited with exit code 101
+  --- stdout:
+
+  --- stderr:
+
+  thread 'main' (13519) panicked at tests/custom.rs:4:5:
+  the fixtures folder is missing
+  stack backtrace:
+     0: __rustc::rust_begin_unwind
+               at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+     1: core::panicking::panic_fmt
+               at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+     2: custom::main
+               at ./tests/custom.rs:4:5
+     3: <fn() as core::ops::function::FnOnce<()>>::call_once
+               at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+  note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+  ---
