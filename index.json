@@ -2024,6 +2024,24 @@
             "filesystem": "project-read",
             "fonts": true
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/images-v1.1.0/fenix.images-1.1.0.fenixext",
+          "sha256": "47aa6d808188d592c151e10328bc2908a256975bbc7ae855dc007fcaab3d73bc",
+          "size": 1063811,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "fonts": true
+          }
         }
       ],
       "name": "Image viewer",
