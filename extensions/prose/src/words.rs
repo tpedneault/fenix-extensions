@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn a_word_is_added_to_a_file_made_when_it_isnt_there() {
-        let dir = std::env::temp_dir().join(format!("fenix-prose-words-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("fenix-prose-words-unit-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let path = dir.join(".fenix/words.txt");
         assert_eq!(add(&path, "Fenix"), Ok(true));
