@@ -751,6 +751,45 @@ mod tests {
         assert!(known.contains_key("acme.old"));
     }
 
+    /// Every theme in the store has a name of its own -- none of Fenix's
+    /// (it would take that one's place), none another extension's -- and
+    /// the theme packs made from VS Code answer to the names VS Code gives
+    /// them (their `package.json`), as Fenix's settings import matches
+    /// `workbench.colorTheme` (`fenix_theme::import_match`).
+    #[test]
+    fn the_store_s_themes_answer_to_their_vs_code_names() {
+        const VS_CODE: &[(&str, &str)] = &[
+            ("Vitesse Light", "Vitesse Light"),
+            ("Vitesse Light Soft", "Vitesse Light Soft"),
+            ("Vitesse Dark", "Vitesse Dark"),
+            ("Vitesse Dark Soft", "Vitesse Dark Soft"),
+            ("Vitesse Black", "Vitesse Black"),
+            ("Min Light", "Min Light"),
+            ("Min Dark", "Min Dark"),
+            ("Winter is Coming (Dark Blue)", "Winter is Coming (Dark Blue)"),
+            ("Winter is Coming (Dark Black)", "Winter is Coming (Dark Black)"),
+            ("Winter is Coming (Light)", "Winter is Coming (Light)"),
+        ];
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let mut names: Vec<String> = Vec::new();
+        for dir in std::fs::read_dir(root.join("extensions")).unwrap().flatten().map(|e| e.path()) {
+            for rel in files(&dir).into_iter().filter(|f| f.starts_with("themes") && f.extension().is_some_and(|x| x == "toml")) {
+                let table: toml::Table = toml::from_str(&std::fs::read_to_string(dir.join(&rel)).unwrap()).unwrap();
+                names.push(table["name"].as_str().unwrap().to_string());
+            }
+        }
+        for name in &names {
+            assert!(!fenix_theme::BUILT_IN_NAMES.iter().any(|b| fenix_theme::norm(b) == fenix_theme::norm(name)), "{name} is one of Fenix's own");
+            assert_eq!(names.iter().filter(|n| fenix_theme::norm(n) == fenix_theme::norm(name)).count(), 1, "{name} is there twice");
+        }
+        let catalog: Vec<&str> = fenix_theme::BUILT_IN_NAMES.iter().copied().chain(names.iter().map(String::as_str)).collect();
+        for (vs_code, ours) in VS_CODE {
+            assert_eq!(fenix_theme::import_match(vs_code, &catalog), Some((ours.to_string(), true)), "workbench.colorTheme {vs_code:?}");
+        }
+        // VS Code's italic-free twins come to the theme their name begins with.
+        assert_eq!(fenix_theme::import_match("Winter is Coming (Dark Blue - No Italics)", &catalog), Some(("Winter is Coming (Dark Blue)".into(), false)));
+    }
+
     #[test]
     fn a_bundle_goes_in_the_index_apart_with_its_members() {
         let t = Temp::new("index");

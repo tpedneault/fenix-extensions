@@ -1,0 +1,55 @@
+# Vitesse Dark: imported from a VS Code colour theme by `cargo xtask theme-import`.
+# From: https://github.com/antfu/vscode-theme-vitesse/blob/2862595c3d5d05fabfd5aeb50bcbb79ea2f8d85f/themes/vitesse-dark.json
+# For Fenix 1.0.0 and later. What VS Code has no colour for is worked out
+# from the theme's own (the importer's report says how).
+name = "Vitesse Dark"
+tabs = "block"
+
+[surfaces]
+bg = "#121212"
+sidebar_bg = "#121212"
+bg_modeline = "#121212"
+divider = "#191919"
+caret = "#cecabe"
+hl_line = "#181818"
+selection = "#eeeeee18"
+bracket_match = "#4d937520"
+search_match = "#e6cc7744"
+
+[text]
+fg = "#cecabe"
+gutter_fg = "#52514f"
+
+[modes]
+normal = "#6394bf"
+insert = "#4d9375"
+visual = "#ca77e6"
+replace = "#e6cc77"
+command = "#5eaab5"
+explorer = "#6394bf"
+picker = "#ca77e6"
+text_dark = "#121212"
+
+[syntax]
+keyword = "#4d9375"
+string = "#c98a7d"
+comment = "#687668"
+function = "#80a665"
+type = "#5da994"
+number = "#4c9a91"
+constant = "#4d9375"
+variable = "#bd976a"
+operator = "#cb7676"
+punctuation = "#666666"
+attribute = "#80a665"
+
+[explorer]
+folder = "#6394bf"
+file = "#bfbaaa"
+
+[git]
+modified = "#6394bf"
+staged = "#4d9375"
+untracked = "#5eaab5"
+ignored = "#52514f"
+conflicted = "#d4976c"

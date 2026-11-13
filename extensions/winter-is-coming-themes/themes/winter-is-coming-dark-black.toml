@@ -1,0 +1,55 @@
+# Winter is Coming (Dark Black): imported from a VS Code colour theme by `cargo xtask theme-import`.
+# From: https://github.com/johnpapa/vscode-winteriscoming/blob/260547834cb6ac37dd5b8bb5842cc1c8d3164946/themes/WinterIsComing-dark-color-theme.json
+# For Fenix 1.0.0 and later. What VS Code has no colour for is worked out
+# from the theme's own (the importer's report says how).
+name = "Winter is Coming (Dark Black)"
+tabs = "block"
+
+[surfaces]
+bg = "#282822"
+sidebar_bg = "#282822"
+bg_modeline = "#0b2942"
+divider = "#219fd544"
+caret = "#219fd5"
+hl_line = "#0c499444"
+selection = "#103362"
+bracket_match = "#219fd54d"
+search_match = "#103362"
+
+[text]
+fg = "#a7dbf7"
+gutter_fg = "#219fd5"
+
+[modes]
+normal = "#92b6f4"
+insert = "#8dec95"
+visual = "#c792ea"
+replace = "#ffcb6b"
+command = "#00bff9"
+explorer = "#92b6f4"
+picker = "#c792ea"
+text_dark = "#282822"
+
+[syntax]
+keyword = "#00bff9"
+string = "#bcf0c0"
+comment = "#999999"
+function = "#87aff4"
+type = "#d29ffc"
+number = "#8dec95"
+constant = "#92b6f4"
+variable = "#a4ceee"
+operator = "#00bff9"
+punctuation = "#a7dbf7"
+attribute = "#87aff4"
+
+[explorer]
+folder = "#92b6f4"
+file = "#7799bb"
+
+[git]
+modified = "#219fd5"
+staged = "#8dec95"
+untracked = "#5abeb0"
+ignored = "#219fd5"
+conflicted = "#ef9a9a"
