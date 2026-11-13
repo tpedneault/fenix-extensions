@@ -4,8 +4,9 @@ Python in Fenix: basedpyright as the language server with ruff's beside
 it, debugging with debugpy, ruff as the formatter, tasks, the project doctor's
 checks with their fixes, outdated and vulnerable packages, snippets, and
 Django and Flask projects in the new-project wizard. Built on lang-kit
-(`crates/lang-kit`), as each language pack is. It needs Fenix 1.5 or later
-(extension API 1.5); on an older Fenix, Python 1.1.0 is the one you get.
+(`crates/lang-kit`), as each language pack is. It needs Fenix 1.6 or later
+(extension API 1.6); on Fenix 1.5, Python 1.2.0 is the one you get, and on
+an older Fenix, 1.1.0.
 
 It works for a project uv manages (a `uv.lock`, or `[tool.uv]` in
 `pyproject.toml`) and for one it doesn't: then the venv's packages are
@@ -87,12 +88,12 @@ the same name in `.fenix/tools.json` wins. Saving `pyproject.toml`,
 
 ## Tests, for Fenix 1.6
 
-Fenix 1.6 brings a test explorer, and this pack carries the test
-provider it will call: built and tested here, but not offered yet.
-Fenix asks for it only once this pack is released for extension API
-1.6, after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5
-as on a nightly. What it will do, as tested on pytest 9.2.0's recorded
-output (and run for real against it):
+Fenix 1.6's tests page (`SPC T T`; `C-k T T` with standard keys) lists a
+project's tests before anything has run, runs one or all of them, and
+shows each result on the page, in the gutter and after the test's line.
+This pack is its test provider for Python, by pytest. Verified against
+pytest 9.2.0 and pytest-xdist 3.8.0, on recorded output and run for
+real. What it does:
 
 - **Find the tests in a file as you type**, nothing run or imported:
   `test*` functions and `Test*` or `unittest.TestCase` classes, at their

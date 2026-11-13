@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.python"
 name = "Python"
-version = "1.2.0"
+version = "1.3.0"
 description = "Python: basedpyright with ruff's server beside it, debugging with debugpy (the project's scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,9 +10,10 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.5, <2"
-# lang-kit, the kit it's built on, is on 1.5.
-api = "1.5"
+fenix = ">=1.6, <2"
+# The test provider (tests-scan .. tests-launch, test-provider-set);
+# the keys a hint names (key_for, 1.5).
+api = "1.6"
 
 # With Fenix: the project doctor's checks and the language server are
 # there from the start.
@@ -42,6 +43,13 @@ events = ["saved"]
 name = "python"
 markers = ["pyproject.toml", "uv.lock", "requirements.txt", "setup.py", "manage.py"]
 languages = ["python"]
+
+[[contributes.test_providers]]
+id = "python"
+name = "pytest"
+languages = ["python"]
+markers = ["pyproject.toml", "uv.lock", "requirements.txt", "setup.py", "setup.cfg", "pytest.ini", "tox.ini"]
+scan = ["test_*.py", "*_test.py"]
 
 [[contributes.commands]]
 id = "python.packages"

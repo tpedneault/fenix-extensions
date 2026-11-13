@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.0
+
+- For Fenix 1.6 (extension API 1.6): your pytest tests on Fenix's tests
+  page (`SPC T T`), in the gutter and after each test's line, run from
+  any of them and debugged with `SPC T d`. A test is found as you type
+  (`test*` functions, `Test*` and `unittest.TestCase` classes,
+  `@pytest.mark.skip` as skipped, `@pytest.mark.parametrize` as a test
+  whose cases appear once listed or run); `pytest --collect-only` lists
+  what the scan can't see, and imports your test modules to do it, so
+  Fenix lists only in a project you trust. Runs go through a small
+  plugin of the pack's (loaded with `-p`, nothing installed in your
+  project): `uv run python` in a uv project (`--with pytest` when the
+  project doesn't ask for it), else your Python; by pytest's own ids, in
+  a file when there are many, a step for each folder with its own
+  pytest configuration, with your `.env`. A failure is shown at its
+  assertion, with its message, traceback and output; a fixture that
+  raises is errored, not failed; a file that doesn't load says so and
+  fails no test; a process that dies errors the tests that hadn't
+  ended and names the one running; pytest-xdist works. Debugging a test
+  runs pytest under debugpy on its node id. On Fenix 1.5, 1.2.0 stays
+  the one you have.
+
 ## 1.2.0
 
 - For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,

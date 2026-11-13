@@ -378,6 +378,26 @@ impl Extension for Python {
     fn file_saved(&mut self, path: &str) {
         self.kit.file_saved(path);
     }
+
+    fn tests_scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<api::tests::Found> {
+        self.kit.tests_scan(provider, path, text)
+    }
+
+    fn tests_plan(&mut self, provider: &str, run: u64, ask: api::tests::Ask) -> Result<api::tests::Plan, String> {
+        self.kit.tests_plan(provider, run, ask)
+    }
+
+    fn tests_read(&mut self, provider: &str, run: u64, step: u32, lines: Vec<api::tests::Line>) -> Vec<api::tests::Report> {
+        self.kit.tests_read(provider, run, step, lines)
+    }
+
+    fn tests_step_ended(&mut self, provider: &str, run: u64, step: u32, end: api::tests::StepEnd) -> Vec<api::tests::Report> {
+        self.kit.tests_step_ended(provider, run, step, end)
+    }
+
+    fn tests_launch(&mut self, provider: &str, run: u64, test: api::tests::Found) -> Result<api::tests::Launch, String> {
+        self.kit.tests_launch(provider, run, test)
+    }
 }
 
 export!(Python);
@@ -644,6 +664,23 @@ mod tests {
         let (runner, problem) = told(&host).unwrap();
         assert_eq!(runner, "pytest");
         assert!(problem.is_some_and(|why| why.starts_with("Python isn't installed")));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// What the manifest offers is what the pack answers for: its provider's
+    /// id, on API 1.6, and the five exports forwarded to the kit.
+    #[test]
+    fn the_provider_the_manifest_offers_is_the_one_the_exports_answer_for() {
+        let manifest = include_str!("../extension.toml");
+        assert!(manifest.contains(&format!("[[contributes.test_providers]]\nid = \"{}\"\n", provider::PROVIDER)), "offered under its id");
+        assert!(manifest.contains("api = \"1.6\"") && manifest.contains("fenix = \">=1.6, <2\""), "for Fenix 1.6");
+        assert!(manifest.contains(&format!("version = \"{}\"", env!("CARGO_PKG_VERSION"))), "one version in both");
+        let dir = uv_project("offered");
+        let host = Shared::default();
+        let mut pack = pack(&dir, &host);
+        let found = Extension::tests_scan(&mut pack, provider::PROVIDER, "/project/test_a.py", "def test_adds():\n    pass\n");
+        assert!(found.iter().any(|f| f.label == "test_adds"), "{found:?}");
+        assert!(Extension::tests_scan(&mut pack, "other", "/project/test_a.py", "def test_adds():\n    pass\n").is_empty(), "only its own provider");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

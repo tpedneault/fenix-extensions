@@ -318,7 +318,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-python"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "fenix-extension-api",
  "fenix-lang-kit",
