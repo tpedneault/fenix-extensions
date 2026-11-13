@@ -381,7 +381,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -438,7 +438,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -464,8 +464,8 @@ dependencies = [
 
 [[package]]
 name = "fenix-extension-api"
-version = "1.0.0"
-source = "git+https://github.com/tpedneault/fenix?tag=v1.0.0#b4b35673a8feb78f3856982c62dbb7c1b20298ac"
+version = "1.5.0"
+source = "git+https://github.com/tpedneault/fenix?tag=v1.5.0#58a177124dffceacde20bdf6f1c7415c58f18d41"
 dependencies = [
  "chrono",
  "lsp-types",
@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-ocaml"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "fenix-extension-api",
  "fenix-lang-kit",
@@ -1137,7 +1137,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1342,7 +1342,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1859,7 +1859,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
