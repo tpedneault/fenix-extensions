@@ -1507,6 +1507,37 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/dotnet-v1.2.0/fenix.dotnet-1.2.0.fenixext",
+          "sha256": "e356bcd96968912e39c9a0af9a49e31a4398447f43ab6112861e12e62b7ffc27",
+          "size": 398760,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "dotnet",
+              "csharp-ls",
+              "netcoredbg",
+              "csharpier",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "C# and .NET",
