@@ -1,0 +1,160 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+────────────
+ Nextest run ID 7e0a6dd3-4436-4e80-b52e-535c136c8484 with nextest profile: default
+    Starting 10 tests across 2 binaries (1 test skipped)
+        PASS [   0.005s] ( 1/10) orbit geo::tests::dist_is_symmetric
+        PASS [   0.005s] ( 2/10) orbit tests::adds
+        PASS [   0.012s] ( 3/10) orbit tests::case_small
+        PASS [   0.008s] ( 4/10) orbit tests::nested::deep
+        FAIL [   0.092s] ( 5/10) orbit tests::case_negative
+  output ───
+
+    running 1 test
+
+    thread 'tests::case_negative' (10270) panicked at src/lib.rs:43:5:
+    assertion `left == right` failed
+      left: -2
+     right: -3
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/std/src/panicking.rs:689:5
+       1: core::panicking::panic_fmt
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:80:14
+       2: core::panicking::assert_failed_inner
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:439:17
+       3: core::panicking::assert_failed::<i32, i32>
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:394:5
+       4: orbit::tests::case_negative
+                 at ./src/lib.rs:40:36
+       5: orbit::tests::case_negative::{closure#0}
+                 at ./src/lib.rs:40:33
+       6: <orbit::tests::case_negative::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+       7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test tests::case_negative ... FAILED
+
+    failures:
+
+    failures:
+        tests::case_negative
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.08s
+
+
+        PASS [   0.006s] ( 6/10) orbit::it integration_adds
+        FAIL [   0.094s] ( 7/10) orbit tests::fails_on_purpose
+  output ───
+
+    running 1 test
+    some output before the failure
+
+    thread 'tests::fails_on_purpose' (10271) panicked at src/lib.rs:25:9:
+    assertion `left == right` failed: two and two
+      left: 4
+     right: 5
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/std/src/panicking.rs:689:5
+       1: core::panicking::panic_fmt
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:80:14
+       2: core::panicking::assert_failed_inner
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:434:23
+       3: core::panicking::assert_failed::<i32, i32>
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:394:5
+       4: orbit::tests::fails_on_purpose
+                 at ./src/lib.rs:25:9
+       5: orbit::tests::fails_on_purpose::{closure#0}
+                 at ./src/lib.rs:23:26
+       6: <orbit::tests::fails_on_purpose::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+       7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test tests::fails_on_purpose ... FAILED
+
+    failures:
+
+    failures:
+        tests::fails_on_purpose
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.09s
+
+
+        FAIL [   0.111s] ( 8/10) orbit geo::tests::unwraps_none
+  output ───
+
+    running 1 test
+
+    thread 'geo::tests::unwraps_none' (10269) panicked at src/geo/mod.rs:15:11:
+    called `Option::unwrap()` on a `None` value
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/std/src/panicking.rs:689:5
+       1: core::panicking::panic_fmt
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:80:14
+       2: core::panicking::panic
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:150:5
+       3: core::option::unwrap_failed
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/option.rs:2248:5
+       4: <core::option::Option<u8>>::unwrap
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/option.rs:1013:21
+       5: orbit::geo::tests::unwraps_none
+                 at ./src/geo/mod.rs:15:11
+       6: orbit::geo::tests::unwraps_none::{closure#0}
+                 at ./src/geo/mod.rs:13:22
+       7: <orbit::geo::tests::unwraps_none::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+       8: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test geo::tests::unwraps_none ... FAILED
+
+    failures:
+
+    failures:
+        geo::tests::unwraps_none
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.10s
+
+
+        PASS [   0.103s] ( 9/10) orbit tests::panics_as_it_should
+        FAIL [   0.074s] (10/10) orbit::it integration_fails
+  output ───
+
+    running 1 test
+
+    thread 'integration_fails' (10280) panicked at tests/it.rs:8:5:
+    zero is not one
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/std/src/panicking.rs:689:5
+       1: core::panicking::panic_fmt
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/panicking.rs:80:14
+       2: it::integration_fails
+                 at /tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/samples/rust-broken/tests/it.rs:8:5
+       3: it::integration_fails::{closure#0}
+                 at /tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/samples/rust-broken/tests/it.rs:7:23
+       4: <it::integration_fails::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+       5: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test integration_fails ... FAILED
+
+    failures:
+
+    failures:
+        integration_fails
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.07s
+
+
+────────────
+     Summary [   0.173s] 10 tests run: 6 passed, 4 failed, 1 skipped
+        FAIL [   0.092s] ( 5/10) orbit tests::case_negative
+        FAIL [   0.094s] ( 7/10) orbit tests::fails_on_purpose
+        FAIL [   0.111s] ( 8/10) orbit geo::tests::unwraps_none
+        FAIL [   0.074s] (10/10) orbit::it integration_fails
+error: test run failed

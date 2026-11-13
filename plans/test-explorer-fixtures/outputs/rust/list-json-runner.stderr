@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (target/debug/deps/orbit-70212efb4b280c76)
+     Running tests/it.rs (target/debug/deps/it-dcb5ae38382e8ca5)
+   Doc-tests orbit
+error: the option `Z` is only accepted on the nightly compiler
+error: doctest failed, to rerun pass `--doc`
+error: 1 target failed:
+    `--doc`

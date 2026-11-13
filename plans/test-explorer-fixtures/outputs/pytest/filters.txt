@@ -1,0 +1,7 @@
+$ pytest -q "tests/test_basic.py::test_cases[strings [odd] id]" tests/test_basic.py::TestOuter::TestInner
+FAILED tests/test_basic.py::TestOuter::TestInner::test_deep - assert 0 == 1
+1 failed, 1 passed in 0.01s
+$ pytest -q -k adds
+1 passed, 13 deselected in 0.01s
+$ pytest -q tests/test_basic.py::test_cases
+1 failed, 2 passed in 0.01s

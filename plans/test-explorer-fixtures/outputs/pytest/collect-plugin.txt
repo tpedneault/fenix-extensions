@@ -1,0 +1,30 @@
+tests/sub/test_unit.py::TestUnit::test_bad
+tests/sub/test_unit.py::TestUnit::test_ok
+tests/test_basic.py::test_adds
+tests/test_basic.py::test_fails_on_purpose
+tests/test_basic.py::test_skipped
+tests/test_basic.py::test_known_bug
+tests/test_basic.py::test_cases[small]
+tests/test_basic.py::test_cases[negative]
+tests/test_basic.py::test_cases[strings [odd] id]
+tests/test_basic.py::TestOuter::test_in_class
+tests/test_basic.py::TestOuter::TestInner::test_deep
+tests/test_basic.py::TestOuter::test_param_in_class[1]
+tests/test_basic.py::TestOuter::test_param_in_class[2]
+tests/test_basic.py::test_uses_broken_fixture
+FENIX-TEST {"id": "tests/sub/test_unit.py::TestUnit::test_bad", "file": "tests/sub/test_unit.py", "line": 8, "name": "TestUnit.test_bad"}
+FENIX-TEST {"id": "tests/sub/test_unit.py::TestUnit::test_ok", "file": "tests/sub/test_unit.py", "line": 5, "name": "TestUnit.test_ok"}
+FENIX-TEST {"id": "tests/test_basic.py::test_adds", "file": "tests/test_basic.py", "line": 6, "name": "test_adds"}
+FENIX-TEST {"id": "tests/test_basic.py::test_fails_on_purpose", "file": "tests/test_basic.py", "line": 10, "name": "test_fails_on_purpose"}
+FENIX-TEST {"id": "tests/test_basic.py::test_skipped", "file": "tests/test_basic.py", "line": 15, "name": "test_skipped"}
+FENIX-TEST {"id": "tests/test_basic.py::test_known_bug", "file": "tests/test_basic.py", "line": 20, "name": "test_known_bug"}
+FENIX-TEST {"id": "tests/test_basic.py::test_cases[small]", "file": "tests/test_basic.py", "line": 25, "name": "test_cases[small]"}
+FENIX-TEST {"id": "tests/test_basic.py::test_cases[negative]", "file": "tests/test_basic.py", "line": 25, "name": "test_cases[negative]"}
+FENIX-TEST {"id": "tests/test_basic.py::test_cases[strings [odd] id]", "file": "tests/test_basic.py", "line": 25, "name": "test_cases[strings [odd] id]"}
+FENIX-TEST {"id": "tests/test_basic.py::TestOuter::test_in_class", "file": "tests/test_basic.py", "line": 31, "name": "TestOuter.test_in_class"}
+FENIX-TEST {"id": "tests/test_basic.py::TestOuter::TestInner::test_deep", "file": "tests/test_basic.py", "line": 35, "name": "TestOuter.TestInner.test_deep"}
+FENIX-TEST {"id": "tests/test_basic.py::TestOuter::test_param_in_class[1]", "file": "tests/test_basic.py", "line": 38, "name": "TestOuter.test_param_in_class[1]"}
+FENIX-TEST {"id": "tests/test_basic.py::TestOuter::test_param_in_class[2]", "file": "tests/test_basic.py", "line": 38, "name": "TestOuter.test_param_in_class[2]"}
+FENIX-TEST {"id": "tests/test_basic.py::test_uses_broken_fixture", "file": "tests/test_basic.py", "line": 48, "name": "test_uses_broken_fixture"}
+
+14 tests collected in 0.01s

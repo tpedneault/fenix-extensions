@@ -1,0 +1,14 @@
+Discovery costs measured on this machine (4 cores), 13 November 2026.
+
+crates/lang-kit (65 tests, ~20 dependencies), CARGO_TARGET_DIR in the scratchpad:
+  cargo test --features mock -- --list        cold 20.9 s   warm 0.18 s   after touching src/lib.rs 0.80 s
+  RUSTC_BOOTSTRAP=1 cargo test ... --format json --list   16.8-17.1 s EVERY time: 20 crates rebuilt
+  cargo test --config "target.'cfg(all())'.runner=['env','RUSTC_BOOTSTRAP=1']" -- -Z unstable-options --list --format json
+                                              0.20 s, nothing rebuilt, 64 tests with file and line (doc tests fail: -Z refused)
+  cargo test --features mock (the whole run)  17.7 s right after a rebuild-causing switch
+
+Go standard library, ./encoding/... (17 packages, 409 tests):
+  go test -list . ./encoding/...              cold 8.4 s    warm 0.84 s
+
+Samples (tiny): pytest --collect-only 0.01 s; vitest list --json 0.27 s;
+jest discovery run (-t matching nothing) 0.46 s.

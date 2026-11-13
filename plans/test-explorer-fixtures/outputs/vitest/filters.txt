@@ -1,0 +1,19 @@
+$ vitest run src/orbit.test.js:26
+       × deep 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 7 skipped (8)
+$ vitest run -t "outer inner"
+      Tests  9 skipped (9)
+$ vitest run orbit -t "^add\(-1"
+   × add(-1, -1) is -3 10ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 7 skipped (8)
+$ vitest run -t "outer > inner"
+       × deep 7ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 8 skipped (9)
+$ vitest run src/orbit.test.js:8 src/orbit.test.js:26 src/geo.test.ts:5
+   × fails on purpose 6ms
+       × deep 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 1 passed | 6 skipped (9)

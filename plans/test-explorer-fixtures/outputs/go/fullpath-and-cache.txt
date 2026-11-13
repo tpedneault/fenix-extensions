@@ -1,0 +1,12 @@
+$ go test -json -fullpath -count=1 -run ^TestTable$ ./...  (the failure line has the full path)
+{"Time":"2026-11-13T04:43:19.87123611Z","Action":"output","Package":"example.com/orbit","Test":"TestTable/negative_one","Output":"    /tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4x/go/orbit_test.go:37: got -2, want -3\n"}
+
+$ go test -json -run ^TestAdds$ .   (second time: cached, per-test events replayed, Elapsed 0)
+{"Time":"2026-11-13T04:43:19.950488242Z","Action":"start","Package":"example.com/orbit"}
+{"Time":"2026-11-13T04:43:19.950525546Z","Action":"run","Package":"example.com/orbit","Test":"TestAdds"}
+{"Time":"2026-11-13T04:43:19.950527818Z","Action":"output","Package":"example.com/orbit","Test":"TestAdds","Output":"=== RUN   TestAdds\n"}
+{"Time":"2026-11-13T04:43:19.950533874Z","Action":"output","Package":"example.com/orbit","Test":"TestAdds","Output":"--- PASS: TestAdds (0.00s)\n"}
+{"Time":"2026-11-13T04:43:19.950536144Z","Action":"pass","Package":"example.com/orbit","Test":"TestAdds","Elapsed":0}
+{"Time":"2026-11-13T04:43:19.950539735Z","Action":"output","Package":"example.com/orbit","Output":"PASS\n"}
+{"Time":"2026-11-13T04:43:19.950541137Z","Action":"output","Package":"example.com/orbit","Output":"ok  \texample.com/orbit\t(cached)\n"}
+{"Time":"2026-11-13T04:43:19.950543436Z","Action":"pass","Package":"example.com/orbit","Elapsed":0}

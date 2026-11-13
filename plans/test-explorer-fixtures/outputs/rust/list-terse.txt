@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (target/debug/deps/orbit-70212efb4b280c76)
+geo::tests::dist_is_symmetric: test
+geo::tests::unwraps_none: test
+tests::adds: test
+tests::case_negative: test
+tests::case_small: test
+tests::fails_on_purpose: test
+tests::ignored_one: test
+tests::nested::deep: test
+tests::panics_as_it_should: test
+     Running tests/it.rs (target/debug/deps/it-dcb5ae38382e8ca5)
+integration_adds: test
+integration_fails: test
+   Doc-tests orbit
+src/lib.rs - add (line 6): test

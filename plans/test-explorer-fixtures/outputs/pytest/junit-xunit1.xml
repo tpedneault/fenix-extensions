@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="4" skipped="2" tests="14" time="0.034" timestamp="2026-11-13T03:36:11.245137+00:00" hostname="vm"><testcase classname="tests.sub.test_unit.TestUnit" name="test_bad" file="tests/sub/test_unit.py" line="7" time="0.001"><failure message="AssertionError: 1 != 2">self = &lt;sub.test_unit.TestUnit testMethod=test_bad&gt;
+
+    def test_bad(self):
+&gt;       self.assertEqual(1, 2)
+E       AssertionError: 1 != 2
+
+tests/sub/test_unit.py:9: AssertionError</failure></testcase><testcase classname="tests.sub.test_unit.TestUnit" name="test_ok" file="tests/sub/test_unit.py" line="4" time="0.000" /><testcase classname="tests.test_basic" name="test_adds" file="tests/test_basic.py" line="5" time="0.000" /><testcase classname="tests.test_basic" name="test_fails_on_purpose" file="tests/test_basic.py" line="9" time="0.001"><failure message="AssertionError: two and two&#10;assert 4 == 5&#10; +  where 4 = add(2, 2)">def test_fails_on_purpose():
+        print("some output before the failure")
+&gt;       assert add(2, 2) == 5, "two and two"
+E       AssertionError: two and two
+E       assert 4 == 5
+E        +  where 4 = add(2, 2)
+
+tests/test_basic.py:12: AssertionError</failure></testcase><testcase classname="tests.test_basic" name="test_skipped" file="tests/test_basic.py" line="14" time="0.000"><skipped type="pytest.skip" message="slow">/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/samples/python/tests/test_basic.py:15: slow</skipped></testcase><testcase classname="tests.test_basic" name="test_known_bug" file="tests/test_basic.py" line="19" time="0.000"><skipped type="pytest.xfail" message="known bug" /></testcase><testcase classname="tests.test_basic" name="test_cases[small]" file="tests/test_basic.py" line="24" time="0.000" /><testcase classname="tests.test_basic" name="test_cases[negative]" file="tests/test_basic.py" line="24" time="0.000"><failure message="assert -2 == -3&#10; +  where -2 = add(-1, -1)">a = -1, b = -1, want = -3
+
+    @pytest.mark.parametrize("a,b,want", [(1, 1, 2), (-1, -1, -3), ("x", "y", "xy")], ids=["small", "negative", "strings [odd] id"])
+    def test_cases(a, b, want):
+&gt;       assert add(a, b) == want
+E       assert -2 == -3
+E        +  where -2 = add(-1, -1)
+
+tests/test_basic.py:27: AssertionError</failure></testcase><testcase classname="tests.test_basic" name="test_cases[strings [odd] id]" file="tests/test_basic.py" line="24" time="0.000" /><testcase classname="tests.test_basic.TestOuter" name="test_in_class" file="tests/test_basic.py" line="30" time="0.000" /><testcase classname="tests.test_basic.TestOuter.TestInner" name="test_deep" file="tests/test_basic.py" line="34" time="0.000"><failure message="assert 0 == 1&#10; +  where 0 = add(0, 0)">self = &lt;test_basic.TestOuter.TestInner object at 0x7fa2301a3390&gt;
+
+    def test_deep(self):
+&gt;       assert add(0, 0) == 1
+E       assert 0 == 1
+E        +  where 0 = add(0, 0)
+
+tests/test_basic.py:36: AssertionError</failure></testcase><testcase classname="tests.test_basic.TestOuter" name="test_param_in_class[1]" file="tests/test_basic.py" line="37" time="0.000" /><testcase classname="tests.test_basic.TestOuter" name="test_param_in_class[2]" file="tests/test_basic.py" line="37" time="0.000" /><testcase classname="tests.test_basic" name="test_uses_broken_fixture" file="tests/test_basic.py" line="47" time="0.000"><error message="failed on setup with &quot;RuntimeError: fixture broke&quot;">@pytest.fixture
+    def broken():
+&gt;       raise RuntimeError("fixture broke")
+E       RuntimeError: fixture broke
+
+tests/test_basic.py:45: RuntimeError</error></testcase></testsuite></testsuites>

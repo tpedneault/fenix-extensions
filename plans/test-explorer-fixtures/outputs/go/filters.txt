@@ -1,0 +1,17 @@
+$ go test -json -run '^TestTable$/^negative_one$' .
+","Action":"start","Package":"example.com/orbit"}
+,"Action":"run","Package":"example.com/orbit","Test":"TestTable"}
+","Action":"run","Package":"example.com/orbit","Test":"TestTable/negative_one"}
+","Action":"fail","Package":"example.com/orbit","Test":"TestTable/negative_one","Elapsed":0}
+","Action":"fail","Package":"example.com/orbit","Test":"TestTable","Elapsed":0}
+","Action":"fail","Package":"example.com/orbit","Elapsed":0.002}
+$ go test -run '^TestTable$/^a$/^b$' -v .
+=== RUN   TestTable
+=== RUN   TestTable/a/b
+--- PASS: TestTable (0.00s)
+$ go test -run '^(TestAdds|TestSkipped)$' -v ./...
+--- PASS: TestAdds (0.00s)
+--- SKIP: TestSkipped (0.00s)
+ok  	example.com/orbit	0.002s
+testing: warning: no tests to run
+ok  	example.com/orbit/geo	0.002s [no tests to run]

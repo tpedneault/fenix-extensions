@@ -1,0 +1,15 @@
+{ "type": "suite", "event": "discovery" }
+{ "type": "test", "event": "discovered", "name": "geo::tests::dist_is_symmetric", "ignore": false, "ignore_message": "", "source_path": "src/geo/mod.rs", "start_line": 8, "start_col": 8, "end_line": 8, "end_col": 25 }
+{ "type": "test", "event": "discovered", "name": "geo::tests::unwraps_none", "ignore": false, "ignore_message": "", "source_path": "src/geo/mod.rs", "start_line": 13, "start_col": 8, "end_line": 13, "end_col": 20 }
+{ "type": "test", "event": "discovered", "name": "tests::adds", "ignore": false, "ignore_message": "", "source_path": "src/lib.rs", "start_line": 18, "start_col": 8, "end_line": 18, "end_col": 12 }
+{ "type": "test", "event": "discovered", "name": "tests::case_negative", "ignore": false, "ignore_message": "", "source_path": "src/lib.rs", "start_line": 45, "start_col": 9, "end_line": 45, "end_col": 22 }
+{ "type": "test", "event": "discovered", "name": "tests::case_small", "ignore": false, "ignore_message": "", "source_path": "src/lib.rs", "start_line": 44, "start_col": 9, "end_line": 44, "end_col": 19 }
+{ "type": "test", "event": "discovered", "name": "tests::fails_on_purpose", "ignore": false, "ignore_message": "", "source_path": "src/lib.rs", "start_line": 23, "start_col": 8, "end_line": 23, "end_col": 24 }
+{ "type": "test", "event": "discovered", "name": "tests::ignored_one", "ignore": true, "ignore_message": "slow", "source_path": "src/lib.rs", "start_line": 30, "start_col": 8, "end_line": 30, "end_col": 19 }
+{ "type": "test", "event": "discovered", "name": "tests::nested::deep", "ignore": false, "ignore_message": "", "source_path": "src/lib.rs", "start_line": 50, "start_col": 12, "end_line": 50, "end_col": 16 }
+{ "type": "test", "event": "discovered", "name": "tests::panics_as_it_should", "ignore": false, "ignore_message": "", "source_path": "src/lib.rs", "start_line": 34, "start_col": 8, "end_line": 34, "end_col": 27 }
+{ "type": "suite", "event": "completed", "tests": 9, "benchmarks": 0, "total": 9, "ignored": 1 }
+{ "type": "suite", "event": "discovery" }
+{ "type": "test", "event": "discovered", "name": "integration_adds", "ignore": false, "ignore_message": "", "source_path": "tests/it.rs", "start_line": 2, "start_col": 4, "end_line": 2, "end_col": 20 }
+{ "type": "test", "event": "discovered", "name": "integration_fails", "ignore": false, "ignore_message": "", "source_path": "tests/it.rs", "start_line": 7, "start_col": 4, "end_line": 7, "end_col": 21 }
+{ "type": "suite", "event": "completed", "tests": 2, "benchmarks": 0, "total": 2, "ignored": 0 }

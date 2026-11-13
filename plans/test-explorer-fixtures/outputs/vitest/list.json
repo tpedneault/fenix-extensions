@@ -1,0 +1,50 @@
+[
+  {
+    "name": "dist is symmetric",
+    "file": "/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/geo.test.ts",
+    "location": {
+      "line": 5,
+      "column": 1
+    }
+  },
+  {
+    "name": "adds",
+    "file": "/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js",
+    "location": {
+      "line": 4,
+      "column": 1
+    }
+  },
+  {
+    "name": "fails on purpose",
+    "file": "/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js",
+    "location": {
+      "line": 8,
+      "column": 1
+    }
+  },
+  {
+    "name": "add(%i, %i) is %i",
+    "file": "/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js",
+    "location": {
+      "line": 19,
+      "column": 3
+    }
+  },
+  {
+    "name": "outer > in describe",
+    "file": "/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js",
+    "location": {
+      "line": 24,
+      "column": 3
+    }
+  },
+  {
+    "name": "outer > inner > deep",
+    "file": "/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/js-vitest/src/orbit.test.js",
+    "location": {
+      "line": 26,
+      "column": 5
+    }
+  }
+]

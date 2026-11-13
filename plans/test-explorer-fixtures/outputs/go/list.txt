@@ -1,0 +1,11 @@
+TestAdds
+TestFailsOnPurpose
+TestSkipped
+TestTable
+TestNested
+BenchmarkAdd
+ExampleAdd
+ok  	example.com/orbit	0.002s
+TestDist
+TestPanics
+ok  	example.com/orbit/geo	0.002s

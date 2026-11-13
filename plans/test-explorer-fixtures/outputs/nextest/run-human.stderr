@@ -1,0 +1,98 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+────────────
+ Nextest run ID 362ca0db-c134-4e1b-a611-57f88ba8fda6 with nextest profile: default
+    Starting 10 tests across 2 binaries (1 test skipped)
+        PASS [   0.005s] ( 1/10) orbit geo::tests::dist_is_symmetric
+        FAIL [   0.005s] ( 2/10) orbit geo::tests::unwraps_none
+  stdout ───
+
+    running 1 test
+    test geo::tests::unwraps_none ... FAILED
+
+    failures:
+
+    failures:
+        geo::tests::unwraps_none
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'geo::tests::unwraps_none' (10171) panicked at src/geo/mod.rs:15:11:
+    called `Option::unwrap()` on a `None` value
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.005s] ( 3/10) orbit tests::case_negative
+  stdout ───
+
+    running 1 test
+    test tests::case_negative ... FAILED
+
+    failures:
+
+    failures:
+        tests::case_negative
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::case_negative' (10172) panicked at src/lib.rs:43:5:
+    assertion `left == right` failed
+      left: -2
+     right: -3
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.007s] ( 4/10) orbit tests::adds
+        PASS [   0.005s] ( 5/10) orbit tests::nested::deep
+        PASS [   0.005s] ( 6/10) orbit tests::case_small
+        FAIL [   0.006s] ( 7/10) orbit tests::fails_on_purpose
+  stdout ───
+
+    running 1 test
+    some output before the failure
+    test tests::fails_on_purpose ... FAILED
+
+    failures:
+
+    failures:
+        tests::fails_on_purpose
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::fails_on_purpose' (10182) panicked at src/lib.rs:25:9:
+    assertion `left == right` failed: two and two
+      left: 4
+     right: 5
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.006s] ( 8/10) orbit tests::panics_as_it_should
+        PASS [   0.005s] ( 9/10) orbit::it integration_adds
+        FAIL [   0.005s] (10/10) orbit::it integration_fails
+  stdout ───
+
+    running 1 test
+    test integration_fails ... FAILED
+
+    failures:
+
+    failures:
+        integration_fails
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'integration_fails' (10185) panicked at tests/it.rs:8:5:
+    zero is not one
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.016s] 10 tests run: 6 passed, 4 failed, 1 skipped
+        FAIL [   0.005s] ( 2/10) orbit geo::tests::unwraps_none
+        FAIL [   0.005s] ( 3/10) orbit tests::case_negative
+        FAIL [   0.006s] ( 7/10) orbit tests::fails_on_purpose
+        FAIL [   0.005s] (10/10) orbit::it integration_fails
+error: test run failed

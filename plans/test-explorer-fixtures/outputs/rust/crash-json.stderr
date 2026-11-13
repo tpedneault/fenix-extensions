@@ -1,0 +1,7 @@
+   Compiling orbit v0.1.0 (/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/samples/rust)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running tests/crash.rs (target/debug/deps/crash-156beca262a64386)
+error: test failed, to rerun pass `--test crash`
+
+Caused by:
+  process didn't exit successfully: `/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m4/samples/rust/target/debug/deps/crash-156beca262a64386 -Z unstable-options --format json` (signal: 6, SIGABRT: process abort signal)

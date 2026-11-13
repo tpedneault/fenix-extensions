@@ -1,0 +1,6 @@
+Test Suites: 1 skipped, 0 of 1 total
+Tests:       8 skipped, 8 total
+Snapshots:   0 total
+Time:        0.342 s
+Ran all test suites with tests matching "FENIX_NOTHING_MATCHES_THIS".
+Test results written to: ../outputs/jest/discover-by-skipping.json

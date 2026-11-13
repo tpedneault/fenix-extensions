@@ -1,0 +1,16 @@
+tests/sub/test_unit.py::TestUnit::test_bad
+tests/sub/test_unit.py::TestUnit::test_ok
+tests/test_basic.py::test_adds
+tests/test_basic.py::test_fails_on_purpose
+tests/test_basic.py::test_skipped
+tests/test_basic.py::test_known_bug
+tests/test_basic.py::test_cases[small]
+tests/test_basic.py::test_cases[negative]
+tests/test_basic.py::test_cases[strings [odd] id]
+tests/test_basic.py::TestOuter::test_in_class
+tests/test_basic.py::TestOuter::TestInner::test_deep
+tests/test_basic.py::TestOuter::test_param_in_class[1]
+tests/test_basic.py::TestOuter::test_param_in_class[2]
+tests/test_basic.py::test_uses_broken_fixture
+
+14 tests collected in 0.01s

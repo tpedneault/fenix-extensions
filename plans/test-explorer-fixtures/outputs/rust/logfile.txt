@@ -1,0 +1,9 @@
+ok geo::tests::dist_is_symmetric
+ok tests::adds
+ok tests::case_small
+ignored: slow tests::ignored_one
+failed tests::case_negative
+failed geo::tests::unwraps_none
+failed tests::fails_on_purpose
+ok tests::nested::deep
+ok tests::panics_as_it_should

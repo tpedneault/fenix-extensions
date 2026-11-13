@@ -1,0 +1,43 @@
+
+running 9 tests
+test geo::tests::unwraps_none ... FAILED
+test geo::tests::dist_is_symmetric ... ok
+test tests::case_negative ... FAILED
+test tests::adds ... ok
+test tests::ignored_one ... ignored, slow
+test tests::case_small ... ok
+test tests::fails_on_purpose ... FAILED
+test tests::nested::deep ... ok
+test tests::panics_as_it_should - should panic ... ok
+
+failures:
+
+---- geo::tests::unwraps_none stdout ----
+
+thread 'geo::tests::unwraps_none' (9756) panicked at src/geo/mod.rs:15:11:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::case_negative stdout ----
+
+thread 'tests::case_negative' (9758) panicked at src/lib.rs:43:5:
+assertion `left == right` failed
+  left: -2
+ right: -3
+
+---- tests::fails_on_purpose stdout ----
+some output before the failure
+
+thread 'tests::fails_on_purpose' (9760) panicked at src/lib.rs:25:9:
+assertion `left == right` failed: two and two
+  left: 4
+ right: 5
+
+
+failures:
+    geo::tests::unwraps_none
+    tests::case_negative
+    tests::fails_on_purpose
+
+test result: FAILED. 5 passed; 3 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

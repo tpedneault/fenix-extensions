@@ -1,0 +1,20 @@
+{ "type": "suite", "event": "started", "test_count": 9 }
+{ "type": "test", "event": "started", "name": "geo::tests::dist_is_symmetric" }
+{ "type": "test", "event": "started", "name": "geo::tests::unwraps_none" }
+{ "type": "test", "event": "started", "name": "tests::adds" }
+{ "type": "test", "event": "started", "name": "tests::case_negative" }
+{ "type": "test", "name": "geo::tests::dist_is_symmetric", "event": "ok", "exec_time": 0.00000176 }
+{ "type": "test", "event": "started", "name": "tests::case_small" }
+{ "type": "test", "name": "tests::adds", "event": "ok", "exec_time": 0.000001201 }
+{ "type": "test", "event": "started", "name": "tests::fails_on_purpose" }
+{ "type": "test", "name": "geo::tests::unwraps_none", "event": "failed", "exec_time": 0.000059439, "stdout": "\nthread 'geo::tests::unwraps_none' (9716) panicked at src/geo/mod.rs:15:11:\ncalled `Option::unwrap()` on a `None` value\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+{ "type": "test", "event": "started", "name": "tests::ignored_one" }
+{ "type": "test", "name": "tests::case_small", "event": "ok", "exec_time": 0.000000524 }
+{ "type": "test", "event": "started", "name": "tests::nested::deep" }
+{ "type": "test", "name": "tests::case_negative", "event": "failed", "exec_time": 0.000028514, "stdout": "\nthread 'tests::case_negative' (9718) panicked at src/lib.rs:43:5:\nassertion `left == right` failed\n  left: -2\n right: -3\n" }
+{ "type": "test", "event": "started", "name": "tests::panics_as_it_should" }
+{ "type": "test", "name": "tests::ignored_one", "event": "ignored", "message": "slow" }
+{ "type": "test", "name": "tests::nested::deep", "event": "ok", "exec_time": 0.000000377 }
+{ "type": "test", "name": "tests::fails_on_purpose", "event": "failed", "exec_time": 0.00002035, "stdout": "some output before the failure\n\nthread 'tests::fails_on_purpose' (9720) panicked at src/lib.rs:25:9:\nassertion `left == right` failed: two and two\n  left: 4\n right: 5\n" }
+{ "type": "test", "name": "tests::panics_as_it_should", "event": "ok", "exec_time": 0.000019023 }
+{ "type": "suite", "event": "failed", "passed": 5, "failed": 3, "ignored": 1, "measured": 0, "filtered_out": 0, "exec_time": 0.000815262 }
