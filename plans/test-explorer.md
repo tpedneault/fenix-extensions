@@ -1724,3 +1724,98 @@ ask conversion (its own `tally` test does the same at 2,000); debug, which
 CI runs, is well inside 50 ms. Only in a nightly: everything Fenix does
 with these answers, the cost in wasm, a stop while a test binary runs,
 the debug session itself.
+
+## As built: E3b (Go)
+
+Built on 13 November 2026 on `main`'s API 1.5, in
+`extensions/go/src/provider/` (lang-kit's feature `tests`, the test kit's
+as a dev-dependency; `Cargo.lock` gained `fenix-test-kit` and nothing
+else), recorded with Go 1.24.7 and, for the build failure before 1.24,
+1.23.8 (`GOTOOLCHAIN` fetched it). Not offered to Fenix: the manifest
+section, the engine lines, 1.3.0 and the five forwards are the
+`api-1.6` branch's, listed in `plans/test-providers-recipe.md` §12 and
+below. Where it differs from §6.3:
+
+| §6.3 said | As built | Why |
+|---|---|---|
+| `ExampleXxx()` is a test | Only with an `// Output:` (or `// Unordered output:`) comment in its body | Without one `go test` builds the example and doesn't run it (verified: no `run` event) |
+| Scan, then `end_line` by brace counting | A lexer (comments, strings, raw strings, runes) behind the line scan, so a brace in one doesn't count and a `func Test` in a raw string isn't a test; a `func` in column 0 closes what's open, so half-typed text loses only its own test; `testdata`, `vendor`, `_x` and `.x` folders left out as `./...` leaves them | A line scanner that always answers needs no `LastGood` |
+| A file excluded by a build tag is scanned and its tests never run | Its tests carry `skip: "not built here: //go:build integration"` (a `//go:build` line at the top, or `_windows` in the name, evaluated on `platform()`'s os; an architecture, `cgo` or `go1.N` is taken as set), and a step that ran its package and said nothing of them ends them `skipped` with the reason | `skip` alone isn't enough: a run of all errors a test it gave no result for, "the run ended without a result for it", so every project with an integration tag was red after each run |
+| discover: `go list -f '{{.ImportPath}} {{.Dir}} {{.TestGoFiles}} {{.XTestGoFiles}}' ./...` | `go list -e -f` with tabs and `join` (a folder's space breaks the slice's), `-e` so a package that doesn't load is listed anyway; the files the scan hasn't seen are read from `/project` and scanned, 40 a call and the rest at the step's end, 2,000 a step at most | A listing can only report tests, not files; reading the file is what puts the missed ones in the tree |
+| run-all: `go test -json -fullpath ./...` | The same; from a `go.work` whose top isn't a module, `./app/... ./lib/...` (its `use` folders); modules with no `go.work`, a step each in its own folder | `./...` there fails: "directory prefix . does not contain modules listed in go.work" (`Broken` for the whole step); from the top, `./...` leaves a nested module out and its import path isn't one the top module can name (all verified) |
+| top-level tests: one step with their package folders; a name in another listed package runs there too | By import path, a step for each set of names, so a name two packages share runs in the package asked only; a case's levels as `^TestTable$/^(negative_one\|small)$` a step for each parent; names through `regexp.QuoteMeta`'s rules, quoted once, 64 a batch | Verified: `-run '^TestDouble$' example.com/app` ran app's only in a workspace where lib has one too |
+| long selections: `split` | Own packer over batches (as Rust's `split_batched`); over 200 steps, the packages whole | `split` measures a command for each name; Fenix runs 256 steps |
+| A file or suite with no fill-in | Its package, all of it (Go has no filter for a file) | A file's fill-in names its top-level tests exactly, a case left to its parent |
+| `fail`: a panic's `fail` failed with "panic: …" | Its place is the panic's first frame in the project (the frame's function names a package of a module the project has), the message the first `panic:` line without `[recovered]` | |
+| A failure's place is the `file_test.go:NN:` line | The *last* one the test printed: `t.Log` and `t.Error` print alike, and the assertion usually comes after the log (`TestFailsOnPurpose` logs at 15, fails at 17); the file mapped to below the project from the package's folder (a full path from `-fullpath`, a compiler's relative one from the step's folder), and where a path is in no package's folder, by the project's folder on Go's machine, learned from the first path of a scanned file | `-fullpath` gives a full path of Go's machine |
+| `pass`, `fail`, `skip` give `Ended`, times × 1000 | Also: an example's `got:`/`want:` blocks as the message; a parent whose subtest failed with nothing printed of its own, "a subtest failed"; what a test printed goes as `Output` a line as it comes (a test's `=== RUN` and `--- FAIL` lines left out) and, for a failure, as the `text`; a test keeps its first 100 and last 900 lines | A test that prints a million lines |
+| A package's `fail` after a panic, its later tests unreported, is `Crashed` | Also a package whose binary ended with a test unfinished (`os.Exit(3)` in a test: the test's `run`, then the package's `fail`, no line about the exit), a timeout's panic (on the test it caught: `panic: test timed out after 1s`, `running: TestSlow`), a `TestMain` that panics (package-level lines, then `fail`) | All recorded; `crashed` names the package's group |
+| A package `fail` with no test events and no `FailedBuild`, before 1.24: stderr text, **not verified** | Verified on 1.23.8: the package's output says `[build failed]`, the compiler's lines are on stderr under `# pkg [pkg.test]`; the reader holds the package until the step ends (stdout and stderr have no order) and reads the first error from its block | |
+| `Broken { under: the package }` | Only when a scan gave the package a group; any other id (`./...` for a pattern Go couldn't set up) fails the step in Fenix, so `under: None` | The driver is strict about it |
+| Cached packages' times show as 0 ms | A cached package replays its tests' events with the elapsed time of the run it replays (`TestSlow` 2,000 ms in a replay), 0 for a quick test; the package's output says `(cached)`; no note is made | Verified (`run-all-cached`) |
+| Launch: `program: <the package's folder>` | `/project/<folder>` for `program` and `cwd` (the API's paths); `-test.run` by levels, `-test.v`, `{"mode": "test"}` | |
+| — | `runner()` is `go test (go1.24.7)` once the doctor has asked Go's version (and keeps it while the doctor asks again after a `go.mod` is saved), nothing for a project with no `go.mod` or `go.work`, a problem for no Go, and for Go before 1.21 | `-fullpath` came with 1.21 (1.20.14 answers "flag provided but not defined", as a package's output, then `fail`) |
+| — | lang-kit: a case under a case belongs to its file's fill-in (`ask_from` left it out, so a run of a file made one more step per nested subtest); a separate commit with a test | Go's `t.Run` in a `t.Run` (§11) |
+
+What's verified against real Go (1.24.7 unless said): every recording
+(the commands in each `.args` are the planner's, which the driver matches
+exactly), `-run` as a regex per `/` level with quoted names (`a+b_(c)`,
+`x|y`, `[z]`, `naïve`), a package's panic ending its binary, `os.Exit`, a
+`TestMain` panic, a timeout, a vet error as a build failure, a build
+failure in a dependency (the importer's `fail` names it), `go.work`'s
+patterns and the one that fails, `go list -e` on a package with no test
+files, 1.23.8's stderr form, and 1.20.14 and 1.21.13 for `-fullpath`.
+Only against recordings: everything the reader does with them (the driver,
+natively), Windows' paths (by hand), Go 1.22 and 1.25. Only in a nightly:
+everything Fenix does with these answers, the cost in wasm, a stop while
+a test binary runs, a debug session under Delve (`program` as
+`/project/<folder>`, and `cwd` below `/project`, as the API says).
+
+**Weak spots.**
+
+- A failure's place is the last `file:line:` a test printed, so a `t.Log`
+  after the failing `t.Error` is where it points.
+- A subtest has no line of its own (its top-level test's) and exists only
+  once run; `a/b` is one name when `a` didn't run, else a case of `a`.
+- A test method (testify's suites) isn't scanned; its cases come when run.
+- A file's constraint is read from its top and its name only: an
+  architecture is taken as set, and a tag a project sets for every run
+  (`GOFLAGS=-tags=integration`) shows its tests skipped until they run
+  (then their results stand).
+- A project opened below its `go.mod` isn't found (no `go.mod`, no
+  `go.work`: nothing to run); a `go.work` `use` outside the project is left
+  out; modules with no `go.work` that no scan has seen aren't run by a run
+  of all.
+- The listing reads at most 2,000 files a step; past that Fenix's own
+  scans (a file opened or run) are what's left.
+- In release the driver's 5 ms: a 2,000-test plan is about 2.7 ms in the
+  pack's own planner, the rest lang-kit's, as for Rust; debug (CI's) is
+  inside 50 ms. Measured on a machine two other builds were using.
+
+**What the `api-1.6` branch adds for Go** (`plans/test-providers-recipe.md`
+§12, with its own words):
+
+```toml
+[engine]
+fenix = ">=1.6, <2"
+# The test provider (tests-scan .. tests-launch, test-provider-set);
+# the keys a hint names (key_for, 1.5).
+api = "1.6"
+
+[[contributes.test_providers]]
+id = "go"
+name = "go test"
+languages = ["go"]
+markers = ["go.mod", "go.work"]
+scan = ["*_test.go"]
+```
+
+No `permissions.process` change (`go` and `dlv` are listed); no doctor row
+(Go 1.21, the version `-fullpath` needs, is the doctor's floor already);
+`1.3.0` in `extension.toml` and `Cargo.toml`; the five forwards in `impl
+Extension for Go`; the CHANGELOG's 1.3.0 entry; the README's section
+reworded for what's offered and the versions verified; and
+`wasm-tools component wit extension.wasm` listing `test-provider-set`.
+On `main` the packed component's WIT and its 175 core import names are
+those of 1.2.0 (package 353,513 → 424,867 bytes, `extension.wasm`
+905,902 → 1,124,650).
