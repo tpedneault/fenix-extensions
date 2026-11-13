@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.haskell"
 name = "Haskell"
-version = "1.0.0"
+version = "1.1.0"
 description = "Haskell: its grammar, the Haskell Language Server, ormolu or fourmolu, hlint on save with its rewrites as fixes, Cabal's and Stack's tasks for each component, the project's checks with fixes that run ghcup, snippets, and a Cabal project"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,11 +10,9 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# The grammar and its queries (0.8.5), the server given its settings and
-# a linter's problems with their fixes (0.8.6), the language file's
-# `comment` (0.8.7).
-api = "1.0"
+fenix = ">=1.5, <2"
+# lang-kit, the kit it's built on, is on 1.5.
+api = "1.5"
 
 # With Fenix: the project doctor's checks and the language server are
 # there from the start.

@@ -9,7 +9,8 @@ that run ghcup, snippets, and a Cabal project. Built on lang-kit
 
 It works for a Cabal project (a `.cabal` file at the top, or a
 `cabal.project` listing packages), a Stack one (`stack.yaml`, or hpack's
-`package.yaml`), and a folder of scripts.
+`package.yaml`), and a folder of scripts. It needs Fenix 1.5 or later
+(extension API 1.5); on an older Fenix, Haskell 1.0.0 is the one you get.
 
 ## The grammar
 
@@ -111,8 +112,8 @@ alone, so it builds without Hackage -- with `cabal run` as its run task.
 
 ## Keys
 
-After `SPC m` in a Haskell project or file: `d` checks the project again,
-`r` reads it again, `g` opens ghcup's page.
+After `SPC m` in a Haskell project or file (`C-k m` with standard keys):
+`d` checks the project again, `r` reads it again, `g` opens ghcup's page.
 
 ## Not yet
 
