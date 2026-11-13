@@ -16,6 +16,13 @@
 //! API 1.6 isn't released yet: [`api`] is a copy of its types, and
 //! nothing here calls a host function 1.5 hasn't. `plans/test-explorer.md`
 //! says how the copy is swapped for the real module.
+//!
+//! The whole module is built only with lang-kit's feature `tests`. A
+//! pack that runs tests turns it on in its `Cargo.toml`
+//! (`fenix-lang-kit = { path = "../../crates/lang-kit", features =
+//! ["tests"] }`); every other pack builds as if it weren't here, so its
+//! component never links `test-provider-set`, the one import of API 1.6
+//! that Fenix 1.5 refuses (Fenix §19, finding 4).
 
 pub mod api;
 
@@ -27,9 +34,9 @@ mod unit;
 
 use fenix_extension_api::{Command, LaunchConfig};
 
-pub use adapter::Tests;
+pub use adapter::{LastGood, Tests};
 pub use api::{Kind, Outcome, StepEnd};
-pub use line::{command_line_len, cut_id, cut_label, split, BATCH_FILE, BATCH_FILE_MAX, DIRECT, HEADROOM, ID_MAX, LABEL_MAX, WINDOWS_MAX};
+pub use line::{batch_file_line_len, command_line_len, cut_id, cut_label, fnv1a_64, is_cut_id, split, Limit, BATCH_FILE, BATCH_FILE_MAX, DIRECT, ID_MAX, ID_PREFIX_MAX, LABEL_MAX, PATH_ALLOWANCE, WINDOWS_MAX};
 
 use crate::Kit;
 
@@ -168,7 +175,12 @@ pub struct Found {
     pub of: Option<Key>,
     /// The pack's own, at most 4 KiB: never shown, given back as it was in
     /// an ask and to [`TestRunner::launch`] (what its runner calls it when
-    /// the key can't say). Not kept across a restart of Fenix.
+    /// the key can't say). It can come back `None` (Fenix §19, finding 2):
+    /// one over 4 KiB isn't kept, nor any past 16 MiB of the provider's,
+    /// nor after Fenix starts again until a scan, listing or run gives it
+    /// again. So a key of 1 KiB or less must be enough to run its test;
+    /// only a key over 1 KiB (cut) needs `data`, and Fenix never asks for
+    /// such a test without it -- it asks its nearest group it can name.
     pub data: Option<String>,
 }
 
@@ -235,24 +247,33 @@ impl Found {
     }
 }
 
-/// One thing Fenix asked to run.
+/// One thing Fenix asked to run: a node it selected, told from the
+/// fill-ins by their `parent` alone (Fenix §19, finding 3) -- a record
+/// whose `parent` is another record of the ask is a fill-in, one whose
+/// `parent` isn't was selected. Selected nodes are the topmost of what
+/// was picked, in the page's order; none is under another.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Asked {
-    /// A test or a case, with what Fenix has of it now (its `data` too).
+    /// A test or a case, with what Fenix has of it now. Its `data` may be
+    /// `None` ([`Found::data`]): plan it from its key then.
     Test(Found),
     /// A group, file or suite: everything under it. `groups` is it and
     /// those it's in, root first (it's the last).
     Group {
         groups: Vec<Group>,
-        /// What Fenix sent after it: for a file or a suite, the tests and
-        /// cases Fenix has under it, so a runner whose filter is a
-        /// substring (libtest's `geo::`) can name them exactly. Never for
-        /// a target or package, which is named to its runner as itself;
-        /// and none when the ask would have been over 10,000 records. Empty:
-        /// plan it with the runner's own filter, which runs at least those.
-        tests: Vec<Found>,
-        /// When `tests` is empty: the tests lang-kit remembers under it
-        /// from scans and listings, possibly not all of them.
+        /// Its fill-in, for a file or a suite: `Some` with every test and
+        /// case Fenix has under it, suites between included in their
+        /// `groups`, in the page's order -- whole, never part of them --
+        /// so a runner whose filter is a substring (libtest's `geo::`)
+        /// can name them exactly. `None`: Fenix sent none, because it's a
+        /// target or a package (named to its runner as itself), because
+        /// the fill-in didn't fit in the ask's 10,000 records, or because
+        /// it held a test Fenix can't name: plan it with the runner's own
+        /// filter for it, which runs at least what's under it.
+        tests: Option<Vec<Found>>,
+        /// When `tests` is `None`: the tests lang-kit remembers under it
+        /// from this start's scans and listings, possibly not all of them
+        /// (empty after the pack started again until it scans).
         known: Vec<Key>,
     },
 }
@@ -381,6 +402,32 @@ impl Ended {
         Ended { key: key.into(), outcome, ms: None, message: None, at: None, text: None }
     }
 
+    /// This result and a later phase of the same test as one, for a reader
+    /// that holds a test's phases until it's whole (pytest's setup, call
+    /// and teardown) and reports one `Ended`: the worse outcome (errored,
+    /// then failed, then passed, then skipped) with its message and place,
+    /// the times added, the texts in the order they came. Fenix keeps the
+    /// last `Ended` for an id in a run, so phases sent one by one would
+    /// leave only the last phase's.
+    pub fn and_then(self, later: Ended) -> Ended {
+        let rank = |o: Outcome| match o {
+            Outcome::Skipped => 0,
+            Outcome::Passed => 1,
+            Outcome::Failed => 2,
+            Outcome::Errored => 3,
+        };
+        let text = match (&self.text, &later.text) {
+            (Some(a), Some(b)) => Some(format!("{a}\n{b}")),
+            (a, b) => a.clone().or(b.clone()),
+        };
+        let ms = match (self.ms, later.ms) {
+            (Some(a), Some(b)) => Some(a + b),
+            (a, b) => a.or(b),
+        };
+        let (worse, better) = if rank(later.outcome) >= rank(self.outcome) { (later, self) } else { (self, later) };
+        Ended { key: worse.key, outcome: worse.outcome, ms, message: worse.message.or(better.message), at: worse.at.or(better.at), text }
+    }
+
     pub fn ms(mut self, ms: f64) -> Ended {
         self.ms = Some(ms);
         self
@@ -408,18 +455,25 @@ pub enum Report {
     /// A test or a case: from a listing, or found in a run.
     Found(Found),
     Started(Key),
-    /// A second `Ended` for a key in a run is merged into the first, the
-    /// worse outcome winning, so what Fenix keeps (the last) is the whole.
+    /// A result. Fenix keeps the last `Ended` for a key in a run, so a
+    /// reader whose runner reports a test in phases (pytest's setup, call
+    /// and teardown) holds them until the test is whole and reports one
+    /// ([`Ended::and_then`]); a second `Ended` (a runner's retry) replaces
+    /// the first. A template whose cases have results needs none of its
+    /// own: report one only when the runner gives one (Go's parent test).
     Ended(Ended),
     /// What a test printed, or the run did (`key` none).
     Output { key: Option<Key>, text: String },
     /// Nothing of it ran: a target didn't build, a file didn't load. Never
     /// a test's failure. `under` is the group's labels, root first; none:
-    /// all the step covers.
+    /// all the step covers (for a step that claims nothing, what of the
+    /// ask no step names). Fenix errors only what of it has no result in
+    /// this run yet; in a listing it errors nothing, and the listing
+    /// isn't complete.
     Broken { under: Option<Vec<String>>, message: String, at: Option<At> },
     /// A process died: what's under the group `under` (the binary's
-    /// target, the package; none: all the step covers) that hasn't ended
-    /// in this step is errored with `message`.
+    /// target, the package; none: all the step covers) that has no result
+    /// in this run yet is errored with `message`.
     Crashed { under: Option<Vec<String>>, message: String },
     /// Something to keep for this run, not for Fenix: a test binary's path
     /// from a build-first plan, given to [`TestRunner::launch`] when Fenix
@@ -457,16 +511,31 @@ pub trait TestRunner {
     /// installed in .venv"))`; `("", None)` when there's nothing to run
     /// here, which hides it in this project. Asked when the pack starts,
     /// when a file is saved and on [`Kit::tests_runner_changed`], so it
-    /// should be quick; Fenix is told only what changed.
+    /// should be quick. Fenix is told as the pack starts -- it keeps what
+    /// it was told per project across the pack starting again, and a call
+    /// that changes nothing does nothing (Fenix §19, K13) -- then only
+    /// when it changes.
     fn runner(&mut self) -> (String, Option<String>);
 
     /// The tests in file `path` (`/project/<path>`), whose text is `text`:
-    /// read, nothing run, in a few milliseconds.
+    /// read, nothing run, in a few milliseconds. The answer replaces the
+    /// file's last: an empty one drops every test of the file (a test that
+    /// comes back keeps its result, stale). A scanner that parses, and so
+    /// can't read half-typed text, answers what it last read well from the
+    /// file instead of nothing ([`LastGood`]); one that reads line by line
+    /// (a pattern a test) needn't. The same key twice in one answer: Fenix
+    /// keeps the later, and so does lang-kit.
     fn scan(&mut self, path: &str, text: &str) -> Vec<Found>;
 
     /// The steps that list or run `ask`, in order. A selection too long
     /// for one command line goes in several ([`split`]); lang-kit names
-    /// the step's reporters in `needs`.
+    /// the step's reporters in `needs`. What a pack can rely on in an
+    /// [`Ask::Run`] is [`Asked`]'s: each selected node, with what Fenix
+    /// has of it now (`data` maybe `None`), a file or suite with its
+    /// whole fill-in or none. A plan of no steps has its whole ask errored
+    /// at once ("the run ended without a result for it"); after a step
+    /// Fenix couldn't start (`StepEnd::Failed`), the plan goes on to its
+    /// next step.
     fn plan(&mut self, ask: &Ask) -> Result<Vec<Step>, String>;
 
     /// Whether listing again costs little once `ask`'s plan has run (it
@@ -495,7 +564,10 @@ pub trait TestRunner {
     }
 
     /// How to debug `test`; `kept` is what a build-first plan's readers
-    /// kept (empty the first time).
+    /// kept (empty the first time). The build runs as the same run as the
+    /// first ask, and the second ask carries it, which is how `kept`
+    /// finds its way here. A `Found` its readers report is ignored there,
+    /// as an `Ended` is: lang-kit doesn't send them.
     fn launch(&mut self, _test: &Found, _kept: &[(String, String)]) -> Result<Launching, String> {
         Err("no debugging for tests here".into())
     }

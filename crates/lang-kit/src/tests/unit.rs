@@ -117,9 +117,9 @@ fn a_scan_gives_its_groups_first_with_their_ids_and_lines_from_0() {
     let mut r = rig("scan");
     let found = r.kit.tests_scan("tally", "/project/a.tally", "x\n# test adds\n# test adds\n");
     let ids: Vec<(&str, Option<&str>, api::Kind)> = found.iter().map(|f| (f.id.as_str(), f.parent.as_deref(), f.kind)).collect();
-    assert_eq!(ids, [("\u{1f}tally", None, Kind::Group), ("\u{1f}tally\u{1f}a.tally", Some("\u{1f}tally"), Kind::File), ("t adds", Some("\u{1f}tally\u{1f}a.tally"), Kind::Test)], "the second `adds` left out");
-    assert_eq!((found[1].path.as_deref(), found[2].path.as_deref(), found[2].line), (Some("/project/a.tally"), None, Some(1)));
-    assert_eq!(r.host.take(), ["log tests: tally: the scan of /project/a.tally found t adds twice; the second is left out"]);
+    assert_eq!(ids, [("\u{1f}tally", None, Kind::Group), ("\u{1f}tally\u{1f}a.tally", Some("\u{1f}tally"), Kind::File), ("t adds", Some("\u{1f}tally\u{1f}a.tally"), Kind::Test)], "one `adds`");
+    assert_eq!((found[1].path.as_deref(), found[2].path.as_deref(), found[2].line), (Some("/project/a.tally"), None, Some(2)), "the later kept, as Fenix keeps it");
+    assert_eq!(r.host.take(), ["log tests: tally: the scan of /project/a.tally found t adds twice; the earlier is left out"]);
     assert!(r.kit.tests_scan("other", "/project/a.tally", "# test adds").is_empty());
     assert!(r.kit.tests_plan("other", 1, api::Ask::RunAll).is_err());
 }
@@ -176,16 +176,34 @@ fn a_cut_line_is_joined_across_calls_per_stream() {
     let _ = std::fs::remove_dir_all(&r.data);
 }
 
+/// Fenix §4 "A result", §19 K7: each `Ended` goes as it came -- Fenix
+/// keeps the last -- and outputs of one test in a row are one.
 #[test]
-fn a_second_result_for_a_test_is_merged_and_outputs_joined() {
-    let mut r = rig("merge");
+fn each_result_goes_as_it_came_and_outputs_are_joined() {
+    let mut r = rig("results");
     r.kit.tests_plan("tally", 1, api::Ask::RunAll).unwrap();
     let out = r.kit.tests_read("tally", 1, 0, ["FAIL adds at src/a.t:4: no", "PASS adds 2ms", "OUT adds one", "OUT adds two", "OUT other three"].map(line).to_vec());
-    let api::Report::Ended(last) = &out[1] else { panic!("{out:?}") };
-    assert_eq!((last.outcome, last.message.as_deref(), last.at.as_ref().map(|a| (a.path.as_str(), a.line))), (Outcome::Failed, Some("no"), Some(("/project/src/a.t", 3))));
+    let ended: Vec<&api::Ended> = out.iter().filter_map(|o| match o {
+        api::Report::Ended(e) => Some(e),
+        _ => None,
+    }).collect();
+    assert_eq!(ended.iter().map(|e| e.outcome).collect::<Vec<_>>(), [Outcome::Failed, Outcome::Passed], "the retry's pass is the last: Fenix keeps it");
+    assert_eq!((ended[0].message.as_deref(), ended[0].at.as_ref().map(|a| (a.path.as_str(), a.line))), (Some("no"), Some(("/project/src/a.t", 3))));
     assert_eq!(out[2], api::Report::Output { id: Some("t adds".into()), text: "one\ntwo".into() });
     assert_eq!(out.len(), 4);
     let _ = std::fs::remove_dir_all(&r.data);
+}
+
+/// A reader that holds a test's phases sends one `Ended`: the worse
+/// outcome, its message and place, the texts in order, the times added.
+#[test]
+fn phases_held_until_whole_are_one_result() {
+    let call = Ended::new("t x", Outcome::Passed).ms(2.0).text("call");
+    let teardown = Ended::new("t x", Outcome::Errored).ms(1.0).message("fixture `db` failed").at(At::new("conftest.py", 9, None)).text("teardown");
+    let whole = call.and_then(teardown);
+    assert_eq!((whole.outcome, whole.ms, whole.message.as_deref(), whole.text.as_deref()), (Outcome::Errored, Some(3.0), Some("fixture `db` failed"), Some("call\nteardown")));
+    let failed = Ended::new("t x", Outcome::Failed).message("assert").and_then(Ended::new("t x", Outcome::Passed));
+    assert_eq!((failed.outcome, failed.message.as_deref()), (Outcome::Failed, Some("assert")));
 }
 
 #[test]
@@ -203,28 +221,93 @@ fn a_run_the_pack_didnt_plan_gets_a_fresh_reader() {
     let _ = (std::fs::remove_dir_all(&r.data), std::fs::remove_dir_all(&again.data));
 }
 
+fn rec(id: &str, parent: Option<&str>, label: &str, kind: Kind) -> api::Found {
+    api::Found { id: id.into(), parent: parent.map(String::from), label: label.into(), kind, ..api::Found::default() }
+}
+
+/// Fenix §19, finding 3: a record whose `parent` is in the ask is part of
+/// a fill-in, one whose `parent` isn't was selected -- no id is read. A
+/// file's fill-in is whole, its suites in its tests' groups; a file with
+/// none comes with what the memory knows under it.
 #[test]
-fn an_ask_is_given_with_the_groups_and_tests_fenix_sent() {
+fn an_ask_is_told_apart_by_its_records_parents() {
     let mut r = rig("ask");
-    let scanned = r.kit.tests_scan("tally", "/project/a.tally", "# test adds\n# test subs\n");
-    let (file, adds) = (scanned[1].clone(), scanned[2].clone());
-    // A test; a file, then the tests Fenix has under it; a file alone.
-    r.kit.tests_plan("tally", 1, api::Ask::Run(vec![adds.clone(), file.clone(), adds, file])).unwrap();
+    r.kit.tests_scan("tally", "/project/a.tally", "# test adds\n# test subs\n");
+    let (tally, file, other) = ("\u{1f}tally", "\u{1f}tally\u{1f}a.tally", "\u{1f}tally\u{1f}b.tally");
+    let suite = format!("{file}\u{1f}deep");
+    let mut adds = rec("t adds", Some(file), "adds", Kind::Test);
+    adds.path = Some("/project/a.tally".into());
+    adds.line = Some(0);
+    let mut file_rec = rec(file, Some(tally), "a.tally", Kind::File);
+    file_rec.path = Some("/project/a.tally".into());
+    // A file and its fill-in (a suite between, then a test in it, then
+    // `adds`), then a test selected beside another file -- its parent, a
+    // file not asked -- then a file without a fill-in.
+    let records = vec![
+        file_rec.clone(),
+        rec(&suite, Some(file), "deep", Kind::Suite),
+        rec("t deep::inner", Some(&suite), "inner", Kind::Test),
+        adds.clone(),
+        rec("t one", Some(other), "one", Kind::Test),
+        rec("\u{1f}tally\u{1f}c.tally", Some(tally), "c.tally", Kind::File),
+    ];
+    r.kit.tests_plan("tally", 1, api::Ask::Run(records)).unwrap();
     let asks = &r.seen.borrow().asks;
     let Ask::Run(items) = &asks[0] else { panic!() };
-    assert_eq!(items.len(), 3);
-    assert!(matches!(&items[0], Asked::Test(f) if f.groups.len() == 2 && f.key.0 == "t adds" && f.line == Some(1)));
-    match &items[1] {
-        Asked::Group { groups, tests, known } => {
+    assert_eq!(items.len(), 3, "{items:?}");
+    match &items[0] {
+        Asked::Group { groups, tests: Some(tests), known } => {
             assert_eq!(groups.iter().map(|g| (g.kind, g.label.as_str())).collect::<Vec<_>>(), [(Kind::Group, "tally"), (Kind::File, "a.tally")]);
-            assert_eq!((tests.len(), known.len()), (1, 0));
+            assert_eq!(tests.iter().map(|t| (t.key.0.as_str(), t.groups.len())).collect::<Vec<_>>(), [("t deep::inner", 3), ("t adds", 2)]);
+            assert_eq!((tests[1].file.as_deref(), tests[1].line), (Some("a.tally"), Some(1)));
+            assert!(known.is_empty());
         }
         other => panic!("{other:?}"),
     }
-    match &items[2] {
-        Asked::Group { tests, known, .. } => assert_eq!((tests.len(), known.clone()), (0, vec![Key::from("t adds"), Key::from("t subs")])),
-        other => panic!("{other:?}"),
-    }
+    assert!(matches!(&items[1], Asked::Test(f) if f.key.0 == "t one" && f.data.is_none()), "selected: its parent isn't in the ask");
+    assert!(matches!(&items[2], Asked::Group { tests: None, .. }), "a file with nothing after it");
+    let _ = std::fs::remove_dir_all(&r.data);
+
+    // A file alone: no fill-in (it didn't fit, or a test in it can't be
+    // named), so the runner's own filter, and what the memory knows.
+    let mut r = rig("ask-alone");
+    r.kit.tests_scan("tally", "/project/a.tally", "# test adds\n# test subs\n");
+    r.kit.tests_plan("tally", 1, api::Ask::Run(vec![rec(file, Some(tally), "a.tally", Kind::File), rec("t zed", None, "zed", Kind::Test)])).unwrap();
+    let asks = &r.seen.borrow().asks;
+    let Ask::Run(items) = &asks[0] else { panic!() };
+    assert_eq!(items[0], Asked::Group { groups: vec![Group::package("tally"), Group::new(Kind::File, "a.tally")], tests: None, known: vec![Key::from("t adds"), Key::from("t subs")] });
+    assert!(matches!(&items[1], Asked::Test(f) if f.key.0 == "t zed" && f.groups.is_empty()), "at the top: Fenix never found its parent");
+    let _ = std::fs::remove_dir_all(&r.data);
+}
+
+/// Fenix §19, finding 2: after the pack starts again (no memory) or
+/// Fenix does (no `data`), a test asked is planned from what Fenix sent:
+/// its id, its place, its parent's labels.
+#[test]
+fn an_ask_after_a_restart_is_planned_from_the_records_alone() {
+    let mut r = rig("restart-ask");
+    let file = "\u{1f}tally\u{1f}src/a.tally";
+    let mut adds = rec("t adds", Some(file), "adds", Kind::Test);
+    adds.path = Some("/project/src/a.tally".into());
+    adds.line = Some(4);
+    r.kit.tests_plan("tally", 1, api::Ask::Run(vec![adds])).unwrap();
+    let asks = &r.seen.borrow().asks;
+    let Ask::Run(items) = &asks[0] else { panic!() };
+    let Asked::Test(f) = &items[0] else { panic!() };
+    assert_eq!((f.key.0.as_str(), f.file.as_deref(), f.line, f.data.as_deref()), ("t adds", Some("src/a.tally"), Some(5), None));
+    assert_eq!(f.groups.iter().map(|g| g.label.as_str()).collect::<Vec<_>>(), ["tally", "src/a.tally"], "read back from its parent's id");
+    let _ = std::fs::remove_dir_all(&r.data);
+}
+
+/// Fenix §19, K9: a `found` in a build-first plan is ignored, so it isn't
+/// sent.
+#[test]
+fn a_build_sends_no_found() {
+    let mut r = rig("build-found");
+    r.kit.tests_scan("tally", "/project/a.tally", "# test adds\n");
+    let adds = rec("t adds", Some("\u{1f}tally\u{1f}a.tally"), "adds", Kind::Test);
+    r.kit.tests_launch("tally", 4, adds).unwrap();
+    assert!(r.kit.tests_read("tally", 4, 0, vec![line("FOUND gen")]).is_empty());
     let _ = std::fs::remove_dir_all(&r.data);
 }
 

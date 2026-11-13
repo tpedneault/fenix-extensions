@@ -3,10 +3,18 @@
 //! output: [`Fenix`] scans a file's text, asks for a plan, runs each step
 //! by giving the provider recorded lines as Fenix would, ends it, and
 //! keeps what Fenix would then hold -- the tests found, each one's state,
-//! what didn't build -- by Fenix's rules as its plan states them
-//! (Fenix's `docs/plans/test-explorer.md`, cited as *Fenix §n*). Where
-//! that plan doesn't say, it takes the strictest reading, and the README
-//! lists each under "Not yet specified by Fenix".
+//! what didn't build -- by Fenix's rules: its plan (Fenix's
+//! `docs/plans/test-explorer.md`, cited as *Fenix §n*, its review of steps
+//! 1 and 2 as *Fenix §19*) and its model, `fenix-tests`, whose numbered
+//! Decisions (`fenix-tests/src/lib.rs`) are cited as *Decisions n*.
+//!
+//! It is as strict as Fenix, no more: what Fenix refuses or loses --
+//! a step it wouldn't start, a plan, answer or `data` past its limits --
+//! fails the test (or, [`Fenix::lenient`], is handled as Fenix handles
+//! it); what Fenix accepts and says once on the provider's output page --
+//! an id over 1 KiB cut, a label, path, skip, message or text cut, a
+//! `broken` naming a node it never found -- it does too, in
+//! [`Fenix::said`].
 //!
 //! On API 1.5 it calls the five methods of lang-kit's `Kit` ([`Exports`]);
 //! once the kits are on 1.6 the pack's `impl Extension` is one too.
@@ -20,20 +28,26 @@ use std::time::{Duration, Instant};
 
 use fenix_extension_api::{Command, LaunchConfig};
 pub use fenix_lang_kit::tests::api;
-use fenix_lang_kit::tests::{command_line_len, cut_id, BATCH_FILE_MAX, ID_MAX, LABEL_MAX, WINDOWS_MAX};
+use fenix_lang_kit::tests::{batch_file_line_len, command_line_len, cut_id, BATCH_FILE_MAX, ID_MAX, LABEL_MAX, WINDOWS_MAX};
 use fenix_lang_kit::Kit;
 
 use api::{Ask, Found, Kind, Line, Plan, Report, Step, StepEnd};
 pub use feed::{batches, interleave, lines, strip_ansi, Order, BATCH_BYTES, BATCH_LINES, CUT_AT};
-pub use model::{Detail, Model, Node, Record, Source, State};
+pub use model::{Detail, Model, Node, Record, Source, State, DATA_PER_PROVIDER};
 
 use crate::Fake;
 
-/// What `${data}` and `${tools}` count as in a step's command line: a
-/// data folder's length on Windows, since Fenix fills them in before it
-/// starts the step (and its plan doesn't say whether its limit is
-/// counted before).
+/// What `${data}` is filled in with when a step's command line is
+/// counted (Fenix §19, K2): a data folder as long as Windows' would be.
 pub const DATA_ON_WINDOWS: &str = r"C:\Users\someone\AppData\Roaming\Fenix\data\extensions\fenix.pack";
+
+/// What `${tools}` is filled in with, the same way.
+pub const TOOLS_ON_WINDOWS: &str = r"C:\Users\someone\AppData\Roaming\Fenix\tools\extensions\fenix.pack";
+
+/// Where a program named without a path is taken to resolve to when a
+/// command line is counted: Fenix counts the program's full path (Fenix
+/// §19, K2), which depends on the machine.
+pub const PROGRAMS_ON_WINDOWS: &str = r"C:\Users\someone\AppData\Local\Programs";
 
 /// Fenix's limits (Fenix §6.5).
 const FOUND_MAX: usize = 10_000;
@@ -43,9 +57,11 @@ const COVERS_MAX: usize = 10_000;
 const NEEDS_MAX: usize = 32;
 const ENV_MAX: usize = 64 * 1024;
 const PATH_MAX: usize = 4 * 1024;
+const SKIP_MAX: usize = 1024;
 const DATA_MAX: usize = 4 * 1024;
+const MESSAGE_MAX: usize = 4 * 1024;
+const TEXT_MAX: usize = 64 * 1024;
 const ASK_MAX: usize = 10_000;
-const PRINTED_MAX: usize = 64 * 1024;
 
 /// What runs without a result end as when their step exited (Fenix §8.5).
 pub const NO_RESULT: &str = "the run ended without a result for it";
@@ -200,7 +216,8 @@ impl Recorded {
 pub enum Purpose {
     Listing,
     Tests,
-    /// A `build-first` plan before a launch: its `ended`s are ignored.
+    /// A `build-first` plan before a launch: its `found`s and `ended`s are
+    /// ignored (Decisions 17).
     Build,
 }
 
@@ -224,13 +241,19 @@ pub struct Run {
     /// `tests-plan`'s error.
     pub error: Option<String>,
     pub steps: Vec<Ran>,
+    /// What the plan said.
     pub list_after: bool,
+    /// Whether Fenix lists after it (Decisions 23): `list_after`, every
+    /// step exited and nothing was `broken` (a `crashed` doesn't stop it).
+    /// The driver doesn't run that listing itself: `discover` does.
+    pub lists_after: bool,
     /// Each `broken` and `crashed`: its id and message.
     pub broken: Vec<(Option<String>, String)>,
     pub crashed: Vec<(Option<String>, String)>,
     /// What the page's head says when it was stopped.
     pub stopped: Option<String>,
-    /// Every step exited and nothing was broken or crashed (Fenix §4).
+    /// Planned, with at least one step, every step exited, nothing broken
+    /// or crashed, not stopped (Fenix §4).
     pub complete: bool,
 }
 
@@ -269,6 +292,9 @@ pub struct Fenix<E: Exports> {
     /// Fenix's "a few milliseconds" (§6.5); 50 ms in a debug build, whose
     /// code is about ten times slower.
     pub budget: Duration,
+    /// `tests.timeout_minutes`, for what a timed-out test's message says
+    /// (`timed out after 30 min`).
+    pub timeout_minutes: u32,
     strict: bool,
     said: Vec<String>,
     slowest: Duration,
@@ -282,45 +308,102 @@ impl<E: Exports> Drop for Fenix<E> {
     }
 }
 
-/// Run state Fenix keeps while a plan runs.
+/// What Fenix keeps while a provider's plan runs (`fenix-tests`' `Part`
+/// and `Run`).
 struct Cx {
     provider: String,
     purpose: Purpose,
-    queued: Vec<String>,
-    /// The nodes asked for; none: all of them.
-    asked: Option<HashSet<String>>,
-    /// Each test's state before the run, to go back to on a stop.
-    before: HashMap<String, (State, Detail)>,
-    ended: HashSet<String>,
-    /// What the provider's reports named: found, or ended.
+    /// The nodes selected, topmost; none: all of the provider's. What a
+    /// step judges is what's counted under them (Decisions 10).
+    sel: Option<Vec<String>>,
+    /// Each test's own state before the run, to go back to.
+    before: HashMap<String, State>,
+    /// The tests with a result in this run.
+    results: HashSet<String>,
+    /// The tests this run made queued or running.
+    overlaid: HashSet<String>,
+    /// What a report named: found, started, ended, printed.
     named: HashSet<String>,
-    found: HashSet<String>,
-    listed: HashSet<String>,
-    /// The step's covers and what's ended in it.
-    covers: Vec<String>,
-    step_ended: HashSet<String>,
-    /// Every step's covered tests so far.
-    covered: HashSet<String>,
+    /// What a test printed before its result came.
+    printed: HashMap<String, String>,
+    /// Each step's covers, and every id some step's covers names.
+    covers: Vec<HashSet<String>>,
+    named_by_steps: HashSet<String>,
+    started_seen: bool,
+    rest_running: bool,
+    all_exited: bool,
+    all_zero: bool,
+    broken: bool,
+    crashed: bool,
+    halted: Option<StepEnd>,
     cwd: Option<String>,
     run: Run,
 }
 
-/// `path` as Fenix maps it: `/project/x` and a relative one (to `base`,
-/// below the project) as `x`; a full path as it is.
+/// `path` as Fenix maps it (Fenix §6.4 "Paths"; Decisions 1): `/project/x`
+/// and a relative one (to `base`, a step's folder, else the project) as
+/// `x`, with `/`; a full path as it is.
 fn place(path: &str, base: Option<&str>) -> String {
     if let Some(rest) = path.strip_prefix("/project/") {
-        return rest.to_string();
+        return rest.replace('\\', "/");
     }
-    let full = path.starts_with(['/', '\\']) || (path.len() > 1 && path.as_bytes()[1] == b':');
-    if full {
+    if is_full(path) {
         return path.to_string();
     }
     let rel = path.replace('\\', "/");
     let rel = rel.strip_prefix("./").unwrap_or(&rel);
     match base.map(|b| b.strip_prefix("/project").unwrap_or(b).trim_matches('/')) {
-        Some(b) if !b.is_empty() => format!("{b}/{rel}"),
+        Some(b) if !b.is_empty() && !is_full(b) => format!("{b}/{rel}"),
         _ => rel.to_string(),
     }
+}
+
+fn is_full(path: &str) -> bool {
+    path.starts_with(['/', '\\']) || (path.len() > 1 && path.as_bytes()[1] == b':' && path.as_bytes()[0].is_ascii_alphabetic())
+}
+
+/// `s` to at most `max` bytes, its start kept, at a character's edge.
+fn cut_start(s: &str, max: usize) -> &str {
+    if s.len() <= max {
+        return s;
+    }
+    let mut end = max;
+    while !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    &s[..end]
+}
+
+/// `s` to at most `max` bytes, its end kept.
+fn cut_end(s: &str, max: usize) -> &str {
+    if s.len() <= max {
+        return s;
+    }
+    let mut start = s.len() - max;
+    while !s.is_char_boundary(start) {
+        start += 1;
+    }
+    &s[start..]
+}
+
+fn cut_chars(s: &str, max: usize) -> &str {
+    match s.char_indices().nth(max) {
+        Some((at, _)) => &s[..at],
+        None => s,
+    }
+}
+
+/// `n` with a comma each three digits, as Fenix writes its numbers.
+fn thousands(n: usize) -> String {
+    let digits = n.to_string();
+    let mut out = String::new();
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
 }
 
 impl<E: Exports> Fenix<E> {
@@ -349,6 +432,7 @@ impl<E: Exports> Fenix<E> {
             cut_at: CUT_AT,
             order: Order::Recorded,
             budget: if cfg!(debug_assertions) { Duration::from_millis(50) } else { Duration::from_millis(5) },
+            timeout_minutes: 30,
             strict: true,
             said: Vec::new(),
             slowest: Duration::ZERO,
@@ -386,8 +470,9 @@ impl<E: Exports> Fenix<E> {
         self
     }
 
-    /// A program that's a `.cmd` or `.bat` on Windows: its command line is
-    /// held to 8,191.
+    /// A program that resolves to a `.cmd` or `.bat` on Windows: its
+    /// command line is counted as Rust gives it to `cmd.exe`, and held to
+    /// 8,191.
     pub fn batch_file(&mut self, program: &str) -> &mut Self {
         self.batch_files.push(program.into());
         self
@@ -412,6 +497,17 @@ impl<E: Exports> Fenix<E> {
         self
     }
 
+    /// Every node of `provider` without its `data`, as after Fenix starts
+    /// again, until a scan, listing or run gives it again (Fenix §19,
+    /// finding 2): a pack's asks and launches then come with `data`
+    /// `None`, and it plans from the id alone. A node whose id was cut
+    /// isn't asked for itself then, but as its nearest ancestor Fenix can
+    /// name (Decisions 32).
+    pub fn forget_data(&mut self, provider: &str) -> &mut Self {
+        self.model_mut(provider).forget_data();
+        self
+    }
+
     /// Breaking Fenix's rules is said (as on the provider's output page,
     /// [`Fenix::said`]) and handled as Fenix does, instead of failing the
     /// test.
@@ -420,7 +516,8 @@ impl<E: Exports> Fenix<E> {
         self
     }
 
-    /// What Fenix said on the provider's output page.
+    /// What Fenix said on the provider's output page: what it cut, and,
+    /// leniently, the rules broken.
     pub fn said(&self) -> &[String] {
         &self.said
     }
@@ -456,11 +553,21 @@ impl<E: Exports> Fenix<E> {
         self.on_step(move |s| command_text(&s.command) == args, recorded)
     }
 
+    /// A rule Fenix enforces by refusing or losing something: fails the
+    /// test, or, leniently, is said.
     fn violate(&mut self, what: String) {
         if self.strict {
             panic!("against Fenix's rules: {what}");
         }
         self.said.push(what);
+    }
+
+    /// What Fenix accepts and says once on the provider's output page.
+    fn note(&mut self, what: impl Into<String>) {
+        let what = what.into();
+        if !self.said.contains(&what) {
+            self.said.push(what);
+        }
     }
 
     fn timed<R>(&mut self, what: &str, f: impl FnOnce(&mut E) -> R) -> R {
@@ -483,7 +590,7 @@ impl<E: Exports> Fenix<E> {
         self.models.entry(provider.to_string()).or_default()
     }
 
-    /// Test `id`'s state.
+    /// Node `id`'s state: a test's own, a group's from what's under it.
     pub fn state(&self, provider: &str, id: &str) -> State {
         self.model(provider).state(id)
     }
@@ -508,120 +615,164 @@ impl<E: Exports> Fenix<E> {
         self.model(provider).nodes.keys().cloned().collect()
     }
 
-    /// Asserts each test's state.
+    /// Asserts each node's state.
     #[track_caller]
     pub fn assert_states(&self, provider: &str, expected: &[(&str, State)]) {
         let got: Vec<(&str, State)> = expected.iter().map(|(id, _)| (*id, self.state(provider, id))).collect();
         assert_eq!(got, expected, "states as Fenix holds them:\n{}", self.tree(provider));
     }
 
-    /// What the pack told Fenix it runs, last: runner and problem.
+    /// What the pack told Fenix it runs, last: runner and problem. Fenix
+    /// keeps it per project across the pack starting again (Fenix §19,
+    /// K13).
     pub fn told(&self, provider: &str) -> Option<(String, Option<String>)> {
         self.fake.as_ref()?.test_providers().into_iter().rev().find(|(p, _, _)| p == provider).map(|(_, r, p)| (r, p))
     }
 
+    /// Node `id` as Fenix gives it back, in an ask or to `tests-launch`
+    /// (Fenix §6.4 "What Fenix gives back"): merged; its path
+    /// `/project/<path>` (a full path outside the project); its `parent`
+    /// the one Fenix put it under; its `data` as kept, or none.
+    pub fn given_back(&self, provider: &str, id: &str) -> Option<Found> {
+        let model = self.model(provider);
+        let r = model.record(id)?;
+        let path = r.path.as_ref().map(|p| if is_full(p) { p.clone() } else { format!("/project/{p}") });
+        Some(Found { id: id.into(), parent: model.parent(id), label: r.label, kind: r.kind, path, line: r.line, end_line: r.end_line, skip: r.skip, template: r.template, data: r.data })
+    }
+
     /// `tests-scan` of `path` (`/project/<path>`), whose text is `text`;
-    /// its answer replaces the file's last scan (Fenix §4, §6.4).
+    /// its answer replaces the file's last scan (Fenix §4, §6.4): what it
+    /// no longer gives loses that file's record, and an empty answer drops
+    /// the file's tests (their results kept should they come back,
+    /// Decisions 29).
     pub fn scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<Found> {
         assert!(path.starts_with("/project/"), "Fenix scans files as /project/<path>: {path}");
         assert!(text.len() <= 1 << 20, "Fenix doesn't scan a file over 1 MiB");
-        let mut answer = self.timed("tests-scan", |e| e.tests_scan(provider, path, text));
-        if answer.len() > FOUND_MAX {
-            self.violate(format!("the scan of {path} gave {} tests; Fenix keeps {FOUND_MAX}", answer.len()));
-            answer.truncate(FOUND_MAX);
+        let answer = self.timed("tests-scan", |e| e.tests_scan(provider, path, text));
+        let mut found = answer.clone();
+        if found.len() > FOUND_MAX {
+            self.violate(format!("the scan of {path} gave {} tests; Fenix keeps {FOUND_MAX}", found.len()));
+            found.truncate(FOUND_MAX);
         }
         let file = place(path, None);
-        let mut ids = Vec::new();
-        let mut earlier = HashSet::new();
-        for f in &answer {
-            let Some(id) = self.check_found(provider, f, &earlier) else { continue };
-            earlier.insert(id.clone());
+        let mut given = Vec::new();
+        for f in found {
+            // A scan's missing path is the file scanned, for every kind
+            // but a group (Decisions 2).
             let path = match (&f.path, f.kind) {
                 (Some(p), _) => Some(place(p, None)),
-                (None, Kind::Test | Kind::Case) => Some(file.clone()),
-                (None, _) => None,
+                (None, Kind::Group) => None,
+                (None, _) => Some(file.clone()),
             };
-            let model = self.model_mut(provider);
-            model.set(&id, Source::Scan, Record::from(f, path));
-            model.nodes.get_mut(&id).expect("set").scanned_by.insert(file.clone());
-            ids.push(id);
+            // The same id twice: the later record replaces the earlier
+            // (Decisions 3).
+            let Some(id) = self.set_found(provider, f, path, Source::Scan, Some(&file)) else { continue };
+            given.push(id);
         }
         let model = self.model_mut(provider);
-        let now: HashSet<&String> = ids.iter().collect();
+        let now: HashSet<&String> = given.iter().collect();
         for old in model.scans.remove(&file).unwrap_or_default() {
-            if now.contains(&old) {
-                continue;
-            }
-            if let Some(n) = model.nodes.get_mut(&old) {
-                n.scanned_by.remove(&file);
-                if n.scanned_by.is_empty() {
-                    model.drop_record(&old, Source::Scan);
-                }
+            if !now.contains(&old) {
+                model.drop_record(&old, Source::Scan, Some(&file), false);
             }
         }
-        model.scans.insert(file, ids);
+        model.scans.insert(file, given);
         answer
     }
 
-    /// A `found-test` held to Fenix's limits: its id, as Fenix keeps it.
-    fn check_found(&mut self, provider: &str, f: &Found, earlier: &HashSet<String>) -> Option<String> {
+    /// A `found-test` held to Fenix's sizes (Fenix §6.5) and kept as
+    /// `source`'s record: its id, as Fenix keys it.
+    fn set_found(&mut self, provider: &str, mut f: Found, path: Option<String>, source: Source, file: Option<&str>) -> Option<String> {
         if f.id.len() > ID_MAX {
-            self.violate(format!("an id of {} bytes; Fenix cuts it to {ID_MAX}: {}…", f.id.len(), &cut_id(&f.id)[..40.min(f.id.len())]));
+            self.note("an id over 1 KiB was cut to 1 KiB, ending in a hash of the whole");
+            f.id = cut_id(&f.id).into_owned();
         }
-        if f.label.chars().count() > LABEL_MAX {
-            self.violate(format!("{}'s label is over {LABEL_MAX} characters", f.id));
-        }
-        if f.path.as_ref().is_some_and(|p| p.len() > PATH_MAX) || f.parent.as_ref().is_some_and(|p| p.len() > ID_MAX) || f.skip.as_ref().is_some_and(|s| s.len() > ID_MAX) {
-            self.violate(format!("{}'s path, parent or skip is over Fenix's limit", f.id));
-        }
-        if f.data.as_ref().is_some_and(|d| d.len() > DATA_MAX) {
-            self.violate(format!("{}'s data is over 4 KiB", f.id));
-        }
-        let id = cut_id(&f.id).into_owned();
-        if earlier.contains(&id) {
-            self.violate(format!("{id} twice in one scan"));
-            return None;
-        }
-        if let Some(p) = &f.parent {
-            let p = cut_id(p);
-            if !self.model(provider).has(&p) && !earlier.contains(p.as_ref()) {
-                self.violate(format!("{id} came before its parent {p}: a group comes before its children (Fenix §6.5)"));
+        if let Some(p) = &mut f.parent {
+            if p.len() > ID_MAX {
+                *p = cut_id(p).into_owned();
+                self.note("an id over 1 KiB was cut to 1 KiB, ending in a hash of the whole");
             }
         }
-        if f.id.starts_with('\u{1f}') != matches!(f.kind, Kind::Group | Kind::File | Kind::Suite) {
-            self.violate(format!("{id} is a {:?}, but lang-kit gives groups' ids a U+001F before each label and tests' none", f.kind));
+        if f.label.chars().count() > LABEL_MAX {
+            f.label = cut_chars(&f.label, LABEL_MAX).to_string();
+            self.note("a label over 256 characters was cut");
+        }
+        let mut path = path;
+        if let Some(p) = &mut path {
+            if p.len() > PATH_MAX {
+                *p = cut_start(p, PATH_MAX).to_string();
+                self.note("a path over 4 KiB was cut");
+            }
+        }
+        if let Some(skip) = &mut f.skip {
+            if skip.len() > SKIP_MAX {
+                *skip = cut_start(skip, SKIP_MAX).to_string();
+                self.note("a skip's reason over 1 KiB was cut");
+            }
+        }
+        if f.data.as_ref().is_some_and(|d| d.len() > DATA_MAX) {
+            // Not kept, so not given back: the pack would plan without it.
+            self.violate(format!("{}'s data is over 4 KiB, which Fenix doesn't keep", f.id));
+            f.data = None;
+        }
+        let id = f.id.clone();
+        if let Some(said) = self.model_mut(provider).set(&id, source, file, Record::from(&f, path)) {
+            self.note(said);
         }
         Some(id)
     }
 
-    /// The ask Fenix makes to run `ids` (Fenix §4, "What the provider is
-    /// asked"): each node as it has it now, each file or suite followed by
-    /// the tests and cases under it while the ask stays within 10,000
-    /// records; more than 10,000 asked as their parents.
+    /// The ask Fenix makes to run `ids` (Fenix §4 "What the provider is
+    /// asked", §19 findings 2 and 3; Decisions 20 and 32), as
+    /// `fenix-tests`' `ask_records` makes it: the topmost of them, each
+    /// one its provider can't name (a cut id whose `data` isn't kept) as
+    /// its nearest ancestor it can; past 10,000, the deepest as their
+    /// parents until they fit (at the top, `run-all`); in the page's
+    /// order, each file or suite followed by its fill-in -- every node
+    /// under it, suites included, in the page's order -- whole, while it
+    /// fits in what's left of the 10,000 and holds nothing that can't be
+    /// named. Each record is the node as [`Fenix::given_back`] gives it.
     pub fn ask_for(&self, provider: &str, ids: &[&str]) -> Ask {
         let model = self.model(provider);
-        let mut sel: Vec<String> = ids.iter().map(|s| s.to_string()).collect();
-        while sel.len() > ASK_MAX {
-            let mut parents: Vec<String> = Vec::new();
-            for id in &sel {
-                match model.record(id).and_then(|r| r.parent) {
-                    Some(p) if !parents.contains(&p) => parents.push(p),
-                    Some(_) => {}
-                    None => return Ask::RunAll,
-                }
+        let topmost = |nodes: Vec<String>| -> Vec<String> {
+            let set: HashSet<&String> = nodes.iter().collect();
+            let mut top: Vec<String> = nodes.iter().filter(|n| !model.ancestry(n).iter().skip(1).any(|a| set.contains(a))).cloned().collect();
+            top.sort();
+            top.dedup();
+            top
+        };
+        let nameable = |nodes: Vec<String>| -> Option<Vec<String>> {
+            let mut out = Vec::new();
+            for n in nodes {
+                out.push(model.ancestry(&n).into_iter().find(|a| model.can_be_named(a))?);
             }
-            sel = parents;
+            Some(topmost(out))
+        };
+        let sel = ids.iter().map(|i| cut_id(i).into_owned()).filter(|i| model.has(i)).collect();
+        let Some(mut nodes) = nameable(topmost(sel)) else { return Ask::RunAll };
+        while nodes.len() > ASK_MAX {
+            let deepest = nodes.iter().map(|n| model.depth(n)).max().unwrap_or(0);
+            if deepest == 0 {
+                return Ask::RunAll;
+            }
+            let coarser = nodes.iter().map(|n| if model.depth(n) == deepest { model.parent(n).unwrap_or_else(|| n.clone()) } else { n.clone() }).collect();
+            match nameable(coarser) {
+                Some(n) => nodes = n,
+                None => return Ask::RunAll,
+            }
         }
+        nodes.sort_by_key(|n| model.order(n));
+        let mut room = ASK_MAX - nodes.len();
         let mut records = Vec::new();
-        for id in &sel {
-            let Some(r) = model.record(id) else { continue };
-            let kind = r.kind;
-            records.push(api_found(id, &r));
-            if matches!(kind, Kind::File | Kind::Suite) {
-                let under = model.tests_under(id);
-                if records.len() + under.len() <= ASK_MAX {
-                    records.extend(under.iter().filter_map(|t| model.record(t).map(|r| api_found(t, &r))));
-                }
+        for n in nodes {
+            records.extend(self.given_back(provider, &n));
+            if !model.record(&n).is_some_and(|r| matches!(r.kind, Kind::File | Kind::Suite)) {
+                continue;
+            }
+            let under = model.descendants(&n);
+            if under.len() <= room && under.iter().all(|u| model.can_be_named(u)) {
+                room -= under.len();
+                records.extend(under.iter().filter_map(|u| self.given_back(provider, u)));
             }
         }
         Ask::Run(records)
@@ -629,227 +780,315 @@ impl<E: Exports> Fenix<E> {
 
     /// A listing (`discover`).
     pub fn discover(&mut self, provider: &str) -> Run {
-        self.go(provider, Ask::Discover)
+        self.go(provider, Ask::Discover, None)
     }
 
     /// Every test.
     pub fn run_all(&mut self, provider: &str) -> Run {
-        self.go(provider, Ask::RunAll)
+        self.go(provider, Ask::RunAll, None)
     }
 
-    /// These tests, files or groups.
+    /// These tests, files or groups: asked as [`Fenix::ask_for`] asks.
     pub fn run(&mut self, provider: &str, ids: &[&str]) -> Run {
         let ask = self.ask_for(provider, ids);
-        self.go(provider, ask)
+        let model = self.model(provider);
+        let sel: Vec<String> = ids.iter().map(|i| cut_id(i).into_owned()).filter(|i| model.has(i)).collect();
+        let set: HashSet<&String> = sel.iter().collect();
+        let top: Vec<String> = sel.iter().filter(|n| !model.ancestry(n).iter().skip(1).any(|a| set.contains(a))).cloned().collect();
+        let sel = if ask == Ask::RunAll { None } else { Some(top) };
+        self.go(provider, ask, sel)
+    }
+
+    /// A file's tests (`SPC T f`, Decisions 27): every node but a group
+    /// whose file is `path` (`/project/<path>`), its own or the one it's
+    /// in.
+    pub fn run_file(&mut self, provider: &str, path: &str) -> Run {
+        let file = place(path, None);
+        let ids: Vec<String> = self.model(provider).nodes.keys().filter(|k| self.record(provider, k).is_some_and(|r| r.kind != Kind::Group) && self.file_of(provider, k).as_deref() == Some(file.as_str())).cloned().collect();
+        let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+        self.run(provider, &ids)
+    }
+
+    /// Node `id`'s file as Fenix keeps it: its own path, else the one of
+    /// what it's in, up to a group (`fenix-tests`' `build_node`).
+    fn file_of(&self, provider: &str, id: &str) -> Option<String> {
+        let model = self.model(provider);
+        for a in model.ancestry(id) {
+            let r = model.record(&a)?;
+            if r.path.is_some() {
+                return r.path;
+            }
+            if r.kind == Kind::Group {
+                return None;
+            }
+        }
+        None
     }
 
     /// The failed again (Fenix §8.4): every test failed or errored.
     pub fn run_failed(&mut self, provider: &str) -> Run {
-        let failed: Vec<String> = self.model(provider).nodes.iter().filter(|(_, n)| matches!(n.state, State::Failed | State::Errored)).map(|(k, _)| k.clone()).collect();
+        let failed = self.failed(provider);
         let ids: Vec<&str> = failed.iter().map(String::as_str).collect();
         self.run(provider, &ids)
     }
 
-    /// The ids failed or errored now.
+    /// The tests failed or errored now.
     pub fn failed(&self, provider: &str) -> Vec<String> {
-        self.model(provider).nodes.iter().filter(|(_, n)| matches!(n.state, State::Failed | State::Errored)).map(|(k, _)| k.clone()).collect()
+        let model = self.model(provider);
+        model.nodes.iter().filter(|(k, n)| matches!(n.state, State::Failed | State::Errored) && model.record(k).is_some_and(|r| model::is_test(r.kind))).map(|(k, _)| k.clone()).collect()
     }
 
-    fn go(&mut self, provider: &str, ask: Ask) -> Run {
+    fn cx(&self, provider: &str, id: u64, purpose: Purpose, sel: Option<Vec<String>>) -> Cx {
+        Cx {
+            provider: provider.into(),
+            purpose,
+            sel,
+            before: HashMap::new(),
+            results: HashSet::new(),
+            overlaid: HashSet::new(),
+            named: HashSet::new(),
+            printed: HashMap::new(),
+            covers: Vec::new(),
+            named_by_steps: HashSet::new(),
+            started_seen: false,
+            rest_running: false,
+            all_exited: true,
+            all_zero: true,
+            broken: false,
+            crashed: false,
+            halted: None,
+            cwd: None,
+            run: Run { id, error: None, steps: Vec::new(), list_after: false, lists_after: false, broken: Vec::new(), crashed: Vec::new(), stopped: None, complete: false },
+        }
+    }
+
+    /// What's counted under the selection now, cases found in the run
+    /// included (Decisions 10).
+    fn universe(&self, cx: &Cx) -> Vec<String> {
+        let model = self.model(&cx.provider);
+        match &cx.sel {
+            None => model.all_tests(),
+            Some(nodes) => {
+                let mut out: Vec<String> = nodes.iter().flat_map(|n| model.tests_under(n)).collect();
+                out.sort();
+                out.dedup();
+                out
+            }
+        }
+    }
+
+    fn in_universe(&self, cx: &Cx, leaf: &str) -> bool {
+        match &cx.sel {
+            None => true,
+            Some(nodes) => self.model(&cx.provider).ancestry(leaf).iter().any(|a| nodes.contains(a)),
+        }
+    }
+
+    fn in_covers(&self, cx: &Cx, id: &str, covers: &HashSet<String>) -> bool {
+        !covers.is_empty() && self.model(&cx.provider).ancestry(id).iter().any(|a| covers.contains(a))
+    }
+
+    /// Step `step`'s own tests -- a covered id stands for what's under it
+    /// -- or, for a step whose `covers` is empty, the plan's rest: what
+    /// of the ask no step names (Fenix §8.5; Decisions 11).
+    fn step_scope(&self, cx: &Cx, step: usize) -> Vec<String> {
+        let covers = &cx.covers[step];
+        self.universe(cx).into_iter().filter(|l| if covers.is_empty() { !self.in_covers(cx, l, &cx.named_by_steps) } else { self.in_covers(cx, l, covers) }).collect()
+    }
+
+    fn set_live(&mut self, cx: &mut Cx, id: &str, state: State) {
+        let model = self.models.entry(cx.provider.clone()).or_default();
+        let Some(n) = model.nodes.get_mut(id) else { return };
+        cx.before.entry(id.to_string()).or_insert(n.state);
+        cx.overlaid.insert(id.to_string());
+        n.state = state;
+    }
+
+    /// Back to what it was before the run: its last result, or none.
+    fn back(&mut self, cx: &Cx, id: &str) {
+        let model = self.models.entry(cx.provider.clone()).or_default();
+        if let (Some(n), Some(s)) = (model.nodes.get_mut(id), cx.before.get(id)) {
+            if matches!(n.state, State::Queued | State::Running) {
+                n.state = *s;
+            }
+        }
+    }
+
+    /// Test `id`'s result in this run: the last `ended` wins (Fenix §4 "A
+    /// result"); what it printed before it, kept with it.
+    fn give_result(&mut self, cx: &mut Cx, id: &str, outcome: api::Outcome, detail: Detail) {
+        let again = !cx.results.insert(id.to_string());
+        let pending = cx.printed.remove(id).unwrap_or_default();
+        let model = self.models.entry(cx.provider.clone()).or_default();
+        let Some(n) = model.nodes.get_mut(id) else { return };
+        cx.before.entry(id.to_string()).or_insert(n.state);
+        if !again {
+            n.printed.clear();
+        }
+        n.printed.push_str(&pending);
+        n.printed = cut_end(&n.printed, TEXT_MAX).to_string();
+        n.state = State::of(outcome);
+        n.result = detail;
+    }
+
+    fn errored(&mut self, cx: &mut Cx, id: &str, message: &str, at: Option<(String, u32, Option<u32>)>) {
+        self.give_result(cx, id, api::Outcome::Errored, Detail { message: Some(message.into()), at, text: None, duration_ms: None });
+    }
+
+    fn timed_out(&self) -> String {
+        format!("timed out after {} min", self.timeout_minutes)
+    }
+
+    /// Tests without a result in the run, judged by how their step ended
+    /// (Fenix §8.3, §8.4, §8.5): stopped, back to what they were; exited,
+    /// errored "the run ended without a result for it", unless their file
+    /// has unsaved edits (back); timed out or failed, errored with why.
+    fn judge(&mut self, cx: &mut Cx, leaves: Vec<String>, end: &StepEnd) {
+        let timed_out = self.timed_out();
+        for t in leaves {
+            if cx.results.contains(&t) || !self.model(&cx.provider).has(&t) {
+                continue;
+            }
+            let unsaved = self.file_of(&cx.provider, &t).is_some_and(|f| self.unsaved.contains(&f));
+            match end {
+                StepEnd::Stopped => self.back(cx, &t),
+                StepEnd::Exited(_) if unsaved => self.back(cx, &t),
+                StepEnd::Exited(_) => self.errored(cx, &t, NO_RESULT, None),
+                StepEnd::TimedOut => self.errored(cx, &t, &timed_out, None),
+                StepEnd::Failed(why) => self.errored(cx, &t, cut_start(why, MESSAGE_MAX), None),
+            }
+        }
+    }
+
+    fn go(&mut self, provider: &str, ask: Ask, sel: Option<Vec<String>>) -> Run {
         let id = self.next_run;
         self.next_run += 1;
-        let model = self.model(provider);
-        let queued: Vec<String> = match &ask {
-            Ask::Discover => Vec::new(),
-            Ask::RunAll => model.all_tests(),
-            Ask::Run(records) => {
-                let mut q: Vec<String> = Vec::new();
-                let mut seen = HashSet::new();
-                for r in records {
-                    for t in model.tests_under(&r.id) {
-                        if seen.insert(t.clone()) {
-                            q.push(t);
-                        }
-                    }
-                }
-                q
-            }
-        };
         let purpose = if ask == Ask::Discover { Purpose::Listing } else { Purpose::Tests };
-        let mut cx = self.cx(provider, id, purpose, queued);
-        if let Ask::Run(records) = &ask {
-            cx.asked = Some(records.iter().map(|r| r.id.clone()).collect());
+        let mut cx = self.cx(provider, id, purpose, sel);
+        if self.told(provider) == Some((String::new(), None)) {
+            // It said it has nothing to run here: Fenix doesn't show it or
+            // ask it (Fenix §6.3 `test-provider-set`).
+            self.note(format!("{provider} has nothing to run in this project: not asked"));
+            return cx.run;
         }
-        for t in cx.queued.clone() {
-            self.set_state(&mut cx, &t, State::Queued);
+        if purpose == Purpose::Tests {
+            // Every test the run has is queued (Fenix §4 "States").
+            for t in self.universe(&cx) {
+                self.set_live(&mut cx, &t, State::Queued);
+            }
         }
         let planned = self.timed("tests-plan", |e| e.tests_plan(provider, id, ask.clone()));
         match planned {
             Err(e) => {
-                let queued = cx.queued.clone();
-                self.back(&mut cx, &queued);
+                // Its tests in the run are errored with it (Decisions 12).
+                let e = cut_start(&e, MESSAGE_MAX).to_string();
+                if purpose == Purpose::Tests {
+                    for t in self.universe(&cx) {
+                        if !cx.results.contains(&t) {
+                            self.errored(&mut cx, &t, &e, None);
+                        }
+                    }
+                }
                 cx.run.error = Some(e);
-                cx.run.complete = false;
+                self.end_run(&mut cx);
                 cx.run
             }
             Ok(plan) => {
                 cx.run.list_after = plan.list_after;
-                self.execute(&mut cx, plan.steps);
+                let steps = self.bound_plan(plan);
+                self.execute(&mut cx, steps);
                 cx.run
             }
         }
     }
 
-    fn cx(&self, provider: &str, id: u64, purpose: Purpose, queued: Vec<String>) -> Cx {
-        Cx {
-            provider: provider.into(),
-            purpose,
-            queued,
-            asked: None,
-            before: HashMap::new(),
-            ended: HashSet::new(),
-            named: HashSet::new(),
-            found: HashSet::new(),
-            listed: HashSet::new(),
-            covers: Vec::new(),
-            step_ended: HashSet::new(),
-            covered: HashSet::new(),
-            cwd: None,
-            run: Run { id, error: None, steps: Vec::new(), list_after: false, broken: Vec::new(), crashed: Vec::new(), stopped: None, complete: true },
+    /// A plan held to Fenix's limits (Fenix §6.5): steps past 256 and
+    /// covers past 10,000 ids left out, ids cut, labels cut.
+    fn bound_plan(&mut self, plan: Plan) -> Vec<Step> {
+        let mut steps = plan.steps;
+        if steps.len() > STEPS_MAX {
+            self.violate(format!("a plan of {} steps; Fenix runs {STEPS_MAX}, the rest left out", steps.len()));
+            steps.truncate(STEPS_MAX);
         }
-    }
-
-    fn set_state(&mut self, cx: &mut Cx, id: &str, state: State) {
-        let model = self.models.entry(cx.provider.clone()).or_default();
-        let Some(n) = model.nodes.get_mut(id) else { return };
-        cx.before.entry(id.to_string()).or_insert_with(|| (n.state, n.result.clone()));
-        n.state = state;
-    }
-
-    /// Back to what they were before the run (a stop).
-    fn back(&mut self, cx: &mut Cx, ids: &[String]) {
-        let model = self.models.entry(cx.provider.clone()).or_default();
-        for id in ids {
-            if cx.ended.contains(id) {
-                continue;
+        let mut ids = 0usize;
+        for s in &mut steps {
+            let room = COVERS_MAX.saturating_sub(ids);
+            if s.covers.len() > room {
+                self.violate(format!("more than {COVERS_MAX} ids in the plan's covers; Fenix leaves the rest out"));
+                s.covers.truncate(room);
             }
-            if let (Some(n), Some((s, d))) = (model.nodes.get_mut(id), cx.before.get(id)) {
-                if matches!(n.state, State::Queued | State::Running) {
-                    n.state = *s;
-                    n.result = d.clone();
+            ids += s.covers.len();
+            for c in &mut s.covers {
+                if c.len() > ID_MAX {
+                    *c = cut_id(c).into_owned();
+                    self.note("an id over 1 KiB was cut to 1 KiB, ending in a hash of the whole");
                 }
             }
-        }
-    }
-
-    fn errored(&mut self, cx: &mut Cx, id: &str, message: &str) {
-        self.set_state(cx, id, State::Errored);
-        let model = self.models.entry(cx.provider.clone()).or_default();
-        if let Some(n) = model.nodes.get_mut(id) {
-            n.result = Detail { message: Some(message.into()), at: None, text: None, duration_ms: None };
-        }
-        cx.ended.insert(id.to_string());
-        cx.step_ended.insert(id.to_string());
-    }
-
-    /// Tests a step covered (or the plan's rest) that ended without a
-    /// result, judged by how it ended (Fenix §8.5, §8.3, §8.4).
-    fn judge(&mut self, cx: &mut Cx, ids: Vec<String>, end: &StepEnd) {
-        let open: Vec<String> = ids.into_iter().filter(|t| !cx.ended.contains(t)).collect();
-        for t in open {
-            match end {
-                StepEnd::Stopped => self.back(cx, std::slice::from_ref(&t)),
-                StepEnd::TimedOut => self.errored(cx, &t, "timed out"),
-                StepEnd::Failed(why) => self.errored(cx, &t, why),
-                StepEnd::Exited(_) => {
-                    let file = self.record(&cx.provider, &t).and_then(|r| r.path);
-                    if file.is_some_and(|f| self.unsaved.contains(&f)) {
-                        self.back(cx, std::slice::from_ref(&t));
-                    } else {
-                        self.errored(cx, &t, NO_RESULT);
-                    }
-                }
+            if s.label.chars().count() > LABEL_MAX {
+                s.label = cut_chars(&s.label, LABEL_MAX).to_string();
+                self.note("a step's label over 256 characters was cut");
+            }
+            if s.needs.len() > NEEDS_MAX {
+                self.violate(format!("a step needs {} files; Fenix copies {NEEDS_MAX}, the rest left out", s.needs.len()));
+                s.needs.truncate(NEEDS_MAX);
+            }
+            let mut env = 0;
+            let before = s.command.env.len();
+            s.command.env.retain(|(k, v)| {
+                env += k.len() + v.len();
+                env <= ENV_MAX
+            });
+            if s.command.env.len() < before {
+                self.violate("a step's env over 64 KiB: Fenix leaves the rest out".to_string());
             }
         }
-    }
-
-    /// What `covers` stands for now: each id and what's under it.
-    fn covered(&self, cx: &Cx, covers: &[String]) -> Vec<String> {
-        let model = self.model(&cx.provider);
-        let mut out = Vec::new();
-        for c in covers {
-            if model.has(c) {
-                out.extend(model.tests_under(c));
-            }
-        }
-        out
-    }
-
-    fn rest(&self, cx: &Cx) -> Vec<String> {
-        cx.queued.iter().filter(|t| !cx.covered.contains(*t)).cloned().collect()
+        steps
     }
 
     /// A plan's steps run in turn, as Fenix runs them (Fenix §6.4, §8.5).
-    fn execute(&mut self, cx: &mut Cx, mut steps: Vec<Step>) {
-        if steps.len() > STEPS_MAX {
-            self.violate(format!("a plan of {} steps; Fenix runs {STEPS_MAX}", steps.len()));
-            steps.truncate(STEPS_MAX);
-        }
-        let mut covers_total = 0;
-        for s in &mut steps {
-            covers_total += s.covers.len();
-            if covers_total > COVERS_MAX {
-                self.violate(format!("more than {COVERS_MAX} ids in the plan's covers; Fenix leaves the rest out"));
-                s.covers.clear();
+    fn execute(&mut self, cx: &mut Cx, steps: Vec<Step>) {
+        cx.covers = steps.iter().map(|s| s.covers.iter().cloned().collect()).collect();
+        cx.named_by_steps = cx.covers.iter().flatten().cloned().collect();
+        if steps.is_empty() {
+            // A plan of no steps: its ask is judged at once as if it
+            // exited (Decisions 13); a listing of none isn't complete.
+            if cx.purpose == Purpose::Tests {
+                let all = self.universe(cx);
+                self.judge(cx, all, &StepEnd::Exited(Some(0)));
             }
+            self.end_part(cx, false);
+            self.end_run(cx);
+            return;
         }
-        let mut rest_running = false;
-        let mut halted: Option<StepEnd> = None;
-        let mut last_end = StepEnd::Exited(Some(0));
+        let last = steps.len() - 1;
         for (i, step) in steps.into_iter().enumerate() {
             let provider = cx.provider.clone();
             let run = cx.run.id;
-            if let Some(end) = &halted {
-                // Steps after a stop never start: each is told `stopped`.
-                let reports = self.timed("tests-step-ended", |e| e.tests_step_ended(&provider, run, i as u32, StepEnd::Stopped));
-                self.apply(cx, reports);
+            if cx.halted.is_some() {
+                // Steps after a stop never start: each is told `stopped`,
+                // and what it says is dropped (Fenix §6.4 "Stopping").
+                let _ = self.timed("tests-step-ended", |e| e.tests_step_ended(&provider, run, i as u32, StepEnd::Stopped));
                 cx.run.steps.push(Ran { command: step.command, label: step.label, covers: step.covers, needs: step.needs, end: StepEnd::Stopped, lines: 0, calls: 0 });
-                last_end = end.clone();
                 continue;
             }
-            cx.covers = step.covers.iter().map(|c| cut_id(c).into_owned()).collect();
-            cx.step_ended.clear();
+            self.start_step(cx, i);
             cx.cwd = step.command.cwd.clone();
             let mut ran = Ran { command: step.command.clone(), label: step.label.clone(), covers: step.covers.clone(), needs: step.needs.clone(), end: StepEnd::Exited(Some(0)), lines: 0, calls: 0 };
             if let Some(why) = self.check_step(&step) {
+                // Fenix wouldn't start it: it ends `failed`, its tests
+                // errored with why, and the plan goes on (Decisions 13).
                 self.violate(why.clone());
                 let end = StepEnd::Failed(why);
                 let reports = self.timed("tests-step-ended", |e| e.tests_step_ended(&provider, run, i as u32, end.clone()));
-                self.apply(cx, reports);
-                self.end_step(cx, &end);
-                ran.end = end.clone();
+                self.apply(cx, i, reports);
+                self.step_ended(cx, i, i == last, &end);
+                ran.end = end;
                 cx.run.steps.push(ran);
-                cx.run.complete = false;
-                last_end = end;
                 continue;
             }
             let Some(recorded) = self.rules.iter().rev().find_map(|r| r(&step)) else {
                 panic!("no recording for step {i} of run {run}: {} (give one with on_step, on_command or on_recorded)", command_text(&step.command));
             };
-            // Running: what it covers, or, the first step that claims
-            // nothing, the plan's rest.
-            if cx.purpose == Purpose::Tests {
-                let mut running = self.covered(cx, &cx.covers.clone());
-                if cx.covers.is_empty() && !rest_running {
-                    rest_running = true;
-                    running.extend(self.rest(cx));
-                }
-                for t in running {
-                    if self.model(&provider).nodes.get(&t).is_some_and(|n| n.state == State::Queued) {
-                        self.set_state(cx, &t, State::Running);
-                    }
-                }
-            }
             let all = interleave(lines(&recorded.stdout, false, self.cut_at), lines(&recorded.stderr, true, self.cut_at), &self.order, recorded.order.as_deref());
             let (stop_at, stop_end) = recorded.stop.clone().map_or((usize::MAX, None), |(n, e)| (n, Some(e)));
             let restart_at = recorded.restart.unwrap_or(usize::MAX);
@@ -859,100 +1098,139 @@ impl<E: Exports> Fenix<E> {
                 ran.calls += 1;
                 let n = batch.len();
                 let reports = self.timed(&format!("tests-read of {n} lines"), |e| e.tests_read(&provider, run, i as u32, batch));
-                self.apply(cx, reports);
+                self.apply(cx, i, reports);
             }
             if recorded.restart.is_some() {
                 // As after a trap: the run is stopped, its tests back to
                 // what they were, and no call goes to the new instance
-                // about it (Fenix §6.4, "One project", "After a trap").
+                // about it (Fenix §6.4, "One project", "After a trap";
+                // Decisions 15).
                 let mut make = self.restart.take().expect("a recording restarts the pack: give Fenix::on_restart");
                 self.ext = make();
                 self.restart = Some(make);
                 let data = self.data.to_string_lossy().into_owned();
                 self.ext.tests_started(&data);
-                let open: Vec<String> = cx.queued.clone();
-                self.back(cx, &open);
+                cx.halted = Some(StepEnd::Stopped);
                 cx.run.stopped = Some(format!("stopped: {provider} started again"));
-                cx.run.complete = false;
                 ran.end = StepEnd::Stopped;
                 cx.run.steps.push(ran);
+                self.end_run(cx);
                 return;
             }
             let end = stop_end.unwrap_or(recorded.end.clone());
             let reports = self.timed("tests-step-ended", |e| e.tests_step_ended(&provider, run, i as u32, end.clone()));
-            self.apply(cx, reports);
-            self.end_step(cx, &end);
-            if !matches!(end, StepEnd::Exited(_)) {
-                cx.run.complete = false;
-            }
+            self.apply(cx, i, reports);
+            self.step_ended(cx, i, i == last, &end);
             if matches!(end, StepEnd::Stopped | StepEnd::TimedOut) {
-                cx.run.stopped = Some(if end == StepEnd::Stopped { "stopped".into() } else { "timed out".into() });
-                halted = Some(end.clone());
+                cx.run.stopped = Some(if end == StepEnd::Stopped { "stopped".into() } else { self.timed_out() });
+                cx.halted = Some(end.clone());
             }
-            ran.end = end.clone();
+            ran.end = end;
             cx.run.steps.push(ran);
-            last_end = end;
         }
-        // What of the ask no step named, judged as the plan's last step
-        // ended.
-        if cx.purpose == Purpose::Tests {
-            let rest = self.rest(cx);
-            self.judge(cx, rest, &last_end);
-        }
-        self.finish(cx);
+        self.end_part(cx, true);
+        self.end_run(cx);
     }
 
-    /// A step ended: what it covered without a result judged.
-    fn end_step(&mut self, cx: &mut Cx, end: &StepEnd) {
+    /// A step starts: its tests running -- what it covers, or, at the
+    /// first step that claims nothing, the plan's rest (Fenix §8.5) --
+    /// until the runner says when each starts (Decisions 9).
+    fn start_step(&mut self, cx: &mut Cx, step: usize) {
+        cx.started_seen = false;
         if cx.purpose != Purpose::Tests {
             return;
         }
-        let covered = self.covered(cx, &cx.covers.clone());
-        cx.covered.extend(covered.iter().cloned());
-        self.judge(cx, covered, end);
+        let empty = cx.covers[step].is_empty();
+        if empty && cx.rest_running {
+            return;
+        }
+        cx.rest_running |= empty;
+        for t in self.step_scope(cx, step) {
+            if !cx.results.contains(&t) {
+                self.set_live(cx, &t, State::Running);
+            }
+        }
     }
 
-    /// A run's end: a complete listing drops what it didn't give, a
-    /// complete run the records of runs before it didn't name (Fenix §4,
-    /// "What's dropped").
-    fn finish(&mut self, cx: &mut Cx) {
-        let model = self.models.entry(cx.provider.clone()).or_default();
-        let complete = cx.run.complete && cx.run.broken.is_empty() && cx.run.crashed.is_empty();
+    /// Step `step` ended: what it covered without a result judged, and,
+    /// at the plan's last step, the plan's rest (Fenix §8.5).
+    fn step_ended(&mut self, cx: &mut Cx, step: usize, last: bool, end: &StepEnd) {
+        cx.all_exited &= matches!(end, StepEnd::Exited(_));
+        cx.all_zero &= *end == StepEnd::Exited(Some(0));
+        if cx.purpose != Purpose::Tests {
+            return;
+        }
+        let mut judged = Vec::new();
+        if !cx.covers[step].is_empty() {
+            judged.extend(self.step_scope(cx, step));
+        }
+        if last {
+            let rest: Vec<String> = self.universe(cx).into_iter().filter(|l| !self.in_covers(cx, l, &cx.named_by_steps)).collect();
+            judged.extend(rest);
+        }
+        self.judge(cx, judged, end);
+    }
+
+    /// The plan is done: its records dropped as their sources' rules say
+    /// (Fenix §4 "What's dropped").
+    fn end_part(&mut self, cx: &mut Cx, stepped: bool) {
+        let complete = cx.halted.is_none() && cx.run.error.is_none() && stepped && cx.all_exited && !cx.broken && !cx.crashed;
         cx.run.complete = complete;
+        cx.run.lists_after = cx.run.list_after && cx.purpose == Purpose::Tests && cx.halted.is_none() && cx.run.error.is_none() && cx.all_exited && !cx.broken;
         if !complete {
             return;
         }
+        let model = self.models.entry(cx.provider.clone()).or_default();
         match cx.purpose {
             Purpose::Listing => {
-                let gone: Vec<String> = model.nodes.iter().filter(|(k, n)| n.records[Source::Listing as usize].is_some() && !cx.listed.contains(*k)).map(|(k, _)| k.clone()).collect();
+                let gone: Vec<String> = model.nodes.iter().filter(|(k, n)| n.records[Source::Listing as usize].is_some() && !cx.named.contains(*k)).map(|(k, _)| k.clone()).collect();
                 for g in gone {
-                    model.drop_record(&g, Source::Listing);
+                    model.drop_record(&g, Source::Listing, None, false);
                 }
             }
             Purpose::Tests => {
-                let asked = cx.asked.as_ref();
+                // A run's records go for what's strictly under a node the
+                // run asked for, or all after `run-all` (Decisions 24).
                 let gone: Vec<String> = model
                     .nodes
                     .iter()
                     .filter(|(k, n)| n.records[Source::Run as usize].is_some() && !cx.named.contains(*k))
-                    .filter(|(k, _)| {
-                        let Some(asked) = asked else { return true };
-                        let mut cur = model.record(k).and_then(|r| r.parent);
-                        while let Some(p) = cur {
-                            if asked.contains(&p) {
-                                return true;
-                            }
-                            cur = model.record(&p).and_then(|r| r.parent);
-                        }
-                        false
+                    .filter(|(k, _)| match &cx.sel {
+                        None => true,
+                        Some(sel) => model.ancestry(k).iter().skip(1).any(|a| sel.contains(a)),
                     })
                     .map(|(k, _)| k.clone())
                     .collect();
                 for g in gone {
-                    model.drop_record(&g, Source::Run);
+                    // A case its template's run dropped goes with the
+                    // result this run judged it (Decisions 31).
+                    let only_run = model.nodes.get(&g).is_some_and(|n| n.scans.is_empty() && n.records[Source::Listing as usize].is_none());
+                    if only_run {
+                        cx.results.remove(&g);
+                    }
+                    model.drop_record(&g, Source::Run, None, only_run);
                 }
             }
             Purpose::Build => {}
+        }
+    }
+
+    /// The run's end: what hadn't ended back to what it was, or, after a
+    /// timeout, errored (Fenix §8.3; Decisions 14).
+    fn end_run(&mut self, cx: &mut Cx) {
+        let timed_out = self.timed_out();
+        let mut overlaid: Vec<String> = cx.overlaid.iter().cloned().collect();
+        overlaid.sort();
+        for t in overlaid {
+            let live = self.model(&cx.provider).nodes.get(&t).is_some_and(|n| matches!(n.state, State::Queued | State::Running));
+            if !live {
+                continue;
+            }
+            if cx.halted == Some(StepEnd::TimedOut) && self.model(&cx.provider).is_leaf(&t) && !cx.results.contains(&t) {
+                self.errored(cx, &t, &timed_out, None);
+            } else {
+                self.back(cx, &t);
+            }
         }
     }
 
@@ -981,170 +1259,217 @@ impl<E: Exports> Fenix<E> {
         if !allowed {
             return Some(format!("{program} isn't a program this extension may run (permissions.process)"));
         }
-        let filled = fill_data(cmd);
-        let len = command_line_len(&filled);
-        let limit = if self.batch_files.iter().any(|b| b == program) { BATCH_FILE_MAX } else { WINDOWS_MAX };
+        let batch = self.batch_files.iter().any(|b| b == program);
+        let resolved = resolved(cmd, batch);
+        let (len, limit) = if batch {
+            match batch_file_line_len(&resolved) {
+                Some(len) => (len, BATCH_FILE_MAX),
+                None => return Some("Rust can't give one of its arguments to a batch file (a line break, or the script's path)".to_string()),
+            }
+        } else {
+            (command_line_len(&resolved), WINDOWS_MAX)
+        };
         if len > limit {
-            return Some(format!("its command line is {len} characters; Windows takes {limit}"));
-        }
-        let env: usize = cmd.env.iter().map(|(k, v)| k.len() + v.len() + 2).sum();
-        if env > ENV_MAX {
-            return Some(format!("its env is {env} bytes; Fenix takes 64 KiB"));
-        }
-        if step.label.chars().count() > LABEL_MAX {
-            return Some(format!("its label is over {LABEL_MAX} characters"));
-        }
-        if step.needs.len() > NEEDS_MAX {
-            return Some(format!("it needs {} files; Fenix copies {NEEDS_MAX}", step.needs.len()));
+            return Some(format!("its command line is {} characters; Windows takes {}", thousands(len), thousands(limit)));
         }
         for need in &step.needs {
-            let file = need.strip_prefix("/data/").filter(|_| need.len() <= PATH_MAX).map(|rest| self.data.join(rest));
-            if !file.is_some_and(|f| f.is_file()) {
-                return Some(format!("needs {need}, which isn't there"));
+            // A `/data` file's path with `/`, there when it starts
+            // (`fenix_wasm::test_limits::need`).
+            if need.len() > PATH_MAX {
+                return Some(format!("needs a path of {} bytes; a need is at most 4 KiB", need.len()));
+            }
+            if need.contains('\\') {
+                return Some(format!("needs {need}, which isn't a /data path with /"));
+            }
+            match need.strip_prefix("/data/") {
+                Some(rest) if !rest.is_empty() && !rest.split('/').any(|p| p.is_empty() || p == "." || p == "..") => {
+                    if !self.data.join(rest).is_file() {
+                        return Some(format!("needs {need}, which isn't there"));
+                    }
+                }
+                _ => return Some(format!("needs {need}, which isn't a file's path under /data")),
             }
         }
         None
     }
 
-    /// A call's reports applied in order, as Fenix applies them (Fenix §4,
-    /// §8.5).
-    fn apply(&mut self, cx: &mut Cx, mut reports: Vec<Report>) {
+    /// A call's reports applied in order, as Fenix applies them (Fenix
+    /// §4, §8.5; `fenix-tests`' `apply`).
+    fn apply(&mut self, cx: &mut Cx, step: usize, mut reports: Vec<Report>) {
         if reports.len() > REPORTS_MAX {
             self.violate(format!("a call gave {} reports; Fenix takes {REPORTS_MAX}", reports.len()));
             reports.truncate(REPORTS_MAX);
         }
-        let mut answer: HashSet<String> = HashSet::new();
+        let provider = cx.provider.clone();
         for report in reports {
             match report {
                 Report::Found(f) => {
-                    let Some(id) = self.check_found(&cx.provider, &f, &answer) else { continue };
-                    answer.insert(id.clone());
+                    let source = match cx.purpose {
+                        Purpose::Tests => Source::Run,
+                        Purpose::Listing => Source::Listing,
+                        // Ignored in a build (Decisions 17).
+                        Purpose::Build => continue,
+                    };
                     let path = f.path.as_deref().map(|p| place(p, cx.cwd.as_deref()));
-                    let source = if cx.purpose == Purpose::Listing { Source::Listing } else { Source::Run };
-                    self.model_mut(&cx.provider).set(&id, source, Record::from(&f, path));
-                    cx.named.insert(id.clone());
-                    if cx.purpose == Purpose::Listing {
-                        cx.listed.insert(id);
-                    } else {
-                        cx.found.insert(id);
+                    if let Some(id) = self.set_found(&provider, f, path, source, None) {
+                        cx.named.insert(id);
                     }
                 }
                 Report::Started(id) => {
                     let id = cut_id(&id).into_owned();
-                    if cx.purpose == Purpose::Tests && self.model(&cx.provider).has(&id) {
-                        self.set_state(cx, &id, State::Running);
-                    }
-                }
-                Report::Ended(e) => {
-                    // Ignored in a listing and a build-first plan (Fenix §4,
-                    // §11).
-                    if cx.purpose != Purpose::Tests {
+                    if cx.purpose != Purpose::Tests || !self.model(&provider).has(&id) {
                         continue;
                     }
-                    let id = cut_id(&e.id).into_owned();
-                    if e.message.as_ref().is_some_and(|m| m.len() > 4096) || e.at.as_ref().is_some_and(|a| a.path.len() > PATH_MAX) {
-                        self.violate(format!("{id}'s message or place is over Fenix's limit"));
-                    }
-                    let at = e.at.as_ref().map(|a| (place(&a.path, cx.cwd.as_deref()), a.line, a.column));
-                    if !self.model(&cx.provider).has(&id) {
-                        // Matching rule 3: under the deepest node of the
-                        // file its `at` names, marked found in a run.
-                        let parent = at.as_ref().and_then(|(p, l, _)| self.deepest(&cx.provider, p, *l));
-                        let record = Record { parent, label: id.clone(), kind: Kind::Test, path: None, line: None, end_line: None, skip: None, template: false, data: None };
-                        let model = self.model_mut(&cx.provider);
-                        model.set(&id, Source::Run, record);
-                        model.nodes.get_mut(&id).expect("set").found_in_run = true;
-                        cx.found.insert(id.clone());
-                    }
-                    self.set_state(cx, &id, State::of(e.outcome));
-                    let n = self.model_mut(&cx.provider).nodes.get_mut(&id).expect("known");
-                    n.result = Detail { message: e.message.clone(), at, text: e.text.clone(), duration_ms: e.duration_ms };
-                    cx.ended.insert(id.clone());
                     cx.named.insert(id.clone());
-                    cx.step_ended.insert(id);
-                }
-                Report::Output { id, text } => {
-                    let Some(id) = id.map(|i| cut_id(&i).into_owned()) else { continue };
-                    if let Some(n) = self.model_mut(&cx.provider).nodes.get_mut(&id) {
-                        n.printed.push_str(&text);
-                        n.printed.push('\n');
-                        if n.printed.len() > PRINTED_MAX {
-                            let mut cut = n.printed.len() - PRINTED_MAX;
-                            while !n.printed.is_char_boundary(cut) {
-                                cut += 1;
-                            }
-                            n.printed.drain(..cut);
+                    if !cx.started_seen {
+                        // The runner says when each starts: the rest of the
+                        // step's go back to queued (Decisions 9).
+                        cx.started_seen = true;
+                        let running: Vec<String> = cx.overlaid.iter().filter(|t| self.model(&provider).nodes.get(*t).is_some_and(|n| n.state == State::Running)).cloned().collect();
+                        for t in running {
+                            self.set_live(cx, &t, State::Queued);
                         }
                     }
+                    self.set_live(cx, &id, State::Running);
                 }
-                Report::Broken { id, message, at: _ } => {
-                    cx.run.broken.push((id.clone(), message.clone()));
+                Report::Ended(e) => {
                     if cx.purpose != Purpose::Tests {
                         continue;
                     }
-                    // The tests under it are errored (Fenix §8.5).
-                    let targets = self.scope(cx, id.as_deref(), "broken", false);
-                    for t in targets {
-                        self.errored(cx, &t, &message);
+                    self.ended(cx, e);
+                }
+                Report::Output { id: Some(id), text } => {
+                    let id = cut_id(&id).into_owned();
+                    if cx.purpose != Purpose::Tests || !self.model(&provider).has(&id) {
+                        continue;
+                    }
+                    cx.named.insert(id.clone());
+                    let text = cut_end(&text, TEXT_MAX);
+                    if cx.results.contains(&id) {
+                        let n = self.model_mut(&provider).nodes.get_mut(&id).expect("known");
+                        n.printed.push_str(text);
+                        n.printed = cut_end(&n.printed, TEXT_MAX).to_string();
+                    } else {
+                        let printed = cx.printed.entry(id).or_default();
+                        printed.push_str(text);
+                        *printed = cut_end(printed, TEXT_MAX).to_string();
+                    }
+                }
+                Report::Output { id: None, .. } => {}
+                Report::Broken { id, message, at } => {
+                    let message = cut_start(&message, MESSAGE_MAX).to_string();
+                    cx.run.broken.push((id.clone(), message.clone()));
+                    cx.broken = true;
+                    if cx.purpose == Purpose::Tests {
+                        let at = at.map(|a| (place(&a.path, cx.cwd.as_deref()), a.line, a.column));
+                        self.errored_under(cx, step, id, &message, at, "broken");
                     }
                 }
                 Report::Crashed { id, message } => {
+                    let message = cut_start(&message, MESSAGE_MAX).to_string();
                     cx.run.crashed.push((id.clone(), message.clone()));
-                    if cx.purpose != Purpose::Tests {
-                        continue;
-                    }
-                    // What's under it and hasn't ended in this step.
-                    let targets = self.scope(cx, id.as_deref(), "crashed", true);
-                    for t in targets {
-                        self.errored(cx, &t, &message);
+                    cx.crashed = true;
+                    if cx.purpose == Purpose::Tests {
+                        self.errored_under(cx, step, id, &message, None, "crashed");
                     }
                 }
             }
         }
     }
 
-    /// What a `broken` or `crashed` reaches: what's under its id; with no
-    /// id (or one Fenix doesn't know, which is said), all the step covers,
-    /// or, for a step that claims nothing, the plan's rest.
-    fn scope(&mut self, cx: &Cx, id: Option<&str>, what: &str, open_only: bool) -> Vec<String> {
-        let id = id.map(|i| cut_id(i).into_owned());
-        let known = id.as_ref().filter(|i| self.model(&cx.provider).has(i));
-        if let (Some(i), None) = (&id, known) {
-            self.violate(format!("{what} names {i}, which Fenix doesn't have: taken as all the step covers"));
+    /// `ended` (Fenix §4 "Ids, and matching"): a known id's result; an
+    /// unknown one added as a test labelled by its id, found in a run,
+    /// under the deepest node of the file its `at` names, else at its
+    /// provider's top (Decisions 21).
+    fn ended(&mut self, cx: &mut Cx, e: api::Ended) {
+        let provider = cx.provider.clone();
+        let id = cut_id(&e.id).into_owned();
+        if id.len() < e.id.len() {
+            self.note("an id over 1 KiB was cut to 1 KiB, ending in a hash of the whole");
         }
-        let mut targets = match known {
-            Some(i) => self.model(&cx.provider).tests_under(i),
-            None if cx.covers.is_empty() => self.rest(cx),
-            None => self.covered(cx, &cx.covers),
-        };
-        if open_only {
-            targets.retain(|t| !cx.step_ended.contains(t));
+        let mut message = e.message;
+        if let Some(m) = &mut message {
+            if m.len() > MESSAGE_MAX {
+                *m = cut_start(m, MESSAGE_MAX).to_string();
+                self.note("a message over 4 KiB was cut");
+            }
         }
-        targets
+        let mut text = e.text;
+        if let Some(t) = &mut text {
+            if t.len() > TEXT_MAX {
+                *t = cut_end(t, TEXT_MAX).to_string();
+                self.note("a failure's text over 64 KiB was cut");
+            }
+        }
+        let at = e.at.as_ref().map(|a| (cut_start(&place(&a.path, cx.cwd.as_deref()), PATH_MAX).to_string(), a.line, a.column));
+        if !self.model(&provider).has(&id) {
+            let parent = at.as_ref().and_then(|(p, l, _)| self.deepest(&provider, p, *l));
+            let record = Record { parent, label: cut_chars(&id, LABEL_MAX).to_string(), kind: Kind::Test, path: None, line: None, end_line: None, skip: None, template: false, data: None };
+            let model = self.model_mut(&provider);
+            model.set(&id, Source::Run, None, record);
+            model.nodes.get_mut(&id).expect("set").found_in_run = true;
+        }
+        cx.named.insert(id.clone());
+        let duration_ms = e.duration_ms.filter(|d| d.is_finite() && *d >= 0.0);
+        self.give_result(cx, &id, e.outcome, Detail { message, at, text, duration_ms });
     }
 
-    /// The deepest node of file `path` holding line `line` (from 0), else
-    /// its file's node.
+    /// A `broken` or `crashed` (Fenix §8.5, §19 K5 and K6; Decisions 11):
+    /// what's under its id and has no result in this run yet is errored;
+    /// with no id, or one Fenix doesn't have (said), the step's scope --
+    /// for a step that claims nothing, the plan's rest -- that has none.
+    fn errored_under(&mut self, cx: &mut Cx, step: usize, id: Option<String>, message: &str, at: Option<(String, u32, Option<u32>)>, what: &str) {
+        let id = id.map(|i| cut_id(&i).into_owned());
+        let known = id.as_ref().filter(|i| self.model(&cx.provider).has(i)).cloned();
+        if let (Some(i), None) = (&id, &known) {
+            self.note(format!("a `{what}` named {}, which it hasn't found: taken as all the step covers", cut_chars(i, 200)));
+        }
+        let targets: Vec<String> = match known {
+            Some(node) => self.model(&cx.provider).tests_under(&node).into_iter().filter(|l| self.in_universe(cx, l)).collect(),
+            None => self.step_scope(cx, step),
+        };
+        for t in targets {
+            if !cx.results.contains(&t) {
+                self.errored(cx, &t, message, at.clone());
+            }
+        }
+    }
+
+    /// The deepest group, file or suite of file `path`, preferring one
+    /// whose lines hold `line` (from 0); between equals, the one that
+    /// starts first, then the id that sorts first (Decisions 21).
     fn deepest(&self, provider: &str, path: &str, line: u32) -> Option<String> {
         let model = self.model(provider);
         model
             .nodes
-            .iter()
-            .filter_map(|(k, n)| {
-                let r = n.merged()?;
-                let fits = matches!(r.kind, Kind::Group | Kind::File | Kind::Suite) && r.path.as_deref() == Some(path) && (r.kind == Kind::File || (r.line.is_none_or(|l| l <= line) && r.end_line.is_none_or(|e| e >= line)));
-                fits.then(|| (model.depth(k), k.clone()))
+            .keys()
+            .filter_map(|k| {
+                let r = model.record(k)?;
+                if model::is_test(r.kind) || r.path.as_deref() != Some(path) {
+                    return None;
+                }
+                let holds = match (r.line, r.end_line) {
+                    (Some(s), Some(e)) => s <= line && line <= e,
+                    (Some(s), None) => s <= line,
+                    _ => false,
+                };
+                Some(((holds, model.depth(k), std::cmp::Reverse((r.line.unwrap_or(u32::MAX), k.clone()))), k.clone()))
             })
             .max()
             .map(|(_, k)| k)
     }
 
-    /// How to debug `id` (Fenix §11): `tests-launch`, and a `build-first`
-    /// plan run as a run's, then asked again once, only if every step
-    /// exited 0 and nothing was broken or crashed.
+    /// How to debug `id` (Fenix §11): `tests-launch` with the node as
+    /// Fenix gives it back, and a `build-first` plan run as the same run
+    /// (its `found`s and `ended`s ignored), then asked again once, with
+    /// that run, only if every step exited 0 and nothing was broken or
+    /// crashed. A node whose id was cut and whose `data` isn't kept isn't
+    /// debugged (Decisions 32).
     pub fn launch(&mut self, provider: &str, id: &str) -> Launched {
-        let record = self.record(provider, id).unwrap_or_else(|| panic!("Fenix has no {id} to debug"));
-        let test = api_found(id, &record);
+        let test = self.given_back(provider, id).unwrap_or_else(|| panic!("Fenix has no {id} to debug"));
+        if !self.model(provider).can_be_named(id) {
+            return Launched { config: Err(format!("{provider} can't name {id:.40}… without its data")), built: None };
+        }
         let run = self.next_run;
         self.next_run += 1;
         let first = self.timed("tests-launch", |e| e.tests_launch(provider, run, test.clone()));
@@ -1153,12 +1478,13 @@ impl<E: Exports> Fenix<E> {
             Ok(api::Launch::Launch(c)) => return Launched { config: Ok(c), built: None },
             Ok(api::Launch::BuildFirst(plan)) => plan,
         };
-        let mut cx = self.cx(provider, run, Purpose::Build, Vec::new());
-        self.execute(&mut cx, plan.steps);
+        let mut cx = self.cx(provider, run, Purpose::Build, Some(Vec::new()));
+        let steps = self.bound_plan(plan);
+        self.execute(&mut cx, steps);
+        let ok = cx.halted.is_none() && cx.all_zero && !cx.broken && !cx.crashed && !cx.run.steps.is_empty();
         let built = cx.run;
-        let ok = built.steps.iter().all(|s| s.end == StepEnd::Exited(Some(0))) && built.broken.is_empty() && built.crashed.is_empty();
         if !ok {
-            let why = built.broken.first().map(|(_, m)| m.clone()).or_else(|| built.steps.iter().find(|s| s.end != StepEnd::Exited(Some(0))).map(|s| format!("{} ended {:?}", s.label, s.end)));
+            let why = built.broken.first().map(|(_, m)| m.clone()).or_else(|| built.crashed.first().map(|(_, m)| m.clone())).or_else(|| built.steps.iter().find(|s| s.end != StepEnd::Exited(Some(0))).map(|s| format!("{} ended {:?}", s.label, s.end)));
             return Launched { config: Err(why.unwrap_or_default()), built: Some(built) };
         }
         let again = self.timed("tests-launch", |e| e.tests_launch(provider, run, test));
@@ -1170,9 +1496,9 @@ impl<E: Exports> Fenix<E> {
         Launched { config, built: Some(built) }
     }
 
-    /// The tree Fenix holds for `provider`, as text: a node a line, its
-    /// children by line then label, each with its kind, its first line
-    /// (from 1), its state and its result, and which sources have it.
+    /// The tree Fenix holds for `provider`, as text: a node a line, in the
+    /// page's order, each with its kind, its first line (from 1), its
+    /// state and its result, and which sources have it.
     pub fn tree(&self, provider: &str) -> String {
         let model = self.model(provider);
         let mut out = String::new();
@@ -1197,7 +1523,7 @@ impl<E: Exports> Fenix<E> {
             if let Some(ms) = n.result.duration_ms {
                 out.push_str(&format!(" {ms}ms"));
             }
-            if let Some(why) = r.skip.as_ref().filter(|_| matches!(r.kind, Kind::Test | Kind::Case)) {
+            if let Some(why) = r.skip.as_ref().filter(|_| model::is_test(r.kind)) {
                 out.push_str(&format!(" (skip: {why})"));
             }
             if let Some(m) = &n.result.message {
@@ -1222,21 +1548,32 @@ impl<E: Exports> Fenix<E> {
     }
 }
 
-/// A node as Fenix gives it back in an ask or `tests-launch`.
-fn api_found(id: &str, r: &Record) -> Found {
-    let path = r.path.as_ref().map(|p| if p.starts_with('/') || p.contains(':') { p.clone() } else { format!("/project/{p}") });
-    Found { id: id.into(), parent: r.parent.clone(), label: r.label.clone(), kind: r.kind, path, line: r.line, end_line: r.end_line, skip: r.skip.clone(), template: r.template, data: r.data.clone() }
-}
-
 /// The program and args, joined by spaces.
 pub fn command_text(cmd: &Command) -> String {
     std::iter::once(cmd.program.as_str()).chain(cmd.args.iter().map(String::as_str)).collect::<Vec<_>>().join(" ")
 }
 
-fn fill_data(cmd: &Command) -> Command {
+/// `cmd` as Fenix counts its command line (Fenix §19, K2): `${data}` and
+/// `${tools}` filled in, the program as a full path of a Windows machine
+/// -- a name under [`PROGRAMS_ON_WINDOWS`] (a `.cmd` for a batch file, an
+/// `.exe` else), `/data/...` and `/tools/...` under the folders above, a
+/// full path as it is.
+fn resolved(cmd: &Command, batch: bool) -> Command {
+    let fill = |s: &str| s.replace("${data}", DATA_ON_WINDOWS).replace("${tools}", TOOLS_ON_WINDOWS);
     let mut c = cmd.clone();
+    let program = fill(cmd.program.trim());
+    c.program = if let Some(rest) = program.strip_prefix("/data/") {
+        format!("{DATA_ON_WINDOWS}\\{}", rest.replace('/', "\\"))
+    } else if let Some(rest) = program.strip_prefix("/tools/") {
+        format!("{TOOLS_ON_WINDOWS}\\{}", rest.replace('/', "\\"))
+    } else if program.contains(['/', '\\']) {
+        program
+    } else {
+        let stem = program.strip_suffix(".exe").unwrap_or(&program);
+        format!("{PROGRAMS_ON_WINDOWS}\\{stem}\\{stem}.{}", if batch { "cmd" } else { "exe" })
+    };
     for a in &mut c.args {
-        *a = a.replace("${data}", DATA_ON_WINDOWS).replace("${tools}", DATA_ON_WINDOWS);
+        *a = fill(a);
     }
     c
 }
@@ -1286,5 +1623,19 @@ mod unit {
         assert_eq!(place("src/a.rs", Some("/project/crates/orbit")), "crates/orbit/src/a.rs");
         assert_eq!(place("./src\\a.rs", None), "src/a.rs");
         assert_eq!(place(r"C:\src\a.rs", None), r"C:\src\a.rs");
+        assert_eq!(place(r"/project/src\a.rs", None), "src/a.rs");
+    }
+
+    /// Fenix §19, K2: the line counted after `${data}` is filled in, with
+    /// the program's full path.
+    #[test]
+    fn a_command_line_is_counted_with_its_program_resolved() {
+        let cmd = Command::new("pytest").args(["-p", "${data}/r.py"]);
+        let r = resolved(&cmd, false);
+        assert_eq!(r.program, format!(r"{PROGRAMS_ON_WINDOWS}\pytest\pytest.exe"));
+        assert_eq!(r.args[1], format!("{DATA_ON_WINDOWS}/r.py"));
+        assert!(resolved(&Command::new("npx"), true).program.ends_with("npx.cmd"));
+        assert_eq!(resolved(&Command::new("/tools/zls/zls"), false).program, format!(r"{TOOLS_ON_WINDOWS}\zls\zls"));
+        assert_eq!((thousands(32_766), thousands(41_203), thousands(999)), ("32,766".into(), "41,203".into(), "999".into()));
     }
 }

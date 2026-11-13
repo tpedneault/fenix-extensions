@@ -1,13 +1,23 @@
 //! Fenix's model of a provider's tests, by its rules (Fenix's
-//! `docs/plans/test-explorer.md`, §4): each node with a record per source
-//! -- the scan of a file, the listing, a run -- merged field by field;
-//! each source dropping its own; a result per test, the last `ended`
-//! winning; a group's state worked out from its children.
+//! `docs/plans/test-explorer.md` §4, and `fenix-tests`' numbered
+//! Decisions, cited as *Decisions n*): each node with a record per
+//! source -- each file's scan, the listing, a run -- merged; each source
+//! dropping its own; a result per test, the last `ended` winning; a
+//! group's state worked out from the tests counted under it.
 
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use fenix_lang_kit::tests::api::{Found, Kind, Outcome};
+use fenix_lang_kit::tests::is_cut_id;
+
+/// How deep the tree goes: a node deeper is put at its provider's top
+/// (Decisions 6).
+const MAX_DEPTH: usize = 256;
+
+/// All the `data` kept for one provider: past it a node's isn't kept
+/// (Fenix §6.5).
+pub const DATA_PER_PROVIDER: usize = 16 << 20;
 
 /// A test's state on the page (Fenix §4, "States").
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -71,7 +81,12 @@ pub struct Record {
 
 impl Record {
     pub fn from(f: &Found, path: Option<String>) -> Record {
-        Record { parent: f.parent.clone(), label: f.label.clone(), kind: f.kind, path, line: f.line, end_line: f.end_line, skip: f.skip.clone(), template: f.template, data: f.data.clone() }
+        // A last line before the first is left out (Decisions 5).
+        let end_line = match (f.line, f.end_line) {
+            (Some(l), Some(e)) if e < l => None,
+            (_, e) => e,
+        };
+        Record { parent: f.parent.clone(), label: f.label.clone(), kind: f.kind, path, line: f.line, end_line, skip: f.skip.clone(), template: f.template, data: f.data.clone() }
     }
 }
 
@@ -87,9 +102,13 @@ pub struct Detail {
 
 #[derive(Debug, Clone, Default)]
 pub struct Node {
+    /// Each file's last scan that gave it: when, and what it said.
+    pub scans: BTreeMap<String, (u64, Record)>,
+    /// The latest of `scans`, the listing's, the last run's.
     pub records: [Option<Record>; 3],
-    /// The files whose last scan gave it.
-    pub scanned_by: BTreeSet<String>,
+    /// When it was first found: the page's order among equals.
+    pub seq: u64,
+    /// Its own state: a result, or queued or running in a run.
     pub state: State,
     pub result: Detail,
     /// What it printed in its runs, its last 64 KiB.
@@ -99,42 +118,65 @@ pub struct Node {
 }
 
 impl Node {
+    /// Its fields from its sources (Fenix §4; Decisions 30): field by
+    /// field the scan's, else the listing's, else the run's; its place
+    /// (`path`, `line`, `end_line`) as one, from the first that gives a
+    /// path or a line; `label`, `kind`, `parent` and `template` from the
+    /// first that has it; `skip` the scan's as it is wherever a scan has
+    /// it.
     pub fn merged(&self) -> Option<Record> {
-        let first = self.records.iter().flatten().next()?;
-        let field = |f: fn(&Record) -> Option<String>| self.records.iter().flatten().find_map(f);
-        let num = |f: fn(&Record) -> Option<u32>| self.records.iter().flatten().find_map(f);
-        // `skip` is the scan's where the scan has it, `none` included.
+        let sources: Vec<&Record> = self.records.iter().flatten().collect();
+        let first = sources.first()?;
+        let place = sources.iter().find(|r| r.path.is_some() || r.line.is_some());
         let skip = match &self.records[Source::Scan as usize] {
             Some(scan) => scan.skip.clone(),
-            None => field(|r| r.skip.clone()),
+            None => sources.iter().find_map(|r| r.skip.clone()),
         };
         Some(Record {
             parent: first.parent.clone(),
             label: first.label.clone(),
             kind: first.kind,
-            path: field(|r| r.path.clone()),
-            line: num(|r| r.line),
-            end_line: num(|r| r.end_line),
+            path: place.and_then(|r| r.path.clone()),
+            line: place.and_then(|r| r.line),
+            end_line: place.and_then(|r| r.end_line),
             skip,
             template: first.template,
-            data: field(|r| r.data.clone()),
+            data: sources.iter().find_map(|r| r.data.clone()),
         })
+    }
+
+    fn data_bytes(&self) -> usize {
+        let len = |r: &Record| r.data.as_ref().map_or(0, String::len);
+        self.scans.values().map(|(_, r)| len(r)).sum::<usize>() + self.records[1..].iter().flatten().map(len).sum::<usize>()
     }
 }
 
-/// Each node's children, in the page's order.
-type Kids = HashMap<Option<String>, Vec<String>>;
+/// The tree's shape, worked out from the merged records when one changes
+/// (Decisions 6): parents, children in the page's order, the page's
+/// order, and what's counted.
+#[derive(Debug, Default)]
+struct Shape {
+    parent: HashMap<String, Option<String>>,
+    kids: HashMap<Option<String>, Vec<String>>,
+    order: HashMap<String, usize>,
+    leaf: HashSet<String>,
+}
 
 /// One provider's tests.
 #[derive(Debug, Default)]
 pub struct Model {
     pub nodes: BTreeMap<String, Node>,
-    /// Children by parent, worked out again after a record changes.
-    kids: RefCell<Option<Kids>>,
+    shape: RefCell<Option<Shape>>,
     /// Each file's last scan: the ids it gave.
     pub scans: BTreeMap<String, Vec<String>>,
+    /// Results of nodes that left every source, kept for them should they
+    /// come back (Decisions 29).
+    pub restored: HashMap<String, (State, Detail)>,
     /// What `test-provider-set` last said: runner, problem.
     pub runner: Option<(String, Option<String>)>,
+    /// `data` kept, in bytes, against [`DATA_PER_PROVIDER`].
+    data_bytes: usize,
+    seq: u64,
 }
 
 impl Model {
@@ -146,108 +188,220 @@ impl Model {
         self.nodes.contains_key(id)
     }
 
-    /// Its children's ids, as the page lists them: by line, then label.
-    pub fn children(&self, id: Option<&str>) -> Vec<String> {
-        let mut cache = self.kids.borrow_mut();
-        let kids = cache.get_or_insert_with(|| {
-            let mut all: HashMap<Option<String>, Vec<(u32, String, String)>> = HashMap::new();
-            for (k, n) in &self.nodes {
-                if let Some(r) = n.merged() {
-                    all.entry(r.parent).or_default().push((r.line.unwrap_or(u32::MAX), r.label, k.clone()));
-                }
-            }
-            all.into_iter()
-                .map(|(p, mut v)| {
-                    v.sort();
-                    (p, v.into_iter().map(|(_, _, k)| k).collect())
-                })
-                .collect()
-        });
-        kids.get(&id.map(String::from)).cloned().unwrap_or_default()
+    fn shape(&self) -> std::cell::RefMut<'_, Shape> {
+        let mut cache = self.shape.borrow_mut();
+        if cache.is_none() {
+            *cache = Some(self.build());
+        }
+        std::cell::RefMut::map(cache, |c| c.as_mut().expect("built"))
     }
 
-    /// Everything under `id`, deepest last, in the page's order.
+    fn build(&self) -> Shape {
+        let merged: HashMap<&String, Record> = self.nodes.iter().filter_map(|(k, n)| n.merged().map(|r| (k, r))).collect();
+        // A parent it hasn't given, itself, a loop or a chain past 256:
+        // at the provider's top (Decisions 6).
+        let mut parent: HashMap<String, Option<String>> = HashMap::new();
+        for (k, r) in &merged {
+            let p = r.parent.clone().filter(|p| p != *k && merged.contains_key(p));
+            parent.insert((*k).clone(), p);
+        }
+        let ids: Vec<String> = parent.keys().cloned().collect();
+        for id in &ids {
+            let mut at = parent[id].clone();
+            let mut steps = 0;
+            while let Some(up) = at {
+                steps += 1;
+                if up == *id || steps > MAX_DEPTH {
+                    parent.insert(id.clone(), None);
+                    break;
+                }
+                at = parent.get(&up).cloned().flatten();
+            }
+        }
+        // The page's order: by path (none last), line (none last), then
+        // when found (Fenix's `build`).
+        let mut kids: HashMap<Option<String>, Vec<String>> = HashMap::new();
+        for (k, p) in &parent {
+            kids.entry(p.clone()).or_default().push(k.clone());
+        }
+        let key = |k: &String| {
+            let r = &merged[k];
+            (r.path.is_none(), r.path.clone(), r.line.unwrap_or(u32::MAX), self.nodes[k].seq)
+        };
+        for v in kids.values_mut() {
+            v.sort_by_key(|k| key(k));
+        }
+        let mut order = HashMap::new();
+        let mut leaf = HashSet::new();
+        let mut stack: Vec<String> = kids.get(&None).cloned().unwrap_or_default().into_iter().rev().collect();
+        while let Some(k) = stack.pop() {
+            order.insert(k.clone(), order.len());
+            let children = kids.get(&Some(k.clone())).cloned().unwrap_or_default();
+            // Counted: a test or case with no test or case under it
+            // (Decisions 7): a template once its cases are found isn't.
+            if is_test(merged[&k].kind) && !children.iter().any(|c| is_test(merged[c].kind)) {
+                leaf.insert(k.clone());
+            }
+            stack.extend(children.into_iter().rev());
+        }
+        Shape { parent, kids, order, leaf }
+    }
+
+    /// Where Fenix put `id`: its parent if it has one, else none (Decisions 6).
+    pub fn parent(&self, id: &str) -> Option<String> {
+        self.shape().parent.get(id).cloned().flatten()
+    }
+
+    /// Its children's ids, as the page lists them.
+    pub fn children(&self, id: Option<&str>) -> Vec<String> {
+        self.shape().kids.get(&id.map(String::from)).cloned().unwrap_or_default()
+    }
+
+    /// Its place in the page's order.
+    pub fn order(&self, id: &str) -> usize {
+        self.shape().order.get(id).copied().unwrap_or(usize::MAX)
+    }
+
+    /// Whether `id` is counted: a test or case with none under it.
+    pub fn is_leaf(&self, id: &str) -> bool {
+        self.shape().leaf.contains(id)
+    }
+
+    /// Everything under `id`, in the page's order.
     pub fn descendants(&self, id: &str) -> Vec<String> {
         let mut out = Vec::new();
-        let mut stack = vec![id.to_string()];
+        let mut stack: Vec<String> = self.children(Some(id)).into_iter().rev().collect();
         while let Some(at) = stack.pop() {
-            let kids = self.children(Some(&at));
-            for k in kids.iter().rev() {
-                stack.push(k.clone());
-            }
-            if at != id {
-                out.push(at);
-            }
+            stack.extend(self.children(Some(&at)).into_iter().rev());
+            out.push(at);
         }
         out
     }
 
-    /// `id` and what's under it that runs: its tests and cases.
+    /// What's counted under `id`, itself included (Decisions 7).
     pub fn tests_under(&self, id: &str) -> Vec<String> {
-        let mut out: Vec<String> = Vec::new();
-        if self.record(id).is_some_and(|r| matches!(r.kind, Kind::Test | Kind::Case)) {
-            out.push(id.to_string());
-        }
-        out.extend(self.descendants(id).into_iter().filter(|d| self.record(d).is_some_and(|r| matches!(r.kind, Kind::Test | Kind::Case))));
-        out
+        std::iter::once(id.to_string()).chain(self.descendants(id)).filter(|d| self.is_leaf(d)).collect()
     }
 
-    /// Every test and case.
+    /// Every test counted.
     pub fn all_tests(&self) -> Vec<String> {
-        self.nodes.iter().filter(|(_, n)| n.merged().is_some_and(|r| matches!(r.kind, Kind::Test | Kind::Case))).map(|(k, _)| k.clone()).collect()
+        self.nodes.keys().filter(|k| self.is_leaf(k)).cloned().collect()
+    }
+
+    /// `id` and those it's in, nearest first.
+    pub fn ancestry(&self, id: &str) -> Vec<String> {
+        let mut out = vec![id.to_string()];
+        let mut at = self.parent(id);
+        while let Some(p) = at {
+            at = self.parent(&p);
+            out.push(p);
+        }
+        out
     }
 
     /// The node's depth: how many are above it.
     pub fn depth(&self, id: &str) -> usize {
-        let mut d = 0;
-        let mut cur = self.record(id).and_then(|r| r.parent);
-        while let Some(p) = cur {
-            d += 1;
-            cur = self.record(&p).and_then(|r| r.parent);
-            if d > 10_000 {
-                break;
+        self.ancestry(id).len() - 1
+    }
+
+    /// Whether its provider can name `id` to its runner: its id isn't a
+    /// cut one, or its `data` is kept (Decisions 32).
+    pub fn can_be_named(&self, id: &str) -> bool {
+        !is_cut_id(id) || self.record(id).is_some_and(|r| r.data.is_some())
+    }
+
+    /// Source `source`'s record of `id` set (for a scan, `file`'s). Its
+    /// `data` isn't kept past the provider's 16 MiB; it says so.
+    pub fn set(&mut self, id: &str, source: Source, file: Option<&str>, mut record: Record) -> Option<&'static str> {
+        self.shape.take();
+        self.seq += 1;
+        let seq = self.seq;
+        let new = !self.nodes.contains_key(id);
+        let node = self.nodes.entry(id.to_string()).or_default();
+        if new {
+            node.seq = seq;
+            if let Some((state, detail)) = self.restored.remove(id) {
+                node.state = state;
+                node.result = detail;
             }
         }
-        d
+        let before = node.data_bytes();
+        let replaced = match source {
+            Source::Scan => node.scans.get(file.unwrap_or_default()).and_then(|(_, r)| r.data.as_ref()).map_or(0, String::len),
+            _ => node.records[source as usize].as_ref().and_then(|r| r.data.as_ref()).map_or(0, String::len),
+        };
+        let incoming = record.data.as_ref().map_or(0, String::len);
+        let mut said = None;
+        if incoming > 0 && self.data_bytes.saturating_sub(replaced) + incoming > DATA_PER_PROVIDER {
+            record.data = None;
+            said = Some("past 16 MiB of tests' data, a test's data isn't kept");
+        }
+        match source {
+            Source::Scan => {
+                node.scans.insert(file.unwrap_or_default().to_string(), (seq, record));
+                node.records[0] = node.scans.values().max_by_key(|(s, _)| *s).map(|(_, r)| r.clone());
+            }
+            _ => node.records[source as usize] = Some(record),
+        }
+        let after = node.data_bytes();
+        self.data_bytes = self.data_bytes.saturating_sub(before) + after;
+        said
     }
 
-    /// Source `source`'s record of `id` set.
-    pub fn set(&mut self, id: &str, source: Source, record: Record) {
-        self.kids.take();
-        self.nodes.entry(id.to_string()).or_default().records[source as usize] = Some(record);
-    }
-
-    /// Source `source`'s record of `id` dropped, and the node with it when
-    /// no source has it.
-    pub fn drop_record(&mut self, id: &str, source: Source) {
-        self.kids.take();
-        if let Some(n) = self.nodes.get_mut(id) {
-            n.records[source as usize] = None;
-            if n.records.iter().all(Option::is_none) {
-                self.nodes.remove(id);
+    /// Source `source`'s record of `id` dropped (for a scan, `file`'s),
+    /// and the node with it when no source has it. Its result is kept for
+    /// it should it come back (Decisions 29), unless `with_result`.
+    pub fn drop_record(&mut self, id: &str, source: Source, file: Option<&str>, with_result: bool) {
+        self.shape.take();
+        let Some(n) = self.nodes.get_mut(id) else { return };
+        let before = n.data_bytes();
+        match source {
+            Source::Scan => {
+                n.scans.remove(file.unwrap_or_default());
+                n.records[0] = n.scans.values().max_by_key(|(s, _)| *s).map(|(_, r)| r.clone());
+            }
+            _ => n.records[source as usize] = None,
+        }
+        let after = n.data_bytes();
+        self.data_bytes = self.data_bytes.saturating_sub(before) + after;
+        if n.records.iter().all(Option::is_none) {
+            let n = self.nodes.remove(id).expect("held");
+            if !with_result && matches!(n.state, State::Passed | State::Failed | State::Skipped | State::Errored) {
+                self.restored.insert(id.to_string(), (n.state, n.result));
             }
         }
     }
 
-    /// A state worked out from children, for a group (and a node whose own
-    /// state is unknown, a template with cases): failed if any is, then
-    /// errored, running, passed if all that ran passed.
+    /// Every node's `data` gone, as after Fenix starts again, until a
+    /// scan, listing or run gives it again (Fenix §19, finding 2).
+    pub fn forget_data(&mut self) {
+        for n in self.nodes.values_mut() {
+            for (_, r) in n.scans.values_mut() {
+                r.data = None;
+            }
+            for r in n.records.iter_mut().flatten() {
+                r.data = None;
+            }
+        }
+        self.data_bytes = 0;
+    }
+
+    /// Its state: a test's own; a group's -- and a template's once its
+    /// cases are found -- from what's counted under it, and its own result
+    /// if it has one (Fenix §4; Decisions 8): failed, errored, running,
+    /// queued, passed, else unknown.
     pub fn state(&self, id: &str) -> State {
         let Some(n) = self.nodes.get(id) else { return State::Unknown };
-        let kind = n.merged().map(|r| r.kind);
-        if matches!(kind, Some(Kind::Test | Kind::Case)) {
+        if self.is_leaf(id) {
             return n.state;
         }
-        let states: Vec<State> = self.children(Some(id)).iter().map(|c| self.state(c)).collect();
-        for s in [State::Failed, State::Errored, State::Running, State::Queued] {
-            if states.contains(&s) {
-                return s;
-            }
-        }
-        if states.contains(&State::Passed) {
-            State::Passed
-        } else {
-            State::Unknown
-        }
+        let kind = n.merged().map(|r| r.kind);
+        let own = (kind.is_some_and(is_test) && n.state != State::Unknown).then_some(n.state);
+        let states: Vec<State> = self.tests_under(id).iter().map(|t| self.nodes[t].state).chain(own).collect();
+        [State::Failed, State::Errored, State::Running, State::Queued, State::Passed].into_iter().find(|s| states.contains(s)).unwrap_or(State::Unknown)
     }
+}
+
+pub(crate) fn is_test(kind: Kind) -> bool {
+    matches!(kind, Kind::Test | Kind::Case)
 }

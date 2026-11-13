@@ -16,7 +16,7 @@
 #![cfg(feature = "tests")]
 
 use fenix_extension_api::{Command, LaunchConfig};
-use fenix_lang_kit::tests::{api, command_line_len, split, Ask, Asked, At, Covered, Ended, Found, Group, Key, Kind, Launching, Line, Outcome, Reader, Report, Step, StepEnd, TestRunner, DIRECT};
+use fenix_lang_kit::tests::{api, command_line_len, split, Ask, Asked, At, Covered, Ended, Found, Group, Key, Kind, Launching, Line, Outcome, Reader, Report, Step, StepEnd, TestRunner, DIRECT, WINDOWS_MAX};
 use fenix_lang_kit::Kit;
 use fenix_test_kit::tests::{Fenix, Order, Recorded, State, NO_RESULT};
 use fenix_test_kit::{assert_snapshot, Fake};
@@ -112,7 +112,12 @@ impl TestRunner for Tally {
                     steps.push(Step::new(tally().args(["run", &file]), file).covers([Covered::Group(labels)]));
                 }
                 Asked::Group { tests, known, .. } => {
-                    let names: Vec<String> = if tests.is_empty() { known.iter().map(|k| k.0.clone()).collect() } else { tests.iter().map(|t| t.key.0.clone()).collect() };
+                    // Its fill-in, whole, names them exactly; with none,
+                    // what lang-kit remembers under it.
+                    let names: Vec<String> = match tests {
+                        Some(tests) => tests.iter().map(|t| t.key.0.clone()).collect(),
+                        None => known.iter().map(|k| k.0.clone()).collect(),
+                    };
                     for n in names {
                         push_key(&mut keys, n);
                     }
@@ -324,10 +329,12 @@ fn a_run_of_all_gives_each_test_its_result_and_its_place() {
     let fails = fenix.detail("tally", FAILS);
     assert_eq!((fails.message.as_deref(), fails.text.as_deref()), (Some("expected 4, got 5"), Some("left: 4\nright: 5\n")));
     assert_eq!(fenix.at("tally", FAILS), Some(("src/math.tally".into(), 2, Some(3))));
-    // A template's cases go under it; its result is theirs.
+    // A template's cases go under it; it needs no result of its own: its
+    // state is its cases' (Fenix §19, K7).
     assert_eq!(fenix.record("tally", "src/math.tally::table[2]").unwrap().parent.as_deref(), Some(TABLE));
-    assert_eq!(fenix.detail("tally", TABLE).message.as_deref(), Some("1 of its 2 cases didn't pass"));
-    assert_eq!(fenix.model("tally").nodes[ADDS].printed, "two and two\n");
+    assert_eq!(fenix.detail("tally", TABLE), Default::default(), "no result made for it");
+    assert!(!fenix.model("tally").is_leaf(TABLE), "not counted once its cases are found");
+    assert_eq!(fenix.model("tally").nodes[ADDS].printed, "two and two", "as Fenix keeps it: what the reader gave");
     assert_snapshot!("tally-run-all", fenix.tree("tally"));
 }
 
@@ -367,11 +374,11 @@ fn a_selection_asks_for_the_tests_under_a_file_and_runs_them_by_key() {
     let (mut fenix, _) = fenix();
     let api::Ask::Run(records) = fenix.ask_for("tally", &[INNER, &format!("{FILE}\u{1f}deep")]) else { panic!() };
     let ids: Vec<&str> = records.iter().map(|r| r.id.as_str()).collect();
-    assert_eq!(ids, [INNER, &format!("{FILE}\u{1f}deep"), INNER], "a suite, then the tests Fenix has under it");
+    assert_eq!(ids, [&format!("{FILE}\u{1f}deep"), INNER], "the topmost, a suite, then its fill-in");
     fenix.on_command("run src/math.tally", Recorded::stdout(format!("PASS {INNER} 1\nPASS {ADDS} 1\n")));
     let run = fenix.run("tally", &[INNER, ADDS]);
     assert_eq!(run.steps.len(), 1);
-    assert_eq!(run.steps[0].covers, [INNER, ADDS]);
+    assert_eq!(run.steps[0].covers, [ADDS, INNER], "in the page's order");
     fenix.assert_states("tally", &[(INNER, State::Passed), (ADDS, State::Passed), (FAILS, State::Unknown)]);
 }
 
@@ -448,7 +455,7 @@ fn two_thousand_failed_tests_run_again_in_steps_under_the_limit() {
     fenix.on_step_with(|s| (s.command.args.len() > 4).then(|| Recorded::stdout(s.command.args[4..].iter().map(|k| format!("PASS {k} 1\n")).collect::<String>())));
     let run = fenix.run_failed("tally");
     assert!(run.steps.len() > 1, "{} steps", run.steps.len());
-    assert!(run.steps.iter().all(|s| command_line_len(&s.command) <= DIRECT));
+    assert!(run.steps.iter().all(|s| DIRECT.fits(&s.command) && command_line_len(&s.command) < WINDOWS_MAX));
     assert_eq!(run.steps.iter().map(|s| s.covers.len()).sum::<usize>(), 2000);
     assert!(fenix.failed("tally").is_empty());
     assert!(fenix.slowest() < fenix.budget);
@@ -525,7 +532,7 @@ fn a_step_fenix_wouldnt_start_fails_and_is_said() {
     fenix.scan("careless", "/project/a.c", "");
     let run = fenix.run_all("careless");
     let ends: Vec<&StepEnd> = run.steps.iter().map(|s| &s.end).collect();
-    assert!(matches!(ends[0], StepEnd::Failed(w) if w.contains("Windows takes 32766")), "{ends:?}");
+    assert!(matches!(ends[0], StepEnd::Failed(w) if w.contains("Windows takes 32,766")), "{ends:?}");
     assert!(matches!(ends[1], StepEnd::Failed(w) if w.starts_with("sh isn't a program")));
     assert_eq!(ends[2], &StepEnd::Failed("needs /data/nowhere.txt, which isn't there".into()));
     assert_eq!(fenix.said().len(), 3);
@@ -564,13 +571,13 @@ fn a_stop_puts_back_what_hadnt_ended_and_a_timeout_errors_it() {
     fenix.on_command("run src/math.tally", Recorded::stdout(format!("PASS {ADDS} 1\n")).timed_out_after(1));
     fenix.run("tally", &[FILE, other]);
     fenix.assert_states("tally", &[(ADDS, State::Passed), (INNER, State::Errored), ("src/other.tally::one", State::Errored)]);
-    assert_eq!(fenix.detail("tally", INNER).message.as_deref(), Some("timed out"));
+    assert_eq!(fenix.detail("tally", INNER).message.as_deref(), Some("timed out after 30 min"));
 
     // A file with unsaved edits: what the run didn't see goes back.
     fenix.unsaved("/project/src/math.tally");
     fenix.on_command("run src/math.tally", Recorded::stdout(format!("PASS {ADDS} 1\n")));
     fenix.run("tally", &[FILE]);
-    assert_eq!((fenix.state("tally", FAILS), fenix.detail("tally", FAILS).message.as_deref()), (State::Errored, Some("timed out")), "as it was before");
+    assert_eq!((fenix.state("tally", FAILS), fenix.detail("tally", FAILS).message.as_deref()), (State::Errored, Some("timed out after 30 min")), "as it was before");
 }
 
 #[test]
@@ -587,4 +594,51 @@ fn a_cases_record_goes_when_its_template_runs_again_without_it() {
     assert!(fenix.record("tally", "src/math.tally::table[2]").is_none(), "not named by a complete run of its template");
     assert!(fenix.record("tally", "src/math.tally::dynamic").is_some(), "its group didn't run");
     assert_eq!(fenix.state("tally", TABLE), State::Passed);
+}
+
+/// Fenix §19 finding 2: after Fenix starts again a node's `data` is gone
+/// until found again, and a pack plans from its key alone.
+#[test]
+fn without_data_the_pack_plans_from_its_keys() {
+    let (mut fenix, _) = fenix();
+    fenix.forget_data("tally");
+    let api::Ask::Run(records) = fenix.ask_for("tally", &[ADDS]) else { panic!() };
+    assert!(records.iter().all(|r| r.data.is_none()));
+    fenix.on_command("run src/math.tally", Recorded::stdout(format!("PASS {ADDS} 1\n")));
+    let run = fenix.run("tally", &[ADDS]);
+    assert_eq!(run.steps[0].covers, [ADDS]);
+    assert_eq!(fenix.state("tally", ADDS), State::Passed);
+}
+
+/// A runner with nothing to run in the project (`("", None)`): Fenix
+/// doesn't ask it (Fenix §6.3 `test-provider-set`).
+struct Nothing;
+
+impl TestRunner for Nothing {
+    fn provider(&self) -> &str {
+        "nothing"
+    }
+    fn runner(&mut self) -> (String, Option<String>) {
+        (String::new(), None)
+    }
+    fn scan(&mut self, _path: &str, _text: &str) -> Vec<Found> {
+        vec![Found::test("one", "one")]
+    }
+    fn plan(&mut self, _ask: &Ask) -> Result<Vec<Step>, String> {
+        panic!("asked to plan")
+    }
+    fn reader(&mut self, _ask: &Ask, _step: &Step) -> Box<dyn Reader> {
+        Box::new(TallyReader::default())
+    }
+}
+
+#[test]
+fn a_provider_with_nothing_to_run_isnt_asked() {
+    let fake = Fake::new();
+    let mut fenix = Fenix::new(Kit::with_host("nothing", fake.host()).tests(Box::new(Nothing)));
+    fenix.programs(&[]).with_fake(fake);
+    assert_eq!(fenix.told("nothing"), Some((String::new(), None)));
+    let run = fenix.run_all("nothing");
+    assert!(run.steps.is_empty() && !run.complete);
+    assert!(fenix.said().iter().any(|s| s.contains("nothing to run")));
 }

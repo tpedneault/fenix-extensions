@@ -13,33 +13,45 @@ pub const CUT_AT: usize = 64 * 1024;
 pub const BATCH_LINES: usize = 512;
 pub const BATCH_BYTES: usize = 256 * 1024;
 
-/// One stream's bytes as `TaskRunner` reads them: a line at each `\n`,
-/// and a piece each time 64 KiB (`cut_at`) of bytes are waiting, marked
-/// `cut`; then each piece's last `\r` dropped, read as lossy UTF-8 (a
-/// character split by a cut is U+FFFD on both sides), and its colour
-/// codes taken out. What's after the last `\n` is a line of its own.
+/// One stream's bytes as Fenix gives them (Fenix §6.4 "Lines", §19 K3
+/// and K4): a line at each `\n`, its last `\r` dropped; a line longer
+/// than 64 KiB (`cut_at`) in pieces of at most that, each cut at a
+/// character's start and marked `cut` but the last -- a line of 64 KiB
+/// or less, at the stream's end too, is never cut; each read as lossy
+/// UTF-8 with its colour codes taken out. What's after the last `\n` is
+/// a line of its own.
 pub fn lines(bytes: &[u8], stderr: bool, cut_at: usize) -> Vec<Line> {
     let mut out = Vec::new();
     let mut pending: Vec<u8> = Vec::new();
-    let emit = |pending: &mut Vec<u8>, cut: bool, out: &mut Vec<Line>| {
-        if pending.last() == Some(&b'\r') {
-            pending.pop();
-        }
-        out.push(Line { text: strip_ansi(&String::from_utf8_lossy(pending)), stderr, cut });
-        pending.clear();
+    let emit = |piece: &[u8], cut: bool, out: &mut Vec<Line>| {
+        let piece = if !cut && piece.last() == Some(&b'\r') { &piece[..piece.len() - 1] } else { piece };
+        out.push(Line { text: strip_ansi(&String::from_utf8_lossy(piece)), stderr, cut });
     };
+    let continuation = |b: u8| b & 0xC0 == 0x80;
     for &b in bytes {
         if b == b'\n' {
-            emit(&mut pending, false, &mut out);
-        } else {
-            pending.push(b);
-            if pending.len() == cut_at {
-                emit(&mut pending, true, &mut out);
-            }
+            emit(&pending, false, &mut out);
+            pending.clear();
+            continue;
         }
+        if pending.len() >= cut_at {
+            // More than the limit: a piece, cut where a character starts
+            // (back over at most three bytes of one).
+            let mut at = pending.len();
+            let byte_at = |i: usize| if i == pending.len() { b } else { pending[i] };
+            while at > 0 && pending.len() - at < 3 && continuation(byte_at(at)) {
+                at -= 1;
+            }
+            if at == 0 || continuation(byte_at(at)) {
+                at = pending.len();
+            }
+            emit(&pending[..at], true, &mut out);
+            pending.drain(..at);
+        }
+        pending.push(b);
     }
     if !pending.is_empty() {
-        emit(&mut pending, false, &mut out);
+        emit(&pending, false, &mut out);
     }
     out
 }
@@ -158,16 +170,16 @@ mod unit {
         let got = lines(b"one\r\ntwo\n\x1b[31mred\x1b[0m\x1b]8;;http://x\x07link\x1b]8;;\x1b\\\nlast", false, 64 * 1024);
         let texts: Vec<&str> = got.iter().map(|l| l.text.as_str()).collect();
         assert_eq!(texts, ["one", "two", "redlink", "last"]);
-        // A line of exactly the limit is a cut piece, then an empty last one;
-        // at the stream's end with nothing after it, the cut piece is the
-        // last there is.
-        let got = lines(b"abcdef\nxyz", true, 3);
+        // Only a line longer than the limit is cut (Fenix §19, K4): one
+        // of exactly the limit isn't, at a stream's end either.
+        let got = lines(b"abcdefg\nabc\nxyz", true, 3);
         let pieces: Vec<(&str, bool)> = got.iter().map(|l| (l.text.as_str(), l.cut)).collect();
-        assert_eq!(pieces, [("abc", true), ("def", true), ("", false), ("xyz", true)]);
+        assert_eq!(pieces, [("abc", true), ("def", true), ("g", false), ("abc", false), ("xyz", false)]);
         assert!(got.iter().all(|l| l.stderr));
-        // A character split by the cut is lossy on both sides.
-        let got = lines("aé".as_bytes(), false, 2);
-        assert_eq!((got[0].text.as_str(), got[1].text.as_str()), ("a\u{fffd}", "\u{fffd}"));
+        // A piece ends where a character starts: never one split.
+        let got = lines("aéb".as_bytes(), false, 2);
+        let pieces: Vec<(&str, bool)> = got.iter().map(|l| (l.text.as_str(), l.cut)).collect();
+        assert_eq!(pieces, [("a", true), ("é", true), ("b", false)]);
     }
 
     #[test]

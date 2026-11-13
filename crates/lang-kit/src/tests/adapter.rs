@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use fenix_extension_api::Command;
 
 use super::memory::{below, Memory};
-use super::{api, child_id, cut_id, cut_label, group_id, At, Ask, Asked, Covered, Found, Group, Key, Kind, Launching, Line, Outcome, Reader, Report, Step, StepEnd, TestRunner, GROUP};
+use super::{api, child_id, cut_id, cut_label, group_id, At, Ask, Asked, Covered, Found, Group, Key, Kind, Launching, Line, Reader, Report, Step, StepEnd, TestRunner, GROUP};
 use crate::host::Host;
 
 /// The runs a provider keeps at most: a build-first plan Fenix never
@@ -64,8 +64,6 @@ struct Run {
     readers: HashMap<u32, Reading>,
     /// What readers kept (`Report::Keep`).
     kept: Vec<(String, String)>,
-    /// Each test's result so far, as sent.
-    ended: HashMap<String, api::Ended>,
     /// The groups given to Fenix in this run.
     sent: HashSet<String>,
     /// Cases found in it, by id: their template's id.
@@ -86,7 +84,7 @@ impl Run {
                 .iter()
                 .flat_map(|a| match a {
                     Asked::Test(f) => std::slice::from_ref(f),
-                    Asked::Group { tests, .. } => tests.as_slice(),
+                    Asked::Group { tests, .. } => tests.as_deref().unwrap_or_default(),
                 })
                 .filter(|f| f.template)
                 .cloned()
@@ -99,7 +97,6 @@ impl Run {
             purpose,
             readers: HashMap::new(),
             kept: Vec::new(),
-            ended: HashMap::new(),
             sent: HashSet::new(),
             case_of: HashMap::new(),
             found: HashSet::new(),
@@ -117,18 +114,17 @@ struct Reading {
     /// whether it went past [`JOINED_MAX`].
     pieces: [Option<String>; 2],
     over: [bool; 2],
-    /// Cases that ended in this step, by their template's id: the worst
-    /// outcome, how many, how many didn't pass.
-    cases: BTreeMap<String, (Outcome, usize, usize)>,
 }
 
 impl Reading {
     fn new(reader: Box<dyn Reader>) -> Reading {
-        Reading { reader, pieces: [None, None], over: [false, false], cases: BTreeMap::new() }
+        Reading { reader, pieces: [None, None], over: [false, false] }
     }
 
     /// A line as Fenix gave it: a cut one's pieces joined, the whole given
-    /// to the reader.
+    /// to the reader. A piece's rest is the next line of the same stream
+    /// (Fenix §19, K3): the other stream's lines, and a call's end, may
+    /// come between, so each stream keeps its own pending pieces.
     fn feed(&mut self, line: api::Line, out: &mut Vec<Report>) {
         let s = usize::from(line.stderr);
         if line.cut || self.pieces[s].is_some() {
@@ -138,7 +134,7 @@ impl Reading {
                 if line.text.len() <= room {
                     joined.push_str(&line.text);
                 } else {
-                    joined.push_str(&super::line::cut_bytes(&line.text, room));
+                    joined.push_str(super::line::cut_bytes(&line.text, room));
                     self.over[s] = true;
                 }
             }
@@ -160,16 +156,6 @@ impl Reading {
                 self.reader.line(Line { text: &joined, stderr: s == 1 }, out);
             }
         }
-    }
-}
-
-/// How bad an outcome is, for one result of several.
-fn rank(o: Outcome) -> u8 {
-    match o {
-        Outcome::Skipped => 0,
-        Outcome::Passed => 1,
-        Outcome::Failed => 2,
-        Outcome::Errored => 3,
     }
 }
 
@@ -238,41 +224,12 @@ fn group_found(g: &Group, id: String, parent: Option<String>) -> api::Found {
     }
 }
 
-/// Two results for one test in a run, as one: the worse outcome and its
-/// message and place, the times added, the texts one after the other.
-fn merge(old: &api::Ended, new: api::Ended) -> api::Ended {
-    let (worse, better) = if rank(new.outcome) >= rank(old.outcome) { (&new, old) } else { (old, &new) };
-    let text = match (&old.text, &new.text) {
-        (Some(a), Some(b)) => Some(format!("{a}\n{b}")),
-        (a, b) => a.clone().or(b.clone()),
-    };
-    let duration_ms = match (old.duration_ms, new.duration_ms) {
-        (Some(a), Some(b)) => Some(a + b),
-        (a, b) => a.or(b),
-    };
-    api::Ended {
-        id: new.id.clone(),
-        outcome: worse.outcome,
-        duration_ms,
-        message: worse.message.clone().or(better.message.clone()),
-        at: worse.at.clone().or(better.at.clone()),
-        text,
-    }
-}
-
-/// Fenix's records, as a pack's [`Found`]: what the memory has of each
-/// filled in (its full key, its groups).
-fn found_from(r: &api::Found, memory: &Memory) -> Found {
+/// A record Fenix gave back as a pack's [`Found`], under `groups`, a case
+/// of `of`: its full key where this start's memory has it (a key over 1
+/// KiB comes back cut, and its `data` names it then), its place from its
+/// `/project/<path>` and lines from 0.
+fn found_from(r: &api::Found, memory: &Memory, groups: Vec<Group>, of: Option<Key>) -> Found {
     let known = memory.known(&r.id);
-    let (groups, of) = match &r.parent {
-        Some(p) if p.starts_with(GROUP) => (memory.chain(p), None),
-        Some(t) => {
-            let template = memory.found(t);
-            let key = template.as_ref().map(|f| f.key.clone()).unwrap_or_else(|| Key(t.clone()));
-            (template.map(|f| f.groups).unwrap_or_default(), Some(key))
-        }
-        None => (Vec::new(), None),
-    };
     Found {
         key: known.map(|k| k.key.clone()).unwrap_or_else(|| Key(r.id.clone())),
         label: r.label.clone(),
@@ -288,55 +245,141 @@ fn found_from(r: &api::Found, memory: &Memory) -> Found {
     }
 }
 
-fn group_from(r: &api::Found, memory: &Memory) -> Vec<Group> {
-    let mut groups = r.parent.as_deref().map(|p| memory.chain(p)).unwrap_or_default();
-    groups.push(Group {
+/// A test or case Fenix gave back for itself (selected, or to
+/// `tests-launch`): its groups from this start's memory, by its `parent`
+/// -- where Fenix put it, a template for a case, none at the top.
+/// `chains` keeps each group's chain for the next record under it.
+fn given_test(r: &api::Found, memory: &Memory, chains: &mut HashMap<String, Vec<Group>>) -> Found {
+    let (groups, of) = match r.parent.as_deref() {
+        Some(p) if !p.starts_with(GROUP) => {
+            // A case's parent is its template.
+            let template = memory.found(p);
+            (template.as_ref().map(|t| t.groups.clone()).unwrap_or_default(), Some(template.map(|t| t.key).unwrap_or_else(|| Key(p.to_string()))))
+        }
+        Some(p) => (chains.entry(p.to_string()).or_insert_with(|| memory.chain(p)).clone(), None),
+        None => (memory.found(&r.id).map(|f| f.groups).unwrap_or_default(), None),
+    };
+    found_from(r, memory, groups, of)
+}
+
+fn is_group(kind: Kind) -> bool {
+    matches!(kind, Kind::Group | Kind::File | Kind::Suite)
+}
+
+fn group_of(r: &api::Found) -> Group {
+    Group {
         kind: r.kind,
         label: r.label.clone(),
         file: r.path.as_deref().map(|p| below(p).to_string()),
         line: r.line.map(|l| l + 1),
         end_line: r.end_line.map(|l| l + 1),
-    });
-    groups
+    }
 }
 
-/// Fenix's ask as the pack's: each group, file or suite with the tests
-/// Fenix sent after it.
+/// Fenix's ask as the pack's (Fenix §4 "What the provider is asked", §19
+/// finding 3, Decisions 20): a record whose `parent` is the id of another
+/// record in the ask is part of a fill-in, one whose `parent` isn't was
+/// selected. No id is read. A selected file or suite gets the tests and
+/// cases of the records that fill it in, whole, or `None`.
 fn ask_from(ask: api::Ask, memory: &Memory) -> Ask {
     let records = match ask {
         api::Ask::Discover => return Ask::Discover,
         api::Ask::RunAll => return Ask::RunAll,
         api::Ask::Run(records) => records,
     };
-    let mut items = Vec::new();
-    let mut i = 0;
-    while i < records.len() {
-        let r = &records[i];
-        i += 1;
-        if matches!(r.kind, Kind::Test | Kind::Case) && !r.id.starts_with(GROUP) {
-            items.push(Asked::Test(found_from(r, memory)));
-            continue;
-        }
-        let mut tests = Vec::new();
-        if matches!(r.kind, Kind::File | Kind::Suite) {
-            let deeper = format!("{}{GROUP}", r.id);
-            let mut taken: HashSet<&str> = HashSet::new();
-            while let Some(t) = records.get(i).filter(|t| matches!(t.kind, Kind::Test | Kind::Case)) {
-                let under = t.parent.as_deref().is_some_and(|p| {
-                    p == r.id || p.starts_with(&deeper) || taken.contains(p) || memory.known(p).and_then(|k| k.group.as_deref()).is_some_and(|g| g == r.id || g.starts_with(&deeper))
-                });
-                if !under {
-                    break;
+    let ids: HashSet<&str> = records.iter().map(|r| r.id.as_str()).collect();
+    let mut items: Vec<Asked> = Vec::new();
+    // Each record of a fill-in (and each selected group), by id: the
+    // item it fills in, the groups a test under it is in, and, for a
+    // template, its key.
+    let mut owner: HashMap<&str, (usize, Vec<Group>, Option<Key>)> = HashMap::new();
+    let mut chains: HashMap<String, Vec<Group>> = HashMap::new();
+    for r in &records {
+        let filled = r.parent.as_deref().filter(|p| *p != r.id && ids.contains(p)).and_then(|p| owner.get(p).cloned());
+        match filled {
+            Some((item, groups, template)) => {
+                if is_group(r.kind) {
+                    let mut inner = groups;
+                    inner.push(group_of(r));
+                    owner.insert(&r.id, (item, inner, None));
+                    continue;
                 }
-                taken.insert(&t.id);
-                tests.push(found_from(t, memory));
-                i += 1;
+                let f = found_from(r, memory, groups.clone(), template);
+                if f.template {
+                    owner.insert(&r.id, (item, groups, Some(f.key.clone())));
+                }
+                if let Some(Asked::Group { tests, .. }) = items.get_mut(item) {
+                    tests.get_or_insert_with(Vec::new).push(f);
+                }
+            }
+            None => {
+                // Selected: what it's in from this start's memory (Fenix
+                // sends what's above a selected node only as its `parent`).
+                let above = r.parent.as_deref().map(|p| chains.entry(p.to_string()).or_insert_with(|| memory.chain(p)).clone()).unwrap_or_default();
+                if is_group(r.kind) {
+                    let mut groups = above;
+                    groups.push(group_of(r));
+                    owner.insert(&r.id, (items.len(), groups.clone(), None));
+                    items.push(Asked::Group { groups, tests: None, known: Vec::new() });
+                    continue;
+                }
+                items.push(Asked::Test(given_test(r, memory, &mut chains)));
             }
         }
-        let known = if tests.is_empty() { memory.under(&r.id) } else { Vec::new() };
-        items.push(Asked::Group { groups: group_from(r, memory), tests, known });
+    }
+    for item in &mut items {
+        if let Asked::Group { groups, tests: None, known } = item {
+            let labels: Vec<&str> = groups.iter().map(|g| g.label.as_str()).collect();
+            *known = memory.under(&group_id(&labels));
+        }
     }
     Ask::Run(items)
+}
+
+/// A scanner's last answer it could read, per file: for a scanner that
+/// parses, and so can't read half-typed text, which Fenix scans 500 ms
+/// after typing pauses. An empty answer drops every test of the file
+/// (Fenix §19, finding 8), so answer what was last read well instead:
+///
+/// ```
+/// use fenix_lang_kit::tests::{Found, LastGood};
+///
+/// // A parser: `None` when the braces don't match.
+/// fn parse(text: &str) -> Option<Vec<Found>> {
+///     (text.matches('{').count() == text.matches('}').count())
+///         .then(|| text.match_indices("fn ").map(|(at, _)| Found::test(format!("t {at}"), "t")).collect())
+/// }
+///
+/// let mut last = LastGood::default();
+/// assert_eq!(last.answer("/project/a.rs", parse("fn adds() {}")).len(), 1);
+/// assert_eq!(last.answer("/project/a.rs", parse("fn adds() {")).len(), 1, "half-typed: the last good answer");
+/// assert!(last.answer("/project/a.rs", parse("")).is_empty(), "read well, and empty: every test deleted");
+/// ```
+///
+/// `answer(path, Some(found))` keeps `found` (even empty: a file whose
+/// tests were all deleted) and gives it back; `answer(path, None)` -- the
+/// text couldn't be read -- gives the last kept, or nothing. A scanner
+/// that reads line by line always reads something, and needn't use it.
+/// About a scan's size a file; `forget` a file that's gone.
+#[derive(Debug, Default)]
+pub struct LastGood {
+    files: HashMap<String, Vec<Found>>,
+}
+
+impl LastGood {
+    pub fn answer(&mut self, path: &str, read: Option<Vec<Found>>) -> Vec<Found> {
+        match read {
+            Some(found) => {
+                self.files.insert(path.to_string(), found.clone());
+                found
+            }
+            None => self.files.get(path).cloned().unwrap_or_default(),
+        }
+    }
+
+    pub fn forget(&mut self, path: &str) {
+        self.files.remove(path);
+    }
 }
 
 impl Tests {
@@ -388,15 +431,20 @@ impl Tests {
 
     pub fn scan(&mut self, host: &mut dyn Host, provider: &str, path: &str, text: &str) -> Vec<api::Found> {
         let Some(p) = self.find(provider) else { return Vec::new() };
-        let mut found = p.runner.scan(path, text);
+        let found = p.runner.scan(path, text);
+        // The same key twice: the later is kept, as Fenix keeps it (Fenix
+        // §19, K10; Decisions 3), and the memory with it.
         let mut ids = HashSet::new();
-        found.retain(|f| {
-            let fresh = ids.insert(cut_id(&f.key.0).into_owned());
-            if !fresh {
-                host.log(&format!("tests: {provider}: the scan of {path} found {} twice; the second is left out", f.key));
+        let mut later: Vec<Found> = Vec::with_capacity(found.len());
+        for f in found.into_iter().rev() {
+            if ids.insert(cut_id(&f.key.0).into_owned()) {
+                later.push(f);
+            } else {
+                host.log(&format!("tests: {provider}: the scan of {path} found {} twice; the earlier is left out", f.key));
             }
-            fresh
-        });
+        }
+        later.reverse();
+        let found = later;
         if found.len() > FOUND_MAX {
             host.log(&format!("tests: {provider}: the scan of {path} found {} tests; Fenix keeps {FOUND_MAX}", found.len()));
         }
@@ -441,7 +489,7 @@ impl Tests {
             reading.feed(line, &mut reports);
         }
         let mut out = Vec::new();
-        convert(&mut out, reports, runner.as_mut(), memory, r, Some(&mut reading));
+        convert(&mut out, reports, runner.as_mut(), memory, r);
         r.readers.insert(step, reading);
         out
     }
@@ -461,21 +509,10 @@ impl Tests {
             let mut reports = Vec::new();
             reading.flush(&mut reports);
             reading.reader.end(&end, &mut reports);
-            convert(&mut out, reports, runner.as_mut(), memory, r, Some(&mut reading));
-            // A template whose cases ended in this step and that has no
-            // result of its own gets theirs, so Fenix doesn't judge it
-            // "ended without a result".
-            if r.purpose == Purpose::Tests || unplanned {
-                for (template, (worst, n, bad)) in reading.cases {
-                    if r.ended.contains_key(&template) {
-                        continue;
-                    }
-                    let message = (bad > 0).then(|| format!("{bad} of its {n} cases didn't pass"));
-                    let e = api::Ended { id: template.clone(), outcome: worst, duration_ms: None, message, at: None, text: None };
-                    r.ended.insert(template, e.clone());
-                    out.push(api::Report::Ended(e));
-                }
-            }
+            // A template whose cases have results gets no result of its
+            // own: Fenix doesn't count it, and its state is its cases'
+            // (Fenix §19, K7; Decisions 7).
+            convert(&mut out, reports, runner.as_mut(), memory, r);
         }
         if !matches!(end, StepEnd::Exited(_)) {
             r.complete = false;
@@ -494,7 +531,7 @@ impl Tests {
     pub fn launch(&mut self, host: &mut dyn Host, provider: &str, run: u64, test: api::Found) -> Result<api::Launch, String> {
         let data = self.data.clone();
         let p = self.find(provider).ok_or_else(|| format!("no test provider {provider} here"))?;
-        let found = found_from(&test, &p.memory);
+        let found = given_test(&test, &p.memory, &mut HashMap::new());
         if let Some(built) = p.runs.remove(&run).filter(|r| r.purpose == Purpose::Build) {
             return match p.runner.launch(&found, &built.kept)? {
                 Launching::Now(config) => Ok(api::Launch::Launch(config)),
@@ -596,10 +633,14 @@ fn fill(cmd: &mut Command, name: &str, value: &str) {
     }
 }
 
-/// A reader's reports as Fenix's, onto `out`.
-fn convert(out: &mut Vec<api::Report>, reports: Vec<Report>, runner: &mut dyn TestRunner, memory: &mut Memory, run: &mut Run, mut reading: Option<&mut Reading>) {
+/// A reader's reports as Fenix's, onto `out`. Each `Ended` goes as it
+/// came: Fenix keeps a test's last in the run (Fenix §4 "A result").
+fn convert(out: &mut Vec<api::Report>, reports: Vec<Report>, runner: &mut dyn TestRunner, memory: &mut Memory, run: &mut Run) {
     for report in reports {
         match report {
+            // Ignored in a build-first plan (Fenix §19, K9; Decisions 17):
+            // not sent.
+            Report::Found(_) if run.purpose == Purpose::Build => {}
             Report::Found(mut f) => {
                 memory.fill(&mut f);
                 if run.purpose == Purpose::Listing {
@@ -618,22 +659,7 @@ fn convert(out: &mut Vec<api::Report>, reports: Vec<Report>, runner: &mut dyn Te
             Report::Ended(e) => {
                 unfound_case(out, &e.key, runner, memory, run);
                 let id = cut_id(&e.key.0).into_owned();
-                let ended = api::Ended { id: id.clone(), outcome: e.outcome, duration_ms: e.ms, message: e.message, at: e.at.as_ref().map(location), text: e.text };
-                let ended = match run.ended.get(&id) {
-                    Some(old) => merge(old, ended),
-                    None => ended,
-                };
-                let template = run.case_of.get(&id).cloned().or_else(|| memory.known(&id).and_then(|k| k.of.as_ref()).map(|t| cut_id(&t.0).into_owned()));
-                if let (Some(t), Some(reading)) = (template, reading.as_deref_mut()) {
-                    let c = reading.cases.entry(t).or_insert((ended.outcome, 0, 0));
-                    if rank(ended.outcome) > rank(c.0) {
-                        c.0 = ended.outcome;
-                    }
-                    c.1 += 1;
-                    c.2 += usize::from(matches!(ended.outcome, Outcome::Failed | Outcome::Errored));
-                }
-                run.ended.insert(id, ended.clone());
-                out.push(api::Report::Ended(ended));
+                out.push(api::Report::Ended(api::Ended { id, outcome: e.outcome, duration_ms: e.ms, message: e.message, at: e.at.as_ref().map(location), text: e.text }));
             }
             Report::Output { key, text } => {
                 let id = key.map(|k| cut_id(&k.0).into_owned());
