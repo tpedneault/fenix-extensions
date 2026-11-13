@@ -1,6 +1,6 @@
 [package]
 name = "fenix-parquet"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
@@ -10,7 +10,7 @@ description = "Parquet files read in Fenix: their rows as a table, read a page a
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 fenix-ui-kit = { path = "../../crates/ui-kit" }
 # Every codec Parquet writers use, all of them pure Rust: zstd's through
 # the patch below.

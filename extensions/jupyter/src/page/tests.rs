@@ -215,7 +215,7 @@ fn a_kernel_that_ends_says_so_and_starts_again() {
     p.key(Key::Char('r'), &mut w);
     p.said(r#"{"ev": "ready", "label": "x"}"#, &mut w);
     p.exited(Some(1), &mut w);
-    assert!(screen(&mut p, &mut w).contains("stopped: it ended (1)"));
+    assert!(screen(&mut p, &mut w).contains("stopped: it ended (1); SPC h l has why"), "no Fenix to ask: Vim's keys");
     assert_eq!(notebook(&w).count(1), None);
     p.key(Key::Char('r'), &mut w);
     assert_eq!(w.started, 2);
@@ -280,4 +280,26 @@ fn a_tall_notebook_scrolls_to_the_focused_cell() {
     let s = p.render(80, 12, &mut w).text();
     assert!(s.contains("1 / 0"), "{s}");
     assert!(!s.contains("Assignment 2"), "{s}");
+}
+
+/// A kernel that ended badly names the keys of the extensions' log as the
+/// scheme in use has them, when the page is drawn: drawn again after a
+/// switch, it says the other's.
+#[test]
+fn a_kernel_that_ended_badly_names_the_logs_keys_in_use() {
+    use fenix_test_kit::api::KeyScheme;
+    let fake = fenix_test_kit::Fake::new();
+    fake.key("extensions.output", "SPC h l");
+    let (mut p, mut w) = open();
+    p.key(Key::Char('j'), &mut w);
+    p.key(Key::Char('r'), &mut w);
+    p.said(r#"{"ev": "ready", "label": "x"}"#, &mut w);
+    p.exited(Some(2), &mut w);
+    assert!(screen(&mut p, &mut w).contains("stopped: it ended (2); SPC h l has why"));
+    fake.key_scheme(KeyScheme::Standard);
+    assert!(screen(&mut p, &mut w).contains("stopped: it ended (2); C-k h l has why"));
+    fake.key_in(KeyScheme::Standard, "extensions.output", "F9");
+    assert!(screen(&mut p, &mut w).contains("stopped: it ended (2); F9 has why"), "yours");
+    fake.no_key("extensions.output");
+    assert!(screen(&mut p, &mut w).contains("stopped: it ended (2); SPC h l has why"), "no key: Fenix's keymap's");
 }

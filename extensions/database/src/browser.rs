@@ -8,13 +8,16 @@ use crate::result::Outcome as Came;
 use crate::schema::id;
 use crate::view::{draw_detail, draw_strip, strip_height, ResultView};
 
-/// How a `.sql` buffer's keys are said on the page, which Fenix doesn't
-/// translate: its menu after the leader (Space with Vim keys, Ctrl+K with
-/// standard keys), and standard keys' own chord.
 /// What the page says while there are no connections.
 pub const NO_CONNECTIONS: &str = "No connections yet: add them in the settings (database.connections), open a .sqlite file -- or try it on a sample, Database: a sample database to try it on, from the command palette.";
 
-pub const RUN_HINT: &str = "Run a statement from a .sql buffer: its menu's r -- SPC m r, or Ctrl+K m r with standard keys, where Ctrl+Enter runs it too. Or open a table from the sidebar.";
+/// What the page says before anything's run: the keys that run a
+/// statement in a `.sql` buffer, as the scheme in use has them (`SPC m
+/// r` with Vim keys, `C-Enter` with standard keys). Fenix doesn't say a
+/// page's text in standard keys for it.
+pub fn run_hint() -> String {
+    format!("Run a statement from a .sql buffer: {}. Or open a table from the sidebar.", crate::keys::in_menu("database.run", "r"))
+}
 
 /// What a key on the page asks of the extension.
 #[derive(Debug, Clone, PartialEq)]
@@ -311,7 +314,7 @@ impl Browser {
         match &self.ran {
             None => {
                 c.put(main.x, y, "Results", Role::Title);
-                let hint = if roots.is_empty() { format!("{NO_CONNECTIONS}\n\n{RUN_HINT}") } else { RUN_HINT.to_string() };
+                let hint = if roots.is_empty() { format!("{NO_CONNECTIONS}\n\n{}", run_hint()) } else { run_hint() };
                 let lines: Vec<String> = hint.split('\n').flat_map(|p| if p.is_empty() { vec![String::new()] } else { fenix_ui_kit::text::wrap(p, main.w) }).collect();
                 for (i, line) in lines.into_iter().take(main.bottom().saturating_sub(y + 2)).enumerate() {
                     c.put(main.x, y + 2 + i, &line, Role::Muted);
@@ -385,7 +388,11 @@ impl Browser {
         }
         draw_strip(&mut c, &keys, foot + 2, w);
         if self.help {
-            let rows: Vec<Vec<(String, Style)>> = [
+            // A `.sql` buffer's menu, under the leader in use; and run's
+            // own chord, when it has one (standard keys' `C-Enter`).
+            let menu = format!("In a .sql buffer: {}, then", crate::keys::menu());
+            let chord = crate::keys::own("database.run");
+            let mut rows: Vec<(&str, &str)> = vec![
                 ("The sidebar", ""),
                 ("Enter", "connect; open a branch; a table's rows"),
                 ("c d r", "connect, disconnect, read the schema again"),
@@ -395,24 +402,25 @@ impl Browser {
                 ("y Y", "copy the cell (or the selection), the rows as CSV"),
                 ("x X", "every row as CSV, as JSON, in a buffer"),
                 ("w W", "every row to a file, CSV or JSON"),
-                ("In a .sql buffer: SPC m, then (Ctrl+K m with standard keys)", ""),
+                (&menu, ""),
                 ("r", "run the statement under the cursor, or the selection"),
                 ("R", "run them all"),
                 ("c", "pick its connection"),
                 ("h", "the history, to put one back at the cursor"),
-                ("Ctrl+Enter", "with standard keys: r's run, at once"),
-            ]
-            .iter()
-            .map(
-                |(k, what)| {
+            ];
+            if let Some(chord) = &chord {
+                rows.push((chord, "r's run, at once"));
+            }
+            let rows: Vec<Vec<(String, Style)>> = rows
+                .iter()
+                .map(|(k, what)| {
                     if what.is_empty() {
                         vec![(k.to_string(), Style::new(Role::Title))]
                     } else {
                         vec![(format!("{k:<10}"), Style::new(Role::Accent)), (what.to_string(), Style::new(Role::Text))]
                     }
-                },
-            )
-            .collect();
+                })
+                .collect();
             c.popup(Popup { line: 1, col: 2, rows });
         }
         c
@@ -491,19 +499,40 @@ mod tests {
         assert!(b.side);
     }
 
-    /// The page names a `.sql` buffer's keys for both schemes: Fenix
-    /// doesn't say a page's text in standard keys for it.
+    /// The page names a `.sql` buffer's keys as the scheme in use has
+    /// them: Fenix doesn't say a page's text in standard keys for it.
     #[test]
-    fn its_hints_hold_with_either_key_scheme() {
+    fn its_hints_name_the_keys_in_use() {
+        use fenix_test_kit::api::KeyScheme;
+        let fake = fenix_test_kit::Fake::new();
+        fake.key("leader.local", "SPC m").menu_key("database.run", "r").key_in(KeyScheme::Standard, "database.run", "C-Enter");
+        let help = |b: &mut Browser, r: &[TreeNode]| -> String {
+            b.help = true;
+            let page = b.render(r, 160, 40);
+            b.help = false;
+            page.popup_ref().expect("the help").rows.iter().map(|row| row.iter().map(|(t, _)| t.as_str()).collect::<String>() + "\n").collect()
+        };
         let mut b = Browser::default();
         let r = roots();
-        let text = b.render(&r, 100, 30).text();
-        assert!(text.contains("SPC m r, or") && text.contains("Ctrl+K m r with standard keys") && text.contains("Ctrl+Enter"), "{text}");
-        b.key(Key::Char('?'), &r);
-        let page = b.render(&r, 100, 40);
-        let help: String = page.popup_ref().expect("the help").rows.iter().map(|row| row.iter().map(|(t, _)| t.as_str()).collect::<String>() + "\n").collect();
-        assert!(help.contains("Ctrl+K m with standard keys") && help.contains("Ctrl+Enter"), "{help}");
-        assert!(!help.contains("SPC m r"), "the menu's keys follow the leader they're under: {help}");
+        let text = b.render(&r, 160, 30).text();
+        assert!(text.contains("Run a statement from a .sql buffer: SPC m r. Or open"), "{text}");
+        let h = help(&mut b, &r);
+        assert!(h.contains("In a .sql buffer: SPC m, then") && !h.contains("C-Enter") && !h.contains("Ctrl+K"), "{h}");
+
+        // Standard keys: run's own chord, the menu under their leader.
+        fake.key_scheme(KeyScheme::Standard);
+        let text = b.render(&r, 160, 30).text();
+        assert!(text.contains("Run a statement from a .sql buffer: C-Enter. Or open"), "{text}");
+        let h = help(&mut b, &r);
+        assert!(h.contains("In a .sql buffer: C-k m, then") && h.contains("C-Enter   r's run, at once"), "{h}");
+        assert!(!h.contains("SPC"), "{h}");
+
+        // Nothing runs it, and no menu: Vim's keys, and no chord.
+        fake.no_key("database.run").no_key("leader.local");
+        assert!(b.render(&r, 160, 30).text().contains("from a .sql buffer: SPC m r."));
+        let h = help(&mut b, &r);
+        assert!(h.contains("In a .sql buffer: SPC m, then") && !h.contains("at once"), "{h}");
+
         let empty = Browser::default().render(&[], 100, 30).text();
         assert!(empty.contains("No connections yet") && empty.contains("a sample database"), "{empty}");
         assert!(!text.contains("No connections yet"), "only while there are none");

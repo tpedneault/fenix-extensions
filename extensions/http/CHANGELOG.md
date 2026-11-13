@@ -2,6 +2,10 @@
 
 ## 1.3.0
 
+For Fenix 1.5 (extension API 1.5): its manifest now says so, and it's
+built against API 1.5, as the shared `ui-kit` it draws with now is. On
+Fenix 1.0 to 1.4, 1.2.0 stays the one you have.
+
 - A lesson in the tutorial (`SPC h T`, under HTTP): reading a `.http`
   file, sending the request under the cursor and seeing its response,
   variables, environments and the client, on a practice file. Steps
@@ -15,9 +19,16 @@
   tests, your secrets' values hidden and a long body cut. Running is an
   external tool, which Fenix refuses until your `agents.mcp.allow` lets
   agents run it (`http_run = "ask"`).
-- When a run ends, the modeline names what ran and how many failed, and
-  how long a long one took; it says nothing while the run's report is
-  in front of you.
+- When a run ends while its report isn't in front of you, it says what
+  ran and how many failed: in the message line, or, for a run of 10
+  seconds or more, in a notification -- of low urgency when all passed,
+  normal when some failed, a newer run's in place of the last, and
+  *Open the report* (`http.report`) bringing up the report; closing the
+  report takes it away. It says nothing while the report is in front of
+  you.
+- An import that couldn't bring everything names the keys of the log
+  that lists what it left out as your key scheme has them (`C-k h l`
+  with standard keys, `SPC h l` with Vim keys), or yours.
 
 ## 1.2.0
 

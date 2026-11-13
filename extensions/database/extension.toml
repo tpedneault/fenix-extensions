@@ -16,7 +16,8 @@ runtime = "wasm"
 # alone would be Fenix 1.1.)
 fenix = ">=1.5, <2"
 # Passwords in the system's keychain (secret-set, patterns), the masked
-# prompt, a minute a call, contributes.magic.
+# prompt, a minute a call, contributes.magic; the keys of the scheme in use
+# in what it says (key_for, key-scheme-changed).
 api = "1.5"
 
 # Its commands load it; so does a .sqlite file opened, and a .sql buffer

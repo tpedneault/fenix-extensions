@@ -97,8 +97,12 @@ quotes, quoted names and comments; PostgreSQL's dollar quoting
 backslashes in strings and `DELIMITER`; SQL Server's `[names]` and `GO`
 lines; SQLite's trigger bodies.
 
-On the browser, `?` lists its keys, and says a `.sql` buffer's for both
-key schemes: `SPC m` with Vim keys, `Ctrl+K m` with standard keys.
+With standard keys, `SPC` is `Ctrl+K`: the menu is `Ctrl+K m`. On the
+browser, `?` lists its keys, and a `.sql` buffer's as the key scheme you
+use has them, and yours where you rebound them: `SPC m` with Vim keys,
+`C-k m` and `C-Enter` with standard keys. Its empty results and the
+modeline name them the same way. It needs Fenix 1.5 or later (extension
+API 1.5).
 
 ## Results
 
@@ -262,7 +266,8 @@ against RFC 7677's example, the scrambles, TDS's types, the catalog put
 together into a schema and its tree, SQLite files made by SQLite itself
 (Python's `sqlite3`) read and written and their journal put back, the
 UPDATE builder and table pages, completion, history, the pages'
-keys and layout -- their hints right under either key scheme -- the
+keys and layout -- their hints naming the keys of the scheme in use, on
+the [test kit](../../crates/test-kit)'s fake host -- the
 sample database made, made afresh and read, and what agents are given:
 the read-only guard, the schema and rows as JSON, and their session
 closed when its connection's row changes.

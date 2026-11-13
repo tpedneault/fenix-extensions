@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- For Fenix 1.5 (extension API 1.5): built against API 1.5, as the shared
+  `ui-kit` it draws its dump with now is. The viewer works as it did; on
+  Fenix 1.0 to 1.4, 1.0.1 stays the one you have.
+
 ## 1.0.1
 
 - Go to an offset is on `o`: `:` never reached the page, since Fenix keeps it for its command line.

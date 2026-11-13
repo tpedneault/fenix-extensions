@@ -15,6 +15,7 @@ mod compare;
 mod complete;
 mod files;
 mod git;
+mod keys;
 mod page;
 mod parse;
 mod paths;
@@ -28,7 +29,7 @@ use fenix_extension_api::lsp::types::{
     Uri,
 };
 use fenix_extension_api::lsp::{self, Documents, LanguageServer, Servers};
-use fenix_extension_api::{self as api, decorations, export, host, page as pages, project, Changed, Check, Command, Decoration, DecorationLook, DecorationRule, Event, Extension, Focus, Health, Key, Page, PickerItem, Role, Section, Task, TextEdit};
+use fenix_extension_api::{self as api, decorations, export, host, page as pages, project, Changed, Check, Command, Decoration, DecorationLook, DecorationRule, Event, Extension, Focus, Health, Key, KeyScheme, Page, PickerItem, Role, Section, Task, TextEdit};
 
 use git::{GitState, Risk};
 use page::{Action, EnvPage};
@@ -146,6 +147,29 @@ fn severity(s: Severity) -> DiagnosticSeverity {
     }
 }
 
+/// What an env file lacks that `example` has, and the keys that add it.
+fn missing_said(example: &str, missing: &[&str]) -> String {
+    format!("{example} has what this lacks: {} ({} adds them)", missing.join(", "), keys::add_missing())
+}
+
+/// What puts `risk` right, and its keys, after what it is.
+fn risk_fix(risk: Risk) -> String {
+    match risk {
+        Risk::Tracked => format!(" ({} stops tracking it, the file kept)", keys::untrack()),
+        Risk::NotIgnored => format!(" ({} adds it to .gitignore)", keys::gitignore()),
+    }
+}
+
+/// What's said once tasks run with `rel`'s variables: which tasks, when
+/// `dotenv.tasks` names `none`, else the keys of the task picker.
+fn tasks_said(rel: &str, none: bool) -> String {
+    if none {
+        format!("Tasks run with {rel}'s variables: dotenv.tasks says which (npm run dev, cargo run)")
+    } else {
+        format!("Tasks run with {rel}'s variables ({})", keys::tasks())
+    }
+}
+
 /// What a problem in an env file is, where.
 struct Mark {
     span: Span,
@@ -244,7 +268,7 @@ impl Core {
         if let Some((example, ex)) = self.example(rel, texts) {
             let missing = compare::missing(&file, &ex);
             if !missing.is_empty() {
-                marks.push(Mark { span: top, severity: Severity::Warning, message: format!("{example} has what this lacks: {} (SPC p e m adds them)", missing.join(", ")) });
+                marks.push(Mark { span: top, severity: Severity::Warning, message: missing_said(&example, &missing) });
             }
             for key in compare::extra(&file, &ex) {
                 if let Some(e) = file.get(key) {
@@ -253,11 +277,7 @@ impl Core {
             }
         }
         if let Some(risk) = self.git.risk(rel) {
-            let fix = match risk {
-                Risk::Tracked => " (SPC p e u stops tracking it, the file kept)",
-                Risk::NotIgnored => " (SPC p e i adds it to .gitignore)",
-            };
-            marks.push(Mark { span: top, severity: Severity::Warning, message: risk.said(rel) + fix });
+            marks.push(Mark { span: top, severity: Severity::Warning, message: risk.said(rel) + &risk_fix(risk) });
         }
         marks
     }
@@ -638,7 +658,7 @@ impl Dotenv {
         std::fs::create_dir_all(PROFILES).map_err(|e| format!("{PROFILES}: {e}"))?;
         std::fs::write(project_path(PROFILES, &root), &rel).map_err(|e| format!("{PROFILES}: {e}"))?;
         let none = api::setting("dotenv.tasks").is_none_or(|v| v.trim().is_empty());
-        api::notify(&if none { format!("Tasks run with {rel}'s variables: dotenv.tasks says which (npm run dev, cargo run)") } else { format!("Tasks run with {rel}'s variables (SPC p t)") });
+        api::notify(&tasks_said(&rel, none));
         self.core.task_profile = Some(rel);
         self.refresh();
         Ok(())
@@ -899,6 +919,12 @@ impl Extension for Dotenv {
         }
     }
 
+    /// Vim keys or standard keys now: the problems that name a key are
+    /// said again with the scheme's.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        self.republish();
+    }
+
     fn handle(&mut self, event: Event) {
         match event {
             Event::Picked((id, value)) => {
@@ -1051,6 +1077,30 @@ mod tests {
         for (code, lang) in [(".env.d.ts", "typescript"), (".env.mjs", "javascript"), (".env.json", "json"), (".env.local.yml", "yaml"), (".env.py", "python")] {
             assert_eq!(language(code), Some(lang), "{code}");
         }
+    }
+
+    /// What it says names the keys of the scheme in use, and the keymap's
+    /// own when nothing runs the command.
+    #[test]
+    fn what_it_says_names_the_keys_in_use() {
+        use fenix_test_kit::Fake;
+        let fake = Fake::new();
+        fake.key("dotenv.add_missing", "SPC p e m").key("dotenv.untrack", "SPC p e u").key("dotenv.gitignore", "SPC p e i").key("task.run", "SPC p t");
+        assert_eq!(missing_said(".env.example", &["A", "B"]), ".env.example has what this lacks: A, B (SPC p e m adds them)");
+        assert_eq!(risk_fix(Risk::Tracked), " (SPC p e u stops tracking it, the file kept)");
+        assert_eq!(risk_fix(Risk::NotIgnored), " (SPC p e i adds it to .gitignore)");
+        assert_eq!(tasks_said(".env.staging", false), "Tasks run with .env.staging's variables (SPC p t)");
+        assert!(!tasks_said(".env.staging", true).contains("SPC"), "with no tasks named, it says the setting");
+
+        fake.key_scheme(KeyScheme::Standard);
+        assert_eq!(missing_said(".env.example", &["A"]), ".env.example has what this lacks: A (C-k p e m adds them)");
+        assert_eq!(risk_fix(Risk::Tracked), " (C-k p e u stops tracking it, the file kept)");
+        assert_eq!(risk_fix(Risk::NotIgnored), " (C-k p e i adds it to .gitignore)");
+        assert_eq!(tasks_said(".env", false), "Tasks run with .env's variables (C-k p t)");
+
+        fake.no_key("dotenv.untrack").no_key("task.run");
+        assert_eq!(risk_fix(Risk::Tracked), " (SPC p e u stops tracking it, the file kept)", "no key: its keymap's");
+        assert_eq!(tasks_said(".env", false), "Tasks run with .env's variables (SPC p t)");
     }
 
     #[test]

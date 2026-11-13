@@ -72,7 +72,8 @@ Edited in its text (`t`), the page reads it again as you go.
 The first cell you run starts the notebook's kernel, in the notebook's
 folder (so `open('data.csv')` finds the file beside it), on its Python:
 
-1. the one `jupyter.python` names (`SPC ,`), when you set it;
+1. the one `jupyter.python` names (`SPC ,`, `Ctrl+K ,` with standard
+   keys), when you set it;
 2. else the project's `.venv` (or `venv`);
 3. else, in a uv project (a `pyproject.toml`), `uv run --with ipykernel`;
 4. else `python3` (`python` on Windows) on `PATH`.
@@ -90,8 +91,8 @@ run on that Python itself, so a notebook runs with nothing installed:
 
 The footer says which it is; `P` (or **Jupyter: install ipykernel**)
 installs ipykernel as a task -- `uv add --dev ipykernel` in a uv project,
-uv's or the Python's own pip otherwise -- and `00` restarts the kernel
-with it.
+uv's or the Python's own pip otherwise -- and says when it's done, after
+which `00` restarts the kernel with it.
 
 What a cell runs is yours: the kernel runs with your permissions, as
 Jupyter's does. Fenix's sandbox holds the extension to running Python
@@ -105,6 +106,11 @@ cells run. Its practice text is a small notebook: `:w tour.ipynb` saves
 it in the project, to open when you have none. Running a cell needs
 Python; without it, that step says what you'd see, and passes all the
 same.
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: a
+kernel that ended badly says "`C-k h l` has why" with standard keys,
+"`SPC h l` has why" with Vim keys.
 
 ## Settings
 

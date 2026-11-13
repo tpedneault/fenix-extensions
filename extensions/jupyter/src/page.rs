@@ -519,7 +519,7 @@ impl NotebookPage {
             return;
         }
         match self.kernel.state {
-            State::Off | State::Dead(_) if self.kernel.process.is_none() => {
+            _ if self.kernel.state.stopped() && self.kernel.process.is_none() => {
                 let kernel = self.nb.as_ref().ok().and_then(Notebook::kernel_name);
                 match world.start_kernel(&self.full, kernel.as_deref()) {
                     Ok((process, python)) => {
@@ -528,7 +528,7 @@ impl NotebookPage {
                         self.kernel.state = State::Starting;
                     }
                     Err(e) => {
-                        self.kernel.state = State::Dead(e.clone());
+                        self.kernel.state = State::not_started(e.clone());
                         self.kernel.queue.clear();
                         self.say(e, Role::Bad);
                     }
@@ -617,7 +617,7 @@ impl NotebookPage {
                 self.write(world);
                 self.pump(world);
             }
-            Said::Died { why } => self.ended(why, world),
+            Said::Died { why } => self.ended(State::Dead(why), world),
             Said::Log { text } => world.log(&text),
         }
     }
@@ -640,21 +640,22 @@ impl NotebookPage {
         if self.kernel.process.is_none() {
             return;
         }
-        let why = match (&self.kernel.state, code) {
-            (State::Dead(why), _) => why.clone(),
-            (_, Some(0)) => "it ended".to_string(),
-            (_, Some(c)) => format!("it ended ({c}); SPC h l has why"),
-            (_, None) => "it was stopped".to_string(),
+        let state = match (&self.kernel.state, code) {
+            (State::Dead(why), _) => State::Dead(why.clone()),
+            (_, Some(0)) => State::Dead("it ended".to_string()),
+            (_, Some(c)) => State::Ended(c),
+            (_, None) => State::Dead("it was stopped".to_string()),
         };
-        self.ended(why, world);
+        self.ended(state, world);
     }
 
-    fn ended(&mut self, why: String, world: &mut dyn World) {
+    /// The kernel's gone: `state` says why.
+    fn ended(&mut self, state: State, world: &mut dyn World) {
         self.kernel.process = None;
         self.kernel.running = None;
         self.kernel.queue.clear();
         self.kernel.asking = None;
-        self.kernel.state = State::Dead(why);
+        self.kernel.state = state;
         self.touch();
         self.write(world);
     }
@@ -986,7 +987,7 @@ impl NotebookPage {
         let kernel = if self.kernel.label.is_empty() { nb.kernel_display().unwrap_or_else(|| "Python".into()) } else { self.kernel.label.clone() };
         let state_role = match self.kernel.state {
             State::Busy | State::Starting => Role::Warn,
-            State::Dead(_) => Role::Bad,
+            State::Dead(_) | State::Ended(_) | State::NoPython => Role::Bad,
             State::Idle => Role::Good,
             State::Off => Role::Muted,
         };

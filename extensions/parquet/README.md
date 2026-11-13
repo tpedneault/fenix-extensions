@@ -56,6 +56,9 @@ A file in the project is read where it is, a part at a time, whatever
 its size. One elsewhere is read whole, up to the 64 MiB Fenix gives an
 extension; open a bigger one from its project.
 
+It needs Fenix 1.5 or later (extension API 1.5), as the `ui-kit` it's
+built on is.
+
 ## Permissions
 
 | Permission | Why |

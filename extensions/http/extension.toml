@@ -10,12 +10,14 @@ categories = ["web", "tools", "languages"]
 runtime = "wasm"
 
 [engine]
-# Fenix 1.0 runs all but the agent tools (1.1) and the Ctrl+Enter chord
-# (1.5), which it leaves out; the tutorial lesson keeps to what 1.0 reads.
+# Fenix 1.5, the first to offer API 1.5 (below). The tutorial lesson keeps
+# to what 1.0 reads.
 fenix = ">=1.5, <2"
 # http-send with its timing, tagged decorations, page-render-ex, the
 # grammar for .http files; 0.8.7: the keychain (secret-set, patterns), the
-# masked prompt, tcp-listen, env-var.
+# masked prompt, tcp-listen, env-var; agent tools (1.2); a long run's
+# notification (notify-with, 1.3); the Ctrl+Enter chord, and the keys of
+# the scheme in use in what it says (key_for, 1.5).
 api = "1.5"
 
 # With Fenix: a .http file you open has its requests' statuses and ▶s.
@@ -95,6 +97,11 @@ title = "HTTP: run every request in this file, and report"
 [[contributes.commands]]
 id = "http.run_project"
 title = "HTTP: run every request in the project, and report"
+
+# What a long run's notification offers.
+[[contributes.commands]]
+id = "http.report"
+title = "HTTP: the last run's report"
 
 [[contributes.commands]]
 id = "http.open"

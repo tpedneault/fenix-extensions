@@ -21,6 +21,7 @@ pub mod complete;
 pub mod conn;
 pub mod edit;
 pub mod history;
+mod keys;
 pub mod lite;
 pub mod mysql;
 pub mod pg;
@@ -38,7 +39,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use fenix_extension_api::lsp::types::{CompletionItem, CompletionItemKind, CompletionOptions, CompletionParams, CompletionResponse, ServerCapabilities};
 use fenix_extension_api::lsp::{self, Documents, LanguageServer, Servers};
-use fenix_extension_api::{buffer, export, host, page as pages, scratch, socket, Changed, Event, Extension, Focus, Key, KeyPress, MouseEvent, Page, PickerItem, TlsOptions};
+use fenix_extension_api::{buffer, export, host, page as pages, scratch, socket, Changed, Event, Extension, Focus, Key, KeyPress, KeyScheme, MouseEvent, Page, PickerItem, TlsOptions};
 use fenix_ui_kit::{Role, Style, TreeNode};
 
 use browser::{Browser, Intent, Ran};
@@ -658,7 +659,7 @@ impl App {
                 });
                 fenix_extension_api::status(Some(&format!("db {name} · {state}")));
             }
-            None => fenix_extension_api::status(Some("db · no connection (SPC m c)")),
+            None => fenix_extension_api::status(Some(&no_connection_status())),
         }
     }
 
@@ -1100,6 +1101,12 @@ impl LanguageServer for Completer<'_> {
     }
 }
 
+/// The modeline's word for a `.sql` buffer with no connection: the keys
+/// that pick one, as the scheme in use has them.
+fn no_connection_status() -> String {
+    format!("db · no connection ({})", keys::in_menu("database.connection", "c"))
+}
+
 impl Extension for App {
     fn activate(&mut self) -> Result<(), String> {
         self.history = History::load(HISTORY);
@@ -1266,6 +1273,13 @@ impl Extension for App {
             }
             _ => false,
         }
+    }
+
+    /// Vim keys or standard keys now: the browser and the modeline say a
+    /// `.sql` buffer's keys again.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        self.refresh_browser();
+        self.update_status();
     }
 
     fn page_closed(&mut self, page: u64) {
@@ -1483,6 +1497,17 @@ export!(App);
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_modeline_names_the_keys_that_pick_a_connection() {
+        let fake = fenix_test_kit::Fake::new();
+        fake.key("leader.local", "SPC m").menu_key("database.connection", "c");
+        assert_eq!(no_connection_status(), "db · no connection (SPC m c)");
+        fake.key_scheme(KeyScheme::Standard);
+        assert_eq!(no_connection_status(), "db · no connection (C-k m c)");
+        fake.no_key("leader.local");
+        assert_eq!(no_connection_status(), "db · no connection (SPC m c)", "no key: Vim's");
+    }
 
     #[test]
     fn paths_and_uris() {

@@ -54,6 +54,9 @@ theme's `{ color = "#rrggbb", alpha = 0.12 }`. In code, `#123` and
 | `SPC C P` | `colours.palette` | The project's palette |
 | `SPC C t` | `colours.toggle_swatches` | Swatches on or off |
 
+With standard keys, `SPC` is `Ctrl+K`: `Ctrl+K C p` and so on. It needs
+Fenix 1.5 or later (extension API 1.5), as the `ui-kit` it's built on is.
+
 On the picker:
 
 | Key | What it does |

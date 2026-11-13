@@ -31,6 +31,7 @@ mod export;
 mod graphql;
 mod import;
 mod json;
+mod keys;
 mod model;
 mod parse;
 mod pretty;
@@ -395,6 +396,8 @@ struct Core {
     /// OAuth flows under way, by token key.
     flows: Vec<String>,
     runner: Option<Runner>,
+    /// The page of the last run's report, while it's open.
+    report: Option<u64>,
     /// What the GUI wrote to a file that Fenix hasn't told back yet.
     texts: HashMap<String, String>,
     server_ids: Vec<u64>,
@@ -1498,6 +1501,7 @@ impl Http {
             }
         };
         self.reports.insert(page, Report::new(&title, queue.len()));
+        self.core.report = Some(page);
         pages::refresh(page);
         let first = queue.pop_front();
         self.core.runner = Some(Runner { queue, page, started: now_millis() });
@@ -1523,12 +1527,7 @@ impl Http {
                 let in_front = self.core.front == Some(page);
                 if let Some(report) = self.reports.get_mut(&page) {
                     report.done = true;
-                    match report.said(now_millis() - started, in_front) {
-                        ui::report::Said::Nothing => {}
-                        // A notification of its own would say a long
-                        // one (API 1.3's): this API has the message.
-                        ui::report::Said::Status(s) | ui::report::Said::Notice(s) => api::notify(&s),
-                    }
+                    report.said(now_millis() - started, in_front).tell();
                 }
                 self.core.runner = None;
             }
@@ -2117,7 +2116,7 @@ impl Http {
             api::warn!("import: {note}");
         }
         if !c.notes.is_empty() {
-            said.push_str(&format!(" ({} things not brought: SPC h l)", c.notes.len()));
+            said.push_str(&keys::not_brought(c.notes.len()));
         }
         api::notify(&said);
         if let Some(rel) = first {
@@ -2357,6 +2356,14 @@ impl Extension for Http {
                 self.run_all(&rel)
             }
             "http.run_project" => self.run_all(""),
+            // A long run's notification offers it.
+            "http.report" => match self.core.report.filter(|p| self.reports.contains_key(p)) {
+                Some(page) => {
+                    pages::focus(page);
+                    Ok(())
+                }
+                None => Err("no run's report is open".into()),
+            },
             "http.open" => {
                 self.open_client(false);
                 Ok(())
@@ -2843,7 +2850,10 @@ impl Extension for Http {
     fn page_closed(&mut self, page: u64) {
         self.clients.remove(&page);
         self.responses.remove(&page);
-        self.reports.remove(&page);
+        if self.reports.remove(&page).is_some() && self.core.report == Some(page) {
+            self.core.report = None;
+            ui::report::dismiss_notice();
+        }
     }
 }
 
