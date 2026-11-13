@@ -1,0 +1,17 @@
+# name: initState and dispose, with a controller
+# key: init
+# scope: dart
+# --
+late final ${1:TextEditingController} ${2:controller};
+
+@override
+void initState() {
+  super.initState();
+  $2 = $1();
+}
+
+@override
+void dispose() {
+  $2.dispose();
+  super.dispose();
+}

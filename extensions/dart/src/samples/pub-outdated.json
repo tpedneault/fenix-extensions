@@ -1,0 +1,64 @@
+{
+  "packages": [
+    {
+      "package": "build",
+      "kind": "transitive",
+      "isDiscontinued": false,
+      "replacedBy": null,
+      "isCurrentRetracted": false,
+      "isCurrentAffectedByAdvisory": false,
+      "current": {
+        "version": "4.0.11"
+      },
+      "upgradable": {
+        "version": "4.0.11"
+      },
+      "resolvable": {
+        "version": "4.0.11"
+      },
+      "latest": {
+        "version": "5.0.0"
+      }
+    },
+    {
+      "package": "built_collection",
+      "kind": "transitive",
+      "isDiscontinued": false,
+      "replacedBy": null,
+      "isCurrentRetracted": false,
+      "isCurrentAffectedByAdvisory": false,
+      "current": {
+        "version": "5.1.2"
+      },
+      "upgradable": {
+        "version": "5.1.2"
+      },
+      "resolvable": {
+        "version": "5.1.2"
+      },
+      "latest": {
+        "version": "6.0.0"
+      }
+    },
+    {
+      "package": "http",
+      "kind": "direct",
+      "isDiscontinued": false,
+      "replacedBy": null,
+      "isCurrentRetracted": false,
+      "isCurrentAffectedByAdvisory": false,
+      "current": {
+        "version": "0.13.6"
+      },
+      "upgradable": {
+        "version": "0.13.6"
+      },
+      "resolvable": {
+        "version": "1.6.0"
+      },
+      "latest": {
+        "version": "1.6.0"
+      }
+    }
+  ]
+}

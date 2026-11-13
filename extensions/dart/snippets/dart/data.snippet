@@ -1,0 +1,22 @@
+# name: Immutable data class (==, hashCode, toString, copyWith)
+# key: data
+# scope: dart
+# --
+@immutable
+class ${1:Point} {
+  const $1({required this.${2:x}, required this.${3:y}});
+
+  final ${4:int} $2;
+  final $4 $3;
+
+  $1 copyWith({$4? $2, $4? $3}) => $1($2: $2 ?? this.$2, $3: $3 ?? this.$3);
+
+  @override
+  bool operator ==(Object other) => other is $1 && other.$2 == $2 && other.$3 == $3;
+
+  @override
+  int get hashCode => Object.hash($2, $3);
+
+  @override
+  String toString() => '$1($2: \$$2, $3: \$$3)';
+}

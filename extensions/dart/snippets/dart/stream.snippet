@@ -1,0 +1,9 @@
+# name: Stream generator
+# key: stream
+# scope: dart
+# --
+Stream<${1:int}> ${2:count}(${3:int to}) async* {
+  for (var i = 0; i < ${4:$3}; i++) {
+    yield i;
+  }
+}

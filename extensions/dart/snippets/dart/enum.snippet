@@ -1,0 +1,12 @@
+# name: Enhanced enum
+# key: enum
+# scope: dart
+# --
+enum ${1:Status} {
+  ${2:ready}('${3:Ready}'),
+  ${4:done}('${5:Done}');
+
+  const $1(this.label);
+
+  final String label;
+}

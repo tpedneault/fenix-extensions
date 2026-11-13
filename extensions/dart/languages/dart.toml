@@ -1,0 +1,8 @@
+# Dart, which Fenix doesn't highlight itself: tree-sitter-dart's grammar
+# (UserNobody14's, at the commit grammars/README.md names), compiled to
+# WebAssembly, and its queries from queries/dart. The server is the
+# extension's to set, once it has found dart.
+language = "dart"
+grammar = "grammars/tree-sitter-dart.wasm"
+extensions = ["dart"]
+comment = "//"
