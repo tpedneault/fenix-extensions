@@ -678,6 +678,45 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/config-v1.1.0/fenix.config-1.1.0.fenixext",
+          "sha256": "87ff1d6676a6c565624ece2be35c477bde9f6cf373f188108bf3cdd6300cb624",
+          "size": 332039,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "www.schemastore.org",
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "node",
+              "npm",
+              "yaml-language-server",
+              "vscode-json-language-server",
+              "docker-langserver",
+              "bash-language-server",
+              "taplo",
+              "marksman",
+              "shfmt",
+              "shellcheck",
+              "hadolint",
+              "prettier",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Config & Shell",
