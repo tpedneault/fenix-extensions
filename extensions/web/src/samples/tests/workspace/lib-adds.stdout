@@ -1,0 +1,4 @@
+
+FENIX-TEST {"kind":"result","file":"/project/packages/lib/src/orbit.test.js","names":["adds"],"line":1,"state":"passed","duration":4,"failures":[],"cwd":"/project/packages/lib"}
+
+FENIX-TEST {"kind":"test","file":"/project/packages/lib/src/orbit.test.js","names":["fails here"],"line":5,"state":"pending","cwd":"/project/packages/lib"}

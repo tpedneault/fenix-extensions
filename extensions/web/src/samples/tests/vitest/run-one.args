@@ -1,0 +1,1 @@
+node node_modules/vitest/vitest.mjs run --includeTaskLocation --reporter=default --reporter=${data}/lang-kit/tests/fenix-vitest.mjs src/orbit.test.js -t ^(?:adds)$

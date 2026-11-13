@@ -19,13 +19,16 @@ pub mod doctor;
 pub mod lint;
 pub mod packages;
 pub mod project;
+pub mod provider;
 pub mod tasks;
 pub mod tools;
 
 #[cfg(test)]
 mod data;
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
 use fenix_extension_api::serde_json::Value;
 use fenix_extension_api::{self as api, export, Check, Command, Event, Extension, Key, LaunchConfig, MouseEvent, Page};
@@ -44,7 +47,8 @@ pub const SCRIPTS: &[&str] = &["javascript", "typescript", "tsx"];
 const PROJECT_FILES: &[&str] = &[
     "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", ".nvmrc", ".node-version", ".yarnrc.yml",
     "biome.json", "biome.jsonc", ".prettierrc", ".prettierrc.json", "eslint.config.js", "eslint.config.mjs", "eslint.config.ts", "tsconfig.json",
-    "tailwind.config.js", "tailwind.config.ts",
+    "tailwind.config.js", "tailwind.config.ts", "pnpm-workspace.yaml",
+    "vitest.config.ts", "vitest.config.js", "vitest.config.mts", "vitest.config.mjs", "jest.config.js", "jest.config.ts", "jest.config.mjs", "jest.config.cjs",
 ];
 
 /// The pack's own commands.
@@ -110,6 +114,10 @@ pub struct Web {
     /// `web.install`'s task, and the dev server's.
     installing: Option<u64>,
     dev: Option<u64>,
+    /// What the test provider reads of the project (Fenix 1.6).
+    tests: provider::SharedFacts,
+    /// Activated: Fenix is told the test runner when it changes.
+    started: bool,
 }
 
 impl Default for Web {
@@ -123,7 +131,8 @@ impl Web {
     /// The pack for the project in `root`, talking to `host`.
     pub fn new(mut host: Box<dyn Host>, root: &str, eslint: Eslint) -> Web {
         let tools = Tools::find(host.as_mut());
-        let kit = Kit::with_host("web", host).install(debug::install());
+        let tests = Rc::new(RefCell::new(provider::Facts::default()));
+        let kit = Kit::with_host("web", host).install(debug::install()).tests(Box::new(provider::Provider::new(tests.clone())));
         let mut w = Web {
             kit,
             root: root.into(),
@@ -139,6 +148,8 @@ impl Web {
             js_debug: false,
             installing: None,
             dev: None,
+            tests,
+            started: false,
         };
         w.configure();
         w
@@ -192,6 +203,22 @@ impl Web {
                 Some(page) => page.manager = m,
                 None => self.kit.packages = Some(PackagesPage::new(m)),
             }
+        }
+        self.share();
+    }
+
+    /// The test provider's facts as they are now (the project's packages
+    /// and their runners, read again), and Fenix told the runner where it
+    /// changed.
+    fn share(&mut self) {
+        let layout = if self.project.package_json { provider::layout::Layout::read(&self.root) } else { provider::layout::Layout::default() };
+        let mut f = self.tests.borrow_mut();
+        f.layout = layout;
+        f.node = self.tools.node.clone();
+        f.yarn = self.tools.yarn.clone();
+        drop(f);
+        if self.started {
+            self.kit.tests_runner_changed();
         }
     }
 
@@ -367,6 +394,7 @@ impl Web {
 impl Extension for Web {
     fn activate(&mut self) -> Result<(), String> {
         self.kit.activate()?;
+        self.started = true;
         self.apply();
         self.follow();
         Ok(())
@@ -680,6 +708,38 @@ mod tests {
         assert_eq!(Eslint::parse("save"), Eslint::Save);
         assert_eq!(Eslint::parse(""), Eslint::Server);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// The test provider (Fenix 1.6) is told the runner as the pack starts
+    /// -- Vitest, not installed yet -- and again once an install put it in
+    /// node_modules; outside a project with a runner, nothing to run.
+    #[test]
+    fn the_test_provider_says_vitest_and_again_once_its_installed() {
+        let dir = vite_project("tests");
+        let host = Shared::default();
+        host.0.borrow_mut().programs.extend([("node", "/n/node"), ("pnpm", "/n/pnpm")].map(|(k, v)| (k.to_string(), v.to_string())));
+        let mut w = pack(&dir, &host, Eslint::Off);
+        w.activate().unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"test-provider web: Vitest (Vitest isn't installed: install the project's packages (Web: install the project's packages))".to_string()), "{calls:?}");
+        w.run_command(doctor::INSTALL).unwrap();
+        let task: u64 = host.take().iter().find_map(|c| c.strip_prefix("task ")?.split(' ').next()?.parse().ok()).unwrap();
+        std::fs::create_dir_all(dir.join("node_modules/vitest")).unwrap();
+        std::fs::write(dir.join("node_modules/vitest/vitest.mjs"), "").unwrap();
+        std::fs::write(dir.join("node_modules/vitest/package.json"), r#"{"version": "5.1.0"}"#).unwrap();
+        w.handle(Event::TaskFinished((task, true)));
+        assert_eq!(host.take().iter().filter(|c| c.starts_with("test-provider")).collect::<Vec<_>>(), ["test-provider web: Vitest 5.1.0"]);
+        assert_eq!(w.tests.borrow().layout.packages[0].installed.as_ref().map(|i| i.script.as_str()), Some("node_modules/vitest/vitest.mjs"));
+        w.handle(Event::Saved("/project/src/app.ts".into()));
+        assert!(!host.take().iter().any(|c| c.starts_with("test-provider")), "the same runner: Fenix isn't told again");
+        std::fs::remove_dir_all(&dir).unwrap();
+
+        let plain = temp("tests-plain");
+        let host = Shared::default();
+        let mut w = pack(&plain, &host, Eslint::Off);
+        w.activate().unwrap();
+        assert!(host.take().contains(&"test-provider web: ".to_string()), "nothing to run: hidden");
+        std::fs::remove_dir_all(&plain).unwrap();
     }
 
     #[test]

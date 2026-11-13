@@ -1,0 +1,6 @@
+{
+  "name": "@orbit/lib",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": { "jest": "^30.5.2" }
+}

@@ -1,0 +1,26 @@
+src/geo.test.ts [file] -- passed  <scan>
+  dist is symmetric :5 -- passed 2.705ms  <scan>
+  a > b [suite] :9 -- passed  <scan>
+    c :10 -- passed 0.35ms  <scan>
+src/orbit.test.js [file] -- failed  <scan+run>
+  adds :4 -- passed 2.014ms  <scan>
+  fails on purpose :8 -- failed 6.9ms: expected 4 to be 5 // Object.is equality at src/orbit.test.js:10:21  <scan>
+  skipped :13 -- skipped (skip: )  <scan>
+  to do :14 -- skipped (skip: todo): todo  <scan>
+  add(%i, %i) is %i [template] :16 -- failed  <scan>
+    add(1, 1) is 2 [case] :19 -- passed 0.379ms  <run>
+    add(-1, -1) is -3 [case] :19 -- failed 1.164ms: expected -2 to be -3 // Object.is equality at src/orbit.test.js:20:21  <run>
+  outer [suite] :23 -- failed  <scan>
+    in describe :24 -- passed 0.232ms  <scan>
+    inner [suite] :25 -- failed  <scan>
+      deep :26 -- failed 0.905ms: expected +0 to be 1 // Object.is equality at src/orbit.test.js:27:25  <scan>
+  names [suite] :32 -- failed  <scan+run>
+    twice :33 -- passed 6.357ms  <scan>
+    twice (2) :34 -- failed 3.731ms: expected 2 to be 3 // Object.is equality at src/orbit.test.js:35:23  <scan>
+    add(-1, -1) [regex] $x :37 -- passed 0.652ms  <scan>
+    adds ${n} [template] :39 -- passed  <scan>
+      adds 1 [case] :39 -- passed 0.399ms  <run>
+      adds 2 [case] :39 -- passed 0.229ms  <run>
+    from a variable :44 -- passed 0.095ms  <run>
+  left out [suite] :47 -- unknown  <scan>
+    with its describe :48 -- skipped (skip: )  <scan>

@@ -1,0 +1,1 @@
+node node_modules/vitest/vitest.mjs run --includeTaskLocation --reporter=${data}/lang-kit/tests/fenix-vitest.mjs -t FENIX_NOTHING

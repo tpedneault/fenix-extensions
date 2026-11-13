@@ -1,0 +1,8 @@
+packages/app (vitest) [group] -- failed  <scan>
+  packages/app/src/orbit.test.js [file] -- failed  <scan>
+    adds :3 -- passed 1.607ms  <scan>
+    fails here :7 -- failed 3.593ms: expected 2 to be 3 // Object.is equality at packages/app/src/orbit.test.js:8:17  <scan>
+packages/lib (jest) [group] -- failed  <scan>
+  packages/lib/src/orbit.test.js [file] -- failed  <scan>
+    adds :1 -- passed 4ms  <scan>
+    fails here :5 -- failed 2ms: expect(received).toBe(expected) // Object.is equality at packages/lib/src/orbit.test.js:6:17  <scan>

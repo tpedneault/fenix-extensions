@@ -1,0 +1,1 @@
+node node_modules/jest/bin/jest.js --ci --testLocationInResults --reporters=${data}/lang-kit/tests/fenix-jest.js -t FENIX_NOTHING
