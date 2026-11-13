@@ -85,6 +85,56 @@ basedpyright (or pyright). The project's `.env` goes to each. A task of
 the same name in `.fenix/tools.json` wins. Saving `pyproject.toml`,
 `uv.lock` or a requirements file makes them again.
 
+## Tests, for Fenix 1.6
+
+Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call: built and tested here, but not offered yet.
+Fenix asks for it only once this pack is released for extension API
+1.6, after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5
+as on a nightly. What it will do, as tested on pytest 9.2.0's recorded
+output (and run for real against it):
+
+- **Find the tests in a file as you type**, nothing run or imported:
+  `test*` functions and `Test*` or `unittest.TestCase` classes, at their
+  `def`'s line, under their file and classes; `@pytest.mark.skip` (and
+  `unittest.skip`, `pytestmark = pytest.mark.skip(...)`) as skipped;
+  `@pytest.mark.parametrize`, and a fixture of the file's with `params`,
+  as templates whose cases appear once listed or run. It reads
+  `python_files`, `python_classes` and `python_functions` from the
+  project's configuration. The cases, and what the scan can't see, come
+  from `pytest --collect-only`, which imports every test module (so
+  Fenix lists only in a project you trust).
+- **Run** one, a class, a file, everything or the failed ones: pytest's
+  own node ids (`tests/test_basic.py::test_cases[strings [odd] id]`), as
+  arguments, or in a file of ids when there are many. It runs
+  `uv run python` in a project uv manages (`--with pytest` when the
+  project doesn't ask for it), else the environment's Python, through a
+  small plugin the pack ships (loaded with `-p`, nothing installed in
+  your project), in the folder of pytest's configuration, with the
+  project's `.env`. Where `pytest.ini`, `pyproject.toml` and the like are
+  in several folders, each is a step of its own.
+- **Read** each result as it comes, with its time: a failure at its
+  assertion, with its message, traceback and what the test printed; a
+  fixture that raises as errored ("setup: ..."), as a teardown that raises
+  after a pass; `xfail` as skipped with its reason, a strict `xpass` as
+  failed; a file that doesn't load as "didn't load", never as failing
+  tests (pytest then runs nothing); a process that dies as crashed, naming
+  the test it was running. pytest-xdist works: the workers' results reach
+  the plugin, interleaved, and a worker that dies errors its test.
+- **Debug one test**: debugpy's `pytest` module on its node id, in
+  pytest's folder, as the *pytest: current file* launch.
+
+The runner Fenix shows is `pytest` and its version, asked of the
+environment's Python as the pack starts (`python -m pytest --version`),
+or read from `uv.lock`; with pytest missing it says so. unittest-only
+projects run through pytest too, which collects `unittest.TestCase`.
+
+What it can't: a test of a base class in another file isn't found as you
+type, only when listed or run; ids over 1 KiB (a parametrize with a huge
+string as its id) are run by their `data`, and, when Fenix has lost it,
+by their template; the first run of a project's `uv run` may sync its
+environment, as `uv run pytest` does; Windows isn't verified.
+
 ## The project doctor
 
 - **Python**: the one uv would use (`uv python find`), else `python3`,

@@ -1,0 +1,45 @@
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_cases[strings [odd] id]", "file": "tests/test_basic.py", "line": 25, "name": "test_cases[strings [odd] id]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::TestOuter::TestInner::test_deep", "file": "tests/test_basic.py", "line": 35, "name": "TestOuter.TestInner.test_deep"}
+
+FENIX-TEST {"kind": "test", "id": "tests/sub/test_unit.py::TestUnit::test_bad", "file": "tests/sub/test_unit.py", "line": 8, "name": "TestUnit.test_bad"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_cases[strings [odd] id]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_cases[strings [odd] id]", "when": "call", "outcome": "passed", "duration": 0.000112}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::TestOuter::TestInner::test_deep"}
+F
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::TestOuter::TestInner::test_deep", "when": "call", "outcome": "failed", "duration": 0.000355, "file": "/project/tests/test_basic.py", "line": 36, "message": "assert 0 == 1\n +  where 0 = add(0, 0)", "at": ["tests/test_basic.py", 36], "text": "self = <test_basic.TestOuter.TestInner object at 0x7f13e0ce0b90>\n\n    def test_deep(self):\n>       assert add(0, 0) == 1\nE       assert 0 == 1\nE        +  where 0 = add(0, 0)\n\ntests/test_basic.py:36: AssertionError"}
+
+FENIX-TEST {"kind": "start", "id": "tests/sub/test_unit.py::TestUnit::test_bad"}
+F
+FENIX-TEST {"kind": "result", "id": "tests/sub/test_unit.py::TestUnit::test_bad", "when": "call", "outcome": "failed", "duration": 0.000143, "file": "/usr/local/lib/python3.13/unittest/case.py", "line": 900, "message": "AssertionError: 1 != 2", "at": ["tests/sub/test_unit.py", 9], "text": "self = <sub.test_unit.TestUnit testMethod=test_bad>\n\n    def test_bad(self):\n>       self.assertEqual(1, 2)\nE       AssertionError: 1 != 2\n\ntests/sub/test_unit.py:9: AssertionError"}
+                                                                      [100%]
+FENIX-TEST {"kind": "done", "status": 1}
+
+=================================== FAILURES ===================================
+________________________ TestOuter.TestInner.test_deep _________________________
+
+self = <test_basic.TestOuter.TestInner object at 0x7f13e0ce0b90>
+
+    def test_deep(self):
+>       assert add(0, 0) == 1
+E       assert 0 == 1
+E        +  where 0 = add(0, 0)
+
+tests/test_basic.py:36: AssertionError
+______________________________ TestUnit.test_bad _______________________________
+
+self = <sub.test_unit.TestUnit testMethod=test_bad>
+
+    def test_bad(self):
+>       self.assertEqual(1, 2)
+E       AssertionError: 1 != 2
+
+tests/sub/test_unit.py:9: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_basic.py::TestOuter::TestInner::test_deep - assert 0 == 1
+FAILED tests/sub/test_unit.py::TestUnit::test_bad - AssertionError: 1 != 2
+2 failed, 1 passed in 0.02s

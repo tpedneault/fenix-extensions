@@ -1,0 +1,94 @@
+tests/sub/test_unit.py::TestUnit::test_bad
+tests/sub/test_unit.py::TestUnit::test_ok
+tests/test_basic.py::test_adds
+tests/test_basic.py::test_fails_on_purpose
+tests/test_basic.py::test_skipped
+tests/test_basic.py::test_known_bug
+tests/test_basic.py::test_cases[small]
+tests/test_basic.py::test_cases[negative]
+tests/test_basic.py::test_cases[strings [odd] id]
+tests/test_basic.py::TestOuter::test_in_class
+tests/test_basic.py::TestOuter::TestInner::test_deep
+tests/test_basic.py::TestOuter::test_param_in_class[1]
+tests/test_basic.py::TestOuter::test_param_in_class[2]
+tests/test_basic.py::test_uses_broken_fixture
+tests/test_extra.py::test_teardown_fails
+tests/test_extra.py::test_strict_xpass
+tests/test_extra.py::test_xpass
+tests/test_extra.py::test_名前
+tests/test_extra.py::test_skipif
+tests/test_extra.py::test_skips_inside
+tests/test_extra.py::test_long_id[yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy]
+tests/test_extra.py::test_long_id[short]
+tests/test_extra.py::test_stacked[3-1]
+tests/test_extra.py::test_stacked[3-2]
+tests/test_extra.py::test_stacked[4-1]
+tests/test_extra.py::test_stacked[4-2]
+tests/test_extra.py::test_marked_case[1]
+tests/test_extra.py::test_marked_case[2]
+tests/test_extra.py::test_fixture_param[10]
+tests/test_extra.py::test_fixture_param[20]
+
+FENIX-TEST {"kind": "test", "id": "tests/sub/test_unit.py::TestUnit::test_bad", "file": "tests/sub/test_unit.py", "line": 8, "name": "TestUnit.test_bad"}
+
+FENIX-TEST {"kind": "test", "id": "tests/sub/test_unit.py::TestUnit::test_ok", "file": "tests/sub/test_unit.py", "line": 5, "name": "TestUnit.test_ok"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_adds", "file": "tests/test_basic.py", "line": 6, "name": "test_adds"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_fails_on_purpose", "file": "tests/test_basic.py", "line": 10, "name": "test_fails_on_purpose"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_skipped", "file": "tests/test_basic.py", "line": 15, "name": "test_skipped"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_known_bug", "file": "tests/test_basic.py", "line": 20, "name": "test_known_bug"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_cases[small]", "file": "tests/test_basic.py", "line": 25, "name": "test_cases[small]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_cases[negative]", "file": "tests/test_basic.py", "line": 25, "name": "test_cases[negative]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_cases[strings [odd] id]", "file": "tests/test_basic.py", "line": 25, "name": "test_cases[strings [odd] id]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::TestOuter::test_in_class", "file": "tests/test_basic.py", "line": 31, "name": "TestOuter.test_in_class"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::TestOuter::TestInner::test_deep", "file": "tests/test_basic.py", "line": 35, "name": "TestOuter.TestInner.test_deep"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::TestOuter::test_param_in_class[1]", "file": "tests/test_basic.py", "line": 38, "name": "TestOuter.test_param_in_class[1]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::TestOuter::test_param_in_class[2]", "file": "tests/test_basic.py", "line": 38, "name": "TestOuter.test_param_in_class[2]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_basic.py::test_uses_broken_fixture", "file": "tests/test_basic.py", "line": 48, "name": "test_uses_broken_fixture"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_teardown_fails", "file": "tests/test_extra.py", "line": 12, "name": "test_teardown_fails"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_strict_xpass", "file": "tests/test_extra.py", "line": 16, "name": "test_strict_xpass"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_xpass", "file": "tests/test_extra.py", "line": 21, "name": "test_xpass"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_\u540d\u524d", "file": "tests/test_extra.py", "line": 26, "name": "test_\u540d\u524d"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_skipif", "file": "tests/test_extra.py", "line": 30, "name": "test_skipif"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_skips_inside", "file": "tests/test_extra.py", "line": 35, "name": "test_skips_inside"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_long_id[yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy]", "file": "tests/test_extra.py", "line": 39, "name": "test_long_id[yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_long_id[short]", "file": "tests/test_extra.py", "line": 39, "name": "test_long_id[short]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_stacked[3-1]", "file": "tests/test_extra.py", "line": 44, "name": "test_stacked[3-1]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_stacked[3-2]", "file": "tests/test_extra.py", "line": 44, "name": "test_stacked[3-2]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_stacked[4-1]", "file": "tests/test_extra.py", "line": 44, "name": "test_stacked[4-1]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_stacked[4-2]", "file": "tests/test_extra.py", "line": 44, "name": "test_stacked[4-2]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_marked_case[1]", "file": "tests/test_extra.py", "line": 50, "name": "test_marked_case[1]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_marked_case[2]", "file": "tests/test_extra.py", "line": 50, "name": "test_marked_case[2]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_fixture_param[10]", "file": "tests/test_extra.py", "line": 60, "name": "test_fixture_param[10]"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_extra.py::test_fixture_param[20]", "file": "tests/test_extra.py", "line": 60, "name": "test_fixture_param[20]"}
+
+FENIX-TEST {"kind": "done", "status": 0}
+
+30 tests collected in 0.01s

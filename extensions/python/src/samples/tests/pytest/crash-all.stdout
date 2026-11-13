@@ -1,0 +1,14 @@
+
+FENIX-TEST {"kind": "test", "id": "tests/test_crash.py::test_before", "file": "tests/test_crash.py", "line": 4, "name": "test_before"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_crash.py::test_exits", "file": "tests/test_crash.py", "line": 8, "name": "test_exits"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_crash.py::test_after", "file": "tests/test_crash.py", "line": 13, "name": "test_after"}
+
+FENIX-TEST {"kind": "test", "id": "tests/test_zabort.py::test_aborts", "file": "tests/test_zabort.py", "line": 4, "name": "test_aborts"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_crash.py::test_before"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_crash.py::test_before", "when": "call", "outcome": "passed", "duration": 8.7e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_crash.py::test_exits"}

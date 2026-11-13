@@ -1,0 +1,35 @@
+bringing up nodes...
+bringing up nodes...
+
+
+FENIX-TEST {"kind": "start", "id": "tests/test_crash.py::test_before"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_crash.py::test_before", "when": "call", "outcome": "passed", "duration": 0.000131}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_crash.py::test_exits"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_crash.py::test_after"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_crash.py::test_after", "when": "call", "outcome": "passed", "duration": 0.000104}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_zabort.py::test_aborts"}
+[gw0] node down: Not properly terminated
+F
+FENIX-TEST {"kind": "result", "id": "tests/test_crash.py::test_exits", "when": "???", "outcome": "failed", "duration": 0, "text": "[gw0] linux -- Python 3.13.18 /venv/bin/python\nworker 'gw0' crashed while running 'tests/test_crash.py::test_exits'"}
+[gw1] node down: Not properly terminated
+F
+FENIX-TEST {"kind": "result", "id": "tests/test_zabort.py::test_aborts", "when": "???", "outcome": "failed", "duration": 0, "text": "[gw1] linux -- Python 3.13.18 /venv/bin/python\nworker 'gw1' crashed while running 'tests/test_zabort.py::test_aborts'"}
+                                                                        [100%]
+FENIX-TEST {"kind": "done", "status": 1}
+
+=================================== FAILURES ===================================
+_____________________________ tests/test_crash.py ______________________________
+[gw0] linux -- Python 3.13.18 /venv/bin/python
+worker 'gw0' crashed while running 'tests/test_crash.py::test_exits'
+_____________________________ tests/test_zabort.py _____________________________
+[gw1] linux -- Python 3.13.18 /venv/bin/python
+worker 'gw1' crashed while running 'tests/test_zabort.py::test_aborts'
+=========================== short test summary info ============================
+FAILED tests/test_crash.py::test_exits - worker 'gw0' crashed while running '...
+FAILED tests/test_zabort.py::test_aborts - worker 'gw1' crashed while running...
+2 failed, 2 passed in 0.91s

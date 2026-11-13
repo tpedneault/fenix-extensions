@@ -1,0 +1,4 @@
+
+FENIX-TEST {"kind": "test", "id": "tests/test_zabort.py::test_aborts", "file": "tests/test_zabort.py", "line": 4, "name": "test_aborts"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_zabort.py::test_aborts"}

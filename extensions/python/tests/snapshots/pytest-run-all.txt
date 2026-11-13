@@ -1,0 +1,42 @@
+tests/sub/test_unit.py [file] -- failed  <scan>
+  TestUnit [suite] :4 -- failed  <scan>
+    test_ok :5 -- passed 0.1ms  <scan>
+    test_bad :8 -- failed 0.182ms: AssertionError: 1 != 2 at tests/sub/test_unit.py:9  <scan>
+tests/test_basic.py [file] -- failed  <scan+run>
+  test_adds :6 -- passed 0.089ms  <scan>
+  test_fails_on_purpose :10 -- failed 0.402ms: AssertionError: two and two at tests/test_basic.py:12  <scan>
+  test_skipped :16 -- skipped 0.063ms (skip: slow): slow  <scan>
+  test_known_bug :21 -- skipped 0.078ms: xfail: known bug  <scan>
+  test_cases [template] :26 -- failed  <scan>
+    small [case] :26 -- passed 0.053ms  <run>
+    negative [case] :26 -- failed 0.163ms: assert -2 == -3 at tests/test_basic.py:27  <run>
+    strings [odd] id [case] :26 -- passed 0.056ms  <run>
+  TestOuter [suite] :30 -- failed  <scan+run>
+    test_in_class :31 -- passed 0.063ms  <scan>
+    TestInner [suite] :34 -- failed  <scan>
+      test_deep :35 -- failed 0.143ms: assert 0 == 1 at tests/test_basic.py:36  <scan>
+    test_param_in_class [template] :39 -- passed  <scan>
+      1 [case] :39 -- passed 0.054ms  <run>
+      2 [case] :39 -- passed 0.051ms  <run>
+  test_uses_broken_fixture :48 -- errored 0.096ms: setup: RuntimeError: fixture broke at tests/test_basic.py:45  <scan>
+tests/test_extra.py [file] -- failed  <scan+run>
+  test_teardown_fails :12 -- errored 0.112ms: teardown: RuntimeError: teardown broke at tests/test_extra.py:9  <scan>
+  test_strict_xpass :17 -- failed 0.057ms: [XPASS(strict)] fixed already  <scan>
+  test_xpass :22 -- passed 0.043ms: xfail: flaky, but it passed  <scan>
+  test_名前 :26 -- passed 0.042ms  <scan>
+  test_skipif :31 -- skipped 0.056ms: not on this platform  <scan>
+  test_skips_inside :35 -- skipped 0.058ms: not today  <scan>
+  test_long_id [template] :40 -- passed  <scan>
+    yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy [case] :40 -- passed 0.05ms  <run>
+    short [case] :40 -- passed 0.043ms  <run>
+  test_stacked [template] :46 -- passed  <scan>
+    3-1 [case] :46 -- passed 0.042ms  <run>
+    3-2 [case] :46 -- passed 0.043ms  <run>
+    4-1 [case] :46 -- passed 0.042ms  <run>
+    4-2 [case] :46 -- passed 0.044ms  <run>
+  test_marked_case [template] :51 -- passed  <scan>
+    1 [case] :51 -- skipped 0.053ms: later  <run>
+    2 [case] :51 -- passed 0.042ms  <run>
+  test_fixture_param [template] :60 -- passed  <scan>
+    10 [case] :60 -- passed 0.039ms  <run>
+    20 [case] :60 -- passed 0.043ms  <run>

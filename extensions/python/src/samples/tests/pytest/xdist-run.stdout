@@ -1,0 +1,207 @@
+bringing up nodes...
+bringing up nodes...
+
+
+FENIX-TEST {"kind": "start", "id": "tests/sub/test_unit.py::TestUnit::test_bad"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_fails_on_purpose"}
+F
+FENIX-TEST {"kind": "result", "id": "tests/sub/test_unit.py::TestUnit::test_bad", "when": "call", "outcome": "failed", "duration": 0.00029, "file": "/usr/local/lib/python3.13/unittest/case.py", "line": 900, "message": "AssertionError: 1 != 2", "at": ["tests/sub/test_unit.py", 9], "text": "[gw0] linux -- Python 3.13.18 /venv/bin/python\n\nself = <sub.test_unit.TestUnit testMethod=test_bad>\n\n    def test_bad(self):\n>       self.assertEqual(1, 2)\nE       AssertionError: 1 != 2\n\ntests/sub/test_unit.py:9: AssertionError"}
+F
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_fails_on_purpose", "when": "call", "outcome": "failed", "duration": 0.000468, "file": "/project/tests/test_basic.py", "line": 12, "message": "AssertionError: two and two\nassert 4 == 5\n +  where 4 = add(2, 2)", "at": ["tests/test_basic.py", 12], "text": "[gw1] linux -- Python 3.13.18 /venv/bin/python\n\n    def test_fails_on_purpose():\n        print(\"some output before the failure\")\n>       assert add(2, 2) == 5, \"two and two\"\nE       AssertionError: two and two\nE       assert 4 == 5\nE        +  where 4 = add(2, 2)\n\ntests/test_basic.py:12: AssertionError", "output": {"Captured stdout call": "some output before the failure\n"}}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_skipped"}
+
+FENIX-TEST {"kind": "start", "id": "tests/sub/test_unit.py::TestUnit::test_ok"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/sub/test_unit.py::TestUnit::test_ok", "when": "call", "outcome": "passed", "duration": 9.5e-05}
+s
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_skipped", "when": "setup", "outcome": "skipped", "duration": 7.5e-05, "file": "/project/tests/test_basic.py", "line": 15, "message": "Skipped: slow"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_known_bug"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_adds"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_adds", "when": "call", "outcome": "passed", "duration": 9.1e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::TestOuter::TestInner::test_deep"}
+x
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_known_bug", "when": "call", "outcome": "skipped", "duration": 0.000115, "xfail": "known bug", "file": "/project/tests/test_basic.py", "line": 22, "message": "assert False", "at": ["tests/test_basic.py", 22]}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_cases[small]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_cases[small]", "when": "call", "outcome": "passed", "duration": 6.9e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_cases[negative]"}
+F
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_cases[negative]", "when": "call", "outcome": "failed", "duration": 0.000199, "file": "/project/tests/test_basic.py", "line": 27, "message": "assert -2 == -3\n +  where -2 = add(-1, -1)", "at": ["tests/test_basic.py", 27], "text": "[gw1] linux -- Python 3.13.18 /venv/bin/python\n\na = -1, b = -1, want = -3\n\n    @pytest.mark.parametrize(\"a,b,want\", [(1, 1, 2), (-1, -1, -3), (\"x\", \"y\", \"xy\")], ids=[\"small\", \"negative\", \"strings [odd] id\"])\n    def test_cases(a, b, want):\n>       assert add(a, b) == want\nE       assert -2 == -3\nE        +  where -2 = add(-1, -1)\n\ntests/test_basic.py:27: AssertionError"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_cases[strings [odd] id]"}
+F
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::TestOuter::TestInner::test_deep", "when": "call", "outcome": "failed", "duration": 0.000377, "file": "/project/tests/test_basic.py", "line": 36, "message": "assert 0 == 1\n +  where 0 = add(0, 0)", "at": ["tests/test_basic.py", 36], "text": "[gw0] linux -- Python 3.13.18 /venv/bin/python\n\nself = <test_basic.TestOuter.TestInner object at 0x7f4dd5f22990>\n\n    def test_deep(self):\n>       assert add(0, 0) == 1\nE       assert 0 == 1\nE        +  where 0 = add(0, 0)\n\ntests/test_basic.py:36: AssertionError"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::TestOuter::test_param_in_class[1]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::TestOuter::test_param_in_class[1]", "when": "call", "outcome": "passed", "duration": 6.3e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::TestOuter::test_param_in_class[2]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::TestOuter::test_param_in_class[2]", "when": "call", "outcome": "passed", "duration": 5e-05}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_cases[strings [odd] id]", "when": "call", "outcome": "passed", "duration": 6.5e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::test_uses_broken_fixture"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_basic.py::TestOuter::test_in_class"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::TestOuter::test_in_class", "when": "call", "outcome": "passed", "duration": 6.2e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_\u540d\u524d"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_\u540d\u524d", "when": "call", "outcome": "passed", "duration": 4.6e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_skipif"}
+E
+FENIX-TEST {"kind": "result", "id": "tests/test_basic.py::test_uses_broken_fixture", "when": "setup", "outcome": "failed", "duration": 0.000174, "file": "/project/tests/test_basic.py", "line": 45, "message": "RuntimeError: fixture broke", "at": ["tests/test_basic.py", 45], "text": "[gw0] linux -- Python 3.13.18 /venv/bin/python\n\n    @pytest.fixture\n    def broken():\n>       raise RuntimeError(\"fixture broke\")\nE       RuntimeError: fixture broke\n\ntests/test_basic.py:45: RuntimeError"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_teardown_fails"}
+s
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_skipif", "when": "setup", "outcome": "skipped", "duration": 6.1e-05, "file": "/project/tests/test_extra.py", "line": 30, "message": "Skipped: not on this platform"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_teardown_fails", "when": "call", "outcome": "passed", "duration": 7.1e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_skips_inside"}
+s
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_skips_inside", "when": "call", "outcome": "skipped", "duration": 0.000152, "file": "/project/tests/test_extra.py", "line": 36, "message": "Skipped: not today"}
+E
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_teardown_fails", "when": "teardown", "outcome": "failed", "duration": 8.4e-05, "file": "/project/tests/test_extra.py", "line": 9, "message": "RuntimeError: teardown broke", "at": ["tests/test_extra.py", 9], "text": "[gw0] linux -- Python 3.13.18 /venv/bin/python\n\n    @pytest.fixture\n    def leaky():\n        yield\n>       raise RuntimeError(\"teardown broke\")\nE       RuntimeError: teardown broke\n\ntests/test_extra.py:9: RuntimeError"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_long_id[yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy]"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_strict_xpass"}
+F
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_strict_xpass", "when": "call", "outcome": "failed", "duration": 6.4e-05, "text": "[gw0] linux -- Python 3.13.18 /venv/bin/python\n[XPASS(strict)] fixed already"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_long_id[yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy]", "when": "call", "outcome": "passed", "duration": 6.3e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_xpass"}
+X
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_xpass", "when": "call", "outcome": "passed", "duration": 5.4e-05, "xfail": "flaky"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_long_id[short]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_long_id[short]", "when": "call", "outcome": "passed", "duration": 5.5e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_stacked[3-1]"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_stacked[3-2]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_stacked[3-1]", "when": "call", "outcome": "passed", "duration": 7e-05}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_stacked[3-2]", "when": "call", "outcome": "passed", "duration": 5.1e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_stacked[4-2]"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_stacked[4-1]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_stacked[4-2]", "when": "call", "outcome": "passed", "duration": 5.5e-05}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_stacked[4-1]", "when": "call", "outcome": "passed", "duration": 7.3e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_marked_case[2]"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_marked_case[1]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_marked_case[2]", "when": "call", "outcome": "passed", "duration": 5.9e-05}
+s
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_marked_case[1]", "when": "setup", "outcome": "skipped", "duration": 0.000112, "file": "/project/tests/test_extra.py", "line": 50, "message": "Skipped: later"}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_fixture_param[10]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_fixture_param[10]", "when": "call", "outcome": "passed", "duration": 6.3e-05}
+
+FENIX-TEST {"kind": "start", "id": "tests/test_extra.py::test_fixture_param[20]"}
+.
+FENIX-TEST {"kind": "result", "id": "tests/test_extra.py::test_fixture_param[20]", "when": "call", "outcome": "passed", "duration": 6.5e-05}
+                                          [100%]
+FENIX-TEST {"kind": "done", "status": 1}
+
+==================================== ERRORS ====================================
+__________________ ERROR at setup of test_uses_broken_fixture __________________
+[gw0] linux -- Python 3.13.18 /venv/bin/python
+
+    @pytest.fixture
+    def broken():
+>       raise RuntimeError("fixture broke")
+E       RuntimeError: fixture broke
+
+tests/test_basic.py:45: RuntimeError
+___________________ ERROR at teardown of test_teardown_fails ___________________
+[gw0] linux -- Python 3.13.18 /venv/bin/python
+
+    @pytest.fixture
+    def leaky():
+        yield
+>       raise RuntimeError("teardown broke")
+E       RuntimeError: teardown broke
+
+tests/test_extra.py:9: RuntimeError
+=================================== FAILURES ===================================
+______________________________ TestUnit.test_bad _______________________________
+[gw0] linux -- Python 3.13.18 /venv/bin/python
+
+self = <sub.test_unit.TestUnit testMethod=test_bad>
+
+    def test_bad(self):
+>       self.assertEqual(1, 2)
+E       AssertionError: 1 != 2
+
+tests/sub/test_unit.py:9: AssertionError
+____________________________ test_fails_on_purpose _____________________________
+[gw1] linux -- Python 3.13.18 /venv/bin/python
+
+    def test_fails_on_purpose():
+        print("some output before the failure")
+>       assert add(2, 2) == 5, "two and two"
+E       AssertionError: two and two
+E       assert 4 == 5
+E        +  where 4 = add(2, 2)
+
+tests/test_basic.py:12: AssertionError
+----------------------------- Captured stdout call -----------------------------
+some output before the failure
+_____________________________ test_cases[negative] _____________________________
+[gw1] linux -- Python 3.13.18 /venv/bin/python
+
+a = -1, b = -1, want = -3
+
+    @pytest.mark.parametrize("a,b,want", [(1, 1, 2), (-1, -1, -3), ("x", "y", "xy")], ids=["small", "negative", "strings [odd] id"])
+    def test_cases(a, b, want):
+>       assert add(a, b) == want
+E       assert -2 == -3
+E        +  where -2 = add(-1, -1)
+
+tests/test_basic.py:27: AssertionError
+________________________ TestOuter.TestInner.test_deep _________________________
+[gw0] linux -- Python 3.13.18 /venv/bin/python
+
+self = <test_basic.TestOuter.TestInner object at 0x7f4dd5f22990>
+
+    def test_deep(self):
+>       assert add(0, 0) == 1
+E       assert 0 == 1
+E        +  where 0 = add(0, 0)
+
+tests/test_basic.py:36: AssertionError
+______________________________ test_strict_xpass _______________________________
+[gw0] linux -- Python 3.13.18 /venv/bin/python
+[XPASS(strict)] fixed already
+=========================== short test summary info ============================
+FAILED tests/sub/test_unit.py::TestUnit::test_bad - AssertionError: 1 != 2
+FAILED tests/test_basic.py::test_fails_on_purpose - AssertionError: two and two
+FAILED tests/test_basic.py::test_cases[negative] - assert -2 == -3
+FAILED tests/test_basic.py::TestOuter::TestInner::test_deep - assert 0 == 1
+FAILED tests/test_extra.py::test_strict_xpass - [XPASS(strict)] fixed already
+ERROR tests/test_basic.py::test_uses_broken_fixture - RuntimeError: fixture b...
+ERROR tests/test_extra.py::test_teardown_fails - RuntimeError: teardown broke
+5 failed, 18 passed, 4 skipped, 1 xfailed, 1 xpassed, 2 errors in 0.34s
