@@ -11,14 +11,18 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
-# The later host calls: ruff's server beside basedpyright, fixes, launches.
-fenix-lang-kit = { path = "../../crates/lang-kit" }
+# The later host calls: ruff's server beside basedpyright, fixes, launches;
+# and the test provider for Fenix 1.6 (`tests`), offered once the pack is on
+# API 1.6.
+fenix-lang-kit = { path = "../../crates/lang-kit", features = ["tests"] }
 serde = { version = "1", features = ["derive"] }
 toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
 
 [dev-dependencies]
 # lang-kit's test host.
 fenix-lang-kit = { path = "../../crates/lang-kit", features = ["mock"] }
+# Fenix's side of the test provider, on recorded pytest output.
+fenix-test-kit = { path = "../../crates/test-kit", default-features = false, features = ["tests"] }
 # The snippets and project templates read by Fenix's own code.
 fenix-snippets = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
 fenix-project = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }

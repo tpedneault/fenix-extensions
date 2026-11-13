@@ -1,0 +1,27 @@
+tests/sub/test_unit.py [file] -- unknown  <scan>
+  TestUnit [suite] :4 -- unknown  <scan>
+    test_ok :5 -- unknown  <scan>
+    test_bad :8 -- unknown  <scan>
+tests/test_basic.py [file] -- unknown  <scan>
+  test_adds :6 -- unknown  <scan>
+  test_fails_on_purpose :10 -- unknown  <scan>
+  test_skipped :16 -- unknown (skip: slow)  <scan>
+  test_known_bug :21 -- unknown  <scan>
+  test_cases [template] :26 -- unknown  <scan>
+  TestOuter [suite] :30 -- unknown  <scan>
+    test_in_class :31 -- unknown  <scan>
+    TestInner [suite] :34 -- unknown  <scan>
+      test_deep :35 -- unknown  <scan>
+    test_param_in_class [template] :39 -- unknown  <scan>
+  test_uses_broken_fixture :48 -- unknown  <scan>
+tests/test_extra.py [file] -- unknown  <scan>
+  test_teardown_fails :12 -- unknown  <scan>
+  test_strict_xpass :17 -- unknown  <scan>
+  test_xpass :22 -- unknown  <scan>
+  test_名前 :26 -- unknown  <scan>
+  test_skipif :31 -- unknown  <scan>
+  test_skips_inside :35 -- unknown  <scan>
+  test_long_id [template] :40 -- unknown  <scan>
+  test_stacked [template] :46 -- unknown  <scan>
+  test_marked_case [template] :51 -- unknown  <scan>
+  test_fixture_param [template] :60 -- unknown  <scan>

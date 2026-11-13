@@ -14,6 +14,7 @@ pub mod debug;
 pub mod doctor;
 pub mod packages;
 pub mod project;
+pub mod provider;
 pub mod ruff;
 pub mod tasks;
 pub mod tools;
@@ -21,8 +22,12 @@ pub mod tools;
 #[cfg(test)]
 mod data;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use fenix_extension_api::serde_json::{json, Value};
 use fenix_extension_api::{self as api, export, Command, Event, Extension, Key, LaunchConfig, MouseEvent, Page};
+use fenix_lang_kit::exec::Runs;
 use fenix_lang_kit::{Fenix, Host, Kit, PackageManager};
 
 use project::Project;
@@ -34,6 +39,16 @@ pub const PROJECT: &str = "/project";
 
 /// Fenix's name for the language.
 const PYTHON: &[&str] = &["python"];
+
+/// What the test provider asks of the project's Python, for itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Ask {
+    /// `python -m pytest --version`: whether pytest is installed, and which.
+    Pytest,
+}
+
+/// Files whose saving changes what pytest's rootdirs and tests are.
+const PYTEST_FILES: &[&str] = &["pytest.ini", "tox.ini", "setup.cfg", "setup.py", "pyproject.toml"];
 
 /// Files whose saving changes what the project is.
 const PROJECT_FILES: &[&str] = &["pyproject.toml", "uv.lock", "requirements.txt", "requirements-dev.txt", "manage.py", ".python-version"];
@@ -98,6 +113,12 @@ pub struct Python {
     set_formatter: Option<Command>,
     set_launches: Option<Vec<LaunchConfig>>,
     set_settings: Option<Value>,
+    /// What the test provider reads of the project (Fenix 1.6).
+    tests: provider::SharedFacts,
+    /// `python -m pytest --version`, while it's asked.
+    reading: Runs<Ask>,
+    /// Activated: the kit has told Fenix the test runner once.
+    started: bool,
 }
 
 impl Default for Python {
@@ -111,8 +132,9 @@ impl Python {
     pub fn new(mut host: Box<dyn Host>, root: &str, settings: Settings) -> Python {
         let tools = Tools::find(host.as_mut());
         let project = Project::read(root);
-        let kit = Kit::with_host("python", host).packages(manager(&project, &tools, root));
-        let mut p = Python { kit, root: root.into(), settings, project, tools, set_server: None, set_ruff: None, set_adapter: None, set_formatter: None, set_launches: None, set_settings: None };
+        let tests = Rc::new(RefCell::new(provider::Facts { root: root.into(), ..provider::Facts::default() }));
+        let kit = Kit::with_host("python", host).packages(manager(&project, &tools, root)).tests(Box::new(provider::Provider::new(tests.clone())));
+        let mut p = Python { kit, root: root.into(), settings, project, tools, set_server: None, set_ruff: None, set_adapter: None, set_formatter: None, set_launches: None, set_settings: None, tests, reading: Runs::new(), started: false };
         p.configure();
         p
     }
@@ -133,6 +155,82 @@ impl Python {
         if let Some(page) = self.kit.packages.as_mut() {
             page.manager = manager(project, tools, &self.root);
         }
+        self.share();
+    }
+
+    /// How pytest is run, as the `test` task chooses: through uv for a
+    /// project uv manages (or where there's no other Python), else the
+    /// environment's Python.
+    fn pytest_runs_in_uv(&self) -> bool {
+        self.tools.uv.is_some() && (self.project.uv || self.tools.python.is_none())
+    }
+
+    /// The test provider's facts as they are now, and Fenix told the
+    /// runner where it changed.
+    fn share(&mut self) {
+        let in_uv = self.pytest_runs_in_uv();
+        let uv = self.tools.uv.clone().filter(|_| in_uv);
+        let with_pytest = in_uv && !self.project.has("pytest");
+        // uv's lock says which pytest the project has; for the environment's
+        // Python `python -m pytest --version` says it.
+        let locked = (in_uv && !with_pytest).then(|| std::fs::read_to_string(format!("{}/uv.lock", self.root)).ok().and_then(|l| provider::locked_version(&l))).flatten();
+        let mut f = self.tests.borrow_mut();
+        if f.uv != uv || f.with_pytest != with_pytest || f.python != self.tools.python {
+            f.missing = false;
+            f.pytest = None;
+        }
+        if in_uv {
+            f.pytest = locked;
+            f.missing = false;
+        }
+        f.uv = uv;
+        f.with_pytest = with_pytest;
+        f.python = self.tools.python.clone();
+        drop(f);
+        if self.started {
+            self.kit.tests_runner_changed();
+        }
+    }
+
+    /// `python -m pytest --version` in the project's Python, when that's
+    /// what runs the tests: the provider's runner is `pytest <version>`, or
+    /// says pytest isn't installed.
+    fn read_pytest(&mut self) {
+        if self.pytest_runs_in_uv() || self.tools.python.is_none() {
+            return;
+        }
+        let cmd = self.tools.python().args(["-m", "pytest", "--version"]).cwd(PROJECT);
+        let host = self.kit.host.as_mut();
+        self.reading.kill_all(host);
+        if let Err(why) = self.reading.start(host, &cmd, Ask::Pytest) {
+            host.log(&format!("pytest --version: {why}"));
+        }
+    }
+
+    /// An event for the pack itself: pytest's version.
+    fn own(&mut self, event: &Event) -> bool {
+        if !self.reading.owns(event) {
+            return false;
+        }
+        if let Some((Ask::Pytest, out)) = self.reading.event(event) {
+            let text = out.text();
+            {
+                let mut f = self.tests.borrow_mut();
+                match provider::pytest_version(&text) {
+                    Some(v) => {
+                        f.pytest = Some(v);
+                        f.missing = false;
+                    }
+                    None if text.contains("No module named") => {
+                        f.pytest = None;
+                        f.missing = true;
+                    }
+                    None => {}
+                }
+            }
+            self.share();
+        }
+        true
     }
 
     /// The servers, the adapter, the formatter and the launches set in
@@ -203,6 +301,7 @@ impl Python {
                 self.kit.host.log(&format!("tasks: {why}"));
             }
             self.apply();
+            self.read_pytest();
         }
     }
 
@@ -216,14 +315,17 @@ impl Python {
         }
         self.kit.doctor.run(host);
         self.apply();
+        self.read_pytest();
     }
 }
 
 impl Extension for Python {
     fn activate(&mut self) -> Result<(), String> {
         self.kit.activate()?;
+        self.started = true;
         self.apply();
         self.follow();
+        self.read_pytest();
         Ok(())
     }
 
@@ -234,7 +336,14 @@ impl Extension for Python {
     }
 
     fn handle(&mut self, event: Event) {
+        if self.own(&event) {
+            return;
+        }
         let saved = matches!(&event, Event::Saved(name) if PROJECT_FILES.iter().any(|f| name.replace('\\', "/").rsplit('/').next() == Some(f)));
+        // What pytest's rootdirs and tests are is in these files.
+        if matches!(&event, Event::Saved(name) if PYTEST_FILES.iter().any(|f| name.replace('\\', "/").rsplit('/').next() == Some(f))) {
+            self.tests.borrow_mut().generation += 1;
+        }
         self.kit.handle(&event);
         if saved {
             self.reload();
@@ -437,6 +546,104 @@ mod tests {
         assert!(adapter(&Project::default(), &Tools::default()).is_none());
         let only_uv = Tools { uv: Some("uv".into()), ..Tools::default() };
         assert_eq!(adapter(&Project::default(), &only_uv).map(|c| line(&c)).as_deref(), Some("uv run --no-project --with debugpy python -m debugpy.adapter"));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// The id of the spawn whose command line is `line`.
+    fn spawned(calls: &[String], line: &str) -> u64 {
+        calls.iter().find_map(|c| c.strip_prefix("spawn ")?.split_once(' ').filter(|(_, rest)| *rest == line).map(|(id, _)| id.parse().unwrap())).unwrap_or_else(|| panic!("no spawn of {line}: {calls:?}"))
+    }
+
+    fn ended(p: &mut Python, process: u64, stdout: &str, stderr: &str, code: i32) {
+        for (text, stderr) in [(stdout, false), (stderr, true)] {
+            if !text.is_empty() {
+                p.handle(Event::ProcessOutput(api::ProcessOutput { process, stderr, line: text.into() }));
+            }
+        }
+        p.handle(Event::ProcessExit((process, Some(code))));
+    }
+
+    /// What the test provider last told Fenix: its runner and its problem.
+    fn told(host: &Shared) -> Option<(String, Option<String>)> {
+        host.0.borrow().test_providers.last().map(|(_, r, p)| (r.clone(), p.clone()))
+    }
+
+    /// The runner is `pytest` once Python's `pytest --version` says which, and
+    /// again when it says pytest isn't there; Fenix is told only what changed.
+    #[test]
+    fn the_test_provider_says_pytest_with_its_version_and_why_it_cant_run() {
+        let dir = temp("pytest-version");
+        std::fs::write(dir.join("requirements.txt"), "flask\npytest\n").unwrap();
+        let host = Shared::default();
+        host.0.borrow_mut().programs.insert("python3".into(), "/usr/bin/python3".into());
+        let mut p = pack(&dir, &host);
+        p.activate().unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"test-provider python: pytest".to_string()), "{calls:?}");
+        assert_eq!(calls.iter().position(|c| c.starts_with("tasks ")), Some(0), "the tasks stay first: the provider comes after");
+        let version = spawned(&calls, "/usr/bin/python3 -m pytest --version");
+        ended(&mut p, version, "pytest 9.2.0", "", 0);
+        assert_eq!(host.take(), ["test-provider python: pytest 9.2.0"]);
+        assert_eq!(p.tests.borrow().pytest.as_deref(), Some("9.2.0"));
+        // Asked again, the same: Fenix isn't told again.
+        p.reload();
+        let again = spawned(&host.take(), "/usr/bin/python3 -m pytest --version");
+        ended(&mut p, again, "pytest 9.2.0", "", 0);
+        assert!(!host.take().iter().any(|c| c.starts_with("test-provider")));
+        // Python without pytest: the problem, until it's there.
+        p.reload();
+        let none = spawned(&host.take(), "/usr/bin/python3 -m pytest --version");
+        ended(&mut p, none, "", "/usr/bin/python3: No module named pytest", 1);
+        let (runner, problem) = told(&host).unwrap();
+        assert_eq!(runner, "pytest");
+        assert!(problem.is_some_and(|why| why.starts_with("pytest isn't installed in this environment")));
+        p.reload();
+        let back = spawned(&host.take(), "/usr/bin/python3 -m pytest --version");
+        ended(&mut p, back, "pytest 8.3.1", "", 0);
+        assert_eq!(told(&host), Some(("pytest 8.3.1".into(), None)));
+        // What says pytest's rootdirs and tests is saved: the provider reads its files again.
+        let generation = p.tests.borrow().generation;
+        p.handle(Event::Saved("services/api/pytest.ini".into()));
+        assert_eq!(p.tests.borrow().generation, generation + 1);
+        p.handle(Event::Saved("app.py".into()));
+        assert_eq!(p.tests.borrow().generation, generation + 1);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// A project uv manages is run by uv, which brings pytest when the
+    /// project doesn't ask for it; the lock says which pytest.
+    #[test]
+    fn a_uv_project_runs_its_tests_through_uv_and_the_lock_says_which_pytest() {
+        let dir = temp("pytest-uv");
+        std::fs::write(dir.join("pyproject.toml"), "[project]\nname = \"orbit\"\n\n[dependency-groups]\ndev = [\"pytest\"]\n").unwrap();
+        std::fs::write(dir.join("uv.lock"), "version = 1\n\n[[package]]\nname = \"pytest\"\nversion = \"9.2.0\"\n").unwrap();
+        let host = Shared::default();
+        host.0.borrow_mut().programs.extend([("uv".to_string(), "/u/uv".to_string()), ("python3".into(), "/usr/bin/python3".into())]);
+        let mut p = pack(&dir, &host);
+        p.activate().unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"test-provider python: pytest 9.2.0".to_string()), "{calls:?}");
+        assert!(!calls.iter().any(|c| c.contains("-m pytest --version")), "uv runs it: nothing to ask");
+        let f = p.tests.borrow().clone();
+        assert_eq!((f.uv.as_deref(), f.with_pytest), (Some("/u/uv"), false));
+        // Without pytest in the project, uv brings it for the run.
+        std::fs::write(dir.join("pyproject.toml"), "[project]\nname = \"orbit\"\n").unwrap();
+        p.handle(Event::Saved("pyproject.toml".into()));
+        let f = p.tests.borrow().clone();
+        assert_eq!((f.uv.as_deref(), f.with_pytest, f.pytest), (Some("/u/uv"), true, None));
+        assert_eq!(told(&host), Some(("pytest".into(), None)));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn without_python_or_uv_the_test_provider_says_so() {
+        let dir = temp("pytest-nopython");
+        let host = Shared::default();
+        let mut p = pack(&dir, &host);
+        p.activate().unwrap();
+        let (runner, problem) = told(&host).unwrap();
+        assert_eq!(runner, "pytest");
+        assert!(problem.is_some_and(|why| why.starts_with("Python isn't installed")));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }
