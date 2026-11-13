@@ -3494,6 +3494,37 @@
               "pyright"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/python-v1.2.0/fenix.python-1.2.0.fenixext",
+          "sha256": "f565619ee045f1f6fe55918e0bc421c36f769bd24dd3da0845c05c8379376108",
+          "size": 415899,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "uv",
+              "python3",
+              "python",
+              "${setting:python.interpreter}",
+              "pipx",
+              "ruff",
+              "basedpyright-langserver",
+              "pyright-langserver",
+              "basedpyright",
+              "pyright"
+            ]
+          }
         }
       ],
       "name": "Python",
