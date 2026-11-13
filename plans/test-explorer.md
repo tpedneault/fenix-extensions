@@ -2001,3 +2001,60 @@ reworded for what's offered and the versions verified; and
 On `main` the packed component's WIT and its 175 core import names are
 those of 1.2.0 (package 353,513 → 424,867 bytes, `extension.wasm`
 905,902 → 1,124,650).
+
+## As built: E1b
+
+Built on 13 November 2026 on the branch `api-1.6`, against Fenix's
+`master` at `a39d18b273ace00091d8d170382456bbad0a7c2f` (step 2 and its
+review merged; no `v1.6.0` tag yet), by `rev`. Where it differs from §8:
+
+**The mirror compiled away with no change to E1a's code.** `api.rs` is
+`pub use fenix_extension_api::tests::*;` (inside the feature) and the
+adapter, the readers, the driver and the four providers compiled and
+passed unchanged. A diff of the copy's type section against Fenix's
+`tests.rs` at that commit is empty but for `provider()`'s body (the copy's
+no-op, now `host::test_provider_set`), and the copy's `shape` test, which
+builds every type by every field and matches every case, passes against
+the real types as it was (it stays, as a guard at the pin: a test that
+the next move of the `rev` breaks where Fenix's API changed). So nothing
+is a finding for Fenix's step 2, but one thing in the plan is wrong:
+
+| §8.2 said | As built | Why |
+|---|---|---|
+| The 28 kit users and the templates change in their `Cargo.lock` only | Each one's `Cargo.toml` names the same `rev` too (`fenix-extension-api = { git = .., rev = ".." }`), then `cargo update -p fenix-extension-api` | A tag and a rev are two sources, so two copies of the crate: the pack's types wouldn't be the kit's, and a pack's `export!` and the kit's `Host` would not meet. `Cargo.lock` alone can't move a `tag = "v1.5.0"` line. The version and `api` of the 24 that run no tests are untouched. The templates' locks by hand (`{{crate}}` is no package name) |
+| `test_exports!()` writes the forwards | `lang_kit::test_exports!(kit)` exists (in `tests`, so under the feature), tested; the four packs write the five forwards out, as recipe §12.3 gives them | The recipe is what each pack's "As built" cites, and a forward's text is the same either way. The field name is the macro's argument: `self` inside a macro's own `fn` is its own |
+| The harness's `tests_*` and the fake's `test-provider-set` | `Harness::tests_scan`, `tests_plan`, `tests_read`, `tests_step_ended`, `tests_launch`; `api::host::test_provider_set` and `api::tests::provider` (shadowing the API's, signature checked) write `test-provider <id>: <runner>` in the log and `Fake::test_providers()`; lang-kit's `Host` impl for the fake calls the same | One place writes the line |
+| Rust's doctor row (E2: optional) | `cargo-nextest`, optional, fix `cargo binstall` when there's cargo-binstall, else `cargo install --locked cargo-nextest`, command `rust.install-cargo-nextest` | The doctor and the provider both ask `cargo nextest --version` as the pack starts (two spawns); the one provider test that reads the log takes the later |
+
+`xtask validate` holds `[[contributes.test_providers]]` as Fenix's
+`check_test_providers` does (same messages): id, once, the extension's
+name or starting with it, a name, languages or markers, markers as file
+names, scan patterns below the project, no unknown key, `engine.api`
+1.6.
+
+**What links, measured** (`cargo xtask pack`, Rust 1.100, `wasm-tools
+1.263`, this worktree's path both times; main's d5d6ebb before, this
+branch after):
+
+| Pack | imports `test-provider-set` | exports `tests-*` | `extension.wasm` | package |
+|---|---|---|---|---|
+| Rust 1.3.0, Python 1.3.0, Go 1.3.0, Web 1.3.0 | yes | five | 1,525,309; 1,371,980; 1,237,493; 1,300,531 | 555,625; 512,114; 458,779; 501,185 |
+| Zig 1.1.0 (lang-kit, no `tests`) | no | five | 853,997 → 882,515 (+28,518) | 380,972 → 390,053 (+9,081) |
+| Lua 1.1.0 (lang-kit, no `tests`) | no | five | 862,713 → 891,915 (+29,202) | 329,199 → 338,363 (+9,164) |
+| CSV 1.1.0 (ui-kit) | no | five | 528,501 → 558,562 (+30,061) | 217,198 → 227,152 (+9,954) |
+
+The claim that holds: no component without the feature imports
+`test-provider-set`, and the four with it do, so a non-test pack can keep
+`api = "1.5"`. The claim that doesn't: **every extension built on the 1.6
+crate exports the five `tests-*` functions**, test provider or not.
+Fenix's `export!` writes them for every extension (the defaults answer
+"no tests here"), so the WIT of Zig, Lua and CSV gains the five exports
+and the `found-test`, `test-ask`, `test-plan`, `test-line`,
+`test-step-end`, `test-report` and `test-launch` types, and the
+WebAssembly grows 28 to 30 KB (3 to 6 per cent), which no feature of
+lang-kit can take out. An export Fenix 1.5 doesn't know is found
+optionally (`get_typed_func`), so `api = "1.5"` stays honest; the cost is
+size, on each of the 24 whenever one is released on the 1.6 crate (D-A2
+says they aren't, until they have a reason). Not for this repository to
+fix: a cargo feature of `fenix-extension-api` that leaves the five out of
+`export!`, on by default for the packs that write them, would.
