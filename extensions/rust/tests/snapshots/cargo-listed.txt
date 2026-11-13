@@ -1,0 +1,22 @@
+orbit (lib) [group] -- unknown  <scan+listing>
+  src/geo/mod.rs [file] -- unknown  <scan+listing>
+    tests [suite] :6 -- unknown  <scan+listing>
+      dist_is_symmetric :8 -- unknown  <scan+listing>
+      unwraps_none :13 -- unknown  <scan+listing>
+  src/lib.rs [file] -- unknown  <scan+listing>
+    tests [suite] :14 -- unknown  <scan+listing>
+      adds :18 -- unknown  <scan+listing>
+      fails_on_purpose :23 -- unknown  <scan+listing>
+      ignored_one :30 -- unknown (skip: slow)  <scan+listing>
+      panics_as_it_should :34 -- unknown  <scan+listing>
+      nested [suite] :48 -- unknown  <scan+listing>
+        deep :50 -- unknown  <scan+listing>
+      case_negative -- unknown  <listing>
+      case_small -- unknown  <listing>
+orbit (test it) [group] -- unknown  <scan+listing>
+  tests/it.rs [file] -- unknown  <scan+listing>
+    integration_adds :2 -- unknown  <scan+listing>
+    integration_fails :7 -- unknown  <scan+listing>
+orbit (doc) [group] -- unknown  <listing>
+  src/lib.rs [file] -- unknown  <listing>
+    add (line 6) :6 -- unknown  <listing>

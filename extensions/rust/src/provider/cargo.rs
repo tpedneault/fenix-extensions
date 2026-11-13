@@ -101,6 +101,8 @@ pub struct CargoReader {
     /// Crashes waiting for their binary's target.
     crashes: Vec<(usize, String)>,
     segments: VecDeque<Segment>,
+    /// A segment has come: cargo's JSON, before it on stdout, is all in.
+    any_segment: bool,
     next_header: usize,
     reading: Option<Reading>,
     ended: bool,
@@ -148,6 +150,7 @@ impl CargoReader {
             main_panic: None,
             crashes: Vec::new(),
             segments: VecDeque::new(),
+            any_segment: false,
             next_header: 0,
             reading: None,
             ended: false,
@@ -218,6 +221,7 @@ impl CargoReader {
     }
 
     fn stdout(&mut self, text: &str) {
+        self.any_segment |= is_running(text) || is_count(text) || listed(text).is_some();
         let listing = self.ctx.purpose == Purpose::Listing;
         let open = self.segments.back().is_some_and(|s| !s.closed);
         if listing {
@@ -295,9 +299,10 @@ impl CargoReader {
         }
     }
 
-    /// Header `h`'s target, once cargo has said its binaries (or the
-    /// step's ended): by its binary's file, else guessed from what cargo
-    /// calls it.
+    /// Header `h`'s target, once cargo has said its binaries (its JSON
+    /// comes before any test's line on stdout, so once a segment has
+    /// come, or the step's ended): by its binary's file, else guessed
+    /// from what cargo calls it.
     fn header_target(&self, h: usize) -> Option<TargetKey> {
         match &self.headers[h].head {
             Head::Doc(name) => self.libraries.get(name).map(|p| TargetKey::new(p, "doc")).or_else(|| self.ctx.layout.doc_target(name)).or_else(|| self.ctx.package.as_ref().map(|p| TargetKey::new(p, "doc"))),
@@ -305,7 +310,7 @@ impl CargoReader {
                 if let Some(t) = self.binaries.get(file) {
                     return Some(t.clone());
                 }
-                if !self.built && !self.ended {
+                if !self.built && !self.ended && !self.any_segment {
                     return None;
                 }
                 self.guess(desc, file)
@@ -317,7 +322,9 @@ impl CargoReader {
     /// didn't say (the step's package, or the only one).
     fn guess(&self, desc: &str, file: &str) -> Option<TargetKey> {
         let package = self.ctx.package.clone().or_else(|| (self.ctx.layout.packages.len() == 1).then(|| self.ctx.layout.packages[0].name.clone()))?;
-        let src = desc.strip_prefix("unittests ").unwrap_or(desc);
+        let desc = desc.replace('\\', "/");
+        let src = desc.strip_prefix("unittests ").unwrap_or(&desc);
+        let file = file.strip_suffix(".exe").unwrap_or(file);
         if let Some(t) = self.ctx.layout.package(&package).and_then(|p| p.targets.iter().find(|t| t.src == src)) {
             return Some(t.key.clone());
         }

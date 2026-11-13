@@ -79,6 +79,23 @@ struct Pending {
     skip: Option<String>,
 }
 
+impl Pending {
+    fn any(&self) -> bool {
+        self.test || self.template || self.rstest || self.cases || self.skip.is_some()
+    }
+}
+
+/// The last word, as far as items go.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum Last {
+    #[default]
+    Nothing,
+    Fn,
+    Mod,
+    MacroRules,
+    Other,
+}
+
 /// Words that may come between an item's attributes and its `fn`.
 const QUALIFIERS: &[&str] = &["pub", "crate", "super", "self", "in", "async", "unsafe", "const", "extern", "default"];
 
@@ -96,19 +113,23 @@ struct Scanner {
     /// and whether it's an inner one (`#![..]`), which is dropped.
     attribute: Option<(String, i32, bool)>,
     /// The last word since the last `{`, `}` or `;`.
-    last: Option<String>,
+    last: Last,
     /// The lexer, across lines.
     block_comment: u32,
     string: Option<Option<usize>>,
 }
 
-fn ident(c: char) -> bool {
-    c.is_alphanumeric() || c == '_'
+/// A byte of an identifier: ASCII's letters, digits and `_`, and any
+/// byte of a character past ASCII.
+fn ident(c: u8) -> bool {
+    c.is_ascii_alphanumeric() || c == b'_' || c >= 0x80
 }
 
 impl Scanner {
+    /// The path of the innermost module open: the modules' own paths
+    /// say it, so it's the last open one's.
     fn module_path(&self) -> Vec<String> {
-        self.stack.iter().filter_map(|(f, _)| if let Frame::Mod(i) = f { self.out.modules[*i].path.last().cloned() } else { None }).collect()
+        self.stack.iter().rev().find_map(|(f, _)| if let Frame::Mod(i) = f { Some(self.out.modules[*i].path.clone()) } else { None }).unwrap_or_default()
     }
 
     /// Items here can be tests: only modules and macro calls are open.
@@ -162,28 +183,34 @@ impl Scanner {
     }
 
     /// A word of code, outside strings and comments.
-    fn word(&mut self, word: String, line: u32) {
-        match self.last.as_deref() {
-            Some("fn") => {
+    fn word(&mut self, word: &str, line: u32) {
+        match self.last {
+            Last::Fn => {
                 let p = std::mem::take(&mut self.pending);
                 if p.test && self.testable() && !word.starts_with('$') {
                     let mut path = self.module_path();
-                    path.push(word.clone());
+                    path.push(word.to_string());
                     self.opening = Opening::Test(Scanned { path, line, end_line: None, skip: p.skip, template: p.template || (p.rstest && p.cases) });
                 } else {
                     self.opening = Opening::Nothing;
                 }
             }
-            Some("mod") if !word.starts_with('$') => {
+            Last::Mod if !word.starts_with('$') => {
                 let mut path = self.module_path();
-                path.push(word.clone());
+                path.push(word.to_string());
                 self.opening = Opening::Mod(Module { path, line, end_line: None });
                 self.pending = Pending::default();
             }
-            _ if word != "fn" && word != "mod" && !QUALIFIERS.contains(&word.as_str()) && !matches!(self.opening, Opening::Test(_)) => self.pending = Pending::default(),
+            // Another item, or code: the attributes weren't a test's.
+            _ if self.pending.any() && word != "fn" && word != "mod" && !QUALIFIERS.contains(&word) && !matches!(self.opening, Opening::Test(_)) => self.pending = Pending::default(),
             _ => {}
         }
-        self.last = Some(word);
+        self.last = match word {
+            "fn" => Last::Fn,
+            "mod" => Last::Mod,
+            "macro_rules" => Last::MacroRules,
+            _ => Last::Other,
+        };
     }
 
     fn open(&mut self, indent: usize) {
@@ -201,7 +228,7 @@ impl Scanner {
             Opening::Nothing => Frame::Block,
         };
         self.stack.push((frame, indent));
-        self.last = None;
+        self.last = Last::Nothing;
         self.pending = Pending::default();
     }
 
@@ -211,25 +238,34 @@ impl Scanner {
             Some((Frame::Test(i), _)) => self.out.tests[i].end_line = Some(line),
             _ => {}
         }
-        self.last = None;
+        self.last = Last::Nothing;
         self.opening = Opening::Nothing;
         self.pending = Pending::default();
     }
 
     fn line(&mut self, text: &str, line: u32) {
         let indent = text.len() - text.trim_start().len();
-        let chars: Vec<char> = text.chars().collect();
-        let mut i = 0;
+        // Bytes: every byte this reads is ASCII, and a character past it
+        // is only ever part of a word, a string or a comment.
+        let b = text.as_bytes();
+        let at = |i: usize| b.get(i).copied();
+        // The indentation is read: past it, unless a comment or a string
+        // goes on from the line before.
+        let mut i = if self.block_comment > 0 || self.string.is_some() || self.attribute.is_some() { 0 } else { indent };
         // Still at the line's start: nothing but space read yet.
         let mut first = true;
-        while i < chars.len() {
-            let c = chars[i];
-            let next = chars.get(i + 1).copied();
+        while i < b.len() {
+            let c = b[i];
+            let next = at(i + 1);
+            if c == b' ' && self.block_comment == 0 && self.string.is_none() && self.attribute.is_none() {
+                i += 1;
+                continue;
+            }
             if self.block_comment > 0 {
-                if c == '*' && next == Some('/') {
+                if c == b'*' && next == Some(b'/') {
                     self.block_comment -= 1;
                     i += 2;
-                } else if c == '/' && next == Some('*') {
+                } else if c == b'/' && next == Some(b'*') {
                     self.block_comment += 1;
                     i += 2;
                 } else {
@@ -239,12 +275,12 @@ impl Scanner {
             }
             if let Some(raw) = self.string {
                 match raw {
-                    None if c == '\\' => i += 2,
-                    None if c == '"' => {
+                    None if c == b'\\' => i += 2,
+                    None if c == b'"' => {
                         self.string = None;
                         i += 1;
                     }
-                    Some(hashes) if c == '"' && chars[i + 1..].iter().take(hashes).filter(|h| **h == '#').count() == hashes => {
+                    Some(hashes) if c == b'"' && b[i + 1..].iter().take(hashes).filter(|h| **h == b'#').count() == hashes => {
                         self.string = None;
                         i += 1 + hashes;
                     }
@@ -252,19 +288,19 @@ impl Scanner {
                 }
                 continue;
             }
-            if c == '/' && next == Some('/') {
+            if c == b'/' && next == Some(b'/') {
                 break;
             }
-            if c == '/' && next == Some('*') {
+            if c == b'/' && next == Some(b'*') {
                 self.block_comment = 1;
                 i += 2;
                 continue;
             }
-            if c == '"' {
+            if c == b'"' {
                 // In an attribute a string's text is kept (`#[ignore = "slow"]`).
                 if let Some((t, _, _)) = &mut self.attribute {
-                    if let Some(end) = chars[i + 1..].iter().position(|q| *q == '"').filter(|e| !chars[i + 1..i + 1 + e].contains(&'\\')) {
-                        t.extend(&chars[i..i + 2 + end]);
+                    if let Some(end) = b[i + 1..].iter().position(|q| *q == b'"').filter(|e| !b[i + 1..i + 1 + e].contains(&b'\\')) {
+                        t.push_str(text.get(i..i + 2 + end).unwrap_or(""));
                         i += 2 + end;
                         continue;
                     }
@@ -273,23 +309,24 @@ impl Scanner {
                 i += 1;
                 continue;
             }
-            if (c == 'r' || c == 'b') && !(i > 0 && ident(chars[i - 1])) {
+            if (c == b'r' || c == b'b') && !(i > 0 && ident(b[i - 1])) {
                 // r"..", r#".."#, br"..", b"..".
-                let j = if c == 'b' && next == Some('r') { i + 2 } else { i + 1 };
-                let raw = c == 'r' || j == i + 2;
-                let hashes = chars[j..].iter().take_while(|h| **h == '#').count();
-                if chars.get(j + hashes) == Some(&'"') && (raw || hashes == 0) {
+                let j = if c == b'b' && next == Some(b'r') { i + 2 } else { i + 1 };
+                let raw = c == b'r' || j == i + 2;
+                let hashes = b[j.min(b.len())..].iter().take_while(|h| **h == b'#').count();
+                if at(j + hashes) == Some(b'"') && (raw || hashes == 0) {
                     self.string = Some(raw.then_some(hashes));
                     i = j + hashes + 1;
                     continue;
                 }
             }
-            if c == '\'' {
-                // A char literal ('{', '\'', '\u{7b}') or a lifetime ('a).
-                if next == Some('\\') {
-                    i = chars.get(i + 3..).and_then(|r| r.iter().position(|q| *q == '\'')).map_or(chars.len(), |e| i + 4 + e);
-                } else if chars.get(i + 2) == Some(&'\'') {
-                    i += 3;
+            if c == b'\'' {
+                // A char literal ('{', '\'', '\u{7b}', 'é') or a lifetime ('a).
+                let width = text.get(i + 1..).and_then(|r| r.chars().next()).map_or(1, char::len_utf8);
+                if next == Some(b'\\') {
+                    i = b.get(i + 3..).and_then(|r| r.iter().position(|q| *q == b'\'')).map_or(b.len(), |e| i + 4 + e);
+                } else if at(i + 1 + width) == Some(b'\'') {
+                    i += 2 + width;
                 } else {
                     i += 1;
                 }
@@ -297,8 +334,8 @@ impl Scanner {
             }
             if let Some((t, depth, _)) = &mut self.attribute {
                 match c {
-                    '[' | '(' | '{' => *depth += 1,
-                    ']' | ')' | '}' => *depth -= 1,
+                    b'[' | b'(' | b'{' => *depth += 1,
+                    b']' | b')' | b'}' => *depth -= 1,
                     _ => {}
                 }
                 if *depth == 0 {
@@ -306,30 +343,35 @@ impl Scanner {
                     if !inner {
                         self.attribute(&t);
                     }
+                    i += 1;
                 } else {
-                    t.push(c);
+                    // A whole character: one past ASCII is several bytes.
+                    let width = text.get(i..).and_then(|r| r.chars().next()).map_or(1, char::len_utf8);
+                    t.push_str(text.get(i..i + width).unwrap_or(""));
+                    i += width;
                 }
-                i += 1;
                 continue;
             }
-            if c == '#' && (next == Some('[') || (next == Some('!') && chars.get(i + 2) == Some(&'['))) {
+            if c == b'#' && (next == Some(b'[') || (next == Some(b'!') && at(i + 2) == Some(b'['))) {
                 if first {
                     self.recover(indent);
                     first = false;
                 }
-                let inner = next == Some('!');
+                let inner = next == Some(b'!');
                 self.attribute = Some((String::new(), 1, inner));
                 i += if inner { 3 } else { 2 };
                 continue;
             }
-            if ident(c) || (c == '$' && next.is_some_and(ident)) {
+            if ident(c) || (c == b'$' && next.is_some_and(ident)) {
                 let start = i;
                 i += 1;
-                while i < chars.len() && ident(chars[i]) {
+                while i < b.len() && ident(b[i]) {
                     i += 1;
                 }
-                let word: String = chars[start..i].iter().collect();
-                if first && STARTS.contains(&word.as_str()) {
+                // Never a panic on odd text: a word that isn't whole
+                // characters (after a string's `\` before a wide one) is "".
+                let word = text.get(start..i).unwrap_or("");
+                if first && STARTS.contains(&word) {
                     self.recover(indent);
                 }
                 first = false;
@@ -338,25 +380,24 @@ impl Scanner {
             }
             match c {
                 // `name!` -- right after its name.
-                '!' if i > 0 && ident(chars[i - 1]) => {
-                    let rules = self.last.as_deref() == Some("macro_rules");
-                    self.opening = if rules { Opening::Rules } else { Opening::Call };
+                b'!' if i > 0 && ident(b[i - 1]) => {
+                    self.opening = if self.last == Last::MacroRules { Opening::Rules } else { Opening::Call };
                     self.pending = Pending::default();
                 }
-                '(' | '[' if matches!(self.opening, Opening::Call | Opening::Rules) => {
+                b'(' | b'[' if matches!(self.opening, Opening::Call | Opening::Rules) => {
                     // `x!(..)`, `x![..]`: a call, holding no items to find.
                     self.opening = Opening::Nothing;
                 }
-                '{' => self.open(indent),
-                '}' => self.close(line),
-                ';' => {
-                    self.last = None;
+                b'{' => self.open(indent),
+                b'}' => self.close(line),
+                b';' => {
+                    self.last = Last::Nothing;
                     self.opening = Opening::Nothing;
                     self.pending = Pending::default();
                 }
                 _ => {}
             }
-            first = first && c.is_whitespace();
+            first = first && c.is_ascii_whitespace();
             i += 1;
         }
     }
@@ -481,6 +522,16 @@ mod tests {
         assert_eq!(names, ["tests::being_typed", "tests::after"]);
         assert_eq!(s.tests[0].end_line, None, "not closed: no end");
         assert_eq!(s.modules[0].end_line, Some(8));
+    }
+
+    #[test]
+    fn odd_text_is_read_without_a_panic() {
+        let text = "mod tests {\n    #[test]\n    fn größe() { let c = 'é'; let s = \"\\é {\"; }\n    #[test]\n    fn after() {}\n    #[test] fn unclosed() { let s = \"\n}\n";
+        let s = scan(text);
+        let names: Vec<String> = s.tests.iter().map(|t| t.path.join("::")).collect();
+        assert_eq!(names, ["tests::größe", "tests::after", "tests::unclosed"]);
+        assert!(scan("/* never closed\n#[test] fn x() {}").tests.is_empty());
+        assert!(scan("#[test").tests.is_empty());
     }
 
     #[test]

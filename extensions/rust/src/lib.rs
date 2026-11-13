@@ -696,6 +696,33 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    /// The test provider (Fenix 1.6) is told the runner as the pack starts,
+    /// and again once `cargo nextest --version` says nextest is new
+    /// enough; it reads cargo's metadata as the pack does.
+    #[test]
+    fn the_test_provider_says_cargo_test_then_nextest_once_its_version_is_known() {
+        let dir = workspace("tests");
+        let host = rustup_host();
+        host.0.borrow_mut().programs.insert("cargo-nextest".into(), "/c/cargo-nextest".into());
+        let (mut r, _) = pack(&dir, &host, "false");
+        r.activate().unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"test-provider rust: cargo test".to_string()), "{calls:?}");
+        let metadata = spawned(&calls, "--no-deps");
+        said(&mut r, metadata, METADATA, 0);
+        assert!(!host.take().iter().any(|c| c.starts_with("test-provider")), "the same runner: Fenix isn't told again");
+        assert_eq!(r.tests.borrow().metadata.as_ref().map(|m| m.packages.len()), Some(2));
+        let nextest = spawned(&calls, "/c/cargo nextest --version");
+        said(&mut r, nextest, "cargo-nextest 0.9.151 (6b3f99457 2026-11-02)", 0);
+        assert_eq!(host.take(), ["test-provider rust: cargo nextest 0.9.151"]);
+        // One too old to stream its results: cargo test.
+        r.read_nextest();
+        let again = spawned(&host.take(), "/c/cargo nextest --version");
+        said(&mut r, again, "cargo-nextest 0.9.90", 0);
+        assert_eq!(host.take(), ["test-provider rust: cargo test"]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn codelldb_is_connected_to_and_the_launches_load_rusts_formatters() {
         let dir = workspace("codelldb");

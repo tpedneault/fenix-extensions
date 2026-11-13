@@ -19,16 +19,19 @@ use fenix_lang_kit::tests::Group;
 #[derive(Debug, Default)]
 struct FileEntry {
     target: String,
-    tests: Vec<String>,
     modules: Vec<String>,
 }
+
+/// A test's path's entry: whether it's a template, and the file whose
+/// scan gave it (none: a listing).
+type Known = (bool, Option<Rc<str>>);
 
 #[derive(Debug, Default)]
 pub struct Index {
     files: HashMap<String, FileEntry>,
     /// By target id (`orbit/lib`): each test's path, whether it's a
     /// template, and the file that gave it (none: a listing).
-    tests: HashMap<String, HashMap<String, (bool, Option<String>)>>,
+    tests: HashMap<String, HashMap<String, Known>>,
     /// By target id: each module path's groups, root first.
     modules: HashMap<String, HashMap<String, Vec<Group>>>,
 }
@@ -41,11 +44,7 @@ impl Index {
     pub fn scanned(&mut self, file: &str, target: Option<&str>, tests: Vec<(String, bool)>, modules: Vec<(String, Vec<Group>)>) {
         if let Some(old) = self.files.remove(file) {
             if let Some(t) = self.tests.get_mut(&old.target) {
-                for p in &old.tests {
-                    if t.get(p).is_some_and(|(_, f)| f.as_deref() == Some(file)) {
-                        t.remove(p);
-                    }
-                }
+                t.retain(|_, (_, f)| f.as_deref() != Some(file));
             }
             if let Some(m) = self.modules.get_mut(&old.target) {
                 for p in &old.modules {
@@ -54,10 +53,11 @@ impl Index {
             }
         }
         let Some(target) = target else { return };
-        let entry = FileEntry { target: target.into(), tests: tests.iter().map(|(p, _)| p.clone()).collect(), modules: modules.iter().map(|(p, _)| p.clone()).collect() };
+        let entry = FileEntry { target: target.into(), modules: modules.iter().map(|(p, _)| p.clone()).collect() };
         let t = self.tests.entry(target.into()).or_default();
+        let shared: Rc<str> = file.into();
         for (path, template) in tests {
-            t.insert(path, (template, Some(file.into())));
+            t.insert(path, (template, Some(shared.clone())));
         }
         let m = self.modules.entry(target.into()).or_default();
         for (path, groups) in modules {

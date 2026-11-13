@@ -19,7 +19,7 @@
 //! on the last step of its package, so a group is judged once all of it
 //! has run.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use fenix_extension_api::Command;
 use fenix_lang_kit::tests::{split, Ask, Asked, Covered, Found, Kind, Step, DIRECT};
@@ -236,13 +236,8 @@ impl Planner<'_> {
         let base = self.cargo_test().args(["--no-fail-fast", "--message-format=json", "-p", package]).args(self.flags(&targets)).arg("--");
         let base = if exact { base.arg("--exact") } else { base };
         let fixed = base.args.len();
-        let mut names: Vec<&str> = Vec::new();
-        for e in entries {
-            if !names.contains(&e.name.as_str()) {
-                names.push(&e.name);
-            }
-        }
-        let commands = split(&names, DIRECT, |some| base.clone().args(some.iter().map(|s| s.to_string())));
+        let names = unique(entries);
+        let commands = split_batched(&names, |some| base.clone().args(some.iter().map(|s| s.to_string())));
         self.steps(commands, counts_of(&names, entries), fixed, false, label)
     }
 
@@ -282,7 +277,7 @@ impl Planner<'_> {
         }
         let base = self.nextest_run().args(["--no-fail-fast", "--message-format", "libtest-json-plus", "-p", package]).args(self.flags(&targets)).arg("-E");
         let exprs: Vec<String> = terms.iter().map(|(t, _)| t.clone()).collect();
-        let commands = split(&exprs, DIRECT, |some| base.clone().arg(some.join(" | ")));
+        let commands = split_batched(&exprs, |some| base.clone().arg(some.join(" | ")));
         let covers: Vec<Vec<Covered>> = terms.into_iter().map(|(_, c)| c.into_iter().collect()).collect();
         self.steps(commands, covers, 0, true, &format!("{package} (cargo nextest)"))
     }
@@ -319,8 +314,8 @@ impl Planner<'_> {
             } else if !w.doc.is_empty() {
                 let base = self.cargo_test().args(["--no-fail-fast", "--message-format=json", "-p", &package, "--doc", "--"]);
                 let fixed = base.args.len();
-                let names: Vec<&str> = w.doc.iter().map(|e| e.name.as_str()).collect();
-                let commands = split(&names, DIRECT, |some| base.clone().args(some.iter().map(|s| s.to_string())));
+                let names = unique(&w.doc);
+                let commands = split_batched(&names, |some| base.clone().args(some.iter().map(|s| s.to_string())));
                 steps.extend(self.steps(commands, counts_of(&names, &w.doc), fixed, false, &format!("{package}: doc tests")));
             }
             if steps.len() > first {
@@ -339,9 +334,43 @@ impl Planner<'_> {
     }
 }
 
+/// lang-kit's `split` under Windows' limit ([`DIRECT`]), given the items a
+/// few at a time: it measures each item it's given as a command of its
+/// own, which for 2,000 names is 2,000 commands to build and count -- too
+/// slow for a call's few milliseconds. In batches of up to 2 KiB of names
+/// (64 at most) it measures 40 or so, and a step's line comes at most one
+/// batch short of the limit.
+fn split_batched<S: AsRef<str> + Clone>(items: &[S], make: impl Fn(&[S]) -> Command) -> Vec<Command> {
+    let mut batches: Vec<&[S]> = Vec::new();
+    let mut start = 0;
+    let mut bytes = 0;
+    for (i, item) in items.iter().enumerate() {
+        if i > start && (bytes + item.as_ref().len() > 2048 || i - start == 64) {
+            batches.push(&items[start..i]);
+            start = i;
+            bytes = 0;
+        }
+        bytes += item.as_ref().len() + 1;
+    }
+    if start < items.len() {
+        batches.push(&items[start..]);
+    }
+    split(&batches, DIRECT, |some| make(&some.iter().flat_map(|b| b.iter().cloned()).collect::<Vec<S>>()))
+}
+
+/// The entries' names, each once, in order.
+fn unique(entries: &[Entry]) -> Vec<&str> {
+    let mut seen = HashSet::new();
+    entries.iter().map(|e| e.name.as_str()).filter(|n| seen.insert(*n)).collect()
+}
+
 /// Each name's covers, in the names' order.
 fn counts_of(names: &[&str], entries: &[Entry]) -> Vec<Vec<Covered>> {
-    names.iter().map(|n| entries.iter().filter(|e| e.name == *n).filter_map(|e| e.cover.clone()).collect()).collect()
+    let mut by_name: HashMap<&str, Vec<Covered>> = HashMap::new();
+    for e in entries {
+        by_name.entry(e.name.as_str()).or_default().extend(e.cover.clone());
+    }
+    names.iter().map(|n| by_name.remove(n).unwrap_or_default()).collect()
 }
 
 /// The steps for `ask`.

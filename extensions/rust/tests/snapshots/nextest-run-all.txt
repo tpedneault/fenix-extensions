@@ -1,0 +1,22 @@
+orbit (lib) [group] -- failed  <scan+run>
+  src/geo/mod.rs [file] -- failed  <scan>
+    tests [suite] :6 -- failed  <scan>
+      dist_is_symmetric :8 -- passed 5.265586ms  <scan>
+      unwraps_none :13 -- failed 113.66999ms: called `Option::unwrap()` on a `None` value at src/geo/mod.rs:15:11  <scan>
+  src/lib.rs [file] -- failed  <scan+run>
+    tests [suite] :14 -- failed  <scan+run>
+      adds :18 -- passed 9.85599ms  <scan>
+      fails_on_purpose :23 -- failed 113.433444ms: assertion `left == right` failed: two and two at src/lib.rs:25:9  <scan>
+      ignored_one :30 -- skipped (skip: slow)  <scan>
+      panics_as_it_should :34 -- passed 85.49773900000001ms  <scan>
+      nested [suite] :48 -- passed  <scan>
+        deep :50 -- passed 5.329447ms  <scan>
+      case_negative -- failed 88.18556099999999ms: assertion `left == right` failed at src/lib.rs:43:5  <run>
+      case_small -- passed 5.269236ms  <run>
+orbit (test it) [group] -- failed  <scan>
+  tests/it.rs [file] -- failed  <scan>
+    integration_adds :2 -- passed 16.510002ms  <scan>
+    integration_fails :7 -- failed 88.383951ms: zero is not one at tests/it.rs:8:5  <scan>
+orbit (doc) [group] -- passed  <run>
+  src/lib.rs [file] -- passed  <run>
+    add (line 6) :6 -- passed  <run>
