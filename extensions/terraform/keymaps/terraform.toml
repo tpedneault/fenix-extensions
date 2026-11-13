@@ -1,0 +1,8 @@
+# Terraform's keys, after SPC m in a project or file of its context. Your
+# own keybindings.toml wins. There's no key for apply: it's a task you
+# pick (SPC p t), named for what it does.
+
+[[local.terraform]]
+keys = "d"
+label = "check the project again"
+command = "terraform.doctor"

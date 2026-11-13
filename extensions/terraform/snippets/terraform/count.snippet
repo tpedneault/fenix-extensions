@@ -1,0 +1,10 @@
+# name: Resource on or off (count)
+# key: count
+# scope: terraform
+# --
+resource "${1:aws_instance}" "${2:name}" {
+  count = ${3:var.enabled} ? 1 : 0
+
+  ${4:argument} = ${5:"value"}
+  $0
+}

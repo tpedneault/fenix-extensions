@@ -1,0 +1,10 @@
+# name: Module call
+# key: mod
+# scope: terraform
+# --
+module "${1:name}" {
+  source = "./modules/$1"
+
+  ${2:input} = ${3:"value"}
+  $0
+}

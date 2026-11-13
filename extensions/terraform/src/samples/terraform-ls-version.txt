@@ -1,0 +1,4 @@
+0.39.1
+platform: linux/amd64
+go: go1.26.8
+compiler: gc

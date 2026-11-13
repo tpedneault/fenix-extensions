@@ -1,0 +1,9 @@
+# Terraform, which Fenix doesn't highlight itself: tree-sitter-hcl's
+# Terraform dialect, compiled to WebAssembly, and its queries from
+# queries/terraform. The server is the extension's to set, once it has
+# found terraform-ls. A `.tfvars` file is `terraform-vars`, as the server
+# names it, with the same grammar.
+language = "terraform"
+grammar = "grammars/tree-sitter-terraform.wasm"
+extensions = ["tf"]
+comment = "#"

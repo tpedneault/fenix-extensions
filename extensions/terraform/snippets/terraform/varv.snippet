@@ -1,0 +1,14 @@
+# name: Input variable, validated
+# key: varv
+# scope: terraform
+# --
+variable "${1:name}" {
+  description = "${2:What it is for}"
+  type        = ${3:string}
+
+  validation {
+    condition     = ${4:length(var.name) > 0}
+    error_message = "${5:The value is not valid.}"
+  }
+}
+$0

@@ -1,0 +1,60 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 1,
+  "warning_count": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "summary": "Deprecated variable got a value",
+      "detail": "Use new instead.",
+      "range": {
+        "filename": "main.tf",
+        "start": {
+          "line": 3,
+          "column": 12,
+          "byte": 49
+        },
+        "end": {
+          "line": 3,
+          "column": 15,
+          "byte": 52
+        }
+      },
+      "snippet": {
+        "context": "module \"child\"",
+        "code": "  old    = \"x\"",
+        "start_line": 3,
+        "highlight_start_offset": 11,
+        "highlight_end_offset": 14,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Reference to undeclared input variable",
+      "detail": "An input variable with the name \"nope\" has not been declared. This variable can be declared with a variable \"nope\" {} block.",
+      "range": {
+        "filename": "child/main.tf",
+        "start": {
+          "line": 7,
+          "column": 11,
+          "byte": 99
+        },
+        "end": {
+          "line": 7,
+          "column": 19,
+          "byte": 107
+        }
+      },
+      "snippet": {
+        "context": "output \"o\"",
+        "code": "  value = var.nope",
+        "start_line": 7,
+        "highlight_start_offset": 10,
+        "highlight_end_offset": 18,
+        "values": []
+      }
+    }
+  ]
+}

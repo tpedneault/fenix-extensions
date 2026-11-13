@@ -1,0 +1,8 @@
+# name: Data source
+# key: data
+# scope: terraform
+# --
+data "${1:aws_ami}" "${2:name}" {
+  ${3:argument} = ${4:"value"}
+  $0
+}

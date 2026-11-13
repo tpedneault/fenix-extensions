@@ -1,0 +1,9 @@
+# name: import block
+# key: imp
+# scope: terraform
+# --
+import {
+  to = ${1:aws_instance.name}
+  id = "${2:i-0123456789abcdef0}"
+}
+$0

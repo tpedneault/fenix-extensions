@@ -1,0 +1,14 @@
+[template]
+name = "Terraform · root module"
+kind = "other"
+group = "Terraform"
+description = "A root module to plan and apply: versions, variables and outputs in their own files, a first resource that needs no provider (or a provider's, and a data source that only reads), and a .gitignore that keeps state and plans out of Git."
+needs = ["terraform"]
+open = ["main.tf"]
+
+[[ask]]
+key = "provider"
+label = "Provider"
+choices = ["none", "aws", "azurerm", "google"]
+default = "none"
+hint = "none: Terraform's built-in terraform_data, which init needs nothing for. The others add the provider and a data source that only reads."
