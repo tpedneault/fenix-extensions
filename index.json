@@ -2720,6 +2720,33 @@
               "*:4222"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/nats-v1.2.0/fenix.nats-1.2.0.fenixext",
+          "sha256": "597c08ed4e40949220f24a948ba9d50ec7685a1288e98f73b0a9f4826c16ea45",
+          "size": 650227,
+          "dependencies": {},
+          "categories": [
+            "tools",
+            "data"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "folders": {
+              "creds": "${setting:nats.creds_folder}|data:nats-creds",
+              "exports": "${setting:nats.exports}|data:nats-exports"
+            },
+            "secrets": [
+              "nats.auth.*"
+            ],
+            "sockets": [
+              "${setting:nats.servers}",
+              "*:4222"
+            ]
+          }
         }
       ],
       "name": "NATS",
