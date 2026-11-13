@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.go"
 name = "Go"
-version = "1.2.0"
+version = "1.3.0"
 description = "Go: gopls, debugging with Delve, go vet or golangci-lint on save, gofmt or goimports as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable modules, snippets, and CLI, HTTP service and library projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,9 +10,10 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.5, <2"
-# lang-kit, the kit it's built on, is on 1.5.
-api = "1.5"
+fenix = ">=1.6, <2"
+# The test provider (tests-scan .. tests-launch, test-provider-set);
+# the keys a hint names (key_for, 1.5).
+api = "1.6"
 
 # With Fenix: the project doctor's checks and the language server are
 # there from the start.
@@ -43,6 +44,13 @@ events = ["saved"]
 name = "go"
 markers = ["go.mod", "go.work"]
 languages = ["go"]
+
+[[contributes.test_providers]]
+id = "go"
+name = "go test"
+languages = ["go"]
+markers = ["go.mod", "go.work"]
+scan = ["*_test.go"]
 
 [[contributes.commands]]
 id = "go.packages"

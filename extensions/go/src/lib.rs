@@ -342,6 +342,26 @@ impl Extension for Go {
     fn page_closed(&mut self, page: u64) {
         self.kit.page_closed(page);
     }
+
+    fn tests_scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<api::tests::Found> {
+        self.kit.tests_scan(provider, path, text)
+    }
+
+    fn tests_plan(&mut self, provider: &str, run: u64, ask: api::tests::Ask) -> Result<api::tests::Plan, String> {
+        self.kit.tests_plan(provider, run, ask)
+    }
+
+    fn tests_read(&mut self, provider: &str, run: u64, step: u32, lines: Vec<api::tests::Line>) -> Vec<api::tests::Report> {
+        self.kit.tests_read(provider, run, step, lines)
+    }
+
+    fn tests_step_ended(&mut self, provider: &str, run: u64, step: u32, end: api::tests::StepEnd) -> Vec<api::tests::Report> {
+        self.kit.tests_step_ended(provider, run, step, end)
+    }
+
+    fn tests_launch(&mut self, provider: &str, run: u64, test: api::tests::Found) -> Result<api::tests::Launch, String> {
+        self.kit.tests_launch(provider, run, test)
+    }
 }
 
 export!(Go);
@@ -573,6 +593,23 @@ mod tests {
         host.take();
         g.run_command(doctor::TIDY).unwrap();
         assert!(host.take().iter().any(|c| c.ends_with("go mod tidy: go mod tidy")));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// What the manifest offers is what the pack answers for: its provider's
+    /// id, on API 1.6, and the five exports forwarded to the kit.
+    #[test]
+    fn the_provider_the_manifest_offers_is_the_one_the_exports_answer_for() {
+        let manifest = include_str!("../extension.toml");
+        assert!(manifest.contains(&format!("[[contributes.test_providers]]\nid = \"{}\"\n", provider::PROVIDER)), "offered under its id");
+        assert!(manifest.contains("api = \"1.6\"") && manifest.contains("fenix = \">=1.6, <2\""), "for Fenix 1.6");
+        assert!(manifest.contains(&format!("version = \"{}\"", env!("CARGO_PKG_VERSION"))), "one version in both");
+        let dir = module("offered");
+        let host = Shared::default();
+        let mut pack = pack(&dir, &host, defaults);
+        let found = Extension::tests_scan(&mut pack, provider::PROVIDER, "/project/a_test.go", "package a\n\nimport \"testing\"\n\nfunc TestAdds(t *testing.T) {}\n");
+        assert!(found.iter().any(|f| f.label == "TestAdds"), "{found:?}");
+        assert!(Extension::tests_scan(&mut pack, "other", "/project/a_test.go", "package a\n\nimport \"testing\"\n\nfunc TestAdds(t *testing.T) {}\n").is_empty(), "only its own provider");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

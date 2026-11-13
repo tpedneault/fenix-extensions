@@ -5,8 +5,8 @@ or golangci-lint on save, gofmt or goimports as the formatter, tasks,
 the project doctor's checks with their fixes, outdated and vulnerable
 modules, snippets, and CLI, HTTP service and library projects in the
 new-project wizard. Built on lang-kit (`crates/lang-kit`), as each
-language pack is. It needs Fenix 1.5 or later (extension API 1.5); on an
-older Fenix, Go 1.1.0 is the one you get.
+language pack is. It needs Fenix 1.6 or later (extension API 1.6); on Fenix
+1.5, Go 1.2.0 is the one you get, and on an older Fenix, 1.1.0.
 
 What `go install` installs goes to `~/go/bin`, which an editor started
 from the desktop often doesn't have on its `PATH`: the pack looks there
@@ -134,12 +134,12 @@ error type with `Unwrap`), `erras`. Tests: `tt` (table-driven), `test`,
 
 ## Tests, for Fenix 1.6
 
-Fenix 1.6 brings a test explorer, and this pack carries the test
-provider it will call: built and tested here, but not offered yet.
-Fenix asks for it only once this pack is released for extension API 1.6,
-after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5 as
-on a nightly. What it will do, as tested on recorded `go test -json`
-output (Go 1.24.7, and 1.23.8 for a build that fails):
+Fenix 1.6's tests page (`SPC T T`; `C-k T T` with standard keys) lists a
+project's tests before anything has run, runs one or all of them, and
+shows each result on the page, in the gutter and after the test's line.
+This pack is its test provider for Go, by `go test`. Verified against
+Go 1.24.7 (and 1.23.8 for a build that fails), on recorded `go test
+-json` output; Go 1.21 or later, which `-fullpath` needs. What it does:
 
 - **Find the tests in a file as you type**, nothing run: `TestXxx`,
   `FuzzXxx` and `ExampleXxx` (an example with an `// Output:` comment, the
@@ -172,7 +172,9 @@ What it can't: a subtest has no line of its own (it's at its parent's) and
 exists only once run; a `t.Error` and a `t.Log` look alike to `go test`, so
 a failure's place is the last line the test printed; a file under a build
 tag shows its tests as skipped (with the tag set in `GOFLAGS` they run and
-report like any); a project opened below its `go.mod` isn't found.
+report like any); a project opened below its `go.mod` isn't found. The
+runner Fenix shows is `go test` and Go's version; before Go 1.21 it says
+so.
 
 ## Project templates
 
