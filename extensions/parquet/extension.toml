@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.parquet"
 name = "Parquet viewer"
-version = "1.0.1"
+version = "1.1.0"
 description = "Parquet files read in a pane: their rows as a table, read a page at a time so a billion rows open at once, and their schema with each column's type, nulls, range, size and codec -- snappy, zstd, gzip, LZ4 and Brotli"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,9 @@ categories = ["tools", "data"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# Built on ui-kit, which is on extension API 1.5.
+api = "1.5"
 
 [permissions]
 # A file in the project is read where it is, as far as each read needs;
