@@ -125,6 +125,12 @@ the MIB extension reads (<code>mib.roots</code>).</p>
 <tr><td><code>SPC f x</code></td><td><code>ccsds.hex</code></td><td>The file as hex</td></tr>
 </tbody>
 </table></div>
+<p>With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: <code>Ctrl+K k d</code>.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: <code>K</code> on
+hex ends &quot;<code>C-k k d</code> opens the decode&quot; with standard keys and &quot;<code>SPC k d</code>
+opens the decode&quot; with Vim keys, and so do its messages and the
+standards page.</p>
 <h3 id="readme-for-coding-agents">For coding agents</h3>
 <p><code>ccsds_decode</code> (read, Fenix 1.1) decodes bytes your coding agent gives
 as hex -- <code>1BF2C0070009</code>, <code>1B F2 C0 07</code>, <code>0x1B,0xF2</code>, a hex dump with
@@ -162,6 +168,16 @@ folder and the MIB settings.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use, and yours where you rebound them -- <code>K</code> on hex or an
+on-board time ends &quot;<code>C-k k d</code> opens the decode&quot; or &quot;<code>C-k k T</code> converts
+it&quot; with standard keys and <code>SPC k d</code>, <code>SPC k T</code> with Vim keys; so do
+the standards page and its messages (the explorer, a recording, a
+live source, the standards, the Extensions page for the PDF reader).
+The MIB&#39;s settings are read as before.</p></li>
+</ul>
 <h3 id="changelog-122">1.2.2</h3>
 <ul class="tight">
 <li><p>A command that reads a large MIB may take up to a minute, rather than
@@ -211,7 +227,7 @@ identified, and the checks that fail.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

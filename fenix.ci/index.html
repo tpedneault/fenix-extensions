@@ -84,6 +84,10 @@ failing jobs&#39; logs for your coding agent, so it can fix them.</p>
 <tr><td><code>SPC g F</code></td><td>The log of the job that failed</td></tr>
 </tbody>
 </table></div>
+<p>With standard keys they&#39;re <code>Ctrl+K g C</code> and <code>Ctrl+K g F</code>. What it says
+names the keys as the key scheme in use has them, and yours when you&#39;ve
+bound your own: &quot;set it in <code>C-,</code>&quot; with standard keys, &quot;in <code>SPC ,</code>&quot; with
+Vim keys. It needs Fenix 1.5 or later.</p>
 <h3 id="readme-the-page">The page</h3>
 <p>The branch&#39;s latest runs (GitHub&#39;s workflow runs, GitLab&#39;s pipelines),
 newest first, the first opened on its jobs. A job opens on its steps
@@ -112,8 +116,9 @@ section markers and GitHub&#39;s timestamps taken off.</p>
 <tr><td><code>ci.jenkins_user</code>, <code>ci.jenkins_token</code></td><td>Your user there and one of its API tokens (your name, Security, Add new token)</td></tr>
 </tbody>
 </table></div>
-<p>The first two are per project (<code>SPC ,</code>, CI status). With a job named and
-no <code>ci.provider</code> chosen, the CI is Jenkins.</p>
+<p>The first two are per project (<code>SPC ,</code>, or <code>Ctrl+,</code> with standard keys:
+CI status). With a job named and no <code>ci.provider</code> chosen, the CI is
+Jenkins.</p>
 <p>The page then shows the branch&#39;s <strong>builds</strong>. For a multibranch pipeline
 (or a folder of jobs) they&#39;re the builds of the job named after your
 branch; for any other job, the builds Git made of your branch
@@ -160,7 +165,7 @@ it&#39;s offered by default.</p>
 GitLab, the addresses in the settings theirs, and anything else a GitLab
 at the remote&#39;s host, as the Review extension takes it. A Jenkins is
 where the settings say (above), whatever the remote.</p>
-<p>The tokens are Fenix&#39;s own (<code>SPC ,</code>, Forges): <code>github.token</code>, else the
+<p>The tokens are Fenix&#39;s own (<code>SPC ,</code> or <code>Ctrl+,</code>, Forges): <code>github.token</code>, else the
 GitHub CLI&#39;s (<code>gh auth token</code>, <code>--hostname</code> for an Enterprise Server);
 <code>gitlab.token</code> (the <code>read_api</code> scope to read, <code>api</code> to re-run and cancel).
 A public repository on GitHub needs none.</p>
@@ -194,6 +199,15 @@ another host than its own, the log can&#39;t be read (the browser can).</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): where an error says to set
+something in Fenix&#39;s settings -- a forge&#39;s token, a Jenkins&#39;s address,
+job, user or API token -- it names the keys that open them as the key
+scheme in use has them: <code>C-,</code> with standard keys, <code>SPC ,</code> with Vim
+keys, or the ones you bound. The README gives standard keys beside
+Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-120">1.2.0</h3>
 <ul class="tight">
 <li><p><code>ci.open</code> can be run from outside Fenix, over the control channel
@@ -214,7 +228,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

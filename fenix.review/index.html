@@ -77,6 +77,10 @@ threads), and <code>o</code> there reviews it, or opens a new one.</p>
 <tr><td><code>SPC g P</code></td><td>A pull request for the branch</td></tr>
 </tbody>
 </table></div>
+<p>With standard keys they&#39;re <code>Ctrl+K g M</code> and <code>Ctrl+K g P</code>. What it says
+names the keys as the key scheme in use has them, and yours when you&#39;ve
+bound your own: &quot;set one in <code>C-,</code>&quot; with standard keys, &quot;in <code>SPC ,</code>&quot; with
+Vim keys. It needs Fenix 1.5 or later.</p>
 <h3 id="readme-the-reviews">The reviews</h3>
 <div class="table"><table>
 <thead><tr><th>Key</th><th>What it does</th></tr></thead>
@@ -117,8 +121,10 @@ the repository&#39;s template heading by heading. It works while the box is
 empty or still the template; with your text in it, <code>A</code> is Vim&#39;s. It&#39;s
 yours to edit before <code>S S</code>. The first time, Fenix asks whether the Review
 extension may send the branch&#39;s diff to that agent.</p>
+<p>Once it&#39;s opened, a notification says so; Enter on it, or a click, opens
+the request in the browser.</p>
 <h3 id="readme-settings">Settings</h3>
-<p>Fenix&#39;s own, under Git and Forges (<code>SPC ,</code>):</p>
+<p>Fenix&#39;s own, under Git and Forges (<code>SPC ,</code>, <code>Ctrl+,</code> with standard keys):</p>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
 <tbody>
@@ -144,6 +150,18 @@ extension may send the branch&#39;s diff to that agent.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<p>For Fenix 1.5 (extension API 1.5):</p>
+<ul class="tight">
+<li><p>What it says names the keys of the key scheme in use, and yours when
+you&#39;ve bound your own: &quot;switch to one (<code>C-k g w</code>)&quot; with standard keys,
+<code>SPC g w</code> with Vim keys, and <code>C-,</code> or <code>SPC ,</code> where it sends you to
+Fenix&#39;s settings for a token, a GitLab server or the base branch.</p></li>
+<li><p>A pull request opened is a notification, not a line in the message
+line: Enter on it, or a click, opens it in the browser. When asking
+its reviewers didn&#39;t work, the notification says so.</p></li>
+<li><p>The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-120">1.2.0</h3>
 <p>For Fenix 1.3 (extension API 1.4):</p>
 <ul class="tight">
@@ -181,7 +199,7 @@ head while Fenix runs.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

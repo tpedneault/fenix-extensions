@@ -64,6 +64,8 @@ on save, tasks for scripts, busted, LuaRocks and LÖVE, the project
 doctor&#39;s checks with their fixes, snippets, and LÖVE game and LuaRocks
 module projects in the new-project wizard. Built on lang-kit (<code>crates/lang-kit</code>), as each language
 pack is.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, Lua
+1.0.0 is the one you get.</p>
 <p>Fenix highlights Lua itself and knows its comment, so the pack brings no
 grammar. It starts with Fenix: the server is set for every Lua file, and
 the doctor and the tasks are there in a project with Lua in it (a <code>.lua</code>
@@ -73,7 +75,12 @@ file, a rockspec or a <code>.luarc.json</code>).</p>
 Fenix&#39;s own, when it&#39;s found. Its fix row installs LuaLS 3.19.2&#39;s release
 for this machine (Linux and macOS on x86_64 and arm64, Windows on
 x86_64), checked against the SHA-256 the pack knows and unpacked into the
-pack&#39;s tools folder, where only the pack looks. One you installed
+pack&#39;s tools folder, where only the pack looks. Starting an install is
+said in the message line; how it ended is a notification, since a
+download can take a while: &quot;Installed lua-language-server 3.19.2&quot;, or
+&quot;Couldn&#39;t install ...&quot; with which step failed and why, and <em>Try again</em>.
+StyLua&#39;s and selene&#39;s installs end the same way; luacheck and busted are
+installed by <code>luarocks</code>, as a task, and are as they were. One you installed
 yourself is used instead: the pack looks on <code>PATH</code> and in Neovim&#39;s Mason
 folder, Homebrew&#39;s, LuaRocks&#39; and Scoop&#39;s.</p>
 <p>It&#39;s given:</p>
@@ -162,8 +169,8 @@ the module in <code>src/</code>, busted specs with their <code>.busted</code>, <
 and <code>.luarc.json</code>.</p></li>
 </ul>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a Lua file or project: <code>d</code> checks the project again, <code>s</code>
-installs lua-language-server, <code>f</code> StyLua.</p>
+<p>After <code>SPC m</code> in a Lua file or project (<code>C-k m</code> with standard keys): <code>d</code>
+checks the project again, <code>s</code> installs lua-language-server, <code>f</code> StyLua.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p><strong>Debugging</strong>: there&#39;s no Lua debug adapter Fenix can start on its
@@ -183,6 +190,20 @@ own yet.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing lua-language-server,
+StyLua or selene ended is a notification rather than a line in the
+message line, since the download can take a while and you may be
+elsewhere -- &quot;Installed lua-language-server 3.19.2&quot;, and what it&#39;s now
+used as; or &quot;Couldn&#39;t install StyLua 2.6.0&quot;, saying whether its
+download, unpacking it or setting it up failed and why, with <em>Try
+again</em>. The newest for a tool takes the last one&#39;s place, and a
+failure&#39;s is taken away when you try again. Starting an install is
+still said in the message line. luacheck and busted, installed by
+<code>luarocks</code> as a task, are as they were. The README gives standard keys
+beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project&#39;s checks with their fixes, snippets, and LÖVE game and LuaRocks module projects.</p></li>
@@ -193,7 +214,7 @@ own yet.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

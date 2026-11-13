@@ -124,7 +124,8 @@ Edited in its text (<code>t</code>), the page reads it again as you go.</p>
 <p>The first cell you run starts the notebook&#39;s kernel, in the notebook&#39;s
 folder (so <code>open(&#39;data.csv&#39;)</code> finds the file beside it), on its Python:</p>
 <ol class="tight">
-<li><p>the one <code>jupyter.python</code> names (<code>SPC ,</code>), when you set it;</p></li>
+<li><p>the one <code>jupyter.python</code> names (<code>SPC ,</code>, <code>Ctrl+K ,</code> with standard
+keys), when you set it;</p></li>
 <li><p>else the project&#39;s <code>.venv</code> (or <code>venv</code>);</p></li>
 <li><p>else, in a uv project (a <code>pyproject.toml</code>), <code>uv run --with ipykernel</code>;</p></li>
 <li><p>else <code>python3</code> (<code>python</code> on Windows) on <code>PATH</code>.</p></li>
@@ -142,11 +143,22 @@ run on that Python itself, so a notebook runs with nothing installed:</p>
 </ul>
 <p>The footer says which it is; <code>P</code> (or <strong>Jupyter: install ipykernel</strong>)
 installs ipykernel as a task -- <code>uv add --dev ipykernel</code> in a uv project,
-uv&#39;s or the Python&#39;s own pip otherwise -- and <code>00</code> restarts the kernel
-with it.</p>
+uv&#39;s or the Python&#39;s own pip otherwise -- and says when it&#39;s done, after
+which <code>00</code> restarts the kernel with it.</p>
 <p>What a cell runs is yours: the kernel runs with your permissions, as
 Jupyter&#39;s does. Fenix&#39;s sandbox holds the extension to running Python
 (and uv) only, but not what Python then does.</p>
+<h3 id="readme-the-lesson">The lesson</h3>
+<p><code>SPC h T</code>, Fenix&#39;s tutorial, has a lesson in its <em>Jupyter notebooks</em>
+section: a notebook opened on its page, a cell edited beside it, and
+cells run. Its practice text is a small notebook: <code>:w tour.ipynb</code> saves
+it in the project, to open when you have none. Running a cell needs
+Python; without it, that step says what you&#39;d see, and passes all the
+same.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: a
+kernel that ended badly says &quot;<code>C-k h l</code> has why&quot; with standard keys,
+&quot;<code>SPC h l</code> has why&quot; with Vim keys.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th></th></tr></thead>
@@ -175,6 +187,25 @@ file the language server knows.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme you use, and yours where you rebound them. On Fenix 1.0 to
+1.4, 1.0.0 stays the one you have.</p>
+<ul class="tight">
+<li><p>A lesson in Fenix&#39;s tutorial (<code>SPC h T</code>, its <em>Jupyter notebooks</em>
+section): a notebook opened on its page, a cell edited beside it, and
+cells run. Its practice text is a small notebook, to save as
+<code>tour.ipynb</code> when you have none.</p></li>
+<li><p>A kernel that ended badly says where to read why -- the extensions&#39;
+log, <code>C-k h l</code> with standard keys, <code>SPC h l</code> with Vim keys -- and no
+Python found names the settings&#39; keys the same way; a page says them
+again when you switch.</p></li>
+<li><p>Installing ipykernel (<code>P</code>) says how it ended, once its task does: that
+<code>00</code> starts a notebook&#39;s kernel again with it, or that it failed and
+the task pane has why. It said only that it had started.</p></li>
+<li><p>Fixed: a magic that needs IPython said <code>i</code> installs ipykernel, where
+the key is <code>P</code>.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: Jupyter notebooks (<code>.ipynb</code>) on a page -- cells and their outputs, plots as pictures, tracebacks -- edited in a pane beside and through the file&#39;s buffer, written as Jupyter writes them, and run on the notebook&#39;s Python: ipykernel when it&#39;s there, Python itself when it isn&#39;t, <code>input()</code> asked in Fenix.</p></li>
@@ -185,7 +216,7 @@ file the language server knows.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

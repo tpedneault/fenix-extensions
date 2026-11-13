@@ -82,6 +82,20 @@ and beside them what the last statements you ran gave back.</p>
 </code></pre>
 <p>A <code>.sqlite</code>, <code>.sqlite3</code>, <code>.db</code> or <code>.db3</code> file opens straight into it,
 however you open it.</p>
+<p>No database at hand? <strong>Database: a sample database to try it on</strong>
+(<code>database.sample</code>, from the command palette) makes one: a small shop&#39;s
+customers, products, orders and their items, in SQLite, as <code>sample.db</code>
+in the browser with its tables open. It needs no server and nothing
+installed, and it&#39;s made afresh each time you run it -- kept in the
+extension&#39;s own folder, never in your project.</p>
+<h3 id="readme-learning-it">Learning it</h3>
+<p>The tutorial (<code>SPC h T</code>) has a lesson for it, <strong>The database browser</strong>,
+under <em>Database</em>: the browser and its sidebar, a table&#39;s rows sorted and
+filtered, a <code>.sql</code> buffer on a connection, the statement under the cursor
+run, its results, the history, and picking a buffer&#39;s connection. It
+practises on the sample database, so it goes through to its end with
+nothing installed; its keys are said as your key scheme has them (Fenix
+1.5).</p>
 <h3 id="readme-connections">Connections</h3>
 <p><code>database.connections</code> holds them, a row each: a name, the engine
 (<code>sqlite</code>, <code>postgres</code>, <code>mysql</code> -- MariaDB too -- or <code>mssql</code>), the host
@@ -128,6 +142,12 @@ quotes, quoted names and comments; PostgreSQL&#39;s dollar quoting
 (<code>$$ ... $$</code>, <code>$body$</code>) and nested comments; MySQL&#39;s <code>#</code> comments,
 backslashes in strings and <code>DELIMITER</code>; SQL Server&#39;s <code>[names]</code> and <code>GO</code>
 lines; SQLite&#39;s trigger bodies.</p>
+<p>With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: the menu is <code>Ctrl+K m</code>. On the
+browser, <code>?</code> lists its keys, and a <code>.sql</code> buffer&#39;s as the key scheme you
+use has them, and yours where you rebound them: <code>SPC m</code> with Vim keys,
+<code>C-k m</code> and <code>C-Enter</code> with standard keys. Its empty results and the
+modeline name them the same way. It needs Fenix 1.5 or later (extension
+API 1.5).</p>
 <h3 id="readme-results">Results</h3>
 <p>A statement&#39;s rows are a table, a tab a statement (<code>1</code>-<code>9</code>, <code>[</code> <code>]</code>):</p>
 <div class="table"><table>
@@ -261,6 +281,9 @@ cursor (<code>editor = &quot;write&quot;</code>).</p></li>
 <li><p>Be told which buffer has the focus (<code>events = [&quot;focus&quot;]</code>), for the
 modeline.</p></li>
 </ul>
+<p>Its own folder takes no permission: the history, which connection each
+buffer runs on, a copy of a SQLite file from outside the project, and the
+sample database are kept there. 1.4.0 asks for nothing new.</p>
 <h3 id="readme-building">Building</h3>
 <pre><code class="language-text">cargo xtask pack extensions/database dist
 cargo test --manifest-path extensions/database/Cargo.toml
@@ -273,8 +296,15 @@ against RFC 7677&#39;s example, the scrambles, TDS&#39;s types, the catalog put
 together into a schema and its tree, SQLite files made by SQLite itself
 (Python&#39;s <code>sqlite3</code>) read and written and their journal put back, the
 UPDATE builder and table pages, completion, history, the pages&#39;
-keys and layout, and what agents are given: the read-only guard, the
-schema and rows as JSON.</p>
+keys and layout -- their hints naming the keys of the scheme in use, on
+the <a href="https://github.com/tpedneault/fenix-extensions/blob/main/crates/test-kit">test kit</a>&#39;s fake host -- the
+sample database made, made afresh and read, and what agents are given:
+the read-only guard, the schema and rows as JSON, and their session
+closed when its connection&#39;s row changes.</p>
+<p>The tutorial&#39;s lesson (<code>tutorial/browser.toml</code>) is data. It was checked
+against Fenix 1.5&#39;s lesson format -- its fields and its checks -- but, as
+with any lesson, the way to be sure is to go through it in Fenix, in a
+fresh profile.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -290,6 +320,31 @@ schema and rows as JSON.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-140">1.4.0</h3>
+<p>For Fenix 1.5 (extension API 1.5), which it needed since 1.2.0 -- its
+manifest now says so too, and it&#39;s built against API 1.5, as the shared
+<code>ui-kit</code> it draws with now is.</p>
+<ul class="tight">
+<li><p>A lesson in the tutorial (<code>SPC h T</code>, <em>Database</em>): the browser, a table&#39;s
+rows, a statement run from a <code>.sql</code> buffer, its results, the history and
+a buffer&#39;s connection, on a sample database -- nothing to install, no
+server. Its keys are said as your key scheme has them.</p></li>
+<li><p><strong>Database: a sample database to try it on</strong> (<code>database.sample</code>): a
+small shop in SQLite, made afresh in the extension&#39;s own folder, opened
+in the browser.</p></li>
+<li><p>The browser names a <code>.sql</code> buffer&#39;s keys as your key scheme has them,
+and yours where you rebound them, in its empty results and its help
+(<code>?</code>): <code>SPC m r</code> runs a statement with Vim keys, <code>C-Enter</code> with
+standard keys, under the menu <code>SPC m</code> or <code>C-k m</code>. The modeline&#39;s &quot;no
+connection&quot; names the keys that pick one the same way, and both say
+them again when you switch. With no connection yet, the browser says
+how to add one, or where the sample is.</p></li>
+<li><p>Fixed: a coding agent&#39;s session went on with a connection&#39;s old host,
+user or options after its row in <code>database.connections</code> changed, until
+Fenix restarted; it&#39;s closed now, and opened again as the row says.
+<code>database_query</code>&#39;s description names <code>TABLE</code>, which it always took, and
+says a connection can be an open SQLite file.</p></li>
+</ul>
 <h3 id="changelog-130">1.3.0</h3>
 <ul class="tight">
 <li><p><code>database.open</code>, <code>database.history</code> can be run from outside Fenix, over the control channel
@@ -325,7 +380,7 @@ statement, a second <code>SELECT</code> outside a <code>UNION</code>, and <code>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

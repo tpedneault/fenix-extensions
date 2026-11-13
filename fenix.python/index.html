@@ -63,7 +63,8 @@
 it, debugging with debugpy, ruff as the formatter, tasks, the project doctor&#39;s
 checks with their fixes, outdated and vulnerable packages, snippets, and
 Django and Flask projects in the new-project wizard. Built on lang-kit
-(<code>crates/lang-kit</code>), as each language pack is.</p>
+(<code>crates/lang-kit</code>), as each language pack is. It needs Fenix 1.5 or later
+(extension API 1.5); on an older Fenix, Python 1.1.0 is the one you get.</p>
 <p>It works for a project uv manages (a <code>uv.lock</code>, or <code>[tool.uv]</code> in
 <code>pyproject.toml</code>) and for one it doesn&#39;t: then the venv&#39;s packages are
 uv&#39;s <code>uv pip</code> when there&#39;s uv, else the <code>python3</code> on <code>PATH</code> (the venv&#39;s,
@@ -174,9 +175,16 @@ route, tests with Flask&#39;s client.</p></li>
 <h3 id="readme-files">Files</h3>
 <p><code>*.pyw</code>, <code>*.py3</code>, <code>*.wsgi</code>, <code>*.gyp</code>, <code>*.gypi</code>, <code>SConstruct</code>,
 <code>SConscript</code>, <code>wscript</code> and <code>.pythonrc</code> are read as Python.</p>
+<h3 id="readme-the-lesson">The lesson</h3>
+<p><code>SPC h T</code>, Fenix&#39;s tutorial, has a lesson in its <em>Python</em> section, in a
+Python project of yours: the project doctor and a fix from it, the
+packages page, a task, a debug session stopped at a breakpoint, and ruff
+on save. Each step is checked by what&#39;s on screen -- the page or the
+picker in front -- and a step whose tool isn&#39;t installed yet is skipped
+with <code>s</code> on the tutorial page; the doctor says how to install it.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a Python project: <code>p</code> packages, <code>d</code> check again, <code>s</code>
-sync.</p>
+<p>After <code>SPC m</code> in a Python project (<code>C-k m</code> with standard keys): <code>p</code>
+packages, <code>d</code> check again, <code>s</code> sync.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -190,6 +198,19 @@ sync.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,
+the kit it&#39;s on, now is. Nothing else you see changed: the fixes that
+install Python&#39;s tools run uv, pipx or pip as tasks, in Fenix&#39;s task pane,
+not as a download of the pack&#39;s own, so there is no install
+notification for it. The README gives standard keys beside Vim&#39;s. On
+Fenix 1.0 to 1.4, 1.1.0 stays the one you have.</p></li>
+<li><p>A lesson in Fenix&#39;s tutorial (<code>SPC h T</code>, its <em>Python</em> section), in a
+Python project of yours: the project doctor and a fix from it, the
+packages page, a task, a debug session stopped at a breakpoint, and
+ruff on save.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>python.packages</code> can be run from outside Fenix, over the control channel
@@ -206,7 +227,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

@@ -69,7 +69,8 @@ language pack is.</p>
 <p>It starts with Fenix. A server is set for its language whenever it&#39;s
 found and its setting is on, so a YAML file in any project has it; the
 doctor checks only the tools for the kinds of file the project has (a
-lone README doesn&#39;t count as Markdown).</p>
+lone README doesn&#39;t count as Markdown). It needs Fenix 1.5 or later
+(extension API 1.5); on an older Fenix, Config 1.0.0 is the one you get.</p>
 <h3 id="readme-the-servers">The servers</h3>
 <div class="table"><table>
 <thead><tr><th></th><th>Server</th><th>Installed by its fix row</th></tr></thead>
@@ -89,7 +90,11 @@ server, Biome&#39;s beside the JSON server in a Biome project.</p>
 <p>A release is downloaded from GitHub for this machine (Linux and macOS on
 x86_64 and arm64, Windows on x86_64), checked against the SHA-256 the pack
 knows, and unpacked into the pack&#39;s tools folder, where only the pack
-looks. One you installed yourself (<code>cargo install taplo-cli</code>, <code>brew install marksman</code>, <code>go install mvdan.cc/sh/v3/cmd/shfmt@latest</code>, winget)
+looks. Starting it is said in the message line; how it ended is a
+notification, since a download can take a while: &quot;Installed Taplo
+0.10.0&quot;, or &quot;Couldn&#39;t install Taplo 0.10.0&quot; with which step failed and
+why, and <em>Try again</em>. Each newer one for a tool takes the last one&#39;s
+place. One you installed yourself (<code>cargo install taplo-cli</code>, <code>brew install marksman</code>, <code>go install mvdan.cc/sh/v3/cmd/shfmt@latest</code>, winget)
 is used instead: the pack looks in npm&#39;s, Cargo&#39;s and Go&#39;s folders,
 Homebrew&#39;s and winget&#39;s too. The npm fix rows need Node; without it the
 doctor says so.</p>
@@ -162,8 +167,8 @@ Dockerfile</em>, when the project has some and the tool is installed.</p>
 </tbody>
 </table></div>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in one of its files: <code>d</code> checks the tools again, <code>s</code>
-fetches SchemaStore&#39;s catalog again.</p>
+<p>After <code>SPC m</code> in one of its files (<code>C-k m</code> with standard keys): <code>d</code>
+checks the tools again, <code>s</code> fetches SchemaStore&#39;s catalog again.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p><strong>PowerShell</strong>: Fenix has no grammar for it; it comes with its own
@@ -184,6 +189,20 @@ give yet.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing Taplo, Marksman,
+shfmt, ShellCheck or hadolint ended is a notification rather than a
+line in the message line, since the download can take a while and you
+may be elsewhere -- &quot;Installed Taplo 0.10.0&quot;, and what it&#39;s now used as;
+or &quot;Couldn&#39;t install Taplo 0.10.0&quot;, saying whether its download,
+unpacking it or setting it up failed and why, with <em>Try again</em>. The
+newest for a tool takes the last one&#39;s place, and a failure&#39;s is taken
+away when you try again. Starting an install is still said in the
+message line. The language servers and Prettier, installed by <code>npm</code>
+as a task, are as they were. The README gives standard keys beside
+Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: yAML, JSON, TOML, Dockerfiles, shell scripts and Markdown: their language servers, SchemaStore&#39;s schemas for GitHub Actions, Compose, package.json, tsconfig and the rest, Taplo, shfmt and Prettier formatting, ShellCheck and hadolint, the project&#39;s checks with their fixes, and snippets.</p></li>
@@ -194,7 +213,7 @@ give yet.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

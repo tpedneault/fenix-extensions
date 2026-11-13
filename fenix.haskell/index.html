@@ -66,7 +66,8 @@ that run ghcup, snippets, and a Cabal project. Built on lang-kit
 (<code>crates/lang-kit</code>), as each language pack is.</p>
 <p>It works for a Cabal project (a <code>.cabal</code> file at the top, or a
 <code>cabal.project</code> listing packages), a Stack one (<code>stack.yaml</code>, or hpack&#39;s
-<code>package.yaml</code>), and a folder of scripts.</p>
+<code>package.yaml</code>), and a folder of scripts. It needs Fenix 1.5 or later
+(extension API 1.5); on an older Fenix, Haskell 1.0.0 is the one you get.</p>
 <h3 id="readme-the-grammar">The grammar</h3>
 <p><code>*.hs</code> and <code>*.hs-boot</code> files are read with tree-sitter-haskell 0.23.1&#39;s
 grammar (<code>grammars/</code>, MIT): highlighted, folded (each equation, a data
@@ -160,8 +161,8 @@ alone, so it builds without Hackage -- with <code>cabal run</code> as its run ta
 </tbody>
 </table></div>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a Haskell project or file: <code>d</code> checks the project again,
-<code>r</code> reads it again, <code>g</code> opens ghcup&#39;s page.</p>
+<p>After <code>SPC m</code> in a Haskell project or file (<code>C-k m</code> with standard keys):
+<code>d</code> checks the project again, <code>r</code> reads it again, <code>g</code> opens ghcup&#39;s page.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p><strong>Debugging</strong>: Haskell&#39;s debuggers (<code>ghci</code>&#39;s, haskell-debugger) aren&#39;t
@@ -184,6 +185,15 @@ redundant. Its own <code>--refactor</code> takes them off.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as the
+shared kit it&#39;s built on now is. Nothing you see changed: this pack
+installs GHC, Cabal, Stack and the language server with ghcup, as fixes
+the doctor offers and which run as tasks, so it has no download of its
+own to say the end of in a notification. On Fenix 1.0 to 1.4, 1.0.0
+stays the one you have. The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: haskell: its grammar, the Haskell Language Server, ormolu or fourmolu, hlint on save with its rewrites as fixes, Cabal&#39;s and Stack&#39;s tasks for each component, the project&#39;s checks with fixes that run ghcup, snippets, and a Cabal project.</p></li>
@@ -194,7 +204,7 @@ redundant. Its own <code>--refactor</code> takes them off.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

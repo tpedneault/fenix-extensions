@@ -125,6 +125,8 @@ control characters and bytes past ASCII picked out.</p>
 <tr><td><code>hex.bytesPerRow</code></td><td>Bytes on each row, up to 64; <code>0</code> fits as many as the pane takes (8, 16 or 32). 16 unless set</td></tr>
 </tbody>
 </table></div>
+<p>It needs Fenix 1.5 or later (extension API 1.5), as the <code>ui-kit</code> it&#39;s
+built on is.</p>
 <h3 id="readme-permissions">Permissions</h3>
 <div class="table"><table>
 <thead><tr><th>Permission</th><th>Why</th></tr></thead>
@@ -146,6 +148,12 @@ control characters and bytes past ASCII picked out.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as the shared
+<code>ui-kit</code> it draws its dump with now is. The viewer works as it did; on
+Fenix 1.0 to 1.4, 1.0.1 stays the one you have.</p></li>
+</ul>
 <h3 id="changelog-101">1.0.1</h3>
 <ul class="tight">
 <li><p>Go to an offset is on <code>o</code>: <code>:</code> never reached the page, since Fenix keeps it for its command line.</p></li>
@@ -162,7 +170,7 @@ control characters and bytes past ASCII picked out.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

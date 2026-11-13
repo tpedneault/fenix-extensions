@@ -29,11 +29,11 @@
 <aside class="facts" aria-labelledby="facts-h">
 <h2 id="facts-h">At a glance</h2>
 <dl>
-<dt>Latest version</dt><dd>1.0.0</dd>
-<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
-<dt>Extension API</dt><dd>1.0 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>Latest version</dt><dd>1.1.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
 <dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
-<dt>Download</dt><dd>382 KB</dd>
+<dt>Download</dt><dd>387 KB</dd>
 <dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
 <dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/ada">extensions/ada</a></dd>
 </dl>
@@ -45,7 +45,7 @@
 <li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
 <li>Search for <strong>Ada and SPARK</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
 </ol>
-<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.0.0/fenix.ada-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.ada-1.0.0.fenixext</code>.</p>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.1.0/fenix.ada-1.1.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.ada-1.1.0.fenixext</code>.</p>
 </section>
 <section aria-labelledby="permissions">
 <h2 id="permissions">What it may do</h2>
@@ -68,7 +68,8 @@ GNATprove and the server, and snippets. Built on lang-kit
 <p>It starts with Fenix. The server is set for Ada files whenever it&#39;s
 found; the doctor checks, and the tasks run, in an Ada project: an Alire
 crate (<code>alire.toml</code>), a GNAT project file (<code>.gpr</code>) at the top, or Ada
-sources.</p>
+sources. It needs Fenix 1.5 or later (extension API 1.5); on an older
+Fenix, Ada 1.0.0 is the one you get.</p>
 <h3 id="readme-the-grammar">The grammar</h3>
 <p><code>*.ads</code>, <code>*.adb</code> and <code>*.ada</code> are read with tree-sitter-ada 0.9.2&#39;s
 grammar (<code>grammars/</code>, MIT): highlighted, folded (packages, subprograms,
@@ -132,7 +133,11 @@ when asked, not on save; its problems stay until the next run.</p>
 </table></div>
 <p>Alire&#39;s and the server&#39;s releases come from GitHub, each checked against
 the SHA-256 the pack knows, unpacked into the pack&#39;s tools folder, and
-used at once. The server&#39;s is a 110 MB download that unpacks to about
+used at once. Starting one is said in the message line; how it ended is
+a notification, since a download can take a while: &quot;Installed Alire
+2.1.1&quot;, or &quot;Couldn&#39;t install Alire 2.1.1&quot; with which step failed and why,
+and <em>Try again</em>. Each newer one for a tool takes the last one&#39;s place.
+The server&#39;s is a 110 MB download that unpacks to about
 460 MB, most of it the debug symbols AdaCore ships beside it.
 <code>alr install</code> puts GNAT, gprbuild and GNATprove in
 Alire&#39;s install prefix, <code>~/.alire/bin</code>, where the pack looks. The pack
@@ -170,8 +175,8 @@ wants.</p>
 </tbody>
 </table></div>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in an Ada project or file: <code>d</code> checks the project again,
-<code>p</code> proves.</p>
+<p>After <code>SPC m</code> in an Ada project or file (<code>C-k m</code> with standard keys): <code>d</code>
+checks the project again, <code>p</code> proves.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p><strong>Running a GNAT project&#39;s mains</strong>: without Alire, there&#39;s no task
@@ -188,12 +193,26 @@ isn&#39;t checked for it.</p></li>
 <div class="table"><table>
 <thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
 <tbody>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>387 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.1.0/fenix.ada-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 e18c394442ffa13e0756820c5e6c82304d972ad81053405d70ceeecdf1479fcb">e18c394442…</code></td></tr>
 <tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>1.0</td><td>382 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.0.0/fenix.ada-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 e03b21c24a26d406c188f0d4d487a390fbb58c97ad6acbb043143b3261d8aabe">e03b21c24a…</code></td></tr>
 </tbody>
 </table></div>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing Alire or the Ada
+Language Server ended is a notification rather than a line in the
+message line, since the download can take a while and you may be
+elsewhere -- &quot;Installed Alire 2.1.1&quot;, and what it&#39;s now used as; or
+&quot;Couldn&#39;t install Alire 2.1.1&quot;, saying whether its download, unpacking
+it or setting it up failed and why, with <em>Try again</em>. The newest for a
+tool takes the last one&#39;s place, and a failure&#39;s is taken away when you
+try again. Starting an install is still said in the message line.
+GNAT, gprbuild and GNATprove are installed by <code>alr</code>, as a task, and are
+as they were. The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: ada and SPARK: their grammar, the Ada Language Server for Ada and GNAT project files, Alire&#39;s or gprbuild&#39;s tasks, GNATprove&#39;s findings as problems, the project&#39;s checks with fixes that install Alire, GNAT and the server, and snippets.</p></li>
@@ -204,7 +223,7 @@ isn&#39;t checked for it.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

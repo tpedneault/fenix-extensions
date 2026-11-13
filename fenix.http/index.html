@@ -82,13 +82,23 @@ Content-Type: application/json
 GET {{baseUrl}}/me
 Authorization: Bearer {{login.response.body.$.token}}
 </code></pre>
-<p><code>examples/</code> has a collection to try, with its env files.</p>
+<p><code>examples/</code> has a collection to try, with its env files. The tutorial
+(<code>SPC h T</code>) has a lesson on it, under <strong>HTTP</strong>: reading a <code>.http</code> file,
+sending a request and seeing its response, variables, environments and
+the client, on a practice file of its own. Sending needs the internet
+(it asks httpbin.org); offline, <code>s</code> on the tutorial page skips those
+steps.</p>
 <h3 id="readme-running-from-the-buffer">Running from the buffer</h3>
 <p><code>SPC p r r</code> (or <code>SPC m r</code> in a <code>.http</code> file, or a click on the <code>▶</code>
 before it) sends the request the cursor&#39;s in. Its status shows after it
 -- <code>200 OK · 85 ms · 1.2 kB · tests 2/2</code> -- and its response opens
 beside; a click on the status brings the response back. <code>SPC p r a</code>
 runs every request in the file and reports.</p>
+<p>In text that&#39;s no file -- a scratch buffer, the tutorial&#39;s practice --
+<code>SPC p r r</code> sends the request on the cursor&#39;s line, or the one selected
+with its <code>@variables</code> (a line whose URL isn&#39;t <code>http://</code>, <code>https://</code>,
+<code>ws://</code>, <code>wss://</code> or a <code>{{variable}}</code> isn&#39;t sent). Its environment is
+the project&#39;s; there&#39;s no status after it, only its response beside.</p>
 <p><code>.http</code> and <code>.rest</code> files are highlighted by tree-sitter-http, which the
 extension brings (<code>grammars/</code>): Fenix has no grammar of its own for them.
 As you type, <code>{{</code> offers the variables -- the file&#39;s, the environment&#39;s,
@@ -181,7 +191,12 @@ changed.</p>
 <p><code>SPC p r a</code> runs a file&#39;s requests in turn, <code>SPC p r A</code> the project&#39;s,
 and <code>x</code> on a folder in the sidebar that folder&#39;s: the report says each
 one passed -- its tests, or with none, a status under 400 -- and why
-not. <code>Enter</code> there goes to the request.</p>
+not. <code>Enter</code> there goes to the request. When it&#39;s done and you&#39;re
+elsewhere, the message line says how it went; a run of ten seconds or
+more says it in a notification instead, with how long it took -- low
+urgency when all passed, normal when some failed, the last run&#39;s
+replaced by the next -- whose <em>Open the report</em> (<code>http.report</code>) brings
+the report up. With the report in front of you, it says nothing more.</p>
 <h3 id="readme-environments">Environments</h3>
 <p><code>http-client.env.json</code> beside the <code>.http</code> files (or in a folder above
 them, up to the project), and <code>http-client.private.env.json</code> beside it
@@ -281,6 +296,32 @@ saves it.</p></li>
 and <code>1</code>-<code>5</code> between tabs; <code>r</code> (or Ctrl+Enter) sends; <code>e</code> the
 environment; <code>y</code> copies as code; <code>\</code> hides the sidebar. The mouse picks
 too.</p>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p>Your coding agents, through Fenix (1.1 or later), get two tools:</p>
+<ul>
+<li><p><strong><code>http_requests</code></strong> lists the requests in the project&#39;s <code>.http</code> files:
+each one&#39;s file, name, method, URL and line, the URL as written --
+<code>{{variables}}</code> unfilled, so no value of theirs is in it. <code>file</code> keeps
+to one file. It reads, so Fenix lets agents call it.</p></li>
+<li><p><strong><code>http_run</code></strong> sends one of them, by the name <code>http_requests</code> gave it
+(and <code>file</code>, when two files have the name), as <code>SPC p r r</code> would: in
+the environment you chose, its chained requests and sign-ins first,
+its tests run, its status after its line and in the history. It
+answers the status, headers, body and tests. Only a request in your
+files: an agent can&#39;t give it a URL, a method, headers or another
+environment. A WebSocket request isn&#39;t run for an agent.</p>
+<p>Sending a request acts outside this machine, so it&#39;s an <strong>external</strong>
+tool, and Fenix refuses those by default. To let agents run requests,
+say so in <code>agents.mcp.allow</code> -- <code>http_run = &quot;ask&quot;</code> has Fenix ask you
+each time, in the agent&#39;s thread; <code>&quot;allow&quot;</code> doesn&#39;t ask.</p></li>
+</ul>
+<p>What <code>http_run</code> answers hides your secrets: each value it filled in
+from the keychain, the private env file, an OAuth token, <code>.env</code> or
+Fenix&#39;s environment is <code>«hidden»</code> wherever it would show -- the URL, a
+header, a body that echoes it -- and a cookie the server set is its name
+and attributes, not its value. A body longer than <code>max_body</code> characters
+(20,000, at most 100,000) is cut, with a line saying how much there was;
+one that isn&#39;t text is said as its size and type.</p>
 <h3 id="readme-imports-and-exports">Imports and exports</h3>
 <p><code>SPC p r i</code> imports the file selected in the explorer (or one you name):
 a Postman collection (v2.1 and v2.0), an Insomnia export (v4, JSON or
@@ -328,12 +369,16 @@ filled in -- secrets too, so mind where it goes.</p>
 <tr><td><code>SPC p r g</code></td><td><code>http.graphql_schema</code></td><td>Ask the GraphQL server for its schema again</td></tr>
 <tr><td><code>SPC p r x</code></td><td><code>http.cancel</code></td><td>Cancel what&#39;s in flight, close WebSockets, stop a sign-in</td></tr>
 <tr><td></td><td><code>http.cookies_clear</code></td><td>Clear the environment&#39;s cookies</td></tr>
+<tr><td></td><td><code>http.report</code></td><td>The last run&#39;s report, brought up</td></tr>
 </tbody>
 </table></div>
 <p><code>SPC m</code> in a <code>.http</code> file has the same: <code>r</code> send, <code>a</code> run the file&#39;s, <code>v</code>
 the response, <code>e</code> environment, <code>y</code> copy as, <code>o</code> the client, <code>c</code> import
 curl, <code>s</code> sign in, <code>w</code> a WebSocket message, <code>g</code> the GraphQL schema, <code>x</code>
 cancel.</p>
+<p>With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: <code>Ctrl+K p r r</code> and so on. It
+needs Fenix 1.5 or later (extension API 1.5). What it says names the keys
+of the key scheme you use, and yours where you rebound them.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
@@ -372,6 +417,16 @@ keychain, read and kept; the older <code>http.secrets</code>.</p></li>
 <li><p><strong>Read the environment variables <code>http.env</code> lists,</strong> none other.</p></li>
 <li><p><strong>The clipboard&#39;s text:</strong> a curl command, imported.</p></li>
 </ul>
+<p>Coding agents (<code>http_requests</code>, <code>http_run</code>) use these and ask for no
+more: running a request is the network you&#39;ve given it, and only where
+your <code>agents.mcp.allow</code> lets agents do something external.</p>
+<h3 id="readme-building">Building</h3>
+<p><code>cargo xtask pack extensions/http dist</code> from the repository&#39;s root.
+<code>cargo test</code> covers the parser, variables, auth, imports and exports,
+the pages, and what agents are given: a request found by its name, the
+answer shaped, secrets hidden, a long body cut; what a run says when
+it ends, and a long one&#39;s notification; and the keys it names, on the
+<a href="https://github.com/tpedneault/fenix-extensions/blob/main/crates/test-kit">test kit</a>&#39;s fake host.</p>
 <h3 id="readme-not-here-yet">Not here yet</h3>
 <p>XPath into XML answers, Digest auth, JetBrains&#39; JavaScript handlers,
 <code>{{$prompt}}</code> variables, Insomnia&#39;s v5 YAML, GraphQL subscriptions over
@@ -390,6 +445,35 @@ WebSocket (<code>graphql-transport-ws</code>), and a WebSocket through a proxy.<
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<p>For Fenix 1.5 (extension API 1.5): its manifest now says so, and it&#39;s
+built against API 1.5, as the shared <code>ui-kit</code> it draws with now is. On
+Fenix 1.0 to 1.4, 1.2.0 stays the one you have.</p>
+<ul class="tight">
+<li><p>A lesson in the tutorial (<code>SPC h T</code>, under HTTP): reading a <code>.http</code>
+file, sending the request under the cursor and seeing its response,
+variables, environments and the client, on a practice file. Steps
+that need the internet can be skipped (<code>s</code>) offline.</p></li>
+<li><p><code>SPC p r r</code> in text that&#39;s no file -- a scratch buffer, the
+tutorial&#39;s practice -- sends the request on the cursor&#39;s line, or the
+one selected with its variables; <code>SPC p r v</code> shows its response again.</p></li>
+<li><p>Tools for coding agents, from Fenix 1.1: <code>http_requests</code> lists the
+project&#39;s requests, and <code>http_run</code> sends one by its name, in the
+environment you chose, and answers its status, headers, body and
+tests, your secrets&#39; values hidden and a long body cut. Running is an
+external tool, which Fenix refuses until your <code>agents.mcp.allow</code> lets
+agents run it (<code>http_run = &quot;ask&quot;</code>).</p></li>
+<li><p>When a run ends while its report isn&#39;t in front of you, it says what
+ran and how many failed: in the message line, or, for a run of 10
+seconds or more, in a notification -- of low urgency when all passed,
+normal when some failed, a newer run&#39;s in place of the last, and
+<em>Open the report</em> (<code>http.report</code>) bringing up the report; closing the
+report takes it away. It says nothing while the report is in front of
+you.</p></li>
+<li><p>An import that couldn&#39;t bring everything names the keys of the log
+that lists what it left out as your key scheme has them (<code>C-k h l</code>
+with standard keys, <code>SPC h l</code> with Vim keys), or yours.</p></li>
+</ul>
 <h3 id="changelog-120">1.2.0</h3>
 <ul class="tight">
 <li><p><code>http.open</code>, <code>http.history</code> can be run from outside Fenix, over the control channel
@@ -411,7 +495,7 @@ request under the cursor.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

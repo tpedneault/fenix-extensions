@@ -67,7 +67,8 @@ on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
 <p>It&#39;s for a folder with a <code>CMakeLists.txt</code>, CMake presets, a
 <code>compile_commands.json</code>, a <code>.clangd</code>, a <code>vcpkg.json</code> or a conanfile, or
 C or C++ files at the top or in <code>src/</code>. An Arduino sketch (a <code>.ino</code>) is
-left to the Arduino extension.</p>
+left to the Arduino extension. It needs Fenix 1.5 or later (extension API
+1.5); on an older Fenix, C/C++ 1.1.0 is the one you get.</p>
 <h3 id="readme-the-language-server">The language server</h3>
 <p><code>clangd</code>, found on <code>PATH</code> or in LLVM&#39;s folders (<code>/usr/lib/llvm-N/bin</code>,
 Homebrew&#39;s, <code>C:\Program Files\LLVM\bin</code>). clangd finds a
@@ -190,8 +191,8 @@ presets with vcpkg&#39;s toolchain, and the manifest&#39;s baseline set.</p></li
 <p><code>*.cppm</code>, <code>*.ccm</code>, <code>*.cxxm</code>, <code>*.ixx</code>, <code>*.mpp</code> (modules), and <code>*.ipp</code>,
 <code>*.tpp</code>, <code>*.txx</code>, <code>*.tcc</code> are read as C++, <code>//</code> its line comment.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a C or C++ project: <code>p</code> packages, <code>d</code> check again, <code>c</code>
-configure.</p>
+<p>After <code>SPC m</code> in a C or C++ project (<code>C-k m</code> with standard keys): <code>p</code>
+packages, <code>d</code> check again, <code>c</code> configure.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -205,6 +206,16 @@ configure.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as the
+shared kit it&#39;s built on now is. Nothing you see changed: this pack
+installs its tools (a compiler, CMake, Ninja, clangd and the rest) with
+the fixes the doctor offers, which run as tasks, so it has no download
+of its own to say the end of in a notification. On Fenix 1.0 to 1.4,
+1.1.0 stays the one you have. The README gives standard keys beside
+Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>cpp.packages</code> can be run from outside Fenix, over the control channel
@@ -221,7 +232,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

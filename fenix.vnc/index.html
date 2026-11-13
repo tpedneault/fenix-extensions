@@ -91,8 +91,13 @@ and Raw encodings.</p>
 <tr><td><code>SPC v s</code></td><td><code>vnc.screenshot</code></td><td>Save its picture as a PNG</td></tr>
 </tbody>
 </table></div>
-<p><code>vnc.open</code> may run from outside Fenix too (<code>fenix/runCommand</code>). A
-<code>[workspaces]</code> entry <code>vnc:NAME</code> opens host <code>NAME</code>.</p>
+<p>With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: <code>Ctrl+K v v</code>. <code>vnc.open</code> may run
+from outside Fenix too (<code>fenix/runCommand</code>). A <code>[workspaces]</code> entry
+<code>vnc:NAME</code> opens host <code>NAME</code>.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys that run a command in the key scheme you use, and yours where you
+rebound them: a session that gave up says <code>C-k v v</code> reconnects with
+standard keys, <code>SPC v v</code> with Vim keys.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it is</th></tr></thead>
@@ -135,6 +140,15 @@ port = 5901
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use, and yours where you rebound them -- a session that
+gave up reconnecting says <code>C-k v v</code> with standard keys and <code>SPC v v</code>
+with Vim keys, on its pane (again when you switch) and in the message
+line, and no hosts yet points to the settings page by its keys (<code>C-,</code>
+or <code>SPC ,</code>).</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs.</p></li>
@@ -145,7 +159,7 @@ port = 5901
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

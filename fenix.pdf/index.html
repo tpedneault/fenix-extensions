@@ -111,7 +111,13 @@ sight, and only the strip that scrolled into view as you read on.</p>
 </table></div>
 <p><code>SPC m</code> on a PDF has them too. <code>pdf.documents</code> may run from outside Fenix
 (<code>fenix/runCommand</code>). The modeline says where you are: <code>PDF p. 38/212  Fit width  /packet 2/5</code>. Home&#39;s <strong>reading</strong> lists the PDFs read lately, with
-the page you were on.</p>
+the page you were on. With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: <code>Ctrl+K r f</code>,
+<code>Ctrl+K m</code>.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys that run a command in the key scheme you use, and yours where you
+rebound them: Home&#39;s <strong>reading</strong> shows the shelf&#39;s keys (<code>C-k r f</code> with
+standard keys, <code>SPC r f</code> with Vim keys) and changes when you switch, and
+so does &quot;no PDF open&quot;.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it is</th></tr></thead>
@@ -160,6 +166,15 @@ real PDF.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use, and yours where you rebound them -- Home&#39;s
+<strong>reading</strong> shows the shelf&#39;s keys, <code>C-k r f</code> with standard keys and
+<code>SPC r f</code> with Vim keys, and shows them again when you switch; &quot;no PDF
+open&quot; says the same keys, and an empty shelf points to the settings
+page by its keys (<code>C-,</code> or <code>SPC ,</code>).</p></li>
+</ul>
 <h3 id="changelog-101">1.0.1</h3>
 <ul class="tight">
 <li><p>The modeline no longer shows a PDF&#39;s page on other files when the PDF came back with the session, in a tab behind them.</p></li>
@@ -175,7 +190,7 @@ real PDF.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

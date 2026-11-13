@@ -64,6 +64,11 @@ keys are under <code>SPC A</code>, and your tasks are kept in <code>agenda.json<
 open the board, the list and this week&#39;s time. <code>SPC A n</code> adds a task,
 <code>SPC A h</code> adds one about the selection or line you&#39;re on, and <code>SPC A t</code>
 stops the clock, resumes it or switches it.</p>
+<p>With standard keys they&#39;re <code>Ctrl+K A a</code> and so on. What it says names
+the keys as the key scheme in use has them, and yours when you&#39;ve bound
+your own -- on the page, on Home&#39;s today and in its messages: &quot;<code>C-k A n</code>
+to add one&quot; with standard keys, &quot;<code>SPC A n</code>&quot; with Vim keys. It needs
+Fenix 1.5 or later.</p>
 <h3 id="readme-the-page">The page</h3>
 <div class="table"><table>
 <thead><tr><th>Key</th><th>What it does</th></tr></thead>
@@ -90,6 +95,9 @@ Jira, and Jira&#39;s come back every <code>jira.sync_minutes</code>:</p>
 <li><p><code>SPC A s</code> syncs now</p></li>
 <li><p><code>SPC A w</code> reviews the week&#39;s unsent time and sends it as worklogs</p></li>
 </ul>
+<p>A sync you asked for ends in a notification: how many issues it brought
+up to date, or why it failed. One that finds a conflict says so, even a
+timed one; Enter on it opens the agenda. Each replaces the last.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
@@ -116,6 +124,19 @@ this extension.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<p>For Fenix 1.5 (extension API 1.5):</p>
+<ul class="tight">
+<li><p>What it says names the keys of the key scheme in use, and yours when
+you&#39;ve bound your own -- Home&#39;s today, the empty page&#39;s &quot;<code>C-k A i</code>
+brings in your Jira issues&quot; with standard keys (<code>SPC A i</code> with Vim
+keys), and its messages, the Jira page&#39;s and Fenix&#39;s settings&#39; and
+extensions&#39; keys among them.</p></li>
+<li><p>A Jira sync ends in a notification, not the message line: how many
+issues it brought up to date, why it failed, or the conflicts it found,
+with the agenda a key away. A newer one replaces the last.</p></li>
+<li><p>The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>agenda.open</code>, <code>agenda.board</code>, <code>agenda.list</code>, <code>agenda.report</code>, <code>agenda.find</code> can be run from outside Fenix, over the control channel
@@ -132,7 +153,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

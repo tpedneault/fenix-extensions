@@ -73,9 +73,10 @@ debugging with js-debug, Prettier or Biome as the formatter,
 their fixes, outdated and vulnerable packages, snippets, and Next.js,
 Express, library and static site projects in the new-project wizard.
 Built on lang-kit (<code>crates/lang-kit</code>), as each language pack is.
-It depends on Config &amp; Shell (<code>fenix.config</code>), installed with it, which
-serves JSON: <code>package.json</code>, <code>tsconfig.json</code> and the rest get
-SchemaStore&#39;s schemas.</p>
+It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, Web
+1.1.0 is the one you get. It depends on Config &amp; Shell (<code>fenix.config</code>),
+installed with it, which serves JSON: <code>package.json</code>, <code>tsconfig.json</code>
+and the rest get SchemaStore&#39;s schemas.</p>
 <p>Its package manager is the one the lockfile says: <code>package-lock.json</code>
 npm, <code>pnpm-lock.yaml</code> pnpm, <code>yarn.lock</code> Yarn (2 and later, berry, when
 there&#39;s a <code>.yarnrc.yml</code> or the lockfile says so), <code>bun.lock</code> bun; with
@@ -117,7 +118,10 @@ uses neither isn&#39;t formatted by it.</p>
 <p>The adapter is js-debug&#39;s DAP server, installed into Fenix&#39;s tools
 folder from its release (<code>js-debug-dap-v1.140.0.tar.gz</code>, the same on
 every machine, its SHA-256 checked) by the doctor&#39;s fix row or <em>Web:
-install js-debug</em>, and run as <code>node dapDebugServer.js ${port} 127.0.0.1</code>:
+install js-debug</em> (started in the message line; how it ended is a
+notification: &quot;Installed js-debug 1.140.0&quot;, or &quot;Couldn&#39;t install
+js-debug 1.140.0&quot; with which step failed and why, and <em>Try again</em>), and
+run as <code>node dapDebugServer.js ${port} 127.0.0.1</code>:
 Fenix starts it on a free port and connects (<code>debug-adapter-connect</code>,
 API).</p>
 <p><code>SPC u u</code>, in a project with no launch configuration of its own, offers:</p>
@@ -223,9 +227,18 @@ server for development; nothing to install.</p></li>
 <p><code>*.jsonc</code>, <code>*.webmanifest</code>, <code>*.code-workspace</code>, <code>.babelrc</code>, <code>.eslintrc</code>,
 <code>.prettierrc</code>, <code>.swcrc</code> and the like are read as JSON; <code>*.pcss</code> and
 <code>*.postcss</code> as CSS.</p>
+<h3 id="readme-the-lesson">The lesson</h3>
+<p><code>SPC h T</code>, Fenix&#39;s tutorial, has a lesson in its <em>Web: JavaScript and
+TypeScript</em> section, in a project of yours with a <code>package.json</code>: the
+project doctor and a fix from it, the packages page, a task, a debug
+session stopped at a breakpoint, and the formatter and ESLint on save.
+Each step is checked by what&#39;s on screen -- the page or the picker in
+front -- and a step whose tool isn&#39;t installed yet is skipped with <code>s</code>
+on the tutorial page; the doctor says how to install it.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a project with a <code>package.json</code>: <code>p</code> packages, <code>d</code>
-check again, <code>i</code> install, <code>s</code> start the dev server, <code>S</code> stop it.</p>
+<p>After <code>SPC m</code> in a project with a <code>package.json</code> (<code>C-k m</code> with standard
+keys): <code>p</code> packages, <code>d</code> check again, <code>i</code> install, <code>s</code> start the dev
+server, <code>S</code> stop it.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -239,6 +252,24 @@ check again, <code>i</code> install, <code>s</code> start the dev server, <code>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing js-debug ended is a
+notification rather than a line in the message line, since the
+download can take a while and you may be elsewhere -- &quot;Installed
+js-debug 1.140.0&quot;, and the folder it&#39;s in; or &quot;Couldn&#39;t install
+js-debug 1.140.0&quot;, saying whether its download, unpacking it or
+setting it up failed and why, with <em>Try again</em>. A failure&#39;s is taken
+away when you try again. Starting the install is still said in the
+message line. The other fixes (the servers, Node, the package manager,
+the project&#39;s packages) run their package manager as a task, and are
+as they were. The README gives standard keys beside Vim&#39;s. On Fenix
+1.0 to 1.4, 1.1.0 stays the one you have.</p></li>
+<li><p>A lesson in Fenix&#39;s tutorial (<code>SPC h T</code>, its <em>Web: JavaScript and
+TypeScript</em> section), in a project of yours with a <code>package.json</code>: the
+project doctor and a fix from it, the packages page, a task, a debug
+session stopped at a breakpoint, and the formatter and ESLint on save.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>web.packages</code> can be run from outside Fenix, over the control channel
@@ -255,7 +286,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

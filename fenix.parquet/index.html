@@ -106,6 +106,8 @@ in pure Rust; zstd&#39;s is <a href="https://crates.io/crates/ruzstd">ruzstd</a>
 <p>A file in the project is read where it is, a part at a time, whatever
 its size. One elsewhere is read whole, up to the 64 MiB Fenix gives an
 extension; open a bigger one from its project.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5), as the <code>ui-kit</code> it&#39;s
+built on is.</p>
 <h3 id="readme-permissions">Permissions</h3>
 <div class="table"><table>
 <thead><tr><th>Permission</th><th>Why</th></tr></thead>
@@ -127,6 +129,12 @@ extension; open a bigger one from its project.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as the shared
+<code>ui-kit</code> it draws its table with now is. The viewer works as it did; on
+Fenix 1.0 to 1.4, 1.0.1 stays the one you have.</p></li>
+</ul>
 <h3 id="changelog-101">1.0.1</h3>
 <ul class="tight">
 <li><p>A file in the open project is read where it is, whatever its size: 1.0.0 couldn&#39;t tell which project was open (it lacked <code>editor = &quot;read&quot;</code>), so it read every file whole and refused one over 64 MiB.</p></li>
@@ -142,7 +150,7 @@ extension; open a bigger one from its project.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

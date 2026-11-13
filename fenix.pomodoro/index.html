@@ -58,8 +58,10 @@
 <h2 id="readme">About</h2>
 <p>A focus timer for Fenix: a work round, then a break, and a long break
 every few rounds. The round counts down on the modeline -- <code>🍅 18:42</code>
-while you work, <code>☕ 04:12</code> on a break -- and Fenix chimes when it&#39;s
-over and says what comes next.</p>
+while you work, <code>☕ 04:12</code> on a break -- and when it&#39;s over Fenix
+chimes and a notification says what comes next: Enter on it, or a
+click, starts it. The next round&#39;s end replaces it, and starting a
+round puts it away. A round you skip is said on the message line.</p>
 <p><code>SPC o p s</code> starts a round. A break starts by itself when the work
 before it ends (<code>pomodoro.auto_breaks</code>); the next work round waits for
 you. Rounds are kept against the clock, so one carries on while Fenix is
@@ -75,6 +77,10 @@ closed, and one that ran out meanwhile is counted.</p>
 <tr><td><code>SPC o p t</code></td><td>The agenda task work rounds clock into</td></tr>
 </tbody>
 </table></div>
+<p>With standard keys they&#39;re <code>Ctrl+K o p s</code> and so on. What it says names
+the keys as the key scheme in use has them, and yours when you&#39;ve bound
+your own: &quot;<code>C-k o p s</code> starts it&quot; with standard keys, &quot;<code>SPC o p s</code>&quot; with
+Vim keys. It needs Fenix 1.5 or later.</p>
 <h3 id="readme-the-page">The page</h3>
 <p>The round under way and how far it&#39;s gone, what comes after it, today&#39;s
 work rounds (when each ended, how long, the task), and the last seven
@@ -142,6 +148,19 @@ page and its kind -- not which file.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<p>For Fenix 1.5 (extension API 1.5):</p>
+<ul class="tight">
+<li><p>A round that runs out is a notification, not a line in the message
+line: what comes next, and Enter on it, or a click, starts it. The next
+round&#39;s end replaces it, and starting a round puts it away. It still
+chimes (<code>pomodoro.sound</code>); a round you skip is still said on the
+message line.</p></li>
+<li><p>What it says names the keys of the key scheme in use, and yours when
+you&#39;ve bound your own: &quot;<code>C-k o p s</code> starts it&quot; with standard keys,
+<code>SPC o p s</code> with Vim keys, and the agenda&#39;s key to add a task.</p></li>
+<li><p>The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>pomodoro.open</code> can be run from outside Fenix, over the control channel
@@ -162,7 +181,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

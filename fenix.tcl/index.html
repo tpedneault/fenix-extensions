@@ -90,6 +90,9 @@ MIB&#39;s, when it&#39;s on):</p>
 <tr><td><code>SPC m T</code></td><td><code>completion.refresh_tags</code></td><td>Scan the project with ctags again, and say how many definitions it found</td></tr>
 </tbody>
 </table></div>
+<p>What it says when it names a key (ctags missing, no definitions found)
+gives the keys you have: <code>C-k m s</code> with standard keys, <code>SPC m s</code> with
+Vim keys.</p>
 <h3 id="readme-the-project-doctor">The project doctor</h3>
 <p>In a Tcl project (a <code>pkgIndex.tcl</code> or a <code>.tcl</code> file at its top, or
 <code>kind = &quot;tcl&quot;</code> in <code>.fenix/project.toml</code>), the doctor checks for <code>tclsh</code>
@@ -118,6 +121,14 @@ MIB&#39;s, when it&#39;s on):</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>The hints that named a leader sequence (<code>SPC m s</code>, <code>SPC m T</code>) say the keys
+the key scheme in use has: <code>C-k m s</code> with standard keys, your own leader
+chord if you set one, a key you bound yourself. Fenix doesn&#39;t say the keys of
+a <code>SPC m</code> menu entry, so these are written from the leader and the entry&#39;s
+key.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
@@ -134,7 +145,7 @@ key scheme in use -- <code>F12</code> for go to definition with standard keys,
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

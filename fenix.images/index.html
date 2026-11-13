@@ -89,7 +89,8 @@ its text is set in the system&#39;s fonts.</p>
 <p>GIFs, animated WebPs and APNGs play, a frame at a time, at their own
 pace (a frame asking for 10 ms or less is shown for 100 ms, as browsers
 do), and stop while they&#39;re out of sight.</p>
-<p><code>SPC m</code> on a picture has the same, and <code>SPC f i</code> from anywhere previews
+<p><code>SPC m</code> on a picture has the same, and <code>SPC f i</code> (<code>Ctrl+K f i</code> with
+standard keys) from anywhere previews
 the picture the line you&#39;re on names -- <code>![plot](img/plot.png)</code>,
 <code>src=&quot;logo.svg&quot;</code>, <code>&quot;sprites/cat.gif&quot;</code>; the one under the cursor, when it
 names more -- in a pane beside it, the focus staying in your code. Again
@@ -109,6 +110,9 @@ here too (<code>Enter</code> on it).</p>
 </table></div>
 <p>The modeline says the same as the details line, for the picture looked at
 last: <code>IMG cat.gif · GIF · 640 × 480 · 1.2 MB · playing, 12 frames · fit 50% · 3/12</code>.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys that run a command in the key scheme you use, and yours where you
+rebound them: <code>SPC f i</code>, or <code>C-k f i</code> with standard keys.</p>
 <h3 id="readme-limits">Limits</h3>
 <ul class="tight">
 <li><p><strong>Big pictures.</strong> An extension has 128 MiB, so a picture is decoded
@@ -154,6 +158,13 @@ pixels drawn: the checks, the theme, squares and halving, an SVG&#39;s edges.</p
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use, and yours where you rebound them -- the preview,
+asked for outside a file, says <code>C-k f i</code> with standard keys and
+<code>SPC f i</code> with Vim keys.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: pictures in a pane: PNG, JPEG, GIF, WebP, BMP and SVG, zoomed and panned, moving ones played, their folder walked, and a preview of the one a line names.</p></li>
@@ -164,7 +175,7 @@ pixels drawn: the checks, the theme, squares and halving, an SVG&#39;s edges.</p
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

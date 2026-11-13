@@ -57,7 +57,9 @@
 you writing an extension: what each looks like, how its keys and the
 mouse behave, and, a key away, the code that draws it. It&#39;s the kit&#39;s
 living documentation, and its visual regression test.</p>
-<p><code>gallery.open</code> (<code>SPC h g</code>) opens it. The sections are down the left;
+<p><code>gallery.open</code> (<code>SPC h g</code>, or <code>C-k h g</code> with standard keys) opens it,
+and the foot of the page says those keys, as the scheme you&#39;re in has
+them, or yours if you&#39;ve rebound them. The sections are down the left;
 <code>[</code> and <code>]</code> go through them, or click one. Each is a widget working as
 it would in a real extension, on made-up data:</p>
 <div class="table"><table>
@@ -83,7 +85,7 @@ runs.</p>
 <div class="table"><table>
 <thead><tr><th>Key</th><th>What it does</th></tr></thead>
 <tbody>
-<tr><td><code>SPC h g</code></td><td>Open the gallery (<code>gallery.open</code>)</td></tr>
+<tr><td><code>SPC h g</code> (standard keys: <code>C-k h g</code>)</td><td>Open the gallery (<code>gallery.open</code>)</td></tr>
 <tr><td><code>[</code> <code>]</code></td><td>The section before, after</td></tr>
 <tr><td><code>c</code></td><td>The section&#39;s code, beside the page</td></tr>
 <tr><td><code>q</code>, <code>Esc</code></td><td>Close it</td></tr>
@@ -114,17 +116,20 @@ no permission.</p>
 <pre><code class="language-text">cargo xtask pack extensions/gallery dist
 cargo test --manifest-path extensions/gallery/Cargo.toml
 </code></pre>
-<p>It&#39;s built against the 1.0 extension API, as <code>ui-kit</code> is: the kit&#39;s
-conversions to the API&#39;s types are 1.0&#39;s, and the gallery&#39;s keys are
-the page&#39;s own, the same under either key scheme, so it needs nothing
-newer (no <code>key_for</code>).</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5), as <code>ui-kit</code> is built
+on it: the hint at its foot asks Fenix the keys of <code>gallery.open</code> in the
+scheme in use (<code>key_for</code>). The page&#39;s own keys are the same under
+either key scheme.</p>
 <p><code>cargo test</code> checks that every section, in each state its keys put it
 in, draws only inside its rectangle at sizes from 120 by 40 down to 1
 by 1 and none; the page as text at 100 by 30 (and some at 80 by 24)
-against the snapshots in <code>tests/snapshots/</code> (<code>GALLERY_SNAPSHOTS=write cargo test</code> takes them again); each widget&#39;s keys and mouse; that the
-session keeps what it should; and that every section&#39;s file has its
-<code>// gallery:begin</code> and <code>// gallery:end</code> markers round the code <code>c</code>
-shows. The text a canvas becomes is drawn by <code>tests/support/mod.rs</code>.</p>
+against the snapshots in <code>tests/snapshots/</code> (<code>UPDATE_SNAPSHOTS=1 cargo test</code> takes them again); each widget&#39;s keys and mouse; that the
+session keeps what it should; that the foot names the keys of the
+scheme in use, on the <a href="https://github.com/tpedneault/fenix-extensions/blob/main/crates/test-kit">test kit</a>&#39;s fake host;
+and that every section&#39;s file has its <code>// gallery:begin</code> and
+<code>// gallery:end</code> markers round the code <code>c</code> shows. The text a canvas
+becomes is the test kit&#39;s (<code>fenix_test_kit::render</code>), with the focus,
+the popup&#39;s place and typing said below it by <code>tests/support/mod.rs</code>.</p>
 <p>Not yet tried in a running Fenix: the snapshots are how it&#39;s been
 seen. The colours, the tints, the popup&#39;s box and the code&#39;s
 highlighting are Fenix&#39;s to draw, and are untested here.</p>
@@ -140,6 +145,15 @@ highlighting are Fenix&#39;s to draw, and are untested here.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): the foot of the page says the keys
+that open the gallery from anywhere, as the key scheme in use has them
+-- <code>SPC h g</code> with Vim keys, <code>C-k h g</code> with standard keys, or yours when
+you&#39;ve bound your own -- and says them again when you switch. With no
+key bound to it, it says nothing. The README gives standard keys
+beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: every <code>ui-kit</code> widget working on one page -- a table of 400 rows sorted and selected, a tree with a folder read only when it&#39;s opened, tabs, a text field and a <code>/</code> filter, a list with its empty state, a popup menu, splits, a scrolled region, the theme&#39;s roles, tints and palette, and the mouse -- each with the code that draws it a key away (<code>c</code>), for people writing extensions.</p></li>
@@ -150,7 +164,7 @@ highlighting are Fenix&#39;s to draw, and are untested here.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

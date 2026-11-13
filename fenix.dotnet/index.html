@@ -97,8 +97,12 @@ the <code>format</code> task instead.</p>
 <h3 id="readme-debugging">Debugging</h3>
 <p>netcoredbg (<code>netcoredbg --interpreter=vscode</code>), from the tools folder or
 <code>PATH</code>; the fix row downloads Samsung&#39;s release for this machine
-(Linux x64 and arm64, Intel macOS, Windows x64) into the tools folder.</p>
-<p><code>SPC u u</code>, in a project with no launch configuration of its own, offers
+(Linux x64 and arm64, Intel macOS, Windows x64) into the tools folder.
+Starting it is said in the message line; how it ended is a notification,
+since a download can take a while: &quot;Installed netcoredbg&quot;, or &quot;Couldn&#39;t
+install netcoredbg&quot; with which step failed and why, and <em>Try again</em>.</p>
+<p><code>SPC u u</code> (<code>C-k u u</code> with standard keys), in a project with no launch
+configuration of its own, offers
 each program of the solution, its project built first (<code>build &lt;project&gt;</code>, or <code>build</code> for a project alone):</p>
 <div class="table"><table>
 <thead><tr><th></th><th></th></tr></thead>
@@ -172,9 +176,11 @@ a solution with the project in <code>src/</code> and, if you like, xUnit tests i
 </ul>
 <h3 id="readme-files">Files</h3>
 <p><code>*.cake</code> is read as C#.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, .NET
+1.1.0 is the one you get.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a .NET project: <code>p</code> packages, <code>d</code> check again, <code>t</code>
-debug the tests.</p>
+<p>After <code>SPC m</code> in a .NET project (<code>C-k m</code> with standard keys): <code>p</code>
+packages, <code>d</code> check again, <code>t</code> debug the tests.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -188,6 +194,22 @@ debug the tests.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing netcoredbg ended is
+a notification rather than a line in the message line, since the
+download can take a while and you may be elsewhere -- &quot;Installed
+netcoredbg&quot;, and what it&#39;s now used as; or &quot;Couldn&#39;t install
+netcoredbg&quot;, saying whether its download, unpacking it or setting it up
+failed and why, with <em>Try again</em>. A failure&#39;s is taken away when you
+try again. Starting the install is still said in the message line.
+csharp-ls and CSharpier, installed by <code>dotnet tool</code>, are as they were.
+What it says when <code>dotnet test</code> holds its test host for the debugger
+names the keys that start a debug session as the scheme in use has them
+(<code>C-k u u</code> with standard keys, or what you or Fenix bound), where it
+said <code>SPC u u</code> whichever you use. The README gives standard keys beside
+Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>dotnet.packages</code> can be run from outside Fenix, over the control channel
@@ -204,7 +226,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

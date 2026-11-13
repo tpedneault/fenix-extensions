@@ -72,7 +72,8 @@ Cargo.toml&#39;s targets, the project doctor&#39;s checks with their fixes,
 outdated and vulnerable crates, snippets, and an Axum service in the
 new-project wizard. Built on lang-kit (<code>crates/lang-kit</code>), as each
 language pack is. It depends on <code>fenix.rust-snippets</code>, which stays
-installable on its own.</p>
+installable on its own. It needs Fenix 1.5 or later (extension API 1.5);
+on an older Fenix, Rust 1.1.0 is the one you get.</p>
 <p>What it knows of the project&#39;s packages and targets is <code>cargo metadata --no-deps</code>&#39;s, asked when it starts and when <code>Cargo.toml</code> is saved.</p>
 <h3 id="readme-the-language-server">The language server</h3>
 <p>rust-analyzer, when it&#39;s found (on <code>PATH</code>, or in <code>~/.cargo/bin</code>, where
@@ -180,9 +181,17 @@ command line) and a workspace; this adds:</p>
 call it without a server (tower&#39;s <code>oneshot</code>), tracing, and a clean
 shutdown on Ctrl+C.</p></li>
 </ul>
+<h3 id="readme-the-lesson">The lesson</h3>
+<p><code>SPC h T</code>, Fenix&#39;s tutorial, has a lesson in its <em>Rust</em> section, in a
+Rust project of yours: the project doctor and a fix from it, the crates
+page, a task, a debug session stopped at a breakpoint, and rustfmt and
+clippy on save. Each step is checked by what&#39;s on screen -- the page or
+the picker in front -- and a step whose tool isn&#39;t installed yet is
+skipped with <code>s</code> on the tutorial page; the doctor says how to install
+it.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a Rust project: <code>p</code> crates, <code>d</code> check again, <code>c</code>
-clippy now.</p>
+<p>After <code>SPC m</code> in a Rust project (<code>C-k m</code> with standard keys): <code>p</code> crates,
+<code>d</code> check again, <code>c</code> clippy now.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -197,6 +206,22 @@ clippy now.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,
+the kit it&#39;s on, now is. The text the lldb-dap fix row opens says the
+keys that check the project again as the key scheme you use has them
+(<code>SPC m d</code>, <code>C-k m d</code> with standard keys, or the ones you gave it).
+Nothing else you see changed: the fixes that install Rust&#39;s tools run
+rustup and cargo as tasks, in Fenix&#39;s task pane, not as a download of
+the pack&#39;s own, so there is no install notification for it. The README
+gives standard keys beside Vim&#39;s. On Fenix 1.0 to 1.4, 1.1.0 stays the
+one you have.</p></li>
+<li><p>A lesson in Fenix&#39;s tutorial (<code>SPC h T</code>, its <em>Rust</em> section), in a Rust
+project of yours: the project doctor and a fix from it, the crates
+page, a task, a debug session stopped at a breakpoint, and rustfmt and
+clippy on save.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>rust.packages</code> can be run from outside Fenix, over the control channel
@@ -218,7 +243,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

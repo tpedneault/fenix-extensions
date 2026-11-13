@@ -64,7 +64,9 @@ of its own), buf&#39;s language server, <code>buf format</code>, <code>buf lint<
 <code>buf breaking</code> against the default branch, <code>buf generate</code> and <code>buf build</code>
 as tasks, the project doctor&#39;s checks with fixes that install buf, protoc
 and grpcurl, and snippets. Built on lang-kit (<code>crates/lang-kit</code>), as each
-language pack is; the client&#39;s page on ui-kit (<code>crates/ui-kit</code>).</p>
+language pack is; the client&#39;s page on ui-kit (<code>crates/ui-kit</code>). It needs
+Fenix 1.5 or later (extension API 1.5); on an older Fenix, Protobuf &amp; gRPC
+1.1.0 is the one you get.</p>
 <p>It starts with Fenix. buf&#39;s server is set for <code>.proto</code> files whenever buf
 is found; the doctor checks buf, protoc and grpcurl in every project.</p>
 <h3 id="readme-the-grammar">The grammar</h3>
@@ -130,11 +132,15 @@ project again. The project&#39;s <code>.env</code> goes to each.</p>
 <p>Each release comes from its project&#39;s GitHub releases, checked against
 the SHA-256 the pack knows (buf&#39;s and grpcurl&#39;s from their releases&#39;
 checksum files), unpacked into the pack&#39;s tools folder, where only the
-pack looks, and used at once. One you installed yourself is used
+pack looks, and used at once. Starting one is said in the message line;
+how it ended is a notification, since a download can take a while:
+&quot;Installed buf 1.75.0&quot;, or &quot;Couldn&#39;t install buf 1.75.0&quot; with which step
+failed and why, and <em>Try again</em>. One you installed yourself is used
 instead: the pack looks on <code>PATH</code>, and in Go&#39;s, Cargo&#39;s, Homebrew&#39;s,
 Snap&#39;s, Scoop&#39;s and winget&#39;s folders.</p>
 <h3 id="readme-the-grpc-client">The gRPC client</h3>
-<p><code>SPC m g</code> (or Protobuf: the gRPC client) opens it. It runs grpcurl, which
+<p><code>SPC m g</code> (<code>C-k m g</code> with standard keys; or Protobuf: the gRPC client)
+opens it. It runs grpcurl, which
 speaks HTTP/2; the extension reads what grpcurl prints.</p>
 <ul class="tight">
 <li><p><strong>The server</strong>: <code>protobuf.targets</code>, a server a row -- <code>host:port</code>, TLS
@@ -215,9 +221,9 @@ and metadata back, and shows how it went.</p></li>
 </tbody>
 </table></div>
 <h3 id="readme-keys-1">Keys</h3>
-<p>After <code>SPC m</code> in a buf project, a <code>.proto</code> file or the client: <code>d</code> checks
-the project again, <code>b</code> runs <code>buf breaking</code> as a task, <code>g</code> opens the
-client, <code>r</code> invokes its method, <code>t</code> picks the server.</p>
+<p>After <code>SPC m</code> in a buf project, a <code>.proto</code> file or the client (<code>C-k m</code>
+with standard keys): <code>d</code> checks the project again, <code>b</code> runs <code>buf breaking</code> as a task, <code>g</code> opens the client, <code>r</code> invokes its method, <code>t</code>
+picks the server.</p>
 <h3 id="readme-what-it-may-do">What it may do</h3>
 <p>It runs buf, grpcurl, protoc and protols, and what it installs in its
 tools folder; downloads their releases from GitHub; reads the project
@@ -246,6 +252,22 @@ the task&#39;s quickfix list, not marked in the buffer.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing buf, protoc or
+grpcurl ended is a notification rather than a line in the message
+line, since the download can take a while and you may be elsewhere --
+&quot;Installed buf 1.75.0&quot;, and the folder it&#39;s in; or &quot;Couldn&#39;t install
+buf 1.75.0&quot;, saying whether its download, unpacking it or setting it
+up failed and why, with <em>Try again</em>. The newest for a tool takes the
+last one&#39;s place, and a failure&#39;s is taken away when you try again.
+Starting an install is still said in the message line.</p></li>
+<li><p>The two messages that name a key name it as the key scheme you use has
+it: &quot;choose a method first&quot; says the keys that open the client (<code>SPC m g</code>, <code>C-k m g</code> with standard keys, or the ones you gave it), and the
+client&#39;s &quot;grpcurl isn&#39;t installed&quot; says the project doctor&#39;s. That one
+said <code>SPC p d</code>, which is Fenix&#39;s <em>delete project</em>; the doctor is <code>SPC p h</code>. The README gives standard keys beside Vim&#39;s. On Fenix 1.0 to
+1.4, 1.1.0 stays the one you have.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>protobuf.client</code> can be run from outside Fenix, over the control channel
@@ -262,7 +284,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

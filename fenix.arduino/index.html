@@ -78,8 +78,17 @@ one, <code>SPC m</code> is its menu:</p>
 <tr><td><code>n</code></td><td>A new sketch (also <code>SPC f n</code>)</td></tr>
 </tbody>
 </table></div>
+<p>With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: the menu is <code>Ctrl+K m</code>, a new
+sketch <code>Ctrl+K f n</code>.</p>
 <p>The board and port live in <code>sketch.yaml</code>, where <code>arduino-cli</code> and the
 Arduino IDE read them too; the monitor&#39;s speed in <code>.fenix/settings.toml</code>.</p>
+<p>A build or an upload is a task in Fenix&#39;s task pane, so Fenix notifies
+you when one ends while you&#39;re elsewhere, as <code>notifications.tasks</code> says
+(by default, one that took 10 seconds or more), with &quot;Run it again&quot;.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: &quot;the
+default -- <code>C-k m s</code> picks your board&quot; with standard keys, <code>SPC m s</code>
+with Vim keys.</p>
 <h3 id="readme-tools">Tools</h3>
 <p>It finds <code>arduino-cli</code>, <code>clangd</code> and <code>arduino-language-server</code> in
 Fenix&#39;s tools folder, on <code>PATH</code>, or where the Arduino CLI installer and
@@ -102,6 +111,14 @@ board is plugged in, with a fix for each.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use, and yours where you rebound them -- the board, the
+port, the monitor&#39;s speed and the board&#39;s options as <code>C-k m s</code>,
+<code>C-k m p</code>, <code>C-k m B</code> and <code>C-k m o</code> with standard keys and <code>SPC m s</code> and
+the rest with Vim keys, and a new sketch as <code>C-k f n</code> or <code>SPC f n</code>.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server.</p></li>
@@ -112,7 +129,7 @@ board is plugged in, with a fix for each.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

@@ -66,6 +66,7 @@
 <li><p><strong>Themes.</strong> <code>fenix</code> follows the editor theme. Mermaid&#39;s own are there too, and so are yours (<code>diagrams.themes</code>). <code>SPC m t</code> writes one into the diagram; <code>T</code> on its page tries one without writing it.</p></li>
 <li><p><strong>Exports.</strong> <code>SPC m e</code> writes an SVG or PNG beside the diagram, in the project.</p></li>
 </ul>
+<p>With standard keys, <code>SPC m</code> is <code>Ctrl+K m</code>: <code>Ctrl+K m p</code>. It needs Fenix 1.5 or later (extension API 1.5): what it says names the keys of the key scheme you use, and yours where you rebound them -- run outside a diagram, a command says <code>C-k m p</code> previews one with standard keys, <code>SPC m p</code> with Vim keys.</p>
 <p>Flowchart edges are drawn straight, with square corners; set <code>diagrams.edges</code> to <code>rounded</code> for Mermaid&#39;s rounded corners.</p>
 <p>Fenix&#39;s reading view and the notebook draw their diagrams through its services (<code>diagrams.render</code>, <code>diagrams.svg</code>, <code>diagrams.export</code>).</p>
 </section>
@@ -80,6 +81,13 @@
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use, and yours where you rebound them -- run outside a
+diagram, its commands say <code>C-k m p</code> (preview), <code>v</code>, <code>t</code> and <code>e</code> with
+standard keys, and <code>SPC m p</code> with Vim keys.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: mermaid diagrams drawn as you type, their errors on their lines, Fenix&#39;s themes and yours, and exports.</p></li>
@@ -90,7 +98,7 @@
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

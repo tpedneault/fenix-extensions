@@ -64,7 +64,8 @@ or golangci-lint on save, gofmt or goimports as the formatter, tasks,
 the project doctor&#39;s checks with their fixes, outdated and vulnerable
 modules, snippets, and CLI, HTTP service and library projects in the
 new-project wizard. Built on lang-kit (<code>crates/lang-kit</code>), as each
-language pack is.</p>
+language pack is. It needs Fenix 1.5 or later (extension API 1.5); on an
+older Fenix, Go 1.1.0 is the one you get.</p>
 <p>What <code>go install</code> installs goes to <code>~/go/bin</code>, which an editor started
 from the desktop often doesn&#39;t have on its <code>PATH</code>: the pack looks there
 too, and in Go&#39;s own folders (<code>/usr/local/go/bin</code>, <code>C:\Program Files\Go\bin</code>, Homebrew&#39;s).</p>
@@ -173,8 +174,17 @@ and tests with <code>httptest</code>.</p></li>
 <li><p><strong>Go · library module</strong>: a documented package, table-driven tests, and
 an example <code>go test</code> checks.</p></li>
 </ul>
+<h3 id="readme-the-lesson">The lesson</h3>
+<p><code>SPC h T</code>, Fenix&#39;s tutorial, has a lesson in its <em>Go</em> section, in a Go
+module of yours: the project doctor and a fix from it, the modules page,
+a task, a debug session stopped at a breakpoint, and goimports and the
+linter on save. Each step is checked by what&#39;s on screen -- the page or
+the picker in front -- and a step whose tool isn&#39;t installed yet is
+skipped with <code>s</code> on the tutorial page; the doctor says how to install
+it.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a Go project: <code>p</code> modules, <code>d</code> check again, <code>t</code> tidy.</p>
+<p>After <code>SPC m</code> in a Go project (<code>C-k m</code> with standard keys): <code>p</code> modules,
+<code>d</code> check again, <code>t</code> tidy.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -188,6 +198,20 @@ an example <code>go test</code> checks.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>A lesson in Fenix&#39;s tutorial (<code>SPC h T</code>, its <em>Go</em> section), in a Go
+module of yours: the project doctor and a fix from it, the modules
+page, a task, a debug session stopped at a breakpoint, and goimports
+and the linter on save.</p></li>
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as the
+shared kit it&#39;s built on now is. Nothing else you see changed: this
+pack installs Go and its tools (gopls, Delve, govulncheck,
+golangci-lint) with the fixes the doctor offers, which run as tasks, so
+it has no download of its own to say the end of in a notification. On
+Fenix 1.0 to 1.4, 1.1.0 stays the one you have. The README gives
+standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>go.packages</code> can be run from outside Fenix, over the control channel
@@ -204,7 +228,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

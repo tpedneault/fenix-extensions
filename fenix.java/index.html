@@ -74,7 +74,9 @@ lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
 class, Kotlin, Spring Boot, and the Java release the build asks for (a
 toolchain, <code>jvmToolchain</code>, <code>sourceCompatibility</code>,
 <code>maven.compiler.release</code>) come from there. Gradle&#39;s files are code, so
-they&#39;re read for the forms people write, not run.</p>
+they&#39;re read for the forms people write, not run. It needs Fenix 1.5 or
+later (extension API 1.5); on an older Fenix, Java 1.1.0 is the one you
+get.</p>
 <h3 id="readme-javas-language-server">Java&#39;s language server</h3>
 <p>The pack is Java&#39;s language server to Fenix, and runs Eclipse JDT LS
 1.63.0 behind it, passing each message on. That way it gives JDT LS
@@ -86,7 +88,11 @@ SHA-256 checked) and, since it runs on Java 25 or later, Temurin&#39;s JRE 25
 when the machine&#39;s Java is older. That runtime is called <code>fenix-java</code> in
 the tools folder, so that <code>java</code> is still the project&#39;s. JDT LS&#39;s
 workspace is the pack&#39;s own folder&#39;s (<code>${data}/jdtls-workspace/&lt;project&gt;</code>),
-apart from what it installs. Eclipse&#39;s <code>.project</code>, <code>.classpath</code> and
+apart from what it installs. Starting an install is said in the message
+line; how it ended is a notification, since a download can take a while:
+&quot;Installed Eclipse JDT LS 1.63.0&quot;, or &quot;Couldn&#39;t install ...&quot; with which
+step failed and why, and <em>Try again</em>. Each newer one for a tool takes the
+last one&#39;s place. Eclipse&#39;s <code>.project</code>, <code>.classpath</code> and
 <code>.settings</code> stay in that workspace; JDT LS&#39;s own build goes to <code>bin/</code>.</p>
 <h3 id="readme-kotlin">Kotlin</h3>
 <p>Fenix doesn&#39;t highlight Kotlin itself: the pack brings tree-sitter-kotlin&#39;s
@@ -123,7 +129,8 @@ which a launch file can&#39;t carry, so every session attaches, on 5005:</p>
 <tr><td>Java: attach (remote, port 5005)</td><td>a JVM started with <code>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</code></td></tr>
 </tbody>
 </table></div>
-<p>Each runs as a task; <code>SPC u u</code> and the launch file then attach. The
+<p>Each runs as a task; <code>SPC u u</code> (<code>C-k u u</code> with standard keys) and the
+launch file then attach. The
 adapter is Java&#39;s: breakpoints in Kotlin files weren&#39;t tried, and
 java-debug finds a breakpoint&#39;s class through JDT LS, which doesn&#39;t read
 Kotlin.</p>
@@ -185,9 +192,13 @@ plugin.</p></li>
 <p>Each makes its wrapper with the Gradle or Maven installed (<code>needs</code>), as
 the wizard can&#39;t write the wrapper&#39;s jar.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a Gradle or Maven project: <code>p</code> dependencies, <code>d</code> check
-again, <code>m</code> debug a main class, <code>t</code> debug the tests, <code>r</code> read the build
-again.</p>
+<p>After <code>SPC m</code> in a Gradle or Maven project (<code>C-k m</code> with standard keys):
+<code>p</code> dependencies, <code>d</code> check again, <code>m</code> debug a main class, <code>t</code> debug the
+tests, <code>r</code> read the build again.</p>
+<p>What the pack says when JDT LS isn&#39;t installed (the project doctor&#39;s
+keys) or a program is waiting for the debugger (the keys that start a
+debug session) names them as the scheme in use has them, or what you or
+Fenix bound.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p>Java&#39;s language server is the pack&#39;s, so Fenix&#39;s <code>lsp.servers</code> for Java
@@ -206,6 +217,24 @@ doesn&#39;t replace it.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing Eclipse JDT LS, the
+Java runtime it needs, java-debug, kotlin-language-server,
+google-java-format or ktlint ended is a notification rather than a line
+in the message line, since the download can take a while and you may be
+elsewhere -- &quot;Installed Eclipse JDT LS 1.63.0&quot;, and what it&#39;s now used
+as; or &quot;Couldn&#39;t install ...&quot;, saying whether its download, unpacking
+it or setting it up failed and why, with <em>Try again</em>. The newest for a
+tool takes the last one&#39;s place, and a failure&#39;s is taken away when you
+try again. Starting an install is still said in the message line. What
+it says when JDT LS isn&#39;t installed, and when a program is waiting for
+the debugger, names the keys as the scheme in use has them (<code>C-k p h</code>
+and <code>C-k u u</code> with standard keys, or what you or Fenix bound). It used
+to say <code>SPC p d</code> for the project doctor, which in Fenix deletes a
+project: the doctor is <code>SPC p h</code>. The README gives standard keys beside
+Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>java.packages</code> can be run from outside Fenix, over the control channel
@@ -222,7 +251,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

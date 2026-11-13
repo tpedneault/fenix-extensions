@@ -62,7 +62,14 @@
 the project&#39;s own <code>compose.yaml</code>, live logs merged across a stack,
 performance, images and their layers, volumes and networks.</p>
 <p><code>SPC d d</code> opens it. <code>SPC d p</code> opens performance, <code>SPC d b</code> builds the
-project&#39;s Dockerfile.</p>
+project&#39;s Dockerfile. With standard keys the leader is <code>Ctrl+K</code>:
+<code>Ctrl+K d d</code>, <code>Ctrl+K d p</code>, <code>Ctrl+K d b</code>. The page&#39;s own keys below are
+the same with either.</p>
+<p>The tutorial (<code>SPC h T</code>) has a lesson on it, under <strong>Containers</strong>: the
+page and its tabs, the performance page, a container&#39;s log, and what
+starts and stops one. Without Docker, Podman or wslc you can still go
+through it: the pages open and say what&#39;s missing, and <code>s</code> on the
+tutorial page skips the two steps that need a running container.</p>
 <h3 id="readme-the-page">The page</h3>
 <div class="table"><table>
 <thead><tr><th>Key</th><th>What it does</th></tr></thead>
@@ -93,13 +100,67 @@ stream (<code>1</code>-<code>9</code>) and opens as a buffer (<code>o</code>).</
 so, and <code>Enter</code> starts it (Docker Desktop, or Podman&#39;s machine).</p>
 <p>wslc (WSL 2.9.3 or later, a preview) has containers and images, but no
 Compose, volumes or networks yet; those tabs say so.</p>
-<h3 id="readme-permissions">Permissions</h3>
-<p>It runs <code>docker</code>, <code>podman</code> and <code>wslc</code>, and reads the project for its
-<code>compose.yaml</code>. It sends nothing anywhere.</p>
+<h3 id="readme-builds-pulls-and-being-told">Builds, pulls, and being told</h3>
+<p><code>SPC d b</code> asks for a tag (<code>app:dev</code>) and builds the project&#39;s
+<code>Dockerfile</code> (or <code>Containerfile</code>) as a task beside the task pane, its
+output in front of you. <code>Containers: the last build&#39;s output</code>
+(<code>containers.build_output</code>) brings that output back.</p>
+<p>Something long -- a build, an image pulled (<code>p</code> on Images), a Compose
+stack&#39;s <code>up</code>, <code>pull</code> or <code>build</code> -- that ends while none of Containers&#39;
+pages is in view is a notification: a toast, kept in the history
+(<code>SPC o n</code>), the system&#39;s own when Fenix isn&#39;t in front, as your
+settings say. Enter on it opens Containers, or a failed build&#39;s output.
+With a Containers page in view, or for something quick (start, stop,
+remove), it&#39;s a line in the message line, as before.</p>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p>Three tools for your coding agents, in the <code>containers</code> toolset. Each
+only reads: it runs one engine command that reads, and nothing that
+starts, stops, removes, execs or builds.</p>
+<div class="table"><table>
+<thead><tr><th>Tool</th><th>Class</th><th>What it answers</th></tr></thead>
+<tbody>
+<tr><td><code>containers_list</code></td><td>read</td><td>Each container&#39;s id, name, image, state, status, health, exit code, published ports, and Compose project and service; stopped ones too unless <code>all</code> is false (<code>ps -a</code>)</td></tr>
+<tr><td><code>containers_logs</code></td><td>read</td><td>The last <code>lines</code> (200, up to 2000) of one container&#39;s log (<code>logs --tail</code>, with times), never more than 64 KiB, a line longer than 2 KiB cut; it says when it left lines out</td></tr>
+<tr><td><code>containers_images</code></td><td>read</td><td>Each image&#39;s repository, tag, id, size, age and whether it&#39;s dangling</td></tr>
+</tbody>
+</table></div>
+<ul class="tight">
+<li><p><strong>Logs can hold secrets</strong>: whatever the program printed -- a token in a
+URL, a password in a stack trace. An agent that reads a log has it,
+and Fenix allows reading by default. To ask first, give
+<code>agents.mcp.allow</code> a rule: <code>containers_logs = &quot;ask&quot;</code>, or
+<code>&quot;toolset:containers&quot; = &quot;ask&quot;</code>.</p></li>
+<li><p><strong>Never a container&#39;s environment or <code>inspect</code></strong>, which hold its
+secrets, nor its command line (<code>ps</code> has it; the answer doesn&#39;t).</p></li>
+<li><p><strong>The container&#39;s name or id an agent gives</strong> goes on the engine&#39;s
+command line, so it&#39;s refused unless it&#39;s only letters, digits, <code>_</code>,
+<code>.</code> and <code>-</code>, starting with a letter or digit, at most 128 -- never an
+option (<code>-f</code>, <code>--since</code>), a second argument or a path. For Docker and
+Podman it&#39;s also put after <code>--</code>; wslc isn&#39;t known to take <code>--</code>, so
+there the check is what keeps it a name.</p></li>
+<li><p><strong>An engine that isn&#39;t running</strong> is said so, and isn&#39;t started; one
+still being looked for (Containers just loaded) is waited for.</p></li>
+</ul>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run <code>docker</code>, <code>podman</code> and <code>wslc</code></strong> (<code>process</code>): to list, start,
+stop and remove what you ask on its pages, stream logs and load,
+build and pull; for agents, only the three reads above.</p></li>
+<li><p><strong>Read the project</strong> (<code>filesystem = &quot;project-read&quot;</code>): its
+<code>compose.yaml</code> for the Compose tab, and whether it has a <code>Dockerfile</code>
+to build.</p></li>
+</ul>
+<p>It sends nothing anywhere itself, and writes nothing in the project:
+what a build or <code>compose up</code> does is the engine&#39;s.</p>
 <h3 id="readme-building-it">Building it</h3>
 <pre><code class="language-text">cargo xtask pack extensions/containers dist
+cargo test --manifest-path extensions/containers/Cargo.toml
 </code></pre>
-<p>It needs Rust&#39;s <code>wasm32-wasip2</code> target (<code>rustup target add wasm32-wasip2</code>).</p>
+<p>It needs Rust&#39;s <code>wasm32-wasip2</code> target (<code>rustup target add wasm32-wasip2</code>).
+The tests read each engine&#39;s real output (Docker&#39;s and Podman&#39;s JSON,
+wslc&#39;s columns), drive the pages with keys, and cover the agents&#39; tools
+-- their arguments, the names refused, a log&#39;s tail cut by lines and by
+bytes -- and when an ending is a notification. None needs an engine.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -113,6 +174,27 @@ Compose, volumes or networks yet; those tabs say so.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<p>For Fenix 1.2 and later (extension API 1.3): an older Fenix keeps 1.1.0.</p>
+<ul class="tight">
+<li><p>A build, a pull or a Compose stack&#39;s <code>up</code>, <code>pull</code> or <code>build</code> that ends
+while you&#39;re elsewhere -- no Containers page in view -- is a
+notification, which the system shows when Fenix isn&#39;t in front; Enter
+on it opens Containers, or a failed build&#39;s output. In view, or for
+something quick, it&#39;s the message line, as before.</p></li>
+<li><p><code>SPC d b</code> builds as a task beside the task pane, its output in front
+of you as before, and the Images tab lists the new image when it&#39;s
+done. <code>Containers: the last build&#39;s output</code> brings the output back.</p></li>
+<li><p>Coding agents can read your containers: <code>containers_list</code> (each one&#39;s
+state, health, ports and Compose stack), <code>containers_logs</code> (the last
+lines of one&#39;s log, at most 2000 and 64 KiB, cut where it says) and
+<code>containers_images</code>. They only read: nothing is started, stopped or
+removed, and a container&#39;s environment and <code>inspect</code> are never given.
+A log can hold secrets; the README says how to be asked first.</p></li>
+<li><p>A lesson in the tutorial (<code>SPC h T</code>, under Containers): the page and
+its tabs, performance, a container&#39;s log, starting and stopping. It
+can be done without an engine.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>containers.open</code>, <code>containers.performance</code> can be run from outside Fenix, over the control channel
@@ -129,7 +211,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

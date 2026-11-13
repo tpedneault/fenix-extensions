@@ -56,8 +56,10 @@
 </section>
 <section class="doc" aria-labelledby="readme">
 <h2 id="readme">About</h2>
-<p>A playground for regular expressions (<code>SPC s x</code>): a pattern, a text to
-try it on and a replacement, matched as you type.</p>
+<p>A playground for regular expressions (<code>SPC s x</code>, or <code>C-k s x</code> with
+standard keys): a pattern, a text to try it on and a replacement,
+matched as you type. It needs Fenix 1.5 or later (extension API 1.5);
+on an older Fenix, Regex 1.1.0 is the one you get.</p>
 <ul class="tight">
 <li><p><strong>Matches</strong>, on a background in the text: the whole match the
 selection&#39;s, each capture group its own colour from the theme&#39;s
@@ -100,8 +102,8 @@ on; a line with no regex leaves its text as it was.</p>
 <div class="table"><table>
 <thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
 <tbody>
-<tr><td><code>SPC s x</code></td><td><code>regex.open</code></td><td>The playground</td></tr>
-<tr><td><code>SPC s X</code></td><td><code>regex.cheatsheet</code></td><td>The cheatsheet</td></tr>
+<tr><td><code>SPC s x</code> (standard keys: <code>C-k s x</code>)</td><td><code>regex.open</code></td><td>The playground</td></tr>
+<tr><td><code>SPC s X</code> (standard keys: <code>C-k s X</code>)</td><td><code>regex.cheatsheet</code></td><td>The cheatsheet</td></tr>
 </tbody>
 </table></div>
 <p>On the playground:</p>
@@ -148,6 +150,13 @@ matches in it while the playground&#39;s open.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as the shared
+test kit its tests run on now is. The playground and the cheatsheet
+work as they did; on Fenix 1.0 to 1.4, 1.1.0 stays the one you have.
+The README gives standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>regex.open</code>, <code>regex.cheatsheet</code> can be run from outside Fenix, over the control channel
@@ -164,7 +173,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

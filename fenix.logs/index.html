@@ -135,7 +135,7 @@ level a line matching it has, checked first.</p>
 <tr><td><code>F</code></td><td>Follow the log as it grows, as <code>tail -f</code> does: the cursor stays at the end while it&#39;s there</td></tr>
 <tr><td><code>y</code></td><td>Copy the entry&#39;s first line</td></tr>
 <tr><td><code>Y</code></td><td>Copy the whole entry; a JSON line pretty-printed</td></tr>
-<tr><td><code>r</code></td><td>The file&#39;s text, at the entry&#39;s line (<code>SPC f o</code> comes back)</td></tr>
+<tr><td><code>r</code></td><td>The file&#39;s text, at the entry&#39;s line (<code>SPC f o</code>, <code>Ctrl+K f o</code> with standard keys, comes back)</td></tr>
 <tr><td><code>h</code> <code>l</code>, Left Right</td><td>Scroll across; <code>0</code> back</td></tr>
 <tr><td><code>R</code></td><td>Read the file again from its start</td></tr>
 <tr><td><code>q</code>, Esc</td><td>Close it</td></tr>
@@ -181,14 +181,65 @@ is read whole again each time.</p>
 <tr><td><code>logs.poll</code></td><td>How often a followed log is looked at, in milliseconds: 200 to 60,000. 1,000 unless set</td></tr>
 </tbody>
 </table></div>
-<h3 id="readme-permissions">Permissions</h3>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p>Two tools for your coding agents, in the <code>logs</code> toolset,
+both class <code>read</code>: they read a log and change nothing.</p>
 <div class="table"><table>
-<thead><tr><th>Permission</th><th>Why</th></tr></thead>
+<thead><tr><th>Tool</th><th>What it answers</th></tr></thead>
 <tbody>
-<tr><td><code>filesystem = &quot;project-read&quot;</code></td><td>A log in the project is read where it is, as far as each step needs</td></tr>
-<tr><td><code>editor = &quot;read&quot;</code></td><td>Which file <code>logs.open</code> shows, and where the project is</td></tr>
+<tr><td><code>logs_query</code></td><td>A log&#39;s entries, as JSON, the viewer&#39;s way: each one&#39;s level, time, byte offset, its lines (a stack trace with the entry it follows) and its text. Filtered by <code>level</code> (this level or worse), <code>time</code> (<code>12:00..12:30</code>, <code>-15m</code>, as <code>@</code> takes it), <code>text</code> and <code>exclude</code> (as <code>/</code> and <code>-</code>: lower case any case, <code>re:</code> a regular expression) and <code>fields</code> (as <code>=</code>: <code>user=bob</code>, <code>status!=200</code>)</td></tr>
+<tr><td><code>logs_summary</code></td><td>A log at a glance: its size, the formats its lines are written in (from its first thousand entries), its entries by level, its first and last times, and, in up to <code>buckets</code> spans of time (24; at most 100), how many entries, warnings and errors came</td></tr>
 </tbody>
 </table></div>
+<p><strong>Which file.</strong> <code>path</code> is a file&#39;s path from the project&#39;s root
+(<code>logs/app.log</code>); left out, the one log of the project open in the viewer.
+Only the project&#39;s own files are read: an absolute path, a <code>..</code>, a link
+anywhere on the path (to a file or a folder) and a folder are refused,
+and with no project open there&#39;s nothing to read. A log you opened from
+outside the project isn&#39;t reached.</p>
+<p><strong>How much.</strong> <code>logs_query</code> gives the newest entries first (<code>order: &quot;oldest&quot;</code> the other way), at most <code>limit</code> of them (50; at most 500) and
+<code>max_bytes</code> of their text (16 KiB; at most 256 KiB), an entry&#39;s text cut
+at 4 KiB (<code>&quot;cut&quot;: true</code>). When there&#39;s more, <code>truncated</code> says what
+stopped it -- <code>limit</code>, <code>bytes</code>, or <code>scan</code> -- and <code>next_cursor</code>, given back
+as <code>cursor</code> with the same order, reads on from there. Oldest first, each
+entry has its <code>line</code>, from 1; newest first, the file is read back from its
+end and lines aren&#39;t counted.</p>
+<p><strong>Big logs.</strong> A call reads at most 128 MiB of the file: what&#39;s past that
+is <code>truncated: &quot;scan&quot;</code>, and the cursor goes on from it. It&#39;s read in steps
+of a few hundred KiB on the viewer&#39;s timer, as the page indexes a log, so
+the viewer answers meanwhile; a small log is answered at once. The summary
+of a log over 128 MiB is of its newest 128 MiB, and says so. A log
+truncated or rotated between two calls makes their cursor point at
+another file&#39;s bytes: start again without one.</p>
+<p><strong>Logs hold secrets.</strong> Tokens in URLs, passwords in a connection string,
+an <code>Authorization</code> header logged by mistake, people&#39;s addresses: what a
+tool answers goes to your agent, and to whoever runs the model behind it.
+The <code>logs</code> toolset isn&#39;t offered to agents until you turn it on; point
+them at logs you&#39;d show them, and Fenix&#39;s agent rules can make them ask
+first, or refuse, by toolset, tool or class.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Read the project&#39;s files (<code>filesystem = &quot;project-read&quot;</code>): a log in the
+project, where it is, as far as each step needs -- and, for your
+coding agents&#39; tools, the log they name in it.</p></li>
+<li><p>Read where you are (<code>editor = &quot;read&quot;</code>): which file <code>logs.open</code> shows,
+and where the project is.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<p>It needs Fenix 1.5 or later (extension API 1.5), as the <code>ui-kit</code> it&#39;s
+built on is.</p>
+<pre><code class="language-text">cargo xtask pack extensions/logs dist
+cargo test --manifest-path extensions/logs/Cargo.toml
+cargo run --release --manifest-path extensions/logs/Cargo.toml --example big -- /tmp/logs 200
+</code></pre>
+<p><code>cargo test</code> checks each format&#39;s levels and times against samples
+(<code>src/samples</code>), entries and stack traces, the index built in steps and
+grown, truncated and rotated, the filters, the search, the bars -- and
+the agents&#39; tools: the paths they refuse (<code>..</code>, absolute ones, links),
+the entries they find against the viewer&#39;s, their filters, limits, byte
+cap and cursors, newest first and oldest, a log read back a window at a
+time, the most a call reads, and the summary&#39;s counts and formats. The
+<code>big</code> example writes a big log and times indexing and filtering it.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -201,6 +252,23 @@ is read whole again each time.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.5 (extension API 1.5), as the shared <code>ui-kit</code> it draws with
+now is: tools for your coding agents, which read a log in the project as
+the viewer does. The viewer works as it did. On Fenix 1.0 to 1.4, 1.0.0
+stays the one you have.</p>
+<ul class="tight">
+<li><p><code>logs_query</code> (read): a log&#39;s entries as JSON -- level, time, offset,
+lines and text, a stack trace with its entry -- filtered by level (this
+one or worse), time range, text or regular expression, a text left
+out, and fields, newest first or oldest, at most 500 entries and 256
+KiB of their text, with a cursor to read on.</p></li>
+<li><p><code>logs_summary</code> (read): its size, the formats its lines are in, its
+entries by level, its first and last times, and counts over time.</p></li>
+<li><p>Only a file in the project, named from its root: no <code>..</code>, no absolute
+path, no link on the way. A big log is read in steps, at most 128 MiB
+a call. Logs can hold secrets: the README says what to think of.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: log files read in a pane -- each entry&#39;s level and time from the formats logs are written in (JSON lines, logfmt, bracketed levels, env_logger and tracing, log4j and logback, Python&#39;s logging, syslog, journalctl&#39;s text, JSON and export, logcat, glog, .NET, logrus, Apache and nginx, and patterns of your own), stack traces folded into the entry they follow and opened with Enter, a JSON line pretty-printed, filtered by level, text or regular expression, patterns in and out, a field&#39;s value and a time range, searched, counted over time in a row of bars, followed as they grow (truncated and rotated logs read again), and read a block at a time, indexed and filtered in steps, so a log of gigabytes opens at once.</p></li>
@@ -211,7 +279,7 @@ is read whole again each time.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

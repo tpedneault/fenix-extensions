@@ -63,7 +63,9 @@ implementations and one for interfaces, ocaml-lsp-server, ocamlformat
 where the project has an <code>.ocamlformat</code>, dune&#39;s tasks with a <code>dune exec</code>
 for each executable, debugging bytecode with earlybird, the project
 doctor&#39;s checks with fixes that run <code>opam install</code>, snippets, and a dune
-project. Built on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+project. Built on lang-kit (<code>crates/lang-kit</code>), as each language pack is.
+It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, OCaml
+1.0.0 is the one you get.</p>
 <p>It works for a dune project (<code>dune-project</code>, or <code>dune</code> files) and for a
 folder of scripts.</p>
 <h3 id="readme-opams-switch">opam&#39;s switch</h3>
@@ -163,8 +165,8 @@ alone, an <code>.ocamlformat</code>, and the <code>.opam</code> file dune writes
 </tbody>
 </table></div>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in an OCaml project or file: <code>d</code> checks the project again,
-<code>r</code> reads it again, <code>g</code> opens opam&#39;s page.</p>
+<p>After <code>SPC m</code> in an OCaml project or file (<code>C-k m</code> with standard keys):
+<code>d</code> checks the project again, <code>r</code> reads it again, <code>g</code> opens opam&#39;s page.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p><strong>dune&#39;s own files</strong>: Fenix has no grammar for <code>dune</code>, <code>dune-project</code>
@@ -186,6 +188,16 @@ C&#39;s does; the pack sets no launches for it.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,
+the kit it&#39;s on, now is. Nothing you see changed: the fixes that
+install OCaml&#39;s tools run <code>opam install</code> as a task, in Fenix&#39;s task
+pane, not as a download of the pack&#39;s own, so there is no install
+notification for it, and the grammars, the language server, dune&#39;s
+tasks and the checks work as they did. The README gives standard keys
+beside Vim&#39;s. On Fenix 1.0 to 1.4, 1.0.0 stays the one you have.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: ocaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune&#39;s tasks with a dune exec for each executable, debugging bytecode with earlybird, the project&#39;s checks with fixes that run opam install, snippets, and a dune project.</p></li>
@@ -196,7 +208,7 @@ C&#39;s does; the pack sets no launches for it.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

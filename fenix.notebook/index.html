@@ -87,7 +87,9 @@ before each editing session is kept (<code>h</code> on the notebook page).</p>
 </table></div>
 <p>In Markdown, <code>[[</code> completes a note&#39;s name and <code>gd</code> on a link follows it
 (making the note when it isn&#39;t there yet) -- with standard keys, <code>F12</code> or
-Ctrl+click. The <code>SPC</code> keys above are <code>Ctrl+K</code> with standard keys.</p>
+Ctrl+click. The <code>SPC</code> keys above are <code>Ctrl+K</code> with standard keys; what the notebook
+says when it names a key (an empty page, Home&#39;s section, a hover, an
+error) gives the keys you have.</p>
 <h3 id="readme-the-page">The page</h3>
 <div class="table"><table>
 <thead><tr><th>Key</th><th>What it does</th></tr></thead>
@@ -109,6 +111,11 @@ Ctrl+click. The <code>SPC</code> keys above are <code>Ctrl+K</code> with standar
 <li><p><strong>Agenda</strong> fills a journal day&#39;s agenda list (<code>agenda.due</code>), takes <code>SPC n t</code>
 (<code>agenda.add_task</code>), and opens a <code>[[FSW-212]]</code> link (<code>agenda.open_task</code>).</p></li>
 </ul>
+<h3 id="readme-the-lesson">The lesson</h3>
+<p><code>SPC h T</code>, Fenix&#39;s tutorial, has a lesson in its <em>Notebook</em> section: the
+page, a note from a template, a line captured into today&#39;s journal, a
+link to a note, tags and search. It makes a note called <em>Tutorial note</em>
+and a line in today&#39;s journal; <code>x x</code> on the page deletes the note after.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
@@ -137,6 +144,19 @@ extension. Fenix&#39;s reading view (<code>SPC m p</code>) asks it what <code>[[
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<ul class="tight">
+<li><p>A lesson in Fenix&#39;s tutorial (<code>SPC h T</code>, its <em>Notebook</em> section): the
+notebook page, a note from a template, a line captured into today&#39;s
+journal, a link to a note, tags and search.</p></li>
+<li><p>The hints that named a leader sequence (<code>SPC n n</code>, <code>SPC n j</code>, <code>SPC n t</code>,
+<code>SPC m a</code>, <code>SPC h x</code> and the rest) -- the empty notebook page, Home&#39;s
+section, a mermaid block&#39;s hover, and what it says when an action can&#39;t
+run -- say the keys the key scheme in use has: <code>C-k n n</code> with standard
+keys, your own leader chord if you set one, a key you bound yourself.
+Home&#39;s section and the hints change when you switch between Vim keys and
+standard keys.</p></li>
+</ul>
 <h3 id="changelog-120">1.2.0</h3>
 <ul class="tight">
 <li><p><code>notebook.open</code>, <code>notebook.new_note</code>, <code>notebook.find</code>, <code>notebook.recent</code>, <code>notebook.journal</code>, <code>notebook.search</code>, <code>notebook.tags</code> can be run from outside Fenix, over the control channel
@@ -159,7 +179,7 @@ with Vim keys. The README gives standard keys beside Vim&#39;s.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

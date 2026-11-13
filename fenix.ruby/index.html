@@ -63,7 +63,8 @@ Ruby LSP (or Solargraph) as the language server, RuboCop -- or Standard
 -- as the formatter and the linter on save with its corrections,
 Bundler&#39;s, Rake&#39;s and the tests&#39; tasks, the project doctor&#39;s checks with
 their fixes, and snippets. Built on lang-kit (<code>crates/lang-kit</code>), as each
-language pack is.</p>
+language pack is. It needs Fenix 1.5 or later (extension API 1.5); on an
+older Fenix, Ruby 1.0.0 is the one you get.</p>
 <p>Fenix has no Ruby of its own, so the pack brings the grammar
 (<code>languages/ruby.toml</code>, <code>grammars/</code>, <code>queries/ruby/</code>). It works for a
 project Bundler manages (a Gemfile) and for a folder of scripts: a gem
@@ -157,9 +158,9 @@ checks again.</p>
 </tbody>
 </table></div>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a Ruby file: <code>d</code> checks the project again, <code>b</code> installs
-the gems (<code>bundle install</code>), <code>r</code> reads the project again and asks Rake for
-its tasks.</p>
+<p>After <code>SPC m</code> in a Ruby file (<code>C-k m</code> with standard keys): <code>d</code> checks the
+project again, <code>b</code> installs the gems (<code>bundle install</code>), <code>r</code> reads the
+project again and asks Rake for its tasks.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p><strong>Ruby installed for you</strong>: the doctor says which Ruby the project
@@ -184,6 +185,16 @@ one inside the other.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,
+the kit it&#39;s on, now is. Nothing you see changed: the fixes that
+install Ruby&#39;s tools run <code>gem install</code> and <code>bundle install</code> as tasks,
+in Fenix&#39;s task pane, not as a download of the pack&#39;s own, so there is
+no install notification for it, and the grammar, the language server,
+RuboCop and the tasks work as they did. The README gives standard keys
+beside Vim&#39;s. On Fenix 1.0 to 1.4, 1.0.0 stays the one you have.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: ruby: tree-sitter-ruby&#39;s highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler&#39;s, Rake&#39;s, RSpec&#39;s and Rails&#39; tasks, the project&#39;s checks with their fixes, and snippets.</p></li>
@@ -194,7 +205,7 @@ one inside the other.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

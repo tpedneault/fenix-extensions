@@ -177,6 +177,11 @@ completions. In an env file, names are offered after <code>$</code> and <code>${
 <tr><td><code>SPC p e c</code></td><td><code>dotenv.check</code></td><td>Look for env files and ask Git again</td></tr>
 </tbody>
 </table></div>
+<p>With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: <code>Ctrl+K p e e</code> and so on. It
+needs Fenix 1.5 or later (extension API 1.5). What it says names the keys
+of the key scheme you use, and yours where you rebound them: an env file
+missing what its example has says &quot;<code>C-k p e m</code> adds them&quot; with standard
+keys, &quot;<code>SPC p e m</code> adds them&quot; with Vim keys.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
@@ -213,6 +218,16 @@ in <code>dotenv.tasks</code>, as tasks you start.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme you use, and yours where you rebound them -- an env file&#39;s
+warnings (&quot;<code>C-k p e m</code> adds them&quot;, &quot;<code>C-k p e i</code> adds it to .gitignore&quot;)
+with standard keys, <code>SPC p e m</code> with Vim keys, and the task picker&#39;s
+keys once tasks run with a profile -- and says them again when you
+switch. On Fenix 1.0 to 1.4, 1.1.0 stays the one you have. The README
+gives standard keys beside Vim&#39;s.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>dotenv.page</code> can be run from outside Fenix, over the control channel
@@ -229,7 +244,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

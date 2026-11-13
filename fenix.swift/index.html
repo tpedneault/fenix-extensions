@@ -64,7 +64,8 @@ from tree-sitter-swift (Fenix has no Swift of its own), sourcekit-lsp as
 the language server, swift-format or SwiftFormat as the formatter,
 SwiftLint on save, SwiftPM&#39;s tasks, the project doctor&#39;s checks with
 their fixes, snippets, and a command-line package to start from. Built
-on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+on lang-kit (<code>crates/lang-kit</code>), as each language pack is. It needs Fenix 1.5 or later (extension API 1.5);
+on an older Fenix, Swift 1.0.0 is the one you get.</p>
 <p>It starts with Fenix. The server and the formatter are set whenever
 they&#39;re found; the doctor checks, and the tasks run, in a Swift project:
 one with a <code>Package.swift</code>, an Xcode project, or Swift files at its top
@@ -108,8 +109,11 @@ unlinted. Its rule is each problem&#39;s code.</p>
 <p>The doctor&#39;s fix row installs SwiftLint 0.65.1&#39;s release into the pack&#39;s
 tools folder, checked against its SHA-256: Linux on x86_64 and arm64
 (which links libcurl and libxml2, as Swift itself does), and macOS&#39;s
-universal binary. One you installed yourself (Homebrew, Mint) is used
-instead.</p>
+universal binary. Starting it is said in the message line; how it ended
+is a notification, since a download can take a while: &quot;Installed
+SwiftLint 0.65.1&quot;, or &quot;Couldn&#39;t install SwiftLint 0.65.1&quot; with which step
+failed and why, and <em>Try again</em>. One you installed yourself (Homebrew,
+Mint) is used instead.</p>
 <h3 id="readme-tasks">Tasks</h3>
 <p>In a package (<code>SPC p t</code>): <em>build</em>, <em>build release</em>, <em>run</em> (<em>run
 &lt;product&gt;</em> for each executable product, or each executable target where
@@ -158,8 +162,8 @@ project&#39;s <code>.env</code> goes to each; a task of the same name in
 <p><strong>Swift · command-line tool</strong>: a package with a library target that does
 the work, an executable over it, Swift Testing tests, and a <code>.gitignore</code>.</p>
 <h3 id="readme-keys">Keys</h3>
-<p>After <code>SPC m</code> in a package or a Swift file: <code>d</code> checks the project
-again, <code>g</code> says how to get Swift.</p>
+<p>After <code>SPC m</code> in a package or a Swift file (<code>C-k m</code> with standard keys):
+<code>d</code> checks the project again, <code>g</code> says how to get Swift.</p>
 <h3 id="readme-not-yet">Not yet</h3>
 <ul class="tight">
 <li><p><strong>Debugging</strong>: lldb-dap (Swift 6&#39;s toolchain has it) as the debug
@@ -181,6 +185,20 @@ or installed it.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): how installing SwiftLint ended is a
+notification rather than a line in the message line, since the
+download can take a while and you may be elsewhere -- &quot;Installed
+SwiftLint 0.65.1&quot;, and the folder it&#39;s in; or &quot;Couldn&#39;t install
+SwiftLint 0.65.1&quot;, saying whether its download, unpacking it or
+setting it up failed and why, with <em>Try again</em>. The newest for the
+tool takes the last one&#39;s place, and a failure&#39;s is taken away when
+you try again. Starting the install is still said in the message line.
+Installing swift-format or SwiftFormat is Homebrew&#39;s, run as a task,
+and is as it was. The README gives standard keys beside Vim&#39;s. On
+Fenix 1.0 to 1.4, 1.0.0 stays the one you have.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: swift on Linux and macOS: sourcekit-lsp, Swift&#39;s highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM&#39;s tasks, the project&#39;s checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package.</p></li>
@@ -191,7 +209,7 @@ or installed it.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

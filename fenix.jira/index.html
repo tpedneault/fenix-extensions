@@ -66,7 +66,11 @@ tracked person&#39;s, and your saved JQL -- with the selected search&#39;s issue
 in the middle and a preview on the right.</p>
 <p><code>SPC j g</code> opens an issue by key, <code>SPC j /</code> searches (words, or JQL after
 <code>:</code>), and <code>SPC j n</code> makes an issue with the project&#39;s real types and
-fields.</p>
+fields. With standard keys, <code>SPC</code> is <code>Ctrl+K</code>: <code>Ctrl+K j j</code>.</p>
+<p>It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: before
+it&#39;s set up, the page and its messages point to the settings page by its
+keys -- <code>C-,</code> with standard keys, <code>SPC ,</code> with Vim keys.</p>
 <h3 id="readme-an-issues-keys">An issue&#39;s keys</h3>
 <div class="table"><table>
 <thead><tr><th>Key</th><th>What it does</th></tr></thead>
@@ -82,7 +86,7 @@ fields.</p>
 </table></div>
 <h3 id="readme-setting-it-up">Setting it up</h3>
 <p>Its server is <code>jira.base_url</code> and its token <code>jira.token</code>, both on the
-settings page (<code>SPC ,</code>); <code>FENIX_JIRA_TOKEN</code> overrides the token. The
+settings page (<code>SPC ,</code>, or <code>Ctrl+,</code> with standard keys); <code>FENIX_JIRA_TOKEN</code> overrides the token. The
 token is a personal access token, sent as a bearer token.</p>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
@@ -111,6 +115,14 @@ token is a personal access token, sent as a bearer token.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
+key scheme in use, and yours where you rebound them -- before Jira is
+set up, the page and its messages point to the settings page by its
+keys, <code>C-,</code> with standard keys and <code>SPC ,</code> with Vim keys, and the page
+says it again when you switch.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p><code>jira.open</code>, <code>jira.search</code>, <code>jira.goto_issue</code> can be run from outside Fenix, over the control channel
@@ -127,7 +139,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-12">2026-11-12</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>
