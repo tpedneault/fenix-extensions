@@ -4255,6 +4255,29 @@
               "*:5900"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/vnc-v1.1.0/fenix.vnc-1.1.0.fenixext",
+          "sha256": "aaeac14206fc86bd8850cf83e354c9acd2144190a98b62a6cc6345410b46f21b",
+          "size": 174984,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "clipboard": true,
+            "folders": {
+              "screenshots": "${setting:vnc.screenshots}|data:vnc-screenshots"
+            },
+            "sockets": [
+              "${setting:vnc.hosts}",
+              "*:5900"
+            ]
+          }
         }
       ],
       "name": "VNC",
