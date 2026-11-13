@@ -7,9 +7,10 @@ debugging with js-debug, Prettier or Biome as the formatter,
 their fixes, outdated and vulnerable packages, snippets, and Next.js,
 Express, library and static site projects in the new-project wizard.
 Built on lang-kit (`crates/lang-kit`), as each language pack is.
-It depends on Config & Shell (`fenix.config`), installed with it, which
-serves JSON: `package.json`, `tsconfig.json` and the rest get
-SchemaStore's schemas.
+It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, Web
+1.1.0 is the one you get. It depends on Config & Shell (`fenix.config`),
+installed with it, which serves JSON: `package.json`, `tsconfig.json`
+and the rest get SchemaStore's schemas.
 
 Its package manager is the one the lockfile says: `package-lock.json`
 npm, `pnpm-lock.yaml` pnpm, `yarn.lock` Yarn (2 and later, berry, when
@@ -60,7 +61,10 @@ uses neither isn't formatted by it.
 The adapter is js-debug's DAP server, installed into Fenix's tools
 folder from its release (`js-debug-dap-v1.140.0.tar.gz`, the same on
 every machine, its SHA-256 checked) by the doctor's fix row or *Web:
-install js-debug*, and run as `node dapDebugServer.js ${port} 127.0.0.1`:
+install js-debug* (started in the message line; how it ended is a
+notification: "Installed js-debug 1.140.0", or "Couldn't install
+js-debug 1.140.0" with which step failed and why, and *Try again*), and
+run as `node dapDebugServer.js ${port} 127.0.0.1`:
 Fenix starts it on a free port and connects (`debug-adapter-connect`,
 API).
 
@@ -193,5 +197,6 @@ on the tutorial page; the doctor says how to install it.
 
 ## Keys
 
-After `SPC m` in a project with a `package.json`: `p` packages, `d`
-check again, `i` install, `s` start the dev server, `S` stop it.
+After `SPC m` in a project with a `package.json` (`C-k m` with standard
+keys): `p` packages, `d` check again, `i` install, `s` start the dev
+server, `S` stop it.
