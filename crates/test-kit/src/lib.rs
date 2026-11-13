@@ -36,7 +36,7 @@ pub mod snapshot;
 #[cfg(feature = "tests")]
 pub mod tests;
 
-pub use fake::{line, notification_line, Choice, Fake, Keys, OpenPage, Picker, Process, Progress, Prompt, Ran, ServiceCall, State, Timer};
+pub use fake::{line, notification_line, provider_line, Choice, Fake, Keys, OpenPage, Picker, Process, Progress, Prompt, Ran, ServiceCall, State, Timer};
 pub use harness::{parse_keys, Harness};
 
 /// The README's example, compiled.

@@ -13,9 +13,9 @@
 //! selections split, reporters written to `/data` and named in `needs`,
 //! and the runner in use told to Fenix only when it changes.
 //!
-//! API 1.6 isn't released yet: [`api`] is a copy of its types, and
-//! nothing here calls a host function 1.5 hasn't. `plans/test-explorer.md`
-//! says how the copy is swapped for the real module.
+//! [`api`] is API 1.6's own `tests` module (Fenix's `fenix-extension-api`,
+//! pinned by `rev` until 1.6.0 is tagged), so these are the types of the
+//! pack's own `impl Extension`.
 //!
 //! The whole module is built only with lang-kit's feature `tests`. A
 //! pack that runs tests turns it on in its `Cargo.toml`
@@ -617,4 +617,32 @@ impl Kit {
     pub fn tests_runner_changed(&mut self) {
         self.tests.tell(self.host.as_mut());
     }
+}
+
+/// The five forwards of an `impl Extension`, to the pack's [`Kit`] in the
+/// field `$kit`: `impl Extension for Rust { lang_kit::test_exports!(kit); }`
+/// is `tests_scan`, `tests_plan`, `tests_read`, `tests_step_ended` and
+/// `tests_launch`, each handed to `Kit`'s method of the same name. Written
+/// out by hand it's the same five functions; only a pack that turned on
+/// the feature `tests` has this, so only such a pack's component can
+/// import `test-provider-set`.
+#[macro_export]
+macro_rules! test_exports {
+    ($kit:ident) => {
+        fn tests_scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<$crate::tests::api::Found> {
+            self.$kit.tests_scan(provider, path, text)
+        }
+        fn tests_plan(&mut self, provider: &str, run: u64, ask: $crate::tests::api::Ask) -> Result<$crate::tests::api::Plan, String> {
+            self.$kit.tests_plan(provider, run, ask)
+        }
+        fn tests_read(&mut self, provider: &str, run: u64, step: u32, lines: Vec<$crate::tests::api::Line>) -> Vec<$crate::tests::api::Report> {
+            self.$kit.tests_read(provider, run, step, lines)
+        }
+        fn tests_step_ended(&mut self, provider: &str, run: u64, step: u32, end: $crate::tests::api::StepEnd) -> Vec<$crate::tests::api::Report> {
+            self.$kit.tests_step_ended(provider, run, step, end)
+        }
+        fn tests_launch(&mut self, provider: &str, run: u64, test: $crate::tests::api::Found) -> Result<$crate::tests::api::Launch, String> {
+            self.$kit.tests_launch(provider, run, test)
+        }
+    };
 }

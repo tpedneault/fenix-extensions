@@ -13,7 +13,7 @@ default = ["api"]
 api = ["dep:fenix-extension-api"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0", optional = true }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", rev = "a39d18b273ace00091d8d170382456bbad0a7c2f", optional = true }
 unicode-width = "0.2"
 
 # Built with whichever extension uses it.

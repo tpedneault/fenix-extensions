@@ -22,7 +22,7 @@ tests = ["lang-kit", "fenix-lang-kit/tests"]
 [dependencies]
 # The tag the kits pin: an extension's types and the kit's are the same
 # only when they're built from the same API.
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", rev = "a39d18b273ace00091d8d170382456bbad0a7c2f" }
 fenix-ui-kit = { path = "../ui-kit", optional = true }
 fenix-lang-kit = { path = "../lang-kit", optional = true }
 # Columns as display cells, as Fenix and ui-kit count them.

@@ -224,6 +224,15 @@ pub fn urgency(u: Urgency) -> &'static str {
     }
 }
 
+/// A `test-provider-set` as a line of the log: `test-provider rust: cargo
+/// nextest`, `test-provider python: pytest (pytest isn't installed)`.
+pub fn provider_line(provider: &str, runner: &str, problem: Option<&str>) -> String {
+    match problem {
+        Some(p) => format!("test-provider {provider}: {runner} ({p})"),
+        None => format!("test-provider {provider}: {runner}"),
+    }
+}
+
 /// A notification as a line of the log: `notification low #tag: Summary
 /// -- its body [Label -> command]`.
 pub fn notification_line(n: &Notification) -> String {
@@ -340,7 +349,8 @@ pub struct State {
     pub tasks: Vec<Task>,
     pub launches: Vec<LaunchConfig>,
     /// What its test providers said they run (`test-provider-set`, API
-    /// 1.6, through lang-kit's `Host`): provider, runner, problem, in order.
+    /// 1.6, called directly or through lang-kit's `Host`): provider, runner,
+    /// problem, in order.
     pub test_providers: Vec<(String, String, Option<String>)>,
     pub launch_variables: BTreeMap<String, Vec<PickerItem>>,
     pub language_servers: BTreeMap<String, Option<Command>>,
@@ -713,6 +723,13 @@ impl State {
         self.call(format!("dismiss {tag}"));
         self.dismissed.push(tag.into());
         self.showing.retain(|n| n.tag.as_deref() != Some(tag));
+    }
+
+    /// A test provider's runner (`test-provider-set`, API 1.6): written
+    /// down, and kept in [`State::test_providers`].
+    pub fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) {
+        self.call(provider_line(provider, runner, problem));
+        self.test_providers.push((provider.into(), runner.into(), problem.map(String::from)));
     }
 
     /// What `key-for` answers for `command` in the scheme in use.

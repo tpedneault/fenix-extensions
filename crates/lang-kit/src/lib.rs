@@ -11,8 +11,8 @@
 //!
 //! With the feature `tests`, `tests` is a pack's test provider for Fenix
 //! 1.6 (API 1.6): a `tests::TestRunner` given with `Kit::tests`, on the
-//! five exports through `Kit::tests_scan` and the rest. Built on a copy
-//! of 1.6's types until 1.6 is released. Without the feature none of it
+//! five exports through `Kit::tests_scan` and the rest (`test_exports!`
+//! writes the five forwards). Built on API 1.6's own types. Without the feature none of it
 //! is built, so a pack that runs no tests links nothing of it -- in
 //! particular not `test-provider-set`, which Fenix 1.5 refuses.
 

@@ -410,3 +410,34 @@ fn tests_that_share_their_groups_and_those_that_dont_are_each_placed() {
     };
     assert_eq!(known, [vec![Key::from("x1"), Key::from("x2"), Key::from("x3")], vec![Key::from("y")]]);
 }
+
+/// What `test_exports!` writes is an `impl Extension`'s five methods, each
+/// handed to the kit's own: through the trait, a provider the kit has is
+/// scanned, and one it hasn't answers as `Kit` does.
+#[test]
+fn test_exports_forwards_the_five_methods_to_the_kit() {
+    use fenix_extension_api::Extension;
+
+    struct Pack {
+        kit: Kit,
+    }
+    impl Default for Pack {
+        fn default() -> Pack {
+            let seen = Rc::new(RefCell::new(Seen::default()));
+            let runner = Rc::new(RefCell::new((String::new(), None)));
+            Pack { kit: Kit::with_host("tally", Box::new(Shared::default())).tests(Box::new(Tally { seen, runner })) }
+        }
+    }
+    impl Extension for Pack {
+        crate::test_exports!(kit);
+    }
+
+    let mut pack = Pack::default();
+    let found = Extension::tests_scan(&mut pack, "tally", "/project/a.txt", "# test adds\n");
+    assert!(found.iter().any(|f| f.label == "adds"), "{found:?}");
+    assert!(Extension::tests_scan(&mut pack, "nobody", "/project/a.txt", "# test adds\n").is_empty());
+    assert!(Extension::tests_plan(&mut pack, "nobody", 1, api::Ask::RunAll).is_err());
+    assert!(Extension::tests_read(&mut pack, "nobody", 1, 0, vec![api::Line::default()]).is_empty());
+    assert!(Extension::tests_step_ended(&mut pack, "nobody", 1, 0, api::StepEnd::Stopped).is_empty());
+    assert!(Extension::tests_launch(&mut pack, "nobody", 1, api::Found::default()).is_err());
+}

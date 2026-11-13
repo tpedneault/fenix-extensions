@@ -197,3 +197,65 @@ fn the_repositorys_state_is_what_the_test_says() {
     fake.git(None);
     assert_eq!(api::host::git_state(), None);
 }
+
+/// A test provider for API 1.6, as a pack writes one: it says its runner
+/// as it starts, and answers the five exports.
+#[derive(Default)]
+struct Suite;
+
+impl Extension for Suite {
+    fn activate(&mut self) -> Result<(), String> {
+        api::tests::provider("suite", "suite run", Some("suite isn't installed"))?;
+        api::tests::provider("suite", "suite run", None)
+    }
+
+    fn tests_scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<api::tests::Found> {
+        let file = api::tests::Found { id: path.into(), label: path.into(), kind: api::tests::Kind::File, path: Some(path.into()), ..Default::default() };
+        let tests = text.lines().enumerate().filter_map(|(n, l)| {
+            l.strip_prefix("# test ").map(|name| api::tests::Found { id: format!("{provider}:{path}::{name}"), parent: Some(path.into()), label: name.into(), line: Some(n as u32), ..Default::default() })
+        });
+        std::iter::once(file).chain(tests).collect()
+    }
+
+    fn tests_plan(&mut self, _provider: &str, run: u64, ask: api::tests::Ask) -> Result<api::tests::Plan, String> {
+        match ask {
+            api::tests::Ask::Run(found) if found.is_empty() => Err("nothing asked".into()),
+            _ => Ok(api::tests::Plan { steps: vec![api::tests::Step { command: api::Command::new("suite").arg(run.to_string()), label: "suite".into(), covers: Vec::new(), needs: Vec::new() }], list_after: false }),
+        }
+    }
+
+    fn tests_read(&mut self, _provider: &str, _run: u64, step: u32, lines: Vec<api::tests::Line>) -> Vec<api::tests::Report> {
+        lines.into_iter().map(|l| api::tests::Report::Output { id: None, text: format!("{step}: {}", l.text) }).collect()
+    }
+
+    fn tests_step_ended(&mut self, _provider: &str, _run: u64, _step: u32, end: api::tests::StepEnd) -> Vec<api::tests::Report> {
+        vec![api::tests::Report::Output { id: None, text: format!("{end:?}") }]
+    }
+
+    fn tests_launch(&mut self, _provider: &str, _run: u64, test: api::tests::Found) -> Result<api::tests::Launch, String> {
+        Ok(api::tests::Launch::Launch(api::LaunchConfig::launch(&test.label, &["suite"])))
+    }
+}
+
+#[test]
+fn a_test_provider_says_its_runner_and_is_driven_through_its_five_exports() {
+    let fake = Fake::new();
+    let mut h: Harness<Suite> = Harness::with_fake(fake.clone());
+    h.activate().unwrap();
+    assert_eq!(fake.take(), ["test-provider suite: suite run (suite isn't installed)", "test-provider suite: suite run"]);
+    assert_eq!(fake.test_providers(), [("suite".to_string(), "suite run".to_string(), Some("suite isn't installed".to_string())), ("suite".to_string(), "suite run".to_string(), None)]);
+
+    let found = h.tests_scan("suite", "/project/a.txt", "# test adds\n\n# test subtracts\n");
+    assert_eq!(found.len(), 3);
+    assert_eq!((found[2].label.as_str(), found[2].line), ("subtracts", Some(2)));
+
+    let plan = h.tests_plan("suite", 7, api::tests::Ask::RunAll).unwrap();
+    assert_eq!(plan.steps[0].command.args, ["7"]);
+    assert_eq!(h.tests_plan("suite", 8, api::tests::Ask::Run(Vec::new())), Err("nothing asked".into()));
+
+    let line = api::tests::Line { text: "PASS adds".into(), ..Default::default() };
+    assert_eq!(h.tests_read("suite", 7, 1, vec![line]), [api::tests::Report::Output { id: None, text: "1: PASS adds".into() }]);
+    assert_eq!(h.tests_step_ended("suite", 7, 1, api::tests::StepEnd::Exited(Some(0))), [api::tests::Report::Output { id: None, text: "Exited(Some(0))".into() }]);
+    let launch = h.tests_launch("suite", 7, found[1].clone()).unwrap();
+    assert!(matches!(launch, api::tests::Launch::Launch(c) if c.name == "adds"));
+}

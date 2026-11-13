@@ -533,6 +533,14 @@ pub fn editor_keys() -> KeyScheme {
 pub fn key_for(command: &str) -> Option<String> {
     with(|s| s.key_for(command))
 }
+/// 1.6: what a test provider runs in this project, and why it can't when
+/// it can't ([`Fake::test_providers`](crate::Fake::test_providers)). It
+/// answers `Ok`; Fenix's own refuses a provider the manifest doesn't name,
+/// which a fake can't know.
+pub fn test_provider_set(provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
+    with(|s| s.test_provider_set(provider, runner, problem));
+    Ok(())
+}
 
 /// Each of these is the API's own signature: a call that builds against
 /// one builds against the other.
@@ -669,4 +677,6 @@ same! {
     compose_with_ask: fn(&str, &str, &str, bool, &str, bool) -> u64;
     editor_keys: fn() -> KeyScheme;
     key_for: fn(&str) -> Option<String>;
+    // 1.6.
+    test_provider_set: fn(&str, &str, Option<&str>) -> Result<(), String>;
 }

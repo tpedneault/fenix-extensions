@@ -129,9 +129,7 @@ impl Host for Fake {
     /// nextest`. With the feature `tests` (lang-kit's `tests`).
     #[cfg(feature = "tests")]
     fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
-        let mut s = self.state_mut();
-        s.call(fenix_lang_kit::host::provider_line(provider, runner, problem));
-        s.test_providers.push((provider.into(), runner.into(), problem.map(String::from)));
+        self.state_mut().test_provider_set(provider, runner, problem);
         Ok(())
     }
 }

@@ -2,6 +2,7 @@
 //! fake has for it -- a process's lines, a picker's answer -- given to it
 //! after each, as events.
 
+use fenix_extension_api::tests::{Ask, Found, Launch, Line, Plan, Report, StepEnd};
 use fenix_extension_api::{Changed, Event, Extension, Focus, Key, KeyMods, KeyPress, KeyScheme, MouseAction, MouseButton, MouseEvent, MousePress, NamedKey, Page, SurfaceKey};
 
 use crate::fake::Fake;
@@ -190,6 +191,39 @@ impl<E: Extension> Harness<E> {
         self.fake.key_scheme(scheme);
         self.ext.key_scheme_changed(scheme);
         self.after(())
+    }
+
+    /// `tests-scan` (API 1.6): the tests it finds in file `path` (as Fenix
+    /// gives it, `/project/<path>`) whose text is `text`, for its test
+    /// provider `provider`.
+    pub fn tests_scan(&mut self, provider: &str, path: &str, text: &str) -> Vec<Found> {
+        let r = self.ext.tests_scan(provider, path, text);
+        self.after(r)
+    }
+
+    /// `tests-plan`: what it would run for `ask`, as run `run`.
+    pub fn tests_plan(&mut self, provider: &str, run: u64, ask: Ask) -> Result<Plan, String> {
+        let r = self.ext.tests_plan(provider, run, ask);
+        self.after(r)
+    }
+
+    /// `tests-read`: lines of step `step` of run `run`, and what it read.
+    pub fn tests_read(&mut self, provider: &str, run: u64, step: u32, lines: Vec<Line>) -> Vec<Report> {
+        let r = self.ext.tests_read(provider, run, step, lines);
+        self.after(r)
+    }
+
+    /// `tests-step-ended`: step `step` of run `run` ended, and what its
+    /// reader still had.
+    pub fn tests_step_ended(&mut self, provider: &str, run: u64, step: u32, end: StepEnd) -> Vec<Report> {
+        let r = self.ext.tests_step_ended(provider, run, step, end);
+        self.after(r)
+    }
+
+    /// `tests-launch`: how it would debug `test`, for run `run`.
+    pub fn tests_launch(&mut self, provider: &str, run: u64, test: Found) -> Result<Launch, String> {
+        let r = self.ext.tests_launch(provider, run, test);
+        self.after(r)
     }
 
     /// Service call `call`, which it said it would answer later, was given

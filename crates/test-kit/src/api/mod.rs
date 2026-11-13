@@ -16,10 +16,11 @@
 //! Its `api::notify(..)`, `api::page::open(..)`, `api::host::set_timer(..)`
 //! and `api::warn!(..)` are then the fake's in `cargo test`, and Fenix's in
 //! the WebAssembly it packs, which has nothing of the kit in it. Every
-//! free function and every `host` call of API 1.5 is here -- 1.0's, and
-//! what 1.1 to 1.5 added: `key_for`, `key_scheme`, `notify_dismiss`,
+//! free function and every `host` call of API 1.6 is here -- 1.0's, and
+//! what 1.1 to 1.6 added: `key_for`, `key_scheme`, `notify_dismiss`,
 //! `compose_with_ask`, `progress`, `host::notify_with`,
-//! `host::git_state`, `host::last_task` -- each checked to have the API's
+//! `host::git_state`, `host::last_task`, `tests::provider` (API 1.6's
+//! `test-provider-set`) -- each checked to have the API's
 //! own signature.
 //!
 //! What it can't replace are methods on the API's types --
@@ -168,6 +169,21 @@ pub fn progress(call: u64, message: &str, fraction: Option<f32>) {
 }
 pub fn notify_dismiss(tag: &str) {
     host::notify_dismiss(tag)
+}
+
+/// API 1.6's `tests` module -- the types of a test provider's exports --
+/// with [`provider`](tests::provider) the fake's.
+pub mod tests {
+    pub use fenix_extension_api::tests::*;
+
+    /// What this provider runs in the project now, and why it can't:
+    /// `test-provider-set`, which the fake writes down
+    /// ([`Fake::test_providers`](crate::Fake::test_providers)).
+    pub fn provider(provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
+        super::host::test_provider_set(provider, runner, problem)
+    }
+
+    const _: [fn(&str, &str, Option<&str>) -> Result<(), String>; 2] = [provider, ::fenix_extension_api::tests::provider];
 }
 
 same! {
