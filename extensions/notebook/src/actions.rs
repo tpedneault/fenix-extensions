@@ -208,7 +208,7 @@ impl NotebookExt {
         let last = nb.entries().iter().filter(|e| e.kind != Kind::Day).max_by_key(|e| e.modified).map(|e| e.id.clone());
         match last {
             Some(id) => self.open_entry(&id, None),
-            None => api::notify("the notebook is empty -- SPC n N makes a note"),
+            None => api::notify(&format!("the notebook is empty -- {} makes a note", crate::keys::keys("notebook.new_note", "SPC n N"))),
         }
     }
 
@@ -407,9 +407,10 @@ impl NotebookExt {
     fn diagram_service(&mut self, service: &'static str, id: &str) {
         let Some(path) = self.book.as_ref().and_then(|nb| nb.get(id)).map(|e| e.path.clone()) else { return };
         let payload = serde_json::json!({ "path": self.host_of(&path) }).to_string();
+        let install = crate::keys::keys("extensions.open", "SPC h x");
         run::spawn(async move {
             if let Err(e) = run::call(service, &payload).await {
-                later(move |_| error(&format!("{e} -- diagrams are the Diagrams extension's (SPC h x installs it)")));
+                later(move |_| error(&format!("{e} -- diagrams are the Diagrams extension's ({} installs it)", install)));
             }
         });
     }

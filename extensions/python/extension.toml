@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.python"
 name = "Python"
-version = "1.1.0"
+version = "1.2.0"
 description = "Python: basedpyright with ruff's server beside it, debugging with debugpy (the project's scripts, pytest, Django, Flask, FastAPI, attaching to a process), ruff as the formatter, tasks, the project's checks with their fixes, outdated and vulnerable packages for uv and pip, snippets, and Django and Flask projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,13 +10,9 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# The debug adapter, the formatter, a linter's problems (0.8.3); ruff's
-# server beside basedpyright, the Python you chose as a hint, debugpy's
-# module without a program (0.8.5); launches for the scripts, a process
-# to attach to, ruff's fixes, the server's settings (0.8.6); the language
-# file's comment (0.8.7).
-api = "1.0"
+fenix = ">=1.5, <2"
+# lang-kit, the kit it's built on, is on 1.5.
+api = "1.5"
 
 # With Fenix: the project doctor's checks and the language server are
 # there from the start.

@@ -128,6 +128,9 @@ sandbox is slower, within a key's second).
 
 ## Building
 
+It needs Fenix 1.5 or later (extension API 1.5), as the `ui-kit` it's
+built on is.
+
 ```text
 cargo xtask pack extensions/csv dist
 cargo run --release --example million --manifest-path extensions/csv/Cargo.toml

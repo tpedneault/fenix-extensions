@@ -56,12 +56,12 @@ pub async fn for_repo(cwd: &str) -> Result<Client, String> {
     if fenix_forge::github::repository(&url).is_some() {
         let token = match host::secret("github.token").filter(|t| !t.trim().is_empty()) {
             Some(token) => token,
-            None => gh_token().await.ok_or("sign the GitHub CLI in (gh auth login), or set the GitHub token in SPC , (Forges)")?,
+            None => gh_token().await.ok_or_else(|| format!("sign the GitHub CLI in (gh auth login), or set the GitHub token in {} (Forges)", crate::keys::settings()))?,
         };
         return GitHub::from_remote(Fetch, token, &url).map(Client::GitHub).ok_or_else(|| format!("couldn't read owner/repo out of origin's URL ({url})"));
     }
-    let base_url = setting("gitlab.base_url").ok_or("set the GitLab server in SPC , (Forges) first")?;
-    let token = host::secret("gitlab.token").filter(|t| !t.trim().is_empty()).ok_or("set the GitLab token in SPC , (Forges) first -- a personal access token with the api scope")?;
+    let base_url = setting("gitlab.base_url").ok_or_else(|| format!("set the GitLab server in {} (Forges) first", crate::keys::settings()))?;
+    let token = host::secret("gitlab.token").filter(|t| !t.trim().is_empty()).ok_or_else(|| format!("set the GitLab token in {} (Forges) first -- a personal access token with the api scope", crate::keys::settings()))?;
     GitLab::from_remote(Fetch, base_url, token, &url).map(Client::GitLab).ok_or_else(|| format!("couldn't read a GitLab project path out of origin's URL ({url})"))
 }
 

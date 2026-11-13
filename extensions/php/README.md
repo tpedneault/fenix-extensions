@@ -5,7 +5,8 @@ grammar, Intelephense or Phpactor as the language server, the project's
 own Pint or PHP CS Fixer as the formatter, PHPStan on save, Composer's
 scripts and the project's tools as tasks, the project doctor's checks
 with their fixes, snippets, and a Composer package in the new-project
-wizard. Built on lang-kit (`crates/lang-kit`), as each language pack is.
+wizard. Built on lang-kit (`crates/lang-kit`), as each language pack is. It needs Fenix 1.5 or later (extension API 1.5);
+on an older Fenix, PHP 1.0.0 is the one you get.
 
 The project's own tools -- PHPUnit, Pest, PHPStan, Pint, PHP CS Fixer --
 are found in its `vendor/bin` first, then where `composer global require`
@@ -77,7 +78,11 @@ tool's config, or a task that changes them, makes them again.
 | Pint, PHP CS Fixer, PHPStan | where the project uses them, found in `vendor/bin` | `composer install` |
 
 A fix that installs something is checked again, and what it installed
-is used at once.
+is used at once. Phpactor's, the one that downloads, says it's started in
+the message line; how it ended is a notification, since a download can
+take a while: "Installed Phpactor 2026.10.07.0", or "Couldn't install
+Phpactor 2026.10.07.0" with which step failed and why, and *Try again*.
+The others run as tasks.
 
 ## Snippets
 
@@ -104,8 +109,8 @@ PHPUnit test case), `tm` (a test method), `dp` (with a data provider),
 
 ## Keys
 
-After `SPC m` in a PHP project or file: `d` checks the project again, `i`
-runs `composer install`.
+After `SPC m` in a PHP project or file (`C-k m` with standard keys): `d`
+checks the project again, `i` runs `composer install`.
 
 ## Not yet
 

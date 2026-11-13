@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ccsds"
 name = "CCSDS & ECSS"
-version = "1.2.2"
+version = "1.3.0"
 description = "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -11,8 +11,8 @@ runtime = "wasm"
 
 [engine]
 # Agent tools: Fenix 1.1.
-fenix = ">=1.1, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+api = "1.5"
 
 # With Fenix: the mission clock is in the modeline from the start, and K
 # on hex works in any file.

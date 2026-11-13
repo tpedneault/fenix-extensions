@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.notebook"
 name = "Notebook"
-version = "1.2.0"
+version = "1.3.0"
 description = "Notes, a daily journal, links and quick captures, kept for you in one folder -- an Obsidian vault works as it is"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,7 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+fenix = ">=1.5, <2"
 api = "1.5"
 
 # Home lists it, notes save themselves as you type, and the control

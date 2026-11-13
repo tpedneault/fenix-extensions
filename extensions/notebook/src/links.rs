@@ -84,11 +84,12 @@ impl NotebookExt {
             }
             Target::Task(key) => {
                 let payload = serde_json::json!({ "key": key }).to_string();
+                let (install, import) = (crate::keys::keys("extensions.open", "SPC h x"), crate::keys::keys("agenda.import", "SPC A i"));
                 run::spawn(async move {
                     match run::call("agenda.open_task", &payload).await {
                         Ok(_) => {}
-                        Err(e) if e.contains("no service") => later(move |_| api::notify(&format!("{key} is a task -- the agenda is an extension (SPC h x installs it)"))),
-                        Err(_) => later(move |_| api::notify(&format!("{key} isn't in the agenda -- SPC A i imports it"))),
+                        Err(e) if e.contains("no service") => later(move |_| api::notify(&format!("{key} is a task -- the agenda is an extension ({install} installs it)"))),
+                        Err(_) => later(move |_| api::notify(&format!("{key} isn't in the agenda -- {import} imports it"))),
                     }
                 });
             }
@@ -193,11 +194,11 @@ impl NotebookExt {
 
     /// `SPC n b`: what links to the note you're in, beside it.
     pub(crate) fn backlinks(&mut self) {
-        let Some(path) = self.here().and_then(|h| h.path) else { return error("SPC n b shows a notebook note's links") };
+        let Some(path) = self.here().and_then(|h| h.path) else { return error(&format!("{} shows a notebook note's links", crate::keys::keys("notebook.backlinks", "SPC n b"))) };
         if self.notebook().is_none() {
             return;
         }
-        let Some(entry) = self.entry_at(&path).cloned() else { return error("this file isn't in the notebook -- SPC n i imports it") };
+        let Some(entry) = self.entry_at(&path).cloned() else { return error(&format!("this file isn't in the notebook -- {} imports it", crate::keys::keys("notebook.import", "SPC n i"))) };
         // One sidebar: it moves to this note.
         match &mut self.links_page {
             Some((id, p)) => {
@@ -291,7 +292,7 @@ impl NotebookExt {
             items.push(PickerItem::new(format!("SVG    {}  (exported beside, linked)", e.name), format!("svg:{}", e.id)));
         }
         if items.is_empty() {
-            return api::notify("no diagrams in the notebook yet -- SPC n d makes one");
+            return api::notify(&format!("no diagrams in the notebook yet -- {} makes one", crate::keys::keys("notebook.new_diagram", "SPC n d")));
         }
         let id = api::pick("Diagram", &items);
         self.asked.insert(id, Asked::InsertDiagram);

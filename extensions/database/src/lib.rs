@@ -5,7 +5,7 @@
 //! as a table to sort, copy and export, a table's rows paged through and
 //! changed, the statements you ran kept and searched, and completion of
 //! the schema's names in `.sql` buffers. SQLite files open straight into
-//! it.
+//! it, and `database.sample` makes one to try it on (`sample`).
 //!
 //! Coding agents read the schema and run statements that only read
 //! (`database_schema`, `database_query`: `agent`), the latter on a
@@ -21,10 +21,12 @@ pub mod complete;
 pub mod conn;
 pub mod edit;
 pub mod history;
+mod keys;
 pub mod lite;
 pub mod mysql;
 pub mod pg;
 pub mod result;
+pub mod sample;
 pub mod schema;
 pub mod session;
 pub mod sql;
@@ -37,7 +39,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use fenix_extension_api::lsp::types::{CompletionItem, CompletionItemKind, CompletionOptions, CompletionParams, CompletionResponse, ServerCapabilities};
 use fenix_extension_api::lsp::{self, Documents, LanguageServer, Servers};
-use fenix_extension_api::{buffer, export, host, page as pages, scratch, socket, Changed, Event, Extension, Focus, Key, KeyPress, MouseEvent, Page, PickerItem, TlsOptions};
+use fenix_extension_api::{buffer, export, host, page as pages, scratch, socket, Changed, Event, Extension, Focus, Key, KeyPress, KeyScheme, MouseEvent, Page, PickerItem, TlsOptions};
 use fenix_ui_kit::{Role, Style, TreeNode};
 
 use browser::{Browser, Intent, Ran};
@@ -158,6 +160,23 @@ fn in_project(full: &str) -> Option<String> {
     let (f, r) = (norm(full), norm(&root));
     let r = r.trim_end_matches('/');
     (f.len() > r.len() && f.starts_with(r) && f.as_bytes()[r.len()] == b'/').then(|| format!("/project{}", &f[r.len()..]))
+}
+
+/// A connection as the agents' session for it is opened: read-only.
+fn agents_conn(c: &Conn) -> Conn {
+    Conn { read_only: true, ..c.clone() }
+}
+
+/// The agents' sessions to close once `database.connections` is read
+/// again: their connection gone, or changed -- another host, user,
+/// database or option -- so an agent never goes on reading the old one.
+/// A SQLite file opened has no row: it stays.
+fn stale_agent_sessions(sessions: &BTreeMap<String, Session>, files: &[Conn], saved: &[Conn]) -> Vec<String> {
+    sessions
+        .iter()
+        .filter(|(name, s)| !files.iter().any(|f| &f.name == *name) && saved.iter().find(|c| &c.name == *name).map(agents_conn).as_ref() != Some(&s.conn))
+        .map(|(n, _)| n.clone())
+        .collect()
 }
 
 /// What the buffer you ran a command in is.
@@ -314,7 +333,7 @@ impl App {
             }
             self.cataloged.remove(&name);
         }
-        let stale: Vec<String> = self.agent_sessions.keys().filter(|name| !self.files.iter().any(|f| &f.name == *name) && !saved.iter().any(|c| &c.name == *name)).cloned().collect();
+        let stale = stale_agent_sessions(&self.agent_sessions, &self.files, &saved);
         for name in stale {
             if let Some(mut s) = self.agent_sessions.remove(&name) {
                 s.close(&mut Sockets);
@@ -640,7 +659,7 @@ impl App {
                 });
                 fenix_extension_api::status(Some(&format!("db {name} · {state}")));
             }
-            None => fenix_extension_api::status(Some("db · no connection (SPC m c)")),
+            None => fenix_extension_api::status(Some(&no_connection_status())),
         }
     }
 
@@ -946,6 +965,41 @@ impl App {
         self.after();
     }
 
+    /// `database.sample`: the sample database made afresh under `/data`, a
+    /// connection of its own, shown in the browser with its tables open.
+    fn sample(&mut self) {
+        let mut name = sample::NAME.to_string();
+        while self.saved.iter().any(|s| s.name == name) || self.files.iter().any(|f| f.name == name && f.database != sample::PATH) {
+            name.push('\'');
+        }
+        // Its sessions let go of the file first: it's made again.
+        for sessions in [&mut self.sessions, &mut self.agent_sessions] {
+            if let Some(mut s) = sessions.remove(&name) {
+                s.close(&mut Sockets);
+            }
+        }
+        self.cataloged.remove(&name);
+        if let Err(e) = lite::create(sample::PATH, sample::SCRIPT) {
+            return fenix_extension_api::notify(&format!("The sample database couldn't be made: {e}"));
+        }
+        let mut c = Conn::file(sample::PATH, false);
+        c.name = name.clone();
+        match self.files.iter().position(|f| f.name == name) {
+            Some(i) => self.files[i] = c,
+            None => self.files.push(c),
+        }
+        self.last_conn = Some(name.clone());
+        let nid = schema::id::connection(&name);
+        self.browser.tree.expand(&nid);
+        self.browser.tree.expand(&format!("{nid}{sep}main{sep}tables", sep = schema::id::SEP));
+        self.start(&name);
+        self.open_browser();
+        let roots = self.roots();
+        self.browser.tree.select_id(&roots, &nid);
+        self.browser.note = Some((format!("{name}, made afresh to try it on: Enter on a table for its rows, n for a .sql buffer on it"), Role::Good));
+        self.after();
+    }
+
     /// A SQLite file opened: a connection of its own, its schema in the
     /// browser.
     fn opened(&mut self, full: &str) {
@@ -1047,6 +1101,12 @@ impl LanguageServer for Completer<'_> {
     }
 }
 
+/// The modeline's word for a `.sql` buffer with no connection: the keys
+/// that pick one, as the scheme in use has them.
+fn no_connection_status() -> String {
+    format!("db · no connection ({})", keys::in_menu("database.connection", "c"))
+}
+
 impl Extension for App {
     fn activate(&mut self) -> Result<(), String> {
         self.history = History::load(HISTORY);
@@ -1076,6 +1136,7 @@ impl Extension for App {
                 let id = fenix_extension_api::pick("Forget the password kept for", &items);
                 self.asked.insert(id, Asked::Forget);
             }
+            "database.sample" => self.sample(),
             "database.new_query" => match self.last_conn.clone().or_else(|| self.all_conns().first().map(|c| c.name.clone())) {
                 Some(n) => self.intent(Intent::NewQuery(n)),
                 None => return Err("No connections: add them in database.connections".into()),
@@ -1214,6 +1275,13 @@ impl Extension for App {
         }
     }
 
+    /// Vim keys or standard keys now: the browser and the modeline say a
+    /// `.sql` buffer's keys again.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        self.refresh_browser();
+        self.update_status();
+    }
+
     fn page_closed(&mut self, page: u64) {
         if Some(page) == self.browser_page {
             self.browser_page = None;
@@ -1336,7 +1404,7 @@ impl App {
             Err(why) => return Some(Err(format!("database_query runs one statement that only reads: {why}"))),
         };
         let name = conn.name.clone();
-        let alive = self.agent_sessions.get(&name).is_some_and(|s| !matches!(s.state, State::Failed(_) | State::Closed) && s.conn.database == conn.database);
+        let alive = self.agent_sessions.get(&name).is_some_and(|s| !matches!(s.state, State::Failed(_) | State::Closed) && s.conn == agents_conn(&conn));
         if !alive {
             if let Some(mut old) = self.agent_sessions.remove(&name) {
                 old.close(&mut Sockets);
@@ -1351,9 +1419,7 @@ impl App {
                 self.start(&name);
                 return Some(Err(format!("{name} needs {}'s password: Fenix has asked the user for it -- call again once it's typed", conn.user)));
             };
-            let mut ro = conn.clone();
-            ro.read_only = true;
-            let mut s = Session::new(ro, &password, agent::MAX_ROWS);
+            let mut s = Session::new(agents_conn(&conn), &password, agent::MAX_ROWS);
             s.connect(&mut Sockets);
             if let State::Failed(e) = &s.state {
                 return Some(Err(format!("{name}: {e}")));
@@ -1433,11 +1499,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn the_modeline_names_the_keys_that_pick_a_connection() {
+        let fake = fenix_test_kit::Fake::new();
+        fake.key("leader.local", "SPC m").menu_key("database.connection", "c");
+        assert_eq!(no_connection_status(), "db · no connection (SPC m c)");
+        fake.key_scheme(KeyScheme::Standard);
+        assert_eq!(no_connection_status(), "db · no connection (C-k m c)");
+        fake.no_key("leader.local");
+        assert_eq!(no_connection_status(), "db · no connection (SPC m c)", "no key: Vim's");
+    }
+
+    #[test]
     fn paths_and_uris() {
         assert_eq!(uri_path("file:///home/me/q%20uery.sql"), "/home/me/q uery.sql");
         assert_eq!(uri_path("file:///C:/data/q.sql"), "C:/data/q.sql");
         assert_eq!(norm("C:\\data\\q.sql"), "c:/data/q.sql");
         assert_eq!(norm(&uri_path("file:///C:/data/q.sql")), norm("C:\\data\\q.sql"), "the server's and the editor's paths meet");
+    }
+
+    #[test]
+    fn an_agents_session_goes_when_its_connection_changes() {
+        let row = |host: &str, options: &str| Conn::from_row(&["dev", "postgres", host, "", "app", "ada", options].map(String::from)).unwrap();
+        let session = |c: &Conn| Session::new(agents_conn(c), "", 10);
+        let file = Conn::file("/project/a.db", false);
+        let mut sessions = BTreeMap::new();
+        sessions.insert("dev".to_string(), session(&row("db1", "")));
+        sessions.insert(file.name.clone(), session(&file));
+        let files = [file.clone()];
+        assert!(stale_agent_sessions(&sessions, &files, &[row("db1", "")]).is_empty(), "the same: kept");
+        assert!(stale_agent_sessions(&sessions, &files, &[row("db1", "readonly")]).is_empty(), "read-only is what it is already");
+        assert_eq!(stale_agent_sessions(&sessions, &files, &[row("db2", "")]), ["dev"], "another host");
+        assert_eq!(stale_agent_sessions(&sessions, &files, &[row("db1", "tls=require")]), ["dev"], "another option");
+        assert_eq!(stale_agent_sessions(&sessions, &files, &[]), ["dev"], "gone");
+        assert_eq!(agents_conn(&row("db1", "production")), Conn { read_only: true, ..row("db1", "production") });
     }
 
     #[test]

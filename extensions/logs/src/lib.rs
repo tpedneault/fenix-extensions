@@ -9,7 +9,12 @@
 //! line's level and time are read from the formats logs are written in
 //! (`detect`, `time`), and lines that go with the one before -- a stack
 //! trace -- make one entry with it (`entry`).
+//!
+//! Coding agents query a log in the project and sum one up (`logs_query`,
+//! `logs_summary`: `agent`), read the same way, in steps on the same
+//! timer.
 
+pub mod agent;
 pub mod detect;
 pub mod entry;
 pub mod filter;
@@ -32,6 +37,11 @@ use source::Source;
 const PAGE: &str = "log";
 /// How soon the next step of work runs: at once, after the frame.
 const WORK_MS: u32 = 1;
+/// Where the open project is.
+const PROJECT: &str = "/project";
+/// How long a call spends on agents' jobs: a few milliseconds, as a page's
+/// work does.
+const JOB_TIME: std::time::Duration = std::time::Duration::from_millis(8);
 
 /// Where a full path is under `/project`, if it is: read there, a part
 /// at a time.
@@ -104,6 +114,8 @@ struct Logs {
     /// The timer for the next step of work, and the one that polls.
     work: Option<u64>,
     poll: Option<(u64, u32)>,
+    /// Coding agents' calls under way, by call.
+    jobs: Vec<(u64, agent::Job)>,
 }
 
 impl Logs {
@@ -145,7 +157,7 @@ impl Logs {
     /// The timers as the pages need them: a step of work while any is
     /// busy, a poll while any follows its file.
     fn schedule(&mut self) {
-        if self.work.is_none() && self.pages.values().any(LogPage::busy) {
+        if self.work.is_none() && (self.pages.values().any(LogPage::busy) || !self.jobs.is_empty()) {
             self.work = Some(host::set_timer(WORK_MS, false));
         }
         let following = self.pages.values().any(|p| p.follow);
@@ -162,7 +174,8 @@ impl Logs {
         }
     }
 
-    /// A step for each busy page, drawn again.
+    /// A step for each busy page, drawn again; then agents' jobs, those
+    /// done answered.
     fn work(&mut self) {
         self.work = None;
         for (&id, p) in &mut self.pages {
@@ -171,7 +184,40 @@ impl Logs {
                 pages::refresh(id);
             }
         }
+        let start = std::time::Instant::now();
+        for (_, job) in &mut self.jobs {
+            while !job.done() && start.elapsed() < JOB_TIME {
+                job.step(agent::STEP);
+            }
+        }
+        let (done, going): (Vec<_>, Vec<_>) = std::mem::take(&mut self.jobs).into_iter().partition(|(_, j)| j.done());
+        self.jobs = going;
+        for (call, job) in done {
+            fenix_extension_api::answer(call, job.answer().map(|v| v.to_string()));
+        }
         self.schedule();
+    }
+
+    /// The log a tool's `path` names, in the project; left out, the one
+    /// log in the project the viewer has open.
+    fn agent_log(&self, args: &serde_json::Value) -> Result<(String, Source), String> {
+        let typed = args.get("path").and_then(|v| v.as_str()).map(str::trim).filter(|s| !s.is_empty());
+        let typed = match typed {
+            Some(t) => t.to_string(),
+            None => {
+                let mut open: Vec<String> = self.pages.values().filter_map(|p| p.path.strip_prefix("/project/").map(str::to_string)).collect();
+                open.sort();
+                open.dedup();
+                match open.as_slice() {
+                    [one] => one.clone(),
+                    [] => return Err("which log? \"path\": a file's path from the project's root, logs/app.log -- no log of the project is open in the viewer".into()),
+                    many => return Err(format!("which log? \"path\": one of those open in the viewer -- {}", many.join(", "))),
+                }
+            }
+        };
+        let (rel, full) = agent::project_file(PROJECT, &typed)?;
+        let src = Source::path(&full).map_err(|e| format!("{rel}: {e}"))?;
+        Ok((rel, src))
     }
 
     /// The logs followed, looked at again.
@@ -327,6 +373,27 @@ impl Extension for Logs {
         self.pages.insert(page, p);
         self.schedule();
         true
+    }
+
+    /// `logs.query` and `logs.summary`: coding agents' tools. A small log
+    /// is answered at once; a bigger one in steps, on the timer.
+    fn serve(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        let args: serde_json::Value = serde_json::from_str(payload).unwrap_or_default();
+        let job = self.agent_log(&args).and_then(|(rel, src)| agent::Job::new(name, &rel, src, self.rules(), &args));
+        let mut job = match job {
+            Ok(j) => j,
+            Err(e) => return Some(Err(e)),
+        };
+        let start = std::time::Instant::now();
+        while !job.done() && start.elapsed() < JOB_TIME {
+            job.step(agent::STEP);
+        }
+        if job.done() {
+            return Some(job.answer().map(|v| v.to_string()));
+        }
+        self.jobs.push((call, job));
+        self.schedule();
+        None
     }
 
     fn page_closed(&mut self, page: u64) {

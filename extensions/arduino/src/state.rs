@@ -20,6 +20,45 @@ pub struct Tools {
     pub language_server: Option<String>,
 }
 
+/// The keys its messages name, as the key scheme in use writes them --
+/// `SPC m s`, `C-k m s` with standard keys, or yours. `lib.rs` asks Fenix
+/// for them (`key_for`) and gives them here, so what's said is tested
+/// natively; by default, Vim's.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Keys {
+    /// `arduino.new_sketch`: `SPC f n`.
+    pub new_sketch: String,
+    /// The `SPC m` menu's: `arduino.board` (`s`), `arduino.port` (`p`),
+    /// `arduino.baud` (`B`), `arduino.board_options` (`o`).
+    pub board: String,
+    pub port: String,
+    pub baud: String,
+    pub board_options: String,
+}
+
+impl Default for Keys {
+    fn default() -> Keys {
+        Keys::from_menu("SPC m", "SPC f n")
+    }
+}
+
+impl Keys {
+    /// Each `SPC m` command as `key` in the menu opened by `menu`.
+    pub fn from_menu(menu: &str, new_sketch: &str) -> Keys {
+        let key = |k: &str| format!("{menu} {k}");
+        Keys { new_sketch: new_sketch.into(), board: key("s"), port: key("p"), baud: key("B"), board_options: key("o") }
+    }
+}
+
+/// The keys that run a command of the `SPC m` menu, which is `key` in
+/// it: its own when it has some (`own`: yours, a chord, from Fenix's
+/// `key_for`, which knows no `SPC m` menu); else `key` in the menu opened
+/// by `menu` (`key_for("leader.local")`: `SPC m`, or `C-k m` with
+/// standard keys); else as Vim keys have it.
+pub fn menu_keys(own: Option<String>, menu: Option<&str>, key: &str) -> String {
+    own.unwrap_or_else(|| format!("{} {key}", menu.unwrap_or("SPC m")))
+}
+
 /// What a port is wanted for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
@@ -130,6 +169,8 @@ fn args(words: &[&str]) -> Vec<String> {
 #[derive(Debug, Default)]
 pub struct State {
     pub tools: Tools,
+    /// The keys what it says names.
+    pub keys: Keys,
     /// `arduino-cli`'s configuration file, which the language server is
     /// told of.
     pub config: Option<String>,
@@ -173,7 +214,7 @@ impl State {
         if self.cli().is_none() {
             return Err(Effect::Error("arduino-cli not found -- install Arduino CLI (https://arduino.github.io/arduino-cli/), or set arduino.cli".into()));
         }
-        self.sketch.as_deref().ok_or_else(|| Effect::Error("not in an Arduino sketch -- open a sketch's .ino file, or SPC f n to make one".into()))
+        self.sketch.as_deref().ok_or_else(|| Effect::Error(format!("not in an Arduino sketch -- open a sketch's .ino file, or {} to make one", self.keys.new_sketch)))
     }
 
     /// You moved to `file` (under `/project`). None -- a page, the doctor,
@@ -271,7 +312,7 @@ impl State {
             "arduino.build" => {
                 let mut out = vec![Effect::Task { name: "Arduino: build".into(), args: args(&["compile", "--no-color", "-b", &board, "."]), after: None }];
                 if !chosen {
-                    out.push(Effect::Notify(format!("building for {board}, the default -- SPC m s picks your board")));
+                    out.push(Effect::Notify(format!("building for {board}, the default -- {} picks your board", self.keys.board)));
                 }
                 out
             }
@@ -296,8 +337,8 @@ impl State {
                 vec![Effect::Task { name: format!("install {core}"), args: args(&["core", "install", "--no-color", &core]), after: Some(After::RestartLanguageServer) }]
             }
             "arduino.info" => {
-                let board = if chosen { board } else { format!("{board} (default -- SPC m s to choose)") };
-                let port = model::port_of(&root).unwrap_or_else(|| "none yet -- SPC m p".into());
+                let board = if chosen { board } else { format!("{board} (default -- {} to choose)", self.keys.board) };
+                let port = model::port_of(&root).unwrap_or_else(|| format!("none yet -- {}", self.keys.port));
                 let completion = if self.language_server().is_some() { "completion ready" } else { "no completion: arduino-language-server or clangd is missing" };
                 vec![Effect::Notify(format!("Arduino sketch · board {board} · port {port} · {} baud · {completion}", model::baud_rate(&root)))]
             }
@@ -335,7 +376,7 @@ impl State {
                 let baud = model::baud_rate(&root);
                 let again = self.monitor.as_ref().map(|(t, _)| *t);
                 self.monitor = self.monitor.take().map(|(t, _)| (t, port.to_string()));
-                vec![Effect::Monitor { args: args(&["monitor", "-p", port, "-b", &board, "--config", &format!("baudrate={baud}")]), title: format!("Serial monitor  --  {port} at {baud} baud  --  Ctrl-\\ to leave, SPC m B for speed"), again }]
+                vec![Effect::Monitor { args: args(&["monitor", "-p", port, "-b", &board, "--config", &format!("baudrate={baud}")]), title: format!("Serial monitor  --  {port} at {baud} baud  --  Ctrl-\\ to leave, {} for speed", self.keys.baud), again }]
             }
             Action::Debug => self.debug(Some(port.to_string())),
         }
@@ -376,7 +417,7 @@ impl State {
                         out.extend(self.act(Action::Monitor, &port));
                     }
                 }
-                out.push(if ok { Effect::Notify("uploaded".into()) } else { Effect::Error("upload failed -- is the board plugged in, and is it the right port? (SPC m p)".into()) });
+                out.push(if ok { Effect::Notify("uploaded".into()) } else { Effect::Error(format!("upload failed -- is the board plugged in, and is it the right port? ({})", self.keys.port)) });
                 out
             }
             Some(After::Debugger { args }) if ok => vec![Effect::Console { args, title: "debugger  --  Ctrl-\\ to leave".into() }],
@@ -537,7 +578,7 @@ impl State {
         };
         let (kind, rest) = value.split_once(':').unwrap_or((value, ""));
         match kind {
-            "board" => saved(model::set_yaml_value(&root, "default_fqbn", rest), vec![Effect::Notify(format!("board: {rest} -- SPC m o for its options")), Effect::RestartLanguageServer], self),
+            "board" => saved(model::set_yaml_value(&root, "default_fqbn", rest), vec![Effect::Notify(format!("board: {rest} -- {} for its options", self.keys.board_options)), Effect::RestartLanguageServer], self),
             "more" => self.command("arduino.package"),
             "opt" => {
                 let Some((option, value)) = rest.split_once('=') else { return Vec::new() };
@@ -688,6 +729,36 @@ mod tests {
         let mut none = State::new("/project", Tools::default());
         assert!(matches!(&none.command("arduino.build")[0], Effect::Error(e) if e.starts_with("arduino-cli not found")));
         assert!(none.activate().is_empty());
+    }
+
+    #[test]
+    fn what_it_says_names_the_keys_of_the_scheme_in_use() {
+        // Fenix's key_for gives none for an SPC m command: its key in the
+        // menu, as each scheme writes the menu's keys; one of its own wins.
+        assert_eq!(menu_keys(None, Some("SPC m"), "s"), "SPC m s");
+        assert_eq!(menu_keys(None, Some("C-k m"), "s"), "C-k m s");
+        assert_eq!(menu_keys(Some("F8".into()), Some("C-k m"), "s"), "F8");
+        assert_eq!(menu_keys(None, None, "p"), "SPC m p");
+        for (keys, board, port, baud, options, new) in [
+            (Keys::default(), "SPC m s", "SPC m p", "SPC m B", "SPC m o", "SPC f n"),
+            (Keys::from_menu("C-k m", "C-k f n"), "C-k m s", "C-k m p", "C-k m B", "C-k m o", "C-k f n"),
+        ] {
+            let (_dir, mut st, blink) = in_sketch();
+            st.keys = keys;
+            assert_eq!(st.command("arduino.build"), [Effect::Error(format!("not in an Arduino sketch -- open a sketch's .ino file, or {new} to make one"))]);
+            st.focus(Some(&blink.join("Blink.ino")));
+            assert_eq!(st.command("arduino.build")[1], Effect::Notify(format!("building for arduino:avr:uno, the default -- {board} picks your board")));
+            let Effect::Notify(info) = &st.command("arduino.info")[0] else { panic!() };
+            assert!(info.contains(&format!("board arduino:avr:uno (default -- {board} to choose) · port none yet -- {port} ·")), "{info}");
+            model::set_yaml_value(&blink, "default_port", "COM4").unwrap();
+            let Effect::Monitor { title, .. } = &st.command("arduino.monitor")[0] else { panic!() };
+            assert!(title.ends_with(&format!("Ctrl-\\ to leave, {baud} for speed")), "{title}");
+            let Effect::Task { after: Some(after), .. } = st.command("arduino.upload").pop().unwrap() else { panic!() };
+            st.task_started(9, after);
+            assert_eq!(st.task_finished(9, false), [Effect::Error(format!("upload failed -- is the board plugged in, and is it the right port? ({port})"))]);
+            st.pick_opened(10, PickFor::default());
+            assert_eq!(st.picked(10, Some("board:arduino:avr:nano"))[0], Effect::Notify(format!("board: arduino:avr:nano -- {options} for its options")));
+        }
     }
 
     #[test]

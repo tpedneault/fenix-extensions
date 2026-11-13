@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.colours"
 name = "Colours"
-version = "1.1.0"
+version = "1.2.0"
 description = "Colour literals made visible and editable: a swatch beside each (hex, rgb(), hsl(), oklch(), CSS names, a theme's), a picker that writes it back as it was written, conversions between hex, RGB, HSL and OKLCH, a WCAG contrast checker, and the project's palette"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,9 +10,10 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# Decorations (the swatches), styled pages and the mouse.
-api = "1.0"
+fenix = ">=1.5, <2"
+# Decorations (the swatches), styled pages and the mouse; built on ui-kit,
+# which is on extension API 1.5.
+api = "1.5"
 
 # Started with Fenix, for the swatches in the file you open.
 [activation]

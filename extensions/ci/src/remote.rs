@@ -18,7 +18,7 @@ pub struct Repo {
 }
 
 /// What the settings say.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
     /// `github`, `gitlab`, or none to tell by the remote.
     pub provider: Option<Provider>,
@@ -31,6 +31,15 @@ pub struct Config {
     pub jenkins_url: Option<String>,
     /// The project's job there: `space/rocket`, or its address.
     pub jenkins_job: Option<String>,
+    /// The keys that open Fenix's settings, as the key scheme in use has
+    /// them (`SPC ,`, `C-,`): where what's missing is set.
+    pub settings_keys: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config { provider: None, github_url: None, gitlab_url: None, jenkins_url: None, jenkins_job: None, settings_keys: "SPC ,".to_string() }
+    }
 }
 
 /// The URL of a remote in a `.git/config`: `origin`'s, else the first.
@@ -91,11 +100,12 @@ pub fn is_jenkins(config: &Config) -> bool {
 
 /// The Jenkins job the settings name. A remote has no part in it.
 pub fn jenkins(config: &Config) -> Result<Repo, String> {
-    let base = nonempty(&config.jenkins_url).ok_or("Jenkins: set its address (ci.jenkins_url, like https://ci.example.com) in SPC , (CI status).")?;
+    let settings = &config.settings_keys;
+    let base = nonempty(&config.jenkins_url).ok_or_else(|| format!("Jenkins: set its address (ci.jenkins_url, like https://ci.example.com) in {settings} (CI status)."))?;
     if !base.starts_with("http://") && !base.starts_with("https://") {
         return Err(format!("Jenkins: its address (ci.jenkins_url) is {base}: it starts with https:// or http://"));
     }
-    let job = nonempty(&config.jenkins_job).ok_or("Jenkins: name this project's job (ci.jenkins_job, like space/rocket) in SPC , (CI status).")?;
+    let job = nonempty(&config.jenkins_job).ok_or_else(|| format!("Jenkins: name this project's job (ci.jenkins_job, like space/rocket) in {settings} (CI status)."))?;
     let path = crate::jenkins::job_path(job);
     if path.is_empty() {
         return Err(format!("Jenkins: couldn't read a job out of ci.jenkins_job ({job}): its folders and its name, like space/rocket"));
@@ -216,9 +226,13 @@ mod tests {
         assert_eq!(locate(Some("git@github.com:acme/rocket.git"), &github).unwrap().provider, Provider::GitHub);
         // Jenkins chosen, and what's missing is said.
         let forced = Config { provider: Some(Provider::Jenkins), ..Config::default() };
-        assert!(locate(None, &forced).unwrap_err().contains("ci.jenkins_url"));
+        assert_eq!(locate(None, &forced).unwrap_err(), "Jenkins: set its address (ci.jenkins_url, like https://ci.example.com) in SPC , (CI status).");
+        let standard = Config { settings_keys: "C-,".into(), ..forced.clone() };
+        assert_eq!(locate(None, &standard).unwrap_err(), "Jenkins: set its address (ci.jenkins_url, like https://ci.example.com) in C-, (CI status).", "standard keys' settings key");
         let no_job = Config { jenkins_url: Some("https://ci.example.com".into()), ..forced.clone() };
         assert!(locate(None, &no_job).unwrap_err().contains("ci.jenkins_job"));
+        let no_job = Config { settings_keys: "C-k ,".into(), ..no_job };
+        assert!(locate(None, &no_job).unwrap_err().ends_with("in C-k , (CI status)."));
         let bare = Config { jenkins_url: Some("ci.example.com".into()), jenkins_job: Some("rocket".into()), ..forced };
         assert!(bare.jenkins_url.is_some() && locate(None, &bare).unwrap_err().contains("https://"));
         assert_eq!(locate(None, &Config::default()).unwrap_err(), "This repository has no remote to find its CI by.");

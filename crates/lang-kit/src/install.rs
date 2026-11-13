@@ -3,12 +3,20 @@
 //! (`http-download`), unpacked here a step at a time, made to run
 //! (`set-executable`), and set for its languages (`project::
 //! language_server`, `debug_adapter`).
+//!
+//! Starting one is said in the message line, as you run its command. How
+//! it ended, minutes later perhaps, is a notification (API 1.3), since
+//! you may be in another file or away: tagged by the install
+//! ([`tag`]), so a newer one for the same tool takes the older's place;
+//! of low urgency when it worked, as Fenix's own toasts for a task that
+//! passed are, and normal when it didn't, saying what failed and offering
+//! to try again.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use fenix_extension_api::{Command, Event, HttpRequest};
+use fenix_extension_api::{Command, Event, HttpRequest, Notification, Urgency};
 
 use crate::archive::{Kind, Unpack};
 use crate::host::Host;
@@ -168,17 +176,78 @@ pub enum Handled {
     Ended(String, Result<(), String>),
 }
 
+/// The tag of install `name`'s notifications: the one saying how it
+/// ended takes the place of any before it for that tool.
+pub fn tag(name: &str) -> String {
+    format!("install.{name}")
+}
+
+/// What an install's uses make of it, for its notification: "the language
+/// server for zig", "the debug adapter for python".
+fn uses_said(i: &Install) -> String {
+    let langs = |l: &[String]| l.join(", ");
+    let said: Vec<String> = i
+        .uses
+        .iter()
+        .map(|u| match u {
+            Use::LanguageServer { languages, .. } => format!("the language server for {}", langs(languages)),
+            Use::DebugAdapter { languages, .. } | Use::DebugAdapterConnect { languages, .. } => format!("the debug adapter for {}", langs(languages)),
+            Use::AddedLanguageServer { languages, .. } => format!("a language server for {}, beside the others", langs(languages)),
+        })
+        .collect();
+    said.join(", and ")
+}
+
+/// Which step of an install failed, for its notification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Step {
+    Download,
+    Unpack,
+    SetUp,
+}
+
+/// How an install that ended is told: a notification, `Ok` or what failed
+/// at which step. `retry` is the command that installs it again, offered
+/// on a failure.
+fn ended(i: &Install, dir: &str, result: &Result<(), (Step, String)>, retry: Option<String>) -> Notification {
+    match result {
+        Ok(()) => {
+            let uses = uses_said(i);
+            let body = if uses.is_empty() { format!("In {dir}.") } else { format!("Now {uses}.") };
+            Notification::new(format!("Installed {}", i.label)).body(body).urgency(Urgency::Low).tag(tag(&i.name))
+        }
+        Err((step, why)) => {
+            let body = match step {
+                Step::Download => format!("Its download from {} failed: {why}.", i.url),
+                Step::Unpack => format!("It downloaded, but unpacking it failed: {why}."),
+                Step::SetUp => format!("It downloaded and unpacked, but setting it up failed: {why}."),
+            };
+            let n = Notification::new(format!("Couldn't install {}", i.label)).body(body).urgency(Urgency::Normal).tag(tag(&i.name));
+            match retry {
+                Some(command) => n.action("Try again", command),
+                None => n,
+            }
+        }
+    }
+}
+
 /// The installs a pack offers, and those going on.
 pub struct Installer {
     /// The tools folder: `/tools`.
     pub tools: String,
     pub installs: Vec<Install>,
+    /// The pack's command prefix (`zig`), when a [`crate::Kit`] has it: a
+    /// failed install's notification offers `<prefix>.install.<name>`
+    /// again.
+    pub prefix: Option<String>,
     jobs: HashMap<String, Job>,
+    /// Installs whose failure it told of: dismissed when one starts again.
+    failed: HashSet<String>,
 }
 
 impl Default for Installer {
     fn default() -> Installer {
-        Installer { tools: "/tools".into(), installs: Vec::new(), jobs: HashMap::new() }
+        Installer { tools: "/tools".into(), installs: Vec::new(), prefix: None, jobs: HashMap::new(), failed: HashSet::new() }
     }
 }
 
@@ -230,6 +299,9 @@ impl Installer {
             req = req.header(k, v);
         }
         let http = host.download(&req, &archive.to_string_lossy(), i.sha256.as_deref())?;
+        if self.failed.remove(&i.name) {
+            host.dismiss(&tag(&i.name));
+        }
         host.notify(&format!("Downloading {}…", i.label));
         self.jobs.insert(i.name.clone(), Job::Downloading { http, archive });
         Ok(())
@@ -247,10 +319,10 @@ impl Installer {
         let Some(name) = name else { return Handled::No };
         let Some(job) = self.jobs.remove(&name) else { return Handled::No };
         let Some(install) = self.get(&name).cloned() else { return Handled::No };
-        let result = match (job, event) {
+        let result: Result<(), (Step, String)> = match (job, event) {
             (Job::Downloading { archive, .. }, Event::HttpResponse((_, answer))) => match answer {
-                Err(why) => Err(why.clone()),
-                Ok(r) if !(200..300).contains(&r.status) => Err(format!("the server said {}", r.status)),
+                Err(why) => Err((Step::Download, why.clone())),
+                Ok(r) if !(200..300).contains(&r.status) => Err((Step::Download, format!("the server said {}", r.status))),
                 Ok(_) => {
                     let partial = self.partial(&install);
                     let _ = fs::remove_dir_all(&partial);
@@ -261,7 +333,7 @@ impl Installer {
                             self.jobs.insert(name, Job::Unpacking { timer, archive, unpack: Box::new(unpack) });
                             return Handled::Yes;
                         }
-                        Err(why) => Err(why),
+                        Err(why) => Err((Step::Unpack, why)),
                     }
                 }
             },
@@ -273,11 +345,11 @@ impl Installer {
                 }
                 Ok(true) => {
                     let _ = fs::remove_file(&archive);
-                    self.finish(host, &install, &unpack)
+                    self.finish(host, &install, &unpack).map_err(|why| (Step::SetUp, why))
                 }
                 Err(why) => {
                     let _ = fs::remove_file(&archive);
-                    Err(why)
+                    Err((Step::Unpack, why))
                 }
             },
             (job, _) => {
@@ -285,14 +357,13 @@ impl Installer {
                 return Handled::Yes;
             }
         };
-        match &result {
-            Ok(()) => host.notify(&format!("Installed {}", install.label)),
-            Err(why) => {
-                let _ = fs::remove_dir_all(self.partial(&install));
-                host.notify(&format!("Couldn't install {}: {why}", install.label));
-            }
+        if result.is_err() {
+            let _ = fs::remove_dir_all(self.partial(&install));
+            self.failed.insert(name.clone());
         }
-        Handled::Ended(name, result)
+        let retry = self.prefix.as_ref().map(|p| format!("{p}.install.{name}"));
+        host.notification(&ended(&install, &install.dir(&self.tools), &result, retry));
+        Handled::Ended(name, result.map_err(|(_, why)| why))
     }
 
     fn partial(&self, i: &Install) -> PathBuf {
@@ -399,7 +470,7 @@ mod tests {
                 format!("executable {t}/server/bin/server"),
                 "server python: /tools/server/bin/server --stdio".into(),
                 "adapter python: /tools/server/bin/server".into(),
-                "notify Installed Server".into(),
+                "notification low #install.server: Installed Server -- Now the language server for python, and the debug adapter for python.".into(),
             ]
         );
         assert_eq!(fs::read(tools.join("server/lib/core.js")).unwrap(), b"module.exports = 1\n");
@@ -422,7 +493,7 @@ mod tests {
         host.take();
         let refused = Event::HttpResponse((1, Err("its SHA-256 isn't abc123".into())));
         assert_eq!(ins.handle(&mut host, &refused), Handled::Ended("server".into(), Err("its SHA-256 isn't abc123".into())));
-        assert_eq!(host.take(), ["notify Couldn't install Server: its SHA-256 isn't abc123"]);
+        assert_eq!(host.take(), [format!("notification normal #install.server: Couldn't install Server -- Its download from {URL} failed: its SHA-256 isn't abc123.")]);
         ins.start(&mut host, "server").unwrap();
         host.take();
         let missing = Event::HttpResponse((2, Ok(HttpResponse::new(404, Vec::new()))));
@@ -439,6 +510,79 @@ mod tests {
         assert!(ins.start(&mut host, "other").is_err());
         assert_eq!(ins.handle(&mut host, &Event::Timer(99)), Handled::No);
         fs::remove_dir_all(&tools).unwrap();
+    }
+
+    /// How an install ended is a notification -- it can take minutes, and
+    /// you may be elsewhere -- tagged by the tool so the newest says it;
+    /// starting one is still the message line's.
+    #[test]
+    fn how_an_install_ended_is_a_notification_in_place_of_the_last() {
+        let (mut ins, mut host, tools) = installer("install-told");
+        ins.prefix = Some("python".into());
+        ins.start(&mut host, "server").unwrap();
+        assert_eq!(host.take()[1], "notify Downloading Server…", "said as it starts, in the message line, as before");
+        ins.handle(&mut host, &Event::HttpResponse((1, Ok(HttpResponse::new(404, Vec::new())))));
+        let failed = host.notifications.pop().unwrap();
+        assert_eq!((failed.summary.as_str(), failed.urgency, failed.tag.as_deref()), ("Couldn't install Server", Urgency::Normal, Some("install.server")));
+        assert_eq!(failed.body, format!("Its download from {URL} failed: the server said 404."), "what failed");
+        assert_eq!(failed.actions.iter().map(|a| (a.label.as_str(), a.command.as_str())).collect::<Vec<_>>(), [("Try again", "python.install.server")]);
+        host.take();
+
+        // Tried again: the failure's toast goes as it starts, and how it
+        // ended this time takes its place.
+        ins.start(&mut host, "server").unwrap();
+        assert_eq!(host.take()[1..], ["dismiss install.server".to_string(), "notify Downloading Server…".into()]);
+        ins.handle(&mut host, &Event::HttpResponse((2, ok())));
+        assert_eq!(run(&mut ins, &mut host), Handled::Ended("server".into(), Ok(())));
+        let done = host.notifications.pop().unwrap();
+        assert_eq!((done.summary.as_str(), done.urgency, done.tag.as_deref(), done.actions.len()), ("Installed Server", Urgency::Low, Some("install.server"), 0));
+
+        // A step after the download, said as that step.
+        let mut i = ins.get("server").unwrap().clone();
+        i.program = "bin/nope".into();
+        ins.add(i);
+        ins.start(&mut host, "server").unwrap();
+        ins.handle(&mut host, &Event::HttpResponse((5, ok())));
+        run(&mut ins, &mut host);
+        assert_eq!(host.notifications.pop().unwrap().body, "It downloaded and unpacked, but setting it up failed: bin/nope isn't in it.");
+        fs::remove_dir_all(&tools).unwrap();
+    }
+
+    /// A host of a pack's own without notifications says it in the
+    /// message line.
+    #[test]
+    fn a_host_without_notifications_says_it_in_the_message_line() {
+        struct Lines(Vec<String>);
+        impl Host for Lines {
+            fn spawn(&mut self, _: &Command) -> Result<u64, String> { Ok(1) }
+            fn close_stdin(&mut self, _: u64) {}
+            fn kill(&mut self, _: u64) {}
+            fn run_task(&mut self, _: &str, _: &Command) -> Result<u64, String> { Ok(1) }
+            fn download(&mut self, _: &HttpRequest, _: &str, _: Option<&str>) -> Result<u64, String> { Ok(1) }
+            fn set_executable(&mut self, _: &str) -> Result<(), String> { Ok(()) }
+            fn find_program(&mut self, _: &str, _: &[String]) -> Option<String> { None }
+            fn set_timer(&mut self, _: u32) -> u64 { 1 }
+            fn prompt(&mut self, _: &str, _: &str) -> u64 { 1 }
+            fn pick(&mut self, _: &str, _: &[fenix_extension_api::PickerItem]) -> u64 { 1 }
+            fn notify(&mut self, m: &str) { self.0.push(m.into()) }
+            fn log(&mut self, _: &str) {}
+            fn open_page(&mut self, _: &str, _: &str) -> u64 { 1 }
+            fn refresh(&mut self, _: u64) {}
+            fn open_text_beside(&mut self, _: &str, _: &str, _: Option<&str>) {}
+            fn doctor(&mut self, _: &[fenix_extension_api::Check]) {}
+            fn tasks(&mut self, _: &[fenix_extension_api::Task]) -> Result<(), String> { Ok(()) }
+            fn language_server(&mut self, _: &[String], _: Option<&Command>) -> Result<(), String> { Ok(()) }
+            fn debug_adapter(&mut self, _: &[String], _: Option<&Command>) -> Result<(), String> { Ok(()) }
+            fn formatter(&mut self, _: &[String], _: Option<&Command>) -> Result<(), String> { Ok(()) }
+            fn diagnostics(&mut self, _: &str, _: &[fenix_extension_api::Problem]) -> Result<(), String> { Ok(()) }
+            fn here(&mut self) -> Option<(String, Option<String>)> { None }
+            fn now(&mut self) -> u64 { 0 }
+        }
+        let mut host = Lines(Vec::new());
+        host.notification(&Notification::new("Couldn't install Server").body("the server said 404").urgency(Urgency::Normal));
+        host.notification(&Notification::new("Installed Server"));
+        host.dismiss("install.server");
+        assert_eq!(host.0, ["Couldn't install Server: the server said 404", "Installed Server"]);
     }
 
     #[test]

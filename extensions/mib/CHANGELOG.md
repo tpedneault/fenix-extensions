@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+- The hints that named a leader sequence (`SPC k k`, `SPC k e`, `SPC k ,`,
+  `SPC k g`, `SPC k f`, `SPC ,`) -- on a definition's card and page, in the
+  project doctor and in what it says when there's no MIB -- say the keys the
+  key scheme in use has: `C-k k k` with standard keys, your own leader chord
+  if you set one, a key you bound yourself.
+
 ## 1.3.0
 
 - For Fenix 1.5 (extension API 1.5): a name's card says the keys of the

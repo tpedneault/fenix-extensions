@@ -1,6 +1,6 @@
 [package]
 name = "fenix-http"
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
@@ -10,7 +10,7 @@ description = "An HTTP client in Fenix: .http files run from the buffer, their s
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 fenix-ui-kit = { path = "../../crates/ui-kit" }
 getrandom = "0.3"
 serde = { version = "1", features = ["derive"] }
@@ -19,6 +19,10 @@ serde_json_path = "0.7.2"
 sha1 = "0.10"
 sha2 = "0.10"
 yaml-rust2 = "0.13.0"
+
+[dev-dependencies]
+# The API with a fake host in its tests: the keys what it says names.
+fenix-test-kit = { path = "../../crates/test-kit" }
 
 [profile.release]
 opt-level = "s"

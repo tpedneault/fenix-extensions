@@ -4,7 +4,8 @@ Python in Fenix: basedpyright as the language server with ruff's beside
 it, debugging with debugpy, ruff as the formatter, tasks, the project doctor's
 checks with their fixes, outdated and vulnerable packages, snippets, and
 Django and Flask projects in the new-project wizard. Built on lang-kit
-(`crates/lang-kit`), as each language pack is.
+(`crates/lang-kit`), as each language pack is. It needs Fenix 1.5 or later
+(extension API 1.5); on an older Fenix, Python 1.1.0 is the one you get.
 
 It works for a project uv manages (a `uv.lock`, or `[tool.uv]` in
 `pyproject.toml`) and for one it doesn't: then the venv's packages are
@@ -144,7 +145,16 @@ this adds:
 `*.pyw`, `*.py3`, `*.wsgi`, `*.gyp`, `*.gypi`, `SConstruct`,
 `SConscript`, `wscript` and `.pythonrc` are read as Python.
 
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Python* section, in a
+Python project of yours: the project doctor and a fix from it, the
+packages page, a task, a debug session stopped at a breakpoint, and ruff
+on save. Each step is checked by what's on screen -- the page or the
+picker in front -- and a step whose tool isn't installed yet is skipped
+with `s` on the tutorial page; the doctor says how to install it.
+
 ## Keys
 
-After `SPC m` in a Python project: `p` packages, `d` check again, `s`
-sync.
+After `SPC m` in a Python project (`C-k m` with standard keys): `p`
+packages, `d` check again, `s` sync.

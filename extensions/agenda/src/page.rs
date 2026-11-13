@@ -62,6 +62,9 @@ pub struct Ctx<'a> {
     pub round: u32,
     /// "synced 3m ago", "syncing", or empty when Jira isn't set up.
     pub sync: String,
+    /// The keys that bring in Jira issues (`agenda.import`), as the key
+    /// scheme in use has them.
+    pub import_keys: String,
 }
 
 impl Ctx<'_> {
@@ -1912,8 +1915,8 @@ fn layout_today(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, sel: Option<Row>, le
         *y += 1;
     }
     if !any {
-        let empty = if ctx.store.tasks.is_empty() { "Nothing yet -- n adds a task, SPC A i brings in your Jira issues." } else { "Nothing needs you right now." };
-        g.put(*y, left + 1, empty, Role::Muted);
+        let empty = if ctx.store.tasks.is_empty() { format!("Nothing yet -- n adds a task, {} brings in your Jira issues.", ctx.import_keys) } else { "Nothing needs you right now.".to_string() };
+        g.put(*y, left + 1, &empty, Role::Muted);
         *y += 2;
     }
     if done_today > 0 {
@@ -2584,11 +2587,20 @@ mod tests {
     }
 
     fn ctx<'a>(store: &'a AgendaStore, categories: &'a [String]) -> Ctx<'a> {
-        Ctx { store, now: now(), categories, worklogs: &[], round: 15, sync: String::new() }
+        Ctx { store, now: now(), categories, worklogs: &[], round: 15, sync: String::new(), import_keys: "SPC A i".into() }
     }
 
     fn page() -> AgendaPage {
         AgendaPage::new(Tab::Today, Some(Project { name: "fenix".into(), jira_key: Some("FEN".into()) }))
+    }
+
+    #[test]
+    fn an_empty_agenda_names_the_import_keys_of_the_scheme_in_use() {
+        let (store, cats) = (AgendaStore::default(), cats());
+        let vim = ctx(&store, &cats);
+        assert!(layout(&page(), &vim, 130).text.contains("Nothing yet -- n adds a task, SPC A i brings in your Jira issues."));
+        let standard = Ctx { import_keys: "C-k A i".into(), ..ctx(&store, &cats) };
+        assert!(layout(&page(), &standard, 130).text.contains("Nothing yet -- n adds a task, C-k A i brings in your Jira issues."));
     }
 
     fn cats() -> Vec<String> {

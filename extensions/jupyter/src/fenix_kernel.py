@@ -321,7 +321,7 @@ class Builtin:
             v = eval(rest, self.ns)
             self.stdout.write("Wall time: %.3f s\n" % (time.perf_counter() - t))
             return v
-        self.stderr.write("%%%s needs IPython: install ipykernel into this Python (the notebook page's i key)\n" % name)
+        self.stderr.write("%%%s needs IPython: install ipykernel into this Python (the notebook page's P key)\n" % name)
         return None
 
     def shell(self, cmd):

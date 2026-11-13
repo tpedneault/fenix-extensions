@@ -8,7 +8,12 @@ in the middle and a preview on the right.
 
 `SPC j g` opens an issue by key, `SPC j /` searches (words, or JQL after
 `:`), and `SPC j n` makes an issue with the project's real types and
-fields.
+fields. With standard keys, `SPC` is `Ctrl+K`: `Ctrl+K j j`.
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys of the key scheme you use, and yours where you rebound them: before
+it's set up, the page and its messages point to the settings page by its
+keys -- `C-,` with standard keys, `SPC ,` with Vim keys.
 
 ## An issue's keys
 
@@ -25,7 +30,7 @@ fields.
 ## Setting it up
 
 Its server is `jira.base_url` and its token `jira.token`, both on the
-settings page (`SPC ,`); `FENIX_JIRA_TOKEN` overrides the token. The
+settings page (`SPC ,`, or `Ctrl+,` with standard keys); `FENIX_JIRA_TOKEN` overrides the token. The
 token is a personal access token, sent as a bearer token.
 
 | Setting | What it does |

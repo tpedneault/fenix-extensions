@@ -9,6 +9,7 @@
 pub mod edit;
 pub mod highlight;
 pub mod kernel;
+mod keys;
 pub mod markdown;
 pub mod nb;
 pub mod output;
@@ -16,7 +17,7 @@ pub mod page;
 
 use std::collections::HashMap;
 
-use fenix_extension_api::{self as api, buffer, export, host, page as pages, process, scratch, Changed, Command, Event, Extension, Key, KeyPress, MouseEvent, NamedKey, Page, SurfaceKey};
+use fenix_extension_api::{self as api, buffer, export, host, page as pages, process, scratch, Changed, Command, Event, Extension, Key, KeyPress, KeyScheme, MouseEvent, NamedKey, Page, SurfaceKey};
 
 use kernel::{Found, Launch};
 use page::{NotebookPage, Saved, World};
@@ -30,6 +31,8 @@ const BACKEND: &str = "/data/fenix_mpl.py";
 /// Fenix, as the pages ask things of it.
 struct Fenix<'a> {
     pictures: &'a mut HashMap<u64, u32>,
+    /// The task installing ipykernel, while it runs.
+    installing: &'a mut Option<u64>,
 }
 
 /// A hash of a picture's bytes: which it is, to load it once.
@@ -163,28 +166,52 @@ impl World for Fenix<'_> {
     }
 
     fn install_kernel(&mut self, _full: &str) {
-        install_ipykernel();
+        if let Some(task) = install_ipykernel() {
+            *self.installing = Some(task);
+        }
     }
 }
 
-/// ipykernel installed into the Python the notebooks run on, as a task.
-fn install_ipykernel() {
+/// ipykernel installed into the Python the notebooks run on, as a task:
+/// the task, when it started. How it ended is [`installed_said`]'s.
+fn install_ipykernel() -> Option<u64> {
     let found = find();
     let l = match kernel::launch(&found) {
         Ok(l) => l,
-        Err(e) => return api::notify(&e),
+        Err(e) => {
+            api::notify(&e);
+            return None;
+        }
     };
     let Some((program, args)) = kernel::install_ipykernel(&l, &found) else {
-        return api::notify("uv brings ipykernel for each run already");
+        api::notify("uv brings ipykernel for each run already");
+        return None;
     };
     let mut cmd = Command::new(&program).args(args);
     if found.pyproject {
         cmd = cmd.cwd("/project");
     }
-    if let Err(e) = cmd.run_as_task("install ipykernel") {
-        api::notify(&e);
+    match cmd.run_as_task("install ipykernel") {
+        Ok(task) => {
+            api::notify("installing ipykernel, in the task pane");
+            Some(task)
+        }
+        Err(e) => {
+            api::notify(&e);
+            None
+        }
+    }
+}
+
+/// What's said in the message line when the task installing ipykernel
+/// ends, whether it succeeded: what to do next. (Fenix tells of a task of
+/// 10 seconds or more in a notification of its own; this says what it
+/// means for the notebooks, however long it took.)
+fn installed_said(ok: bool) -> &'static str {
+    if ok {
+        "ipykernel is installed: 00 on a notebook starts its kernel again with it"
     } else {
-        api::notify("installing ipykernel: 00 on a notebook starts its kernel again with it");
+        "ipykernel wasn't installed: the task pane has why"
     }
 }
 
@@ -235,6 +262,8 @@ struct Jupyter {
     pictures: HashMap<u64, u32>,
     /// The page last shown or used: what the commands act on.
     last: Option<u64>,
+    /// The task installing ipykernel, while it runs.
+    installing: Option<u64>,
 }
 
 impl Jupyter {
@@ -257,7 +286,7 @@ impl Jupyter {
     /// `f` on a page, with Fenix; the page laid out again after.
     fn with(&mut self, page: u64, f: impl FnOnce(&mut NotebookPage, &mut dyn World)) {
         let Some(p) = self.pages.get_mut(&page) else { return };
-        f(p, &mut Fenix { pictures: &mut self.pictures });
+        f(p, &mut Fenix { pictures: &mut self.pictures, installing: &mut self.installing });
         self.last = Some(page);
         pages::refresh(page);
     }
@@ -282,7 +311,9 @@ impl Extension for Jupyter {
 
     fn run_command(&mut self, id: &str) -> Result<(), String> {
         if id == "jupyter.install-ipykernel" {
-            install_ipykernel();
+            if let Some(task) = install_ipykernel() {
+                self.installing = Some(task);
+            }
             return Ok(());
         }
         let Some(page) = self.current() else {
@@ -319,6 +350,10 @@ impl Extension for Jupyter {
                 }
             }
             Event::PageShown((page, true)) if self.pages.contains_key(&page) => self.last = Some(page),
+            Event::TaskFinished((task, ok)) if self.installing == Some(task) => {
+                self.installing = None;
+                api::notify(installed_said(ok));
+            }
             _ => {}
         }
     }
@@ -327,7 +362,7 @@ impl Extension for Jupyter {
         let Some(p) = self.pages.get_mut(&page) else {
             return Page::new().line([pages::muted("Nothing here: the notebook is closed")]);
         };
-        let c = p.render(width as usize, height as usize, &mut Fenix { pictures: &mut self.pictures });
+        let c = p.render(width as usize, height as usize, &mut Fenix { pictures: &mut self.pictures, installing: &mut self.installing });
         Page::canvas(c.to_api()).more_keys(true).mouse(true)
     }
 
@@ -386,9 +421,17 @@ impl Extension for Jupyter {
         true
     }
 
+    /// Vim keys or standard keys now: a page that names a key says it
+    /// again.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        for &page in self.pages.keys() {
+            pages::refresh(page);
+        }
+    }
+
     fn page_closed(&mut self, page: u64) {
         if let Some(mut p) = self.pages.remove(&page) {
-            p.close(&mut Fenix { pictures: &mut self.pictures });
+            p.close(&mut Fenix { pictures: &mut self.pictures, installing: &mut self.installing });
         }
     }
 
@@ -446,5 +489,11 @@ mod tests {
         // It's written as it is: a syntax error would only show when run.
         assert!(kernel::SCRIPT.contains("def main():") && kernel::SCRIPT.ends_with("main()\n"));
         assert!(kernel::BACKEND.contains("FigureCanvas = FigureCanvasAgg"));
+    }
+
+    #[test]
+    fn how_installing_ipykernel_ended_says_what_to_do_next() {
+        assert!(installed_said(true).contains("00 on a notebook starts its kernel again"));
+        assert!(installed_said(false).contains("wasn't installed") && installed_said(false).contains("task pane"));
     }
 }

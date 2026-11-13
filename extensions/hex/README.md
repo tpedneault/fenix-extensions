@@ -74,6 +74,9 @@ A copy takes up to 1 MiB.
 | --- | --- |
 | `hex.bytesPerRow` | Bytes on each row, up to 64; `0` fits as many as the pane takes (8, 16 or 32). 16 unless set |
 
+It needs Fenix 1.5 or later (extension API 1.5), as the `ui-kit` it's
+built on is.
+
 ## Permissions
 
 | Permission | Why |

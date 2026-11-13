@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.jupyter"
 name = "Jupyter notebooks"
-version = "1.0.0"
+version = "1.1.0"
 description = "Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib's plots and other pictures -- cells edited beside it and changed through the file's buffer, and run on the notebook's Python: ipykernel when it's there, Python itself when it isn't, input() asked of you"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,10 @@ categories = ["languages", "data", "tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# The keys of the scheme in use in what it says (key_for,
+# key-scheme-changed: 1.5), as ui-kit, which it's built on, is.
+api = "1.5"
 
 [permissions]
 # The notebook's Python, which runs fenix_kernel.py from the extension's

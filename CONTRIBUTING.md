@@ -216,8 +216,10 @@ is `api = "1.5"`). The floor is the first Fenix offering that API:
 |---|---|---|---|---|---|---|
 | First Fenix | 1.0.0 | 1.0.1 | 1.1.0 | 1.2.0 | 1.3.0 | 1.5.0 |
 
-Build against the oldest API that has what you use. Most extensions here
-are on 1.0.
+Build against the oldest API that has what you use -- unless you use a
+shared kit (`ui-kit`, `lang-kit`, `test-kit`): they build against 1.5,
+and an extension on one builds against the same, so its floor is Fenix
+1.5. Most extensions here are on 1.5.
 
 **Raising a floor.** An older Fenix isn't told about a release it can't
 run: it keeps the last one that fits. Nothing breaks, but those users
@@ -419,50 +421,142 @@ screenshot taken by hand in the house style is fine.
 
 A lesson is a few steps in Fenix's tutorial (`SPC h T`), checked as you
 go: each says what to do, and passes when Fenix sees it done -- a page
-open, a page closed, the practice text changed, the cursor somewhere.
-An extension with pages or a workflow should have one. Lessons are data:
-`tutorial/<topic>.toml` in the extension's folder, packed with the rest,
-listed after Fenix's own under their `track`. The format is Fenix's
-(`crates/fenix-gui/src/tutorial.rs`); the one in the store is
-[Review's](extensions/review/tutorial/pull-requests.toml).
+open, a page closed, a picker, the practice text changed, the cursor
+somewhere. It's never the keys pressed that are checked, so any way
+there passes. An extension with pages or a workflow should have one.
+Lessons are data: `tutorial/<topic>.toml` in the extension's folder,
+packed with the rest, listed after Fenix's own under their `track`. The
+format is Fenix's (`crates/fenix-gui/src/tutorial.rs`); in the store,
+[Review's](extensions/review/tutorial/pull-requests.toml),
+[Notebook's](extensions/notebook/tutorial/notes.toml),
+[Jupyter's](extensions/jupyter/tutorial/notebooks.toml) and the
+language packs' (below).
 
 ```toml
-id = "dusk.contrast"        # its own name first, unique
-track = "Dusk"              # its section in the tutorial
-order = 1                   # its place in the track
+id = "dusk.contrast"        # <name>.<topic>: its own name first; Fenix keeps what's done by it
+track = "Dusk"              # its section in the tutorial, after Fenix's own (never Editing, Fenix or Git)
+order = 1                   # its place in the track, from 1
 title = "Checking contrast"
 about = "One line under the title: what it teaches, and what it needs (a project on GitHub, a server)."
 text = """
 The practice buffer: what the lesson is about and its keys, to read
-while you do it.
+while you do it -- and what a text step changes.
 
 SPC d c   the contrast page
 """
 
 [[step]]
-say = "SPC d c: the contrast page."           # what to do
-hint = "Space, d, c."                        # shown after a try that didn't pass, or a pause
-page = "fenix.dusk/contrast"                 # passes with this page in front: <id>/<kind>
+say = "SPC d c: the contrast page."              # one thing to do
+hint = "SPC d, then c."                          # after a try that didn't pass, or 20 seconds
+page = "fenix.dusk/contrast"                     # passes with this page in front: <id>/<kind>
 
 [[step]]
 say = "q closes it."
 hint = "q, on the page."
-closed = "fenix.dusk/contrast"               # passes once no page of this kind is open
+closed = "fenix.dusk/contrast"                   # passes once no page of this kind is open
 ```
 
-- A step's checks all have to hold: `page`, `closed`, `text` (the
-  practice buffer's whole text), `cursor` (`[line, column]` from 1),
-  `line`, `mode`, `picker`, `windows`, `terminal` and the rest in
-  `tutorial.rs`. Unknown fields are refused.
-- `say` is one action. `hint` says the keys one at a time, and what to
-  do when the step can't work here (Review's: "s on the tutorial page
-  skips this").
-- From Fenix 1.5, `scheme = "vim"` or `"standard"` keeps a lesson to
-  one key scheme, and its text can write `{leader}` and
-  `{key:command.id}` for keys as the scheme in use has them. An older
-  Fenix can't read a lesson that does, so its extension needs
-  `fenix = ">=1.5"`.
-- Try it through to the end in a clean profile.
+The fields, and the Fenix that reads each -- everything not listed is
+Fenix 1.0's:
+
+| Field | | Fenix |
+|---|---|---|
+| `id`, `track`, `title` | needed | 1.0 |
+| `order`, `about`, `text` | | 1.0 |
+| `[[step]]` | at least one: `say`, `hint`, and its checks | 1.0 |
+| `[repo]` | `file` and `committed`: a Git repository made fresh for the lesson, its practice buffer that file (Fenix's Git lesson) | 1.0 |
+| `scheme` | `vim`, `standard` or `any`: only listed for that key scheme | 1.5 |
+| `{leader}`, `{key:command.id}` in its words | the leader, and the keys that run a command, as the scheme in use has them | 1.5 |
+
+A step's checks, all of which have to hold:
+
+| Check | Passes when |
+|---|---|
+| `page` | this page is in front: one of Fenix's (`doctor`, `settings`, `projects`, `git`, `extensions`, `tutorial`, ...; `notifications` and `agent-usage` from 1.2), a tab or fact of one (`extensions/browse`, `git/staged`, `git/menu/commit`), or an extension's, `<id>/<kind>` |
+| `closed` | no page of this kind is open, after one was during the step |
+| `picker` | `files`, `commands`, `bindings`, `lines`, `buffers`, `tasks`; `any` (an extension's picker, the launches, ...); `none` once one was put away |
+| `text` | the practice buffer has the lines this step changes, back in Normal mode |
+| `cursor`, `line` | the cursor in the practice buffer, `[line, column]` from 1 |
+| `mode`, `leader`, `windows`, `moved`, `terminal` | as `tutorial.rs` says |
+
+- **What a lesson can see** is only that: the page or picker in front,
+  the pages open, the practice buffer, the windows, the terminal. Not
+  the debugger, a task's output, a prompt, a fix the doctor ran, a file
+  opened, a page an extension opens *beside* (focus stays where it was:
+  check `windows = "+1"` instead).
+- **Every step checks something**: Fenix refuses a lesson with a step
+  that doesn't, so there's no step that only says. An action nothing
+  shows goes in the `say` of the step whose check comes after it --
+  "`f` on the row runs its fix. Then `q`", `closed = "doctor"` -- as
+  Review's "Enter on one would review it ... `q` closes the list for
+  now" does.
+- **`s` on the tutorial page skips a step**, and skipping a step that
+  opens a page or a picker skips the one that closes it. Say in its
+  `hint` what it needs and that `s` skips it ("Without cargo, `s` on the
+  tutorial page skips this"), so someone without the tool gets through.
+- **Write keys as `SPC`**: Fenix 1.5 says `SPC` as standard keys' leader
+  (`Ctrl+K`) by itself. `{leader}`, `{key:...}` and `scheme` need
+  `fenix = ">=1.5"`; an older Fenix refuses `scheme` and shows the
+  others as written. Don't raise an extension's floor for a lesson:
+  write it without them.
+- A new lesson is new packed content: a minor release, as anything new
+  is ([Versions](#versions)).
+- Try it through to the end in a clean profile, with and without the
+  tools it needs.
+
+**`cargo xtask validate` checks every lesson** as Fenix reads it --
+every field known and of its type, what's needed there, a check on
+every step and the values Fenix knows -- and what would load and not
+work: an id that isn't `<name>.<topic>`, is taken (by another lesson
+here or one of Fenix's), a track that's Fenix's, an `order` missing or
+taken in its track, a `page` that isn't Fenix's or an extension's here
+-- yours, or one you depend on, whose source opens that kind -- a
+`closed` on a tab or a fact (never a kind, so never passes), a field or
+placeholder the extension's `fenix` floor can't read (it says which
+floor would), a `{key:...}` of an extension's that isn't its command, a
+step whose `text` is what it starts from (it passes at once), a
+`[repo]` file in a folder, a file in `tutorial/` Fenix won't read.
+
+### A language pack's lesson
+
+One shape for every language pack, so a learner who has done one knows
+the next. Rust's, Python's, Web's and Go's are it, each
+`tutorial/project.toml`:
+
+- `id = "<name>.project"`, `track` the pack's `name` (`"Rust"`,
+  `"Web: JavaScript and TypeScript"`), `order = 1`, `title = "A <language>
+  project: doctor, <packages>, tasks, debugging"`.
+- `about` says it's done in a project of the learner's (and how to make
+  one: `cargo new`, `uv init`, `npm init -y`, `go mod init`), and that `s`
+  skips a step whose tool isn't installed yet.
+- `text` lists the keys, and a practice program of a few lines with a
+  loop, for a project with none of its own, and the line to break on.
+- Ten steps, five pairs:
+
+| | Step | Check |
+|---|---|---|
+| 1 | `SPC p h`: the doctor, naming the pack's checks | `page = "doctor"` |
+| 2 | `f` on the server's row runs its fix (say the command); then `q` | `closed = "doctor"` |
+| 3 | `SPC m p`: the packages page | `page = "fenix.<name>/packages"` |
+| 4 | `u` `a` `d`, as tasks; `q` | `closed = "fenix.<name>/packages"` |
+| 5 | `SPC p t`: the tasks (say which) | `picker = "tasks"` |
+| 6 | the test task, Enter (or Esc) | `picker = "none"` |
+| 7 | in a file of the language, `SPC u b`; then `SPC u U`, the launches | `picker = "any"` |
+| 8 | the launch for the practice program, Enter: it stops at the breakpoint; `n`, `c`, `SPC u q` | `picker = "none"` |
+| 9 | `SPC ,`: `editor.format_on_save`, naming the formatter | `page = "settings"` |
+| 10 | `q`; saving now formats and lints (say with what, and its setting) | `closed = "settings"` |
+
+- The pack's own words in each: its doctor rows and their fix commands,
+  what its packages page calls them (crates, modules), its task names,
+  its launch's name, its formatter and linter and their settings -- from
+  its manifest, README and source.
+- Without the toolchain, steps 1-2 and 9-10 work anywhere, and the
+  doctor's rows say what's missing; 3-8 are skipped, three `s`, each
+  skipping its pair. `SPC u U` rather than `SPC u u`: it always offers
+  the launches, where `SPC u u` starts the last one again, and with no
+  adapter neither opens anything.
+- The breakpoint and the stop aren't seen by the tutorial: step 8
+  passes when the picker goes, and says what follows.
 
 ## Shared crates
 

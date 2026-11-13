@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0
+
+For Fenix 1.5 (extension API 1.5):
+
+- What it says names the keys of the key scheme in use, and yours when
+  you've bound your own: "switch to one (`C-k g w`)" with standard keys,
+  `SPC g w` with Vim keys, and `C-,` or `SPC ,` where it sends you to
+  Fenix's settings for a token, a GitLab server or the base branch.
+- A pull request opened is a notification, not a line in the message
+  line: Enter on it, or a click, opens it in the browser. When asking
+  its reviewers didn't work, the notification says so.
+- The README gives standard keys beside Vim's.
+
 ## 1.2.0
 
 For Fenix 1.3 (extension API 1.4):

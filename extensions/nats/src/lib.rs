@@ -17,6 +17,7 @@ pub mod conn;
 pub mod core;
 pub mod filter;
 pub mod js;
+pub mod keys;
 pub mod payload;
 pub mod publish;
 pub mod store;
@@ -121,7 +122,7 @@ fn servers() -> (Vec<Addr>, Vec<String>) {
     let mut ok = Vec::new();
     let mut bad = Vec::new();
     for url in setting_list("nats.servers") {
-        match Addr::parse(&url) {
+        match Addr::parse(&url, &keys::keys_for("nats.credentials", "SPC o m a")) {
             Ok(a) => ok.push(a),
             Err(e) => bad.push(e),
         }
@@ -142,7 +143,7 @@ fn auth_key(addr: &Addr) -> String {
 /// How it signs in to `addr`: what the keychain keeps for it.
 fn auth_for(addr: &Addr) -> Result<Auth, String> {
     let Some(text) = api::secret(&auth_key(addr)) else { return Ok(Auth::None) };
-    let v: serde_json::Value = serde_json::from_str(&text).map_err(|_| "its credentials in the keychain aren't readable: SPC o m a sets them again".to_string())?;
+    let v: serde_json::Value = serde_json::from_str(&text).map_err(|_| format!("its credentials in the keychain aren't readable: {} sets them again", keys::keys_for("nats.credentials", "SPC o m a")))?;
     let s = |k: &str| v[k].as_str().unwrap_or("").to_string();
     Ok(match v["method"].as_str().unwrap_or("none") {
         "user" => Auth::UserPassword(s("user"), s("password")),
@@ -384,7 +385,7 @@ impl Nats {
                 }
                 CoreEvent::AuthFailed(id, why) => {
                     if let Some(c) = self.core.conn_index(id).map(|i| &self.core.conns[i]) {
-                        let text = format!("NATS {}: sign-in refused ({why}) -- SPC o m a sets its credentials", c.addr.key());
+                        let text = format!("NATS {}: sign-in refused ({why}) -- {} sets its credentials", c.addr.key(), keys::keys_for("nats.credentials", "SPC o m a"));
                         host::notify(Level::Warn, &text);
                     }
                 }
@@ -511,7 +512,8 @@ impl Nats {
         if let Some(s) = self.scratch.take() {
             api::scratch::close(s);
         }
-        self.scratch = Some(api::scratch::open("NATS publish (SPC o m s sends, SPC o m r requests)", text, Some("json")));
+        let keys = keys::Keys::now();
+        self.scratch = Some(api::scratch::open(&format!("NATS publish ({} sends, {} requests)", keys.send, keys.request), text, Some("json")));
     }
 
     /// The publish buffer, sent: published, or as a request.
@@ -1104,14 +1106,14 @@ impl Extension for Nats {
             "nats.export" => self.action(Action::ExportView),
             "nats.connect" => {
                 if self.core.conns.is_empty() {
-                    return Err("nats.servers lists no servers: SPC , adds them".into());
+                    return Err(format!("nats.servers lists no servers: {} adds them", keys::keys_for("settings.open", "SPC ,")));
                 }
                 let items: Vec<PickerItem> = self.core.conns.iter().map(|c| PickerItem::new(c.addr.key(), c.addr.key()).detail(format!("{} · {}", c.state(), c.addr.url))).collect();
                 self.asks.insert(api::pick("NATS: connect or disconnect", &items), Ask::Toggle);
             }
             "nats.credentials" => {
                 match self.core.conns.len() {
-                    0 => return Err("nats.servers lists no servers: SPC , adds them".into()),
+                    0 => return Err(format!("nats.servers lists no servers: {} adds them", keys::keys_for("settings.open", "SPC ,"))),
                     1 => {
                         let a = self.core.conns[0].addr.clone();
                         self.ask_method(a);
@@ -1176,11 +1178,12 @@ impl Extension for Nats {
         self.shown.insert(page);
         let now_ms = now_us() / 1000;
         if Some(page) == self.live_page {
+            self.live.keys = keys::Keys::now();
             self.live.render(&self.core, width, height, now_ms)
         } else if Some(page) == self.js_page {
             self.js.render(&self.core, width, height)
         } else {
-            Page::new().line([api::page::muted("This page is gone: SPC o m m opens NATS again.")])
+            Page::new().line([api::page::muted(format!("This page is gone: {} opens NATS again.", keys::keys_for("nats.open", "SPC o m m")))])
         }
     }
 

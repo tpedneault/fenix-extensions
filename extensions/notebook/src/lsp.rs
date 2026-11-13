@@ -152,8 +152,14 @@ impl LanguageServer for Lsp<'_> {
         // In a ```mermaid block: how to see it drawn.
         let all = docs.text(uri)?;
         exports::mermaid_block_at(all, at.position.line as usize)?;
-        text("A Mermaid diagram -- `SPC m p` draws it beside; `SPC n s` keeps it in the notebook".into())
+        text(mermaid_hint(&crate::keys::menu_keys("notebook.preview", "p"), &crate::keys::keys("notebook.save_block", "SPC n s")))
     }
+}
+
+/// What it says in a ```mermaid block, with the keys that draw it beside
+/// (the reading view) and keep it in the notebook.
+fn mermaid_hint(draw_keys: &str, save_keys: &str) -> String {
+    format!("A Mermaid diagram -- `{draw_keys}` draws it beside; `{save_keys}` keeps it in the notebook")
 }
 
 impl NotebookExt {
@@ -212,6 +218,12 @@ impl NotebookExt {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_mermaid_block_hover_names_both_schemes_keys() {
+        assert_eq!(super::mermaid_hint("SPC m p", "SPC n s"), "A Mermaid diagram -- `SPC m p` draws it beside; `SPC n s` keeps it in the notebook");
+        assert_eq!(super::mermaid_hint("C-k m p", "C-k n s"), "A Mermaid diagram -- `C-k m p` draws it beside; `C-k n s` keeps it in the notebook");
+    }
+
     use super::*;
 
     #[test]

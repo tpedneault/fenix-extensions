@@ -5,7 +5,8 @@ or golangci-lint on save, gofmt or goimports as the formatter, tasks,
 the project doctor's checks with their fixes, outdated and vulnerable
 modules, snippets, and CLI, HTTP service and library projects in the
 new-project wizard. Built on lang-kit (`crates/lang-kit`), as each
-language pack is.
+language pack is. It needs Fenix 1.5 or later (extension API 1.5); on an
+older Fenix, Go 1.1.0 is the one you get.
 
 What `go install` installs goes to `~/go/bin`, which an editor started
 from the desktop often doesn't have on its `PATH`: the pack looks there
@@ -145,6 +146,17 @@ mod init`:
 - **Go · library module**: a documented package, table-driven tests, and
   an example `go test` checks.
 
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Go* section, in a Go
+module of yours: the project doctor and a fix from it, the modules page,
+a task, a debug session stopped at a breakpoint, and goimports and the
+linter on save. Each step is checked by what's on screen -- the page or
+the picker in front -- and a step whose tool isn't installed yet is
+skipped with `s` on the tutorial page; the doctor says how to install
+it.
+
 ## Keys
 
-After `SPC m` in a Go project: `p` modules, `d` check again, `t` tidy.
+After `SPC m` in a Go project (`C-k m` with standard keys): `p` modules,
+`d` check again, `t` tidy.

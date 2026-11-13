@@ -6,6 +6,8 @@ where the project has an `.ocamlformat`, dune's tasks with a `dune exec`
 for each executable, debugging bytecode with earlybird, the project
 doctor's checks with fixes that run `opam install`, snippets, and a dune
 project. Built on lang-kit (`crates/lang-kit`), as each language pack is.
+It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, OCaml
+1.0.0 is the one you get.
 
 It works for a dune project (`dune-project`, or `dune` files) and for a
 folder of scripts.
@@ -125,8 +127,8 @@ exec` as its run task.
 
 ## Keys
 
-After `SPC m` in an OCaml project or file: `d` checks the project again,
-`r` reads it again, `g` opens opam's page.
+After `SPC m` in an OCaml project or file (`C-k m` with standard keys):
+`d` checks the project again, `r` reads it again, `g` opens opam's page.
 
 ## Not yet
 

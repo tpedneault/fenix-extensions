@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-mib-extension"
-version = "1.3.0"
+version = "1.4.0"
 dependencies = [
  "fenix-ccsds",
  "fenix-extension-api",

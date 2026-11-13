@@ -17,6 +17,7 @@
 
 pub mod doctor;
 pub mod grpc;
+pub mod keys;
 pub mod lint;
 pub mod project;
 pub mod tasks;
@@ -496,7 +497,7 @@ impl Protobuf {
         self.client.error = None;
         self.client.loading = None;
         let Some(g) = self.grpcurl() else {
-            self.client.error = Some("grpcurl isn't installed: I installs it, or the doctor's fix row (SPC p d)".into());
+            self.client.error = Some(keys::no_grpcurl(&keys::doctor()));
             self.refresh_client();
             return;
         };
@@ -671,7 +672,7 @@ impl Protobuf {
 
     /// The selected method called with its body and metadata.
     fn invoke(&mut self) -> Result<(), String> {
-        let path = self.client.path().ok_or("choose a method first: SPC m g opens the client")?;
+        let path = self.client.path().ok_or_else(|| keys::no_method(&keys::client()))?;
         let (_, method) = self.method().ok_or("that method isn't described yet")?;
         let g = self.grpcurl().ok_or("grpcurl isn't installed: the doctor's fix row installs it")?;
         let target = g.target.clone().ok_or("no server to call: T picks one, or adds one")?;

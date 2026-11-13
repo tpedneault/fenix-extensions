@@ -113,6 +113,16 @@ impl Grouper {
     }
 }
 
+/// Whether a line (`text`, without its newline) starts an entry rather
+/// than going with the one before: where to begin reading a log from
+/// somewhere in its middle.
+pub fn starts_entry(grouping: Grouping, text: &[u8], rules: &Rules) -> bool {
+    if text.is_empty() || text[0] == b' ' || text[0] == b'\t' {
+        return false;
+    }
+    !continues(grouping, text, &detect(text, rules))
+}
+
 /// Whether a line that isn't indented goes with the entry before it.
 fn continues(grouping: Grouping, text: &[u8], seen: &Seen) -> bool {
     match grouping {

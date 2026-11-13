@@ -33,6 +33,10 @@ MIB's, when it's on):
 | `SPC m s` | `code.symbols` | Fuzzy-find a definition by its fully-qualified name and jump to it |
 | `SPC m T` | `completion.refresh_tags` | Scan the project with ctags again, and say how many definitions it found |
 
+What it says when it names a key (ctags missing, no definitions found)
+gives the keys you have: `C-k m s` with standard keys, `SPC m s` with
+Vim keys.
+
 ## The project doctor
 
 In a Tcl project (a `pkgIndex.tcl` or a `.tcl` file at its top, or

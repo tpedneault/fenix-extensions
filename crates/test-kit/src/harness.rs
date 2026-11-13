@@ -2,7 +2,7 @@
 //! fake has for it -- a process's lines, a picker's answer -- given to it
 //! after each, as events.
 
-use fenix_extension_api::{Changed, Event, Extension, Focus, Key, KeyMods, KeyPress, MouseAction, MouseButton, MouseEvent, MousePress, NamedKey, Page, SurfaceKey};
+use fenix_extension_api::{Changed, Event, Extension, Focus, Key, KeyMods, KeyPress, KeyScheme, MouseAction, MouseButton, MouseEvent, MousePress, NamedKey, Page, SurfaceKey};
 
 use crate::fake::Fake;
 use crate::render;
@@ -181,6 +181,29 @@ impl<E: Extension> Harness<E> {
         let call = Fake::with(|s| s.id());
         let r = self.ext.serve(call, name, payload);
         self.after(r)
+    }
+
+    /// You switched to `scheme` (Vim keys or standard keys): set in the
+    /// fake, so `key_scheme` and `key_for` answer for it, then said
+    /// (`key-scheme-changed`, API 1.5).
+    pub fn key_scheme(&mut self, scheme: KeyScheme) {
+        self.fake.key_scheme(scheme);
+        self.ext.key_scheme_changed(scheme);
+        self.after(())
+    }
+
+    /// Service call `call`, which it said it would answer later, was given
+    /// up on (`service-cancelled`, API 1.2).
+    pub fn cancelled(&mut self, call: u64) {
+        self.ext.service_cancelled(call);
+        self.after(())
+    }
+
+    /// The answer to its ask `call` so far, all of it
+    /// (`agent-ask-progress`, API 1.2).
+    pub fn ask_progress(&mut self, call: u64, text: &str) {
+        self.ext.agent_ask_progress(call, text);
+        self.after(())
     }
 
     /// Timer `timer` went off: one that doesn't repeat is done with.

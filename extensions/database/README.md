@@ -28,6 +28,23 @@ Connections                 │ dev  2 statements · 14 ms
 A `.sqlite`, `.sqlite3`, `.db` or `.db3` file opens straight into it,
 however you open it.
 
+No database at hand? **Database: a sample database to try it on**
+(`database.sample`, from the command palette) makes one: a small shop's
+customers, products, orders and their items, in SQLite, as `sample.db`
+in the browser with its tables open. It needs no server and nothing
+installed, and it's made afresh each time you run it -- kept in the
+extension's own folder, never in your project.
+
+## Learning it
+
+The tutorial (`SPC h T`) has a lesson for it, **The database browser**,
+under *Database*: the browser and its sidebar, a table's rows sorted and
+filtered, a `.sql` buffer on a connection, the statement under the cursor
+run, its results, the history, and picking a buffer's connection. It
+practises on the sample database, so it goes through to its end with
+nothing installed; its keys are said as your key scheme has them (Fenix
+1.5).
+
 ## Connections
 
 `database.connections` holds them, a row each: a name, the engine
@@ -79,6 +96,13 @@ quotes, quoted names and comments; PostgreSQL's dollar quoting
 (`$$ ... $$`, `$body$`) and nested comments; MySQL's `#` comments,
 backslashes in strings and `DELIMITER`; SQL Server's `[names]` and `GO`
 lines; SQLite's trigger bodies.
+
+With standard keys, `SPC` is `Ctrl+K`: the menu is `Ctrl+K m`. On the
+browser, `?` lists its keys, and a `.sql` buffer's as the key scheme you
+use has them, and yours where you rebound them: `SPC m` with Vim keys,
+`C-k m` and `C-Enter` with standard keys. Its empty results and the
+modeline name them the same way. It needs Fenix 1.5 or later (extension
+API 1.5).
 
 ## Results
 
@@ -223,6 +247,10 @@ can only read.
 - Be told which buffer has the focus (`events = ["focus"]`), for the
   modeline.
 
+Its own folder takes no permission: the history, which connection each
+buffer runs on, a copy of a SQLite file from outside the project, and the
+sample database are kept there. 1.4.0 asks for nothing new.
+
 ## Building
 
 ```text
@@ -238,5 +266,13 @@ against RFC 7677's example, the scrambles, TDS's types, the catalog put
 together into a schema and its tree, SQLite files made by SQLite itself
 (Python's `sqlite3`) read and written and their journal put back, the
 UPDATE builder and table pages, completion, history, the pages'
-keys and layout, and what agents are given: the read-only guard, the
-schema and rows as JSON.
+keys and layout -- their hints naming the keys of the scheme in use, on
+the [test kit](../../crates/test-kit)'s fake host -- the
+sample database made, made afresh and read, and what agents are given:
+the read-only guard, the schema and rows as JSON, and their session
+closed when its connection's row changes.
+
+The tutorial's lesson (`tutorial/browser.toml`) is data. It was checked
+against Fenix 1.5's lesson format -- its fields and its checks -- but, as
+with any lesson, the way to be sure is to go through it in Fenix, in a
+fresh profile.

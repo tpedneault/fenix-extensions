@@ -28,7 +28,9 @@ before each editing session is kept (`h` on the notebook page).
 
 In Markdown, `[[` completes a note's name and `gd` on a link follows it
 (making the note when it isn't there yet) -- with standard keys, `F12` or
-Ctrl+click. The `SPC` keys above are `Ctrl+K` with standard keys.
+Ctrl+click. The `SPC` keys above are `Ctrl+K` with standard keys; what the notebook
+says when it names a key (an empty page, Home's section, a hover, an
+error) gives the keys you have.
 
 ## The page
 
@@ -49,6 +51,13 @@ Ctrl+click. The `SPC` keys above are `Ctrl+K` with standard keys.
   `SPC n d` asks it for the kind and the starter.
 - **Agenda** fills a journal day's agenda list (`agenda.due`), takes `SPC n t`
   (`agenda.add_task`), and opens a `[[FSW-212]]` link (`agenda.open_task`).
+
+## The lesson
+
+`SPC h T`, Fenix's tutorial, has a lesson in its *Notebook* section: the
+page, a note from a template, a line captured into today's journal, a
+link to a note, tags and search. It makes a note called *Tutorial note*
+and a line in today's journal; `x x` on the page deletes the note after.
 
 ## Settings
 

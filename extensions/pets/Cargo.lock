@@ -82,8 +82,8 @@ checksum = "00d174d5400e5e8fd687ad1049e2f578285fa914201b1af7e8b112a4546bd826"
 
 [[package]]
 name = "fenix-extension-api"
-version = "1.1.0"
-source = "git+https://github.com/tpedneault/fenix?tag=v1.0.1#bc2242fae2ccb84554f6f02e4fc81c5844315e33"
+version = "1.5.0"
+source = "git+https://github.com/tpedneault/fenix?tag=v1.5.0#58a177124dffceacde20bdf6f1c7415c58f18d41"
 dependencies = [
  "chrono",
  "lsp-types",
@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-pets"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "fenix-extension-api",
  "serde_json",

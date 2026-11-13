@@ -97,6 +97,9 @@ pub struct Ctx<'a> {
     /// The server, when one is set up; "" when not.
     pub server: String,
     pub today: NaiveDate,
+    /// The keys that open the settings page, as the key scheme in use
+    /// writes them (`SPC ,`, `C-,`).
+    pub settings_keys: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1090,7 +1093,7 @@ pub fn layout(page: &JiraPage, ctx: &Ctx, cols: usize) -> Page {
     let mut g = Grid::new();
     let crumb = if matches!(page.view, View::Issue(_)) { "Jira ›" } else { "Jira" };
     g.put(1, left, crumb, if matches!(page.view, View::Issue(_)) { Role::Muted } else { Role::Title });
-    let server = if ctx.server.is_empty() { "not set up -- Jira server and token on the settings page (SPC ,)".to_string() } else { ctx.server.clone() };
+    let server = if ctx.server.is_empty() { format!("not set up -- Jira server and token on the settings page ({})", ctx.settings_keys) } else { ctx.server.clone() };
     g.put(1, (left + width).saturating_sub(server.chars().count()), &server, if ctx.server.is_empty() { Role::Warn } else { Role::Muted });
     let filter = match (&page.filter, page.filtering) {
         (Some(f), true) => format!("/ {f}▏"),
@@ -1511,7 +1514,17 @@ mod tests {
     }
 
     fn ctx<'a>(in_agenda: &'a HashSet<String>, people: &'a [(String, String)]) -> Ctx<'a> {
-        Ctx { in_agenda, people, server: "jira.example.com".into(), today: NaiveDate::from_ymd_opt(2026, 9, 24).unwrap() }
+        Ctx { in_agenda, people, server: "jira.example.com".into(), today: NaiveDate::from_ymd_opt(2026, 9, 24).unwrap(), settings_keys: "SPC ,".into() }
+    }
+
+    #[test]
+    fn not_set_up_names_the_settings_keys_of_the_scheme_in_use() {
+        let set = HashSet::new();
+        let p = page();
+        let vim = Ctx { server: String::new(), ..ctx(&set, &[]) };
+        assert!(layout(&p, &vim, 160).text.contains("not set up -- Jira server and token on the settings page (SPC ,)"));
+        let standard = Ctx { server: String::new(), settings_keys: "C-,".into(), ..ctx(&set, &[]) };
+        assert!(layout(&p, &standard, 160).text.contains("not set up -- Jira server and token on the settings page (C-,)"));
     }
 
     #[test]

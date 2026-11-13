@@ -10,7 +10,7 @@ pub mod rfb;
 pub mod screenshot;
 pub mod viewer;
 
-use fenix_extension_api::{export, host, socket, surface, CursorImage, Event, Extension, Level, PickerItem, SurfaceInput, SurfaceOptions, SurfaceScale};
+use fenix_extension_api::{export, host, socket, surface, CursorImage, Event, Extension, KeyScheme, Level, PickerItem, SurfaceInput, SurfaceOptions, SurfaceScale};
 
 use viewer::Viewer;
 
@@ -85,6 +85,9 @@ impl viewer::Host for Fenix {
     fn stamp(&mut self) -> String {
         fenix_extension_api::clock::now().format("%Y%m%d-%H%M%S").to_string()
     }
+    fn keys_for(&mut self, command: &str) -> Option<String> {
+        fenix_extension_api::key_for(command)
+    }
     fn save(&mut self, file: &str, png: &[u8]) -> Result<String, String> {
         std::fs::write(format!("{SCREENSHOTS}/{file}"), png).map_err(|e| e.to_string())?;
         // The folder's setting reads as where it is.
@@ -132,6 +135,10 @@ impl Extension for Vnc {
 
     fn surface_input(&mut self, surface: u64, input: SurfaceInput) {
         self.viewer.input(&mut Fenix, surface, input)
+    }
+
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        self.viewer.keys_changed(&mut Fenix);
     }
 
     fn serve(&mut self, _call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {

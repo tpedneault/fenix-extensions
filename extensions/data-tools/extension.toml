@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.data-tools"
 name = "Data tools"
-version = "1.0.0"
+version = "1.1.0"
 description = "JSON, YAML and TOML: format with the project's indent, minify, sort keys, convert between them, query with JSONPath or jq, check against a JSON Schema (SchemaStore's by the file's name), escape strings, copy a key's path, and types from a sample"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,9 +10,9 @@ categories = ["data", "tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+fenix = ">=1.5, <2"
 # editor-cursor, scratch buffers.
-api = "1.0"
+api = "1.5"
 
 # Its commands load it; a JSON, YAML or TOML file starts its language
 # server, for the checks.

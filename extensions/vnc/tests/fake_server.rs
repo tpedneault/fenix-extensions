@@ -502,6 +502,9 @@ struct Fake {
     /// Each surface's pixels, as Fenix would hold them.
     surfaces: BTreeMap<u64, (u32, u32, Vec<u8>)>,
     saved: Vec<(String, Vec<u8>)>,
+    /// The keys that run each command, as Fenix's `key_for` gives them;
+    /// none, as for a command no key runs, unless a test says.
+    keys: BTreeMap<String, String>,
 }
 
 impl Fake {
@@ -509,6 +512,14 @@ impl Fake {
         let mut fake = Fake::default();
         fake.settings.insert("vnc.hosts".into(), rows.into());
         fake
+    }
+
+    /// Standard keys, as Fenix writes them: the leader on Ctrl+K, and the
+    /// settings page on its own chord.
+    fn standard(mut self) -> Fake {
+        self.keys.insert("vnc.open".into(), "C-k v v".into());
+        self.keys.insert("settings.open".into(), "C-,".into());
+        self
     }
 
     fn id(&mut self) -> u64 {
@@ -662,6 +673,9 @@ impl Host for Fake {
     }
     fn stamp(&mut self) -> String {
         "20261028-141502".into()
+    }
+    fn keys_for(&mut self, command: &str) -> Option<String> {
+        self.keys.get(command).cloned()
     }
     fn save(&mut self, file: &str, png: &[u8]) -> Result<String, String> {
         self.saved.push((file.into(), png.to_vec()));
@@ -1091,7 +1105,49 @@ fn the_picker_lists_the_hosts_and_how_each_stands() {
     assert!(fake.calls.contains(&Call::Connect("10.0.0.6".into(), 5901)));
     let mut none = Fake::default();
     viewer.open_picker(&mut none);
-    assert_eq!(none.errors(), ["no VNC hosts yet -- add them in SPC , (vnc.hosts)"]);
+    assert_eq!(none.errors(), ["no VNC hosts yet -- add them to vnc.hosts on the settings page (SPC ,)"]);
+}
+
+#[test]
+fn what_it_says_names_the_keys_of_the_scheme_in_use() {
+    // With Vim keys, as Fenix's key menu writes them.
+    let mut vim = Fake::with_hosts(HOSTS);
+    vim.keys.insert("vnc.open".into(), "SPC v v".into());
+    vim.keys.insert("settings.open".into(), "SPC ,".into());
+    let mut viewer = Viewer::new();
+    let mut server = Server::new(8, 8);
+    let socket = connected(&mut viewer, &mut vim, &mut server, 64);
+    viewer.socket_closed(&mut vim, socket, Some("reset".into()));
+    for _ in 0..viewer::MAX_RECONNECT_ATTEMPTS {
+        let (timer, _) = vim.last_timer();
+        viewer.timer(&mut vim, timer);
+        let s = *vim.open.last().unwrap();
+        viewer.socket_connected(&mut vim, s, Err("refused".into()));
+    }
+    assert_eq!(vim.titles().last().unwrap(), "VNC: vm (disconnected -- SPC v v to reconnect)");
+    assert_eq!(vim.errors().last().unwrap(), "VNC vm: reconnect failed after 6 attempts (refused) -- giving up; SPC v v and pick vm to try again");
+
+    // With standard keys: the leader is Ctrl+K, the settings page Ctrl+,.
+    let mut standard = Fake::with_hosts(HOSTS).standard();
+    let mut viewer = Viewer::new();
+    let mut server = Server::new(8, 8);
+    let socket = connected(&mut viewer, &mut standard, &mut server, 64);
+    viewer.socket_closed(&mut standard, socket, Some("reset".into()));
+    for _ in 0..viewer::MAX_RECONNECT_ATTEMPTS {
+        let (timer, _) = standard.last_timer();
+        viewer.timer(&mut standard, timer);
+        let s = *standard.open.last().unwrap();
+        viewer.socket_connected(&mut standard, s, Err("refused".into()));
+    }
+    assert_eq!(standard.titles().last().unwrap(), "VNC: vm (disconnected -- C-k v v to reconnect)");
+    // Switched to Vim keys: the title says so at once.
+    standard.keys.insert("vnc.open".into(), "SPC v v".into());
+    viewer.keys_changed(&mut standard);
+    assert_eq!(standard.titles().last().unwrap(), "VNC: vm (disconnected -- SPC v v to reconnect)");
+    assert_eq!(standard.errors().last().unwrap(), "VNC vm: reconnect failed after 6 attempts (refused) -- giving up; C-k v v and pick vm to try again");
+    let mut none = Fake::default().standard();
+    Viewer::new().open_picker(&mut none);
+    assert_eq!(none.errors(), ["no VNC hosts yet -- add them to vnc.hosts on the settings page (C-,)"]);
 }
 
 #[test]

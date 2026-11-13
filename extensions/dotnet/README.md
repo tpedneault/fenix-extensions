@@ -51,8 +51,12 @@ the `format` task instead.
 netcoredbg (`netcoredbg --interpreter=vscode`), from the tools folder or
 `PATH`; the fix row downloads Samsung's release for this machine
 (Linux x64 and arm64, Intel macOS, Windows x64) into the tools folder.
+Starting it is said in the message line; how it ended is a notification,
+since a download can take a while: "Installed netcoredbg", or "Couldn't
+install netcoredbg" with which step failed and why, and *Try again*.
 
-`SPC u u`, in a project with no launch configuration of its own, offers
+`SPC u u` (`C-k u u` with standard keys), in a project with no launch
+configuration of its own, offers
 each program of the solution, its project built first (`build
 <project>`, or `build` for a project alone):
 
@@ -137,7 +141,10 @@ Each runs `dotnet new`, with the SDK's framework or the one you pick:
 
 `*.cake` is read as C#.
 
+It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, .NET
+1.1.0 is the one you get.
+
 ## Keys
 
-After `SPC m` in a .NET project: `p` packages, `d` check again, `t`
-debug the tests.
+After `SPC m` in a .NET project (`C-k m` with standard keys): `p`
+packages, `d` check again, `t` debug the tests.

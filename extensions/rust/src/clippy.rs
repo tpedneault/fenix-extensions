@@ -98,7 +98,6 @@ pub fn parse(stdout: &str) -> BTreeMap<String, Vec<Problem>> {
         let text = if said.is_empty() { m.message.clone() } else { format!("{} (help: {})", m.message, said.join("; ")) };
         let mut p = Problem::new(severity, from_one(span.line_start, span.column_start), from_one(span.line_end, span.column_end), text);
         p.code = Some(code);
-        let mut p = p;
         for h in help {
             if let Some((title, edits)) = fix(h, &span.file_name) {
                 p = p.fix(&title, edits);

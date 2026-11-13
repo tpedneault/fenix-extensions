@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.csv"
 name = "CSV table"
-version = "1.0.0"
+version = "1.1.0"
 description = "CSV and TSV files as a table: columns lined up, sorted and filtered, cells, rows and columns changed through the file's buffer, column stats, copies as CSV or Markdown -- a million rows as fast as ten"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,9 @@ categories = ["tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-api = "1.0"
+fenix = ">=1.5, <2"
+# Built on ui-kit, which is on extension API 1.5.
+api = "1.5"
 
 [permissions]
 # The file's buffer: read, changed and saved, so Fenix's undo has what

@@ -5,7 +5,8 @@ from tree-sitter-swift (Fenix has no Swift of its own), sourcekit-lsp as
 the language server, swift-format or SwiftFormat as the formatter,
 SwiftLint on save, SwiftPM's tasks, the project doctor's checks with
 their fixes, snippets, and a command-line package to start from. Built
-on lang-kit (`crates/lang-kit`), as each language pack is.
+on lang-kit (`crates/lang-kit`), as each language pack is. It needs Fenix 1.5 or later (extension API 1.5);
+on an older Fenix, Swift 1.0.0 is the one you get.
 
 It starts with Fenix. The server and the formatter are set whenever
 they're found; the doctor checks, and the tasks run, in a Swift project:
@@ -60,8 +61,11 @@ unlinted. Its rule is each problem's code.
 The doctor's fix row installs SwiftLint 0.65.1's release into the pack's
 tools folder, checked against its SHA-256: Linux on x86_64 and arm64
 (which links libcurl and libxml2, as Swift itself does), and macOS's
-universal binary. One you installed yourself (Homebrew, Mint) is used
-instead.
+universal binary. Starting it is said in the message line; how it ended
+is a notification, since a download can take a while: "Installed
+SwiftLint 0.65.1", or "Couldn't install SwiftLint 0.65.1" with which step
+failed and why, and *Try again*. One you installed yourself (Homebrew,
+Mint) is used instead.
 
 ## Tasks
 
@@ -116,8 +120,8 @@ the work, an executable over it, Swift Testing tests, and a `.gitignore`.
 
 ## Keys
 
-After `SPC m` in a package or a Swift file: `d` checks the project
-again, `g` says how to get Swift.
+After `SPC m` in a package or a Swift file (`C-k m` with standard keys):
+`d` checks the project again, `g` says how to get Swift.
 
 ## Not yet
 

@@ -11,7 +11,8 @@ language pack is.
 It starts with Fenix. A server is set for its language whenever it's
 found and its setting is on, so a YAML file in any project has it; the
 doctor checks only the tools for the kinds of file the project has (a
-lone README doesn't count as Markdown).
+lone README doesn't count as Markdown). It needs Fenix 1.5 or later
+(extension API 1.5); on an older Fenix, Config 1.0.0 is the one you get.
 
 ## The servers
 
@@ -32,7 +33,11 @@ server, Biome's beside the JSON server in a Biome project.
 A release is downloaded from GitHub for this machine (Linux and macOS on
 x86_64 and arm64, Windows on x86_64), checked against the SHA-256 the pack
 knows, and unpacked into the pack's tools folder, where only the pack
-looks. One you installed yourself (`cargo install taplo-cli`, `brew
+looks. Starting it is said in the message line; how it ended is a
+notification, since a download can take a while: "Installed Taplo
+0.10.0", or "Couldn't install Taplo 0.10.0" with which step failed and
+why, and *Try again*. Each newer one for a tool takes the last one's
+place. One you installed yourself (`cargo install taplo-cli`, `brew
 install marksman`, `go install mvdan.cc/sh/v3/cmd/shfmt@latest`, winget)
 is used instead: the pack looks in npm's, Cargo's and Go's folders,
 Homebrew's and winget's too. The npm fix rows need Node; without it the
@@ -118,8 +123,8 @@ Besides the names Fenix knows, these are read as:
 
 ## Keys
 
-After `SPC m` in one of its files: `d` checks the tools again, `s`
-fetches SchemaStore's catalog again.
+After `SPC m` in one of its files (`C-k m` with standard keys): `d`
+checks the tools again, `s` fetches SchemaStore's catalog again.
 
 ## Not yet
 

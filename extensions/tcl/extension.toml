@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.tcl"
 name = "Tcl"
-version = "1.1.0"
+version = "1.2.0"
 description = "Tcl scripts: Tcl's own usage lines on K, completion of options, subcommands, built-ins and your procs, go to definition, and the project's definitions by name"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,7 @@ categories = ["languages"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+fenix = ">=1.5, <2"
 api = "1.5"
 
 # With Fenix: the project doctor's checks are there from the start, and a

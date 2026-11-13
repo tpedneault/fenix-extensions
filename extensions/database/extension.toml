@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.database"
 name = "Database browser"
-version = "1.3.0"
+version = "1.4.0"
 description = "SQLite files, PostgreSQL, MySQL and MariaDB, SQL Server: the schema in a sidebar, the statement under the cursor run from a .sql buffer, results to sort, copy and export, a table's rows paged and changed, history, completion of the schema's names"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,10 +10,14 @@ categories = ["tools", "data"]
 runtime = "wasm"
 
 [engine]
-# Agent tools: Fenix 1.1.
-fenix = ">=1.1, <2"
+# Fenix 1.5, the first to offer API 1.5 (below), which a Fenix before it
+# couldn't run since 1.2.0 anyway; and its tutorial lesson writes
+# {key:command} and {leader}, which a lesson can from 1.5. (Agent tools
+# alone would be Fenix 1.1.)
+fenix = ">=1.5, <2"
 # Passwords in the system's keychain (secret-set, patterns), the masked
-# prompt, a minute a call, contributes.magic.
+# prompt, a minute a call, contributes.magic; the keys of the scheme in use
+# in what it says (key_for, key-scheme-changed).
 api = "1.5"
 
 # Its commands load it; so does a .sqlite file opened, and a .sql buffer
@@ -65,9 +69,9 @@ timeout_ms = 120000
 
 [[contributes.agent_tools]]
 name = "query"
-description = "Runs one SELECT (or WITH, VALUES, SHOW, DESCRIBE, EXPLAIN) on a database connection and answers its rows as JSON. Anything that could change data is refused, and it runs on a read-only session of its own."
+description = "Runs one SELECT (or WITH, VALUES, TABLE, SHOW, DESCRIBE, EXPLAIN) on a database connection and answers its rows as JSON. Anything that could change data is refused, and it runs on a read-only session of its own."
 service = "database.query"
-input = '{"type":"object","properties":{"sql":{"type":"string"},"connection":{"type":"string","description":"A name from database.connections; else the one the .sql buffer runs on"},"limit":{"type":"integer","description":"Rows answered, default 100, at most 1000"}},"required":["sql"]}'
+input = '{"type":"object","properties":{"sql":{"type":"string"},"connection":{"type":"string","description":"A name from database.connections, or an open SQLite file; else the one the .sql buffer runs on"},"limit":{"type":"integer","description":"Rows answered, default 100, at most 1000"}},"required":["sql"]}'
 class = "read"
 timeout_ms = 120000
 
@@ -104,6 +108,10 @@ external = true
 [[contributes.commands]]
 id = "database.new_query"
 title = "Database: a new query buffer"
+
+[[contributes.commands]]
+id = "database.sample"
+title = "Database: a sample database to try it on"
 
 [[contributes.commands]]
 id = "database.forget_password"

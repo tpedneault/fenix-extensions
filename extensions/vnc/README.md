@@ -32,8 +32,14 @@ and Raw encodings.
 | `SPC v q` | `vnc.close` | Close the session you're in |
 | `SPC v s` | `vnc.screenshot` | Save its picture as a PNG |
 
-`vnc.open` may run from outside Fenix too (`fenix/runCommand`). A
-`[workspaces]` entry `vnc:NAME` opens host `NAME`.
+With standard keys, `SPC` is `Ctrl+K`: `Ctrl+K v v`. `vnc.open` may run
+from outside Fenix too (`fenix/runCommand`). A `[workspaces]` entry
+`vnc:NAME` opens host `NAME`.
+
+It needs Fenix 1.5 or later (extension API 1.5). What it says names the
+keys that run a command in the key scheme you use, and yours where you
+rebound them: a session that gave up says `C-k v v` reconnects with
+standard keys, `SPC v v` with Vim keys.
 
 ## Settings
 

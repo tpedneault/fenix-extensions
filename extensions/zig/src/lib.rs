@@ -500,4 +500,29 @@ mod tests {
         assert!(z.ext.kit.tasks.tasks.iter().any(|t| t.name == "test orbit.zig"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
+    /// An install takes minutes: how it ended is a notification, the
+    /// newest for the tool in place of the last, saying what failed and
+    /// offering it again. Starting one is the message line's, as it was.
+    #[test]
+    fn a_failed_install_of_zls_is_a_notification_that_offers_it_again() {
+        let dir = temp("install-told");
+        let fake = Fake::new();
+        fake.on_http_error("https://*", "its SHA-256 isn't the release's");
+        let mut z = pack(&dir, &fake, Settings::default);
+        z.activate().unwrap();
+        z.command("zig.install.zls").unwrap();
+        assert_eq!(fake.notifications(), [format!("Downloading ZLS {}…", tools::ZLS)]);
+        let shown = fake.showing();
+        assert_eq!(shown.len(), 1, "{shown:?}");
+        let n = &shown[0];
+        assert_eq!((n.summary.clone(), n.urgency, n.tag.as_deref()), (format!("Couldn't install ZLS {}", tools::ZLS), api::Urgency::Normal, Some("install.zls")));
+        assert!(n.body.starts_with("Its download from https://") && n.body.ends_with("failed: its SHA-256 isn't the release's."), "{}", n.body);
+        assert_eq!((n.actions[0].label.as_str(), n.actions[0].command.as_str()), ("Try again", "zig.install.zls"));
+
+        // Again: the old toast goes as it starts, and the new one says it.
+        z.command("zig.install.zls").unwrap();
+        assert_eq!(fake.dismissed(), ["install.zls"]);
+        assert_eq!((fake.toasts().len(), fake.showing().len()), (2, 1));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

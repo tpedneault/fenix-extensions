@@ -185,23 +185,26 @@ impl NotebookExt {
     /// `SPC n t`: the checkbox under the cursor, as an agenda task (once;
     /// the line gets a mark that it went).
     pub(crate) fn send_to_agenda(&mut self) {
-        let Some(here) = self.here() else { return error("SPC n t sends a checkbox line (- [ ] ...) to the agenda") };
-        let Some(path) = here.path.clone() else { return error("SPC n t sends a checkbox line (- [ ] ...) to the agenda") };
+        let keys = crate::keys::keys("notebook.to_agenda", "SPC n t");
+        let usage = format!("{keys} sends a checkbox line (- [ ] ...) to the agenda");
+        let Some(here) = self.here() else { return error(&usage) };
+        let Some(path) = here.path.clone() else { return error(&usage) };
         let line = here.line.saturating_sub(1) as usize;
         let text = api::buffer::text(&path).and_then(|t| t.lines().nth(line).map(str::to_string)).unwrap_or_else(|| here.text.lines().next().unwrap_or("").to_string());
         let Some(task) = meta::task_on(text.trim_end_matches(['\n', '\r']), line) else {
-            return error("SPC n t sends a checkbox line (- [ ] ...) to the agenda");
+            return error(&usage);
         };
         if text.contains("→ agenda") {
             return api::notify("that one's in the agenda already");
         }
         let title: String = task.text.split(" · ").next().unwrap_or(&task.text).trim().to_string();
         let payload = serde_json::json!({ "title": title, "path": path, "line": line + 1 }).to_string();
+        let install = crate::keys::keys("extensions.open", "SPC h x");
         run::spawn(async move {
             let said = run::call("agenda.add_task", &payload).await;
             later(move |_| match said {
                 Ok(_) => mark_sent_to_agenda(&path, line, &title),
-                Err(e) if e.contains("no service") => error("SPC n t sends it to the agenda -- that's an extension (SPC h x installs it)"),
+                Err(e) if e.contains("no service") => error(&format!("{keys} sends it to the agenda -- that's an extension ({install} installs it)")),
                 Err(e) => error(&format!("couldn't add it to the agenda: {e}")),
             });
         });
@@ -221,7 +224,7 @@ impl NotebookExt {
 
     /// `SPC m a` in a journal day: its agenda list, as the agenda is now.
     pub(crate) fn journal_refresh_agenda(&mut self) {
-        let Some((date, path)) = self.focused_day() else { return error("SPC m a refreshes a journal day's agenda list") };
+        let Some((date, path)) = self.focused_day() else { return error(&format!("{} refreshes a journal day's agenda list", crate::keys::menu_keys("notebook.journal_agenda", "a"))) };
         self.fetch_due(move |ext| {
             let fresh = ext.journal_template(date);
             let Some(text) = api::buffer::text(&path) else { return };
@@ -240,9 +243,10 @@ impl NotebookExt {
     /// `SPC m g` in a journal day: what you committed that day in the
     /// project you're in.
     pub(crate) fn journal_commits(&mut self) {
-        let Some((date, path)) = self.focused_day() else { return error("SPC m g adds a journal day's commits") };
+        let keys = crate::keys::menu_keys("notebook.journal_commits", "g");
+        let Some((date, path)) = self.focused_day() else { return error(&format!("{keys} adds a journal day's commits")) };
         if !Path::new(paths::PROJECT).is_dir() {
-            return error("SPC m g adds the commits of the project you're in -- open a file in one first");
+            return error(&format!("{keys} adds the commits of the project you're in -- open a file in one first"));
         }
         self.git(&["config", "user.email"], GitStep::Email { date, path });
     }

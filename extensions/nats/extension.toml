@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.nats"
 name = "NATS"
-version = "1.1.0"
+version = "1.2.0"
 description = "A NATS client: live subjects with their rates and messages, payloads pretty-printed, filters and highlights, publish and request, JetStream's streams, consumers and key-value buckets -- at any message rate"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,9 +10,10 @@ categories = ["tools", "data"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.2, <2"
-# Notifications (a highlight rule that notifies), agent tools' classes.
-api = "1.3"
+fenix = ">=1.5, <2"
+# Notifications (a highlight rule that notifies), agent tools' classes;
+# keys named as the key scheme has them (1.5).
+api = "1.5"
 
 # Its commands load it, and its agent tools.
 [activation]

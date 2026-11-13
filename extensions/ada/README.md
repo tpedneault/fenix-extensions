@@ -10,7 +10,8 @@ GNATprove and the server, and snippets. Built on lang-kit
 It starts with Fenix. The server is set for Ada files whenever it's
 found; the doctor checks, and the tasks run, in an Ada project: an Alire
 crate (`alire.toml`), a GNAT project file (`.gpr`) at the top, or Ada
-sources.
+sources. It needs Fenix 1.5 or later (extension API 1.5); on an older
+Fenix, Ada 1.0.0 is the one you get.
 
 ## The grammar
 
@@ -83,7 +84,11 @@ when asked, not on save; its problems stay until the next run.
 
 Alire's and the server's releases come from GitHub, each checked against
 the SHA-256 the pack knows, unpacked into the pack's tools folder, and
-used at once. The server's is a 110 MB download that unpacks to about
+used at once. Starting one is said in the message line; how it ended is
+a notification, since a download can take a while: "Installed Alire
+2.1.1", or "Couldn't install Alire 2.1.1" with which step failed and why,
+and *Try again*. Each newer one for a tool takes the last one's place.
+The server's is a 110 MB download that unpacks to about
 460 MB, most of it the debug symbols AdaCore ships beside it.
 `alr install` puts GNAT, gprbuild and GNATprove in
 Alire's install prefix, `~/.alire/bin`, where the pack looks. The pack
@@ -123,8 +128,8 @@ wants.
 
 ## Keys
 
-After `SPC m` in an Ada project or file: `d` checks the project again,
-`p` proves.
+After `SPC m` in an Ada project or file (`C-k m` with standard keys): `d`
+checks the project again, `p` proves.
 
 ## Not yet
 

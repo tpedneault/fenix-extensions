@@ -1,0 +1,83 @@
+# A lesson of Fenix's tutorial (SPC h T). See "Tutorial lessons" in the
+# repository's CONTRIBUTING.md.
+#
+# The practice text is a notebook -- nbformat 4's JSON -- so that saving it
+# as a .ipynb gives a learner without one something to open.
+id = "jupyter.notebooks"
+track = "Jupyter notebooks"
+order = 1
+title = "Jupyter notebooks: cells, editing, running"
+about = "A .ipynb on its page, a cell edited beside it, cells run. The practice text is a small notebook: saved as tour.ipynb in the project, it's one to open. Running a cell needs Python (python3, or the project's .venv): without it, the step that runs one says what you'd see, and passes all the same."
+text = """
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# A first notebook\\n",
+    "\\n",
+    "j and k move from cell to cell; Enter edits one beside the page.\\n",
+    "Shift+Enter runs a cell and goes to the next; R runs them all.\\n",
+    "a and b make a cell above and below; w saves; q closes.\\n",
+    "P installs ipykernel; ii interrupts, 00 restarts."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print('hello')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sum(len(name) for name in ['Ada', 'Grace', 'Guido'])"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
+"""
+
+[[step]]
+say = "Save this practice text as a notebook -- :w tour.ipynb -- then open it: SPC f f, tour.ipynb. Its cells, on a page. (A notebook of your own does as well.)"
+hint = "Esc, then :w tour.ipynb and Enter writes it in the project (there from before? Then just open it). SPC f, then f, finds it; Enter opens it."
+page = "fenix.jupyter/notebook"
+
+[[step]]
+say = "j to the print('hello') cell, and Enter: its source, in a pane beside the page."
+hint = "j and k move from cell to cell; Enter (or e) edits the one you're on."
+windows = "+1"
+
+[[step]]
+say = "SPC w l goes into it. Change hello to hello, notebook: the cell on the page changes as you type."
+hint = "SPC w, then l, moves to the pane on the right; i to type, Esc when done."
+moved = true
+
+[[step]]
+say = "SPC w h, back to the page. Shift+Enter runs the cell, its output under it; R runs every cell, from the top. The footer says what it ran on: ipykernel, or Python itself."
+hint = "SPC w, then h. No Python? The cell says it couldn't start one -- go on: this passes once you're back on the page."
+page = "fenix.jupyter/notebook"
+
+[[step]]
+say = "w saves the notebook; q closes it, and its kernel."
+hint = "w, then q, on the notebook's page."
+closed = "fenix.jupyter/notebook"

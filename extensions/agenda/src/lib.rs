@@ -9,6 +9,7 @@
 //! the control channel's methods.
 
 pub mod clock;
+mod keys;
 pub mod model;
 pub mod page;
 pub mod sync;
@@ -17,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 use chrono::{DateTime, NaiveDate};
-use fenix_extension_api::{self as api, host, run, Event, Extension, HomeMark, HomeRow, HomeSection, Key, Page, PickerItem};
+use fenix_extension_api::{self as api, host, run, Event, Extension, HomeMark, HomeRow, HomeSection, Key, KeyScheme, Notification, Page, PickerItem, Urgency};
 
 use clock::Local;
 use model::{AgendaStore, CodeRef, OpKind, Priority, Status, Task, TaskId};
@@ -191,7 +192,7 @@ impl Agenda {
                 value: t.id.0.to_string(),
             })
             .collect();
-        api::home(Some(&HomeSection { title: "today".into(), key: "SPC A a".into(), rows, most: 4 }));
+        api::home(Some(&HomeSection { title: "today".into(), key: keys::keys_for("agenda.open", "SPC A a"), rows, most: 4 }));
     }
 
     // -- The page ---------------------------------------------------------
@@ -255,7 +256,7 @@ impl Agenda {
         let Some((id, mut page)) = self.page.take() else { return };
         let worklogs = self.worklog_rows();
         let categories = self.categories();
-        let ctx = page::Ctx { store: &self.store, now: clock::now(), categories: &categories, worklogs: &worklogs, round: self.round(), sync: self.sync_label() };
+        let ctx = page::Ctx { store: &self.store, now: clock::now(), categories: &categories, worklogs: &worklogs, round: self.round(), sync: self.sync_label(), import_keys: keys::keys_for("agenda.import", "SPC A i") };
         let action = page.key(key, &ctx);
         self.page = Some((id, page));
         api::page::refresh(id);
@@ -510,7 +511,7 @@ impl Agenda {
             add(t, "", &mut rows);
         }
         if rows.is_empty() {
-            return host::notify(api::Level::Error, "no agenda tasks to clock in on yet -- SPC A n to add one");
+            return host::notify(api::Level::Error, &format!("no agenda tasks to clock in on yet -- {} to add one", keys::keys_for("agenda.new_task", "SPC A n")));
         }
         self.gap_asked = false;
         self.clock_picker("Clock", rows);
@@ -529,7 +530,7 @@ impl Agenda {
             return api::notify(&format!("The clock is already on \"{name}\""));
         }
         let Some((id, _)) = self.store.recently_worked().into_iter().next() else {
-            return host::notify(api::Level::Error, "nothing worked on yet to resume -- SPC A t picks a task");
+            return host::notify(api::Level::Error, &format!("nothing worked on yet to resume -- {} picks a task", keys::keys_for("agenda.toggle_clock", "SPC A t")));
         };
         self.clock_pick(ClockPick::Start(id));
     }
@@ -545,7 +546,7 @@ impl Agenda {
             }
             ClockPick::KeepUntil(at) => {
                 self.store.clock_out_at(at);
-                api::notify(&format!("Kept the time until {} -- SPC A T starts the clock again", at.format("%H:%M")));
+                api::notify(&format!("Kept the time until {} -- {} starts the clock again", at.format("%H:%M"), keys::keys_for("agenda.resume", "SPC A T")));
             }
             ClockPick::KeepAll => {
                 if let Some(timer) = &mut self.store.active_timer {
@@ -554,7 +555,7 @@ impl Agenda {
             }
             ClockPick::Drop => {
                 self.store.drop_timer();
-                api::notify("Dropped that sitting -- SPC A T starts the clock again");
+                api::notify(&format!("Dropped that sitting -- {} starts the clock again", keys::keys_for("agenda.resume", "SPC A T")));
             }
         }
         self.seen_saved = Some(Instant::now());
@@ -603,7 +604,7 @@ impl Agenda {
     /// its file and line kept to come back to.
     fn task_from_here(&mut self) {
         let Some(here) = api::here().filter(|h| h.path.is_some()) else {
-            return host::notify(api::Level::Error, "SPC A h makes a task from a file -- this buffer isn't one");
+            return host::notify(api::Level::Error, &format!("{} makes a task from a file -- this buffer isn't one", keys::keys_for("agenda.from_here", "SPC A h")));
         };
         let path = std::path::PathBuf::from(here.path.clone().unwrap_or_default());
         let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -670,6 +671,24 @@ fn keyed(t: &Task) -> String {
     }
 }
 
+/// The tag a sync's notification goes by: the next sync's replaces it.
+const SYNC_TAG: &str = "agenda.sync";
+
+/// What a Jira sync that ended says, as a notification -- it can take a
+/// while, and you may be elsewhere by then: how many issues it brought
+/// up to date, or why it failed, or the conflicts it found (which a
+/// quiet, timed sync says too). Nothing for a quiet one that went well.
+fn sync_note(synced: Result<usize, &str>, conflicts: usize, quiet: bool) -> Option<Notification> {
+    let note = match synced {
+        Err(err) if !quiet => Notification::new("Jira sync failed").body(err),
+        Err(_) => return None,
+        Ok(_) if conflicts > 0 => Notification::new(format!("Jira sync: {conflicts} conflicting change(s)")).body("Open the task and press Enter on the conflict.").action("Open the agenda", "agenda.open"),
+        Ok(n) if !quiet => Notification::new(format!("Synced {n} issue(s) with Jira")).urgency(Urgency::Low),
+        Ok(_) => return None,
+    };
+    Some(note.tag(SYNC_TAG))
+}
+
 /// `0:18`, `1:05`: how long a clock has run, as Home shows it.
 fn format_elapsed(d: chrono::Duration) -> String {
     let minutes = d.num_minutes().max(0);
@@ -683,8 +702,8 @@ impl Agenda {
     fn with_jira(&mut self, f: impl FnOnce(&mut Agenda)) {
         match &self.sync.config {
             Some(Ok(c)) if c.base_url.is_some() => f(self),
-            Some(Ok(_)) => host::notify(api::Level::Error, "Jira isn't set up yet -- set its server and token in SPC , (Jira)"),
-            _ => api::notify("Nothing syncs the agenda -- that needs the Jira extension (SPC h x)"),
+            Some(Ok(_)) => host::notify(api::Level::Error, &format!("Jira isn't set up yet -- set its server and token in {} (Jira)", keys::keys_for("settings.open", "SPC ,"))),
+            _ => api::notify(&format!("Nothing syncs the agenda -- that needs the Jira extension ({})", keys::keys_for("extensions.open", "SPC h x"))),
         }
     }
 
@@ -729,7 +748,7 @@ impl Agenda {
         let keys: Vec<String> = self.store.tasks.iter().filter_map(|t| t.jira_key().map(str::to_string)).collect();
         if keys.is_empty() {
             if !quiet {
-                api::notify("No tasks are linked to Jira yet -- I on a task links one, SPC A i imports your issues");
+                api::notify(&format!("No tasks are linked to Jira yet -- I on a task links one, {} imports your issues", keys::keys_for("agenda.import", "SPC A i")));
             }
             return;
         }
@@ -752,8 +771,8 @@ impl Agenda {
         let issues = match result {
             Ok(issues) => issues,
             Err(err) => {
-                if !quiet {
-                    host::notify(api::Level::Error, &format!("Jira sync failed: {err}"));
+                if let Some(note) = sync_note(Err(&err), 0, quiet) {
+                    note.show();
                 }
                 return self.status();
             }
@@ -776,10 +795,8 @@ impl Agenda {
             }
         }
         self.save_and_refresh();
-        if conflicts > 0 {
-            host::notify(api::Level::Error, &format!("Jira sync: {conflicts} conflicting change(s) -- open the task and press Enter on the conflict"));
-        } else if !quiet {
-            api::notify(&format!("Synced {} issue(s) with Jira", issues.len()));
+        if let Some(note) = sync_note(Ok(issues.len()), conflicts, quiet) {
+            note.show();
         }
         self.drain_outbox();
     }
@@ -923,7 +940,7 @@ impl Agenda {
                     rows.push(("Flag as impediment (keep the status)".into(), Pick::Blocked(Blocked::Flag, None)));
                     rows.push((format!("Keep Blocked local for {project}"), Pick::Blocked(Blocked::Local, None)));
                     self.sync_picker(&format!("What does Blocked mean in {project}?"), Some(id), Some(project.clone()), Some(prev), rows);
-                    api::notify(&format!("Pick what Blocked means in {project} -- asked once, then remembered (b on the project in SPC j j changes it)"));
+                    api::notify(&format!("Pick what Blocked means in {project} -- asked once, then remembered (b on the project in {} changes it)", keys::jira()));
                 }
                 Some(_) => self.save_and_refresh(),
             },
@@ -983,7 +1000,7 @@ impl Agenda {
         };
         let users = self.config().users;
         if users.is_empty() {
-            return host::notify(api::Level::Error, "no people to assign to -- a on the Jira page (SPC j j) adds one");
+            return host::notify(api::Level::Error, &format!("no people to assign to -- a on the Jira page ({}) adds one", keys::jira()));
         }
         let rows = users.into_iter().map(|(uid, name)| (format!("{name} ({uid})"), Pick::Assignee(uid, name))).collect();
         self.sync_picker(&format!("Assign {key}"), Some(id), None, None, rows);
@@ -1331,6 +1348,11 @@ impl Agenda {
 }
 
 impl Extension for Agenda {
+    /// Home's key and the page's hints, as the new scheme has them.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        self.refresh();
+    }
+
     fn activate(&mut self) -> Result<(), String> {
         self.store = model::load(std::path::Path::new(KEPT));
         self.stamp = std::fs::metadata(KEPT).and_then(|m| m.modified()).ok();
@@ -1458,7 +1480,7 @@ impl Extension for Agenda {
         }
         let worklogs = self.worklog_rows();
         let categories = self.categories();
-        let ctx = page::Ctx { store: &self.store, now: clock::now(), categories: &categories, worklogs: &worklogs, round: self.round(), sync: self.sync_label() };
+        let ctx = page::Ctx { store: &self.store, now: clock::now(), categories: &categories, worklogs: &worklogs, round: self.round(), sync: self.sync_label(), import_keys: keys::keys_for("agenda.import", "SPC A i") };
         Page::canvas(page::layout(p, &ctx, width as usize)).typing(p.typing()).space(p.claims_space())
     }
 
@@ -1593,3 +1615,24 @@ impl Extension for Agenda {
 }
 
 api::export!(Agenda);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_sync_that_ended_is_one_notification_the_next_replaces() {
+        let synced = sync_note(Ok(3), 0, false).unwrap();
+        assert_eq!((synced.summary.as_str(), synced.tag.as_deref()), ("Synced 3 issue(s) with Jira", Some(SYNC_TAG)));
+        assert!(matches!(synced.urgency, Urgency::Low));
+        let failed = sync_note(Err("HTTP 401"), 0, false).unwrap();
+        assert_eq!((failed.summary.as_str(), failed.body.as_str(), failed.tag.as_deref()), ("Jira sync failed", "HTTP 401", Some(SYNC_TAG)));
+        assert!(matches!(failed.urgency, Urgency::Normal));
+        let conflicts = sync_note(Ok(3), 2, true).unwrap();
+        assert_eq!(conflicts.summary, "Jira sync: 2 conflicting change(s)");
+        assert_eq!(conflicts.actions[0].command, "agenda.open");
+        // A timed sync is quiet unless it finds a conflict.
+        assert!(sync_note(Ok(3), 0, true).is_none());
+        assert!(sync_note(Err("HTTP 503"), 0, true).is_none());
+    }
+}

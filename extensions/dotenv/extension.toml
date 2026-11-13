@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.dotenv"
 name = "Env files"
-version = "1.1.0"
+version = "1.2.0"
 description = "Env files (.env): values hidden but on the cursor's line, every env file side by side, profiles switched with a backup kept or given to tasks, a warning when Git would commit one, keys checked against .env.example, and variable names completed after process.env., os.environ[ and the like"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,11 +10,12 @@ categories = ["languages", "tools"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
+fenix = ">=1.5, <2"
 # Decorations (the values hidden), styled pages; tasks with variables
 # (0.8.3); rules Fenix masks values by from a file's first frame, and
-# `.env.*` in a language file (0.8.4).
-api = "1.0"
+# `.env.*` in a language file (0.8.4); the keys of the scheme in use in
+# what it says (key_for, key-scheme-changed: 1.5).
+api = "1.5"
 
 # With Fenix: its masking rules given, its tasks offered.
 [activation]

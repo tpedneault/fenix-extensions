@@ -17,6 +17,7 @@ use fenix_extension_api::{Cells, Key, Page, Role, Shade};
 
 use crate::core::Core;
 use crate::filter::{Colour, Filter};
+use crate::keys::Keys;
 use crate::payload::{self, Line};
 use crate::store::{Store, View};
 
@@ -163,6 +164,8 @@ pub struct LiveView {
     pending: usize,
     /// Where the background scan is, among the subjects.
     scan_cursor: usize,
+    /// The keys its hints name, as the key scheme in use has them.
+    pub keys: Keys,
 }
 
 impl Default for LiveView {
@@ -189,6 +192,7 @@ impl Default for LiveView {
             help: false,
             pending: 0,
             scan_cursor: 0,
+            keys: Keys::default(),
         }
     }
 }
@@ -703,7 +707,7 @@ impl LiveView {
         }
         if total == 0 {
             let text = if core.conns.is_empty() {
-                "No servers: add one to nats.servers (SPC ,), then SPC o m c connects.".to_string()
+                format!("No servers: add one to nats.servers ({}), then {} connects.", self.keys.settings, self.keys.connect)
             } else if self.pending > 0 {
                 format!("Checking {} subjects for the filter…", self.pending)
             } else if self.effective.is_some() {
@@ -1254,6 +1258,15 @@ mod tests {
             wire.push_str(&format!("MSG {subject} 1 {}\r\n{payload}\r\n", payload.len()));
         }
         core.on_data(net, s, wire.as_bytes(), now_us);
+    }
+
+    #[test]
+    fn with_no_servers_it_says_the_keys_of_the_scheme_in_use() {
+        let core = Core::new(crate::store::Limits::default(), 1_000_000_000);
+        let mut v = LiveView::default();
+        assert!(text(&v.render(&core, 120, 30, 1_000_000)).contains("No servers: add one to nats.servers (SPC ,), then SPC o m c connects."));
+        v.keys = crate::keys::tests::standard();
+        assert!(text(&v.render(&core, 120, 30, 1_000_000)).contains("No servers: add one to nats.servers (C-,), then C-k o m c connects."));
     }
 
     #[test]

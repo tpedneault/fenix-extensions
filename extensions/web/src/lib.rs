@@ -575,6 +575,36 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    /// An install takes a while: how it ended is a notification, the
+    /// newest for the tool in place of the last, saying what failed and
+    /// offering it again. Starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_js_debug_is_a_notification_that_offers_it_again() {
+        let dir = vite_project("debug-told");
+        let host = Shared::default();
+        host.0.borrow_mut().programs.insert("node".into(), "/n/node".into());
+        let mut w = pack(&dir, &host, Eslint::Save);
+        w.activate().unwrap();
+        host.take();
+        w.run_command(doctor::INSTALL_JS_DEBUG).unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&format!("notify Downloading js-debug {}…", debug::VERSION)), "{calls:?}");
+        let download = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse::<u64>().ok()).expect("downloaded");
+        w.handle(Event::HttpResponse((download, Ok(api::HttpResponse::new(404, Vec::new())))));
+        let shown = host.0.borrow().notifications.clone();
+        assert_eq!(shown.len(), 1, "{shown:?}");
+        let n = &shown[0];
+        assert_eq!((n.summary.clone(), n.urgency, n.tag.as_deref()), (format!("Couldn't install js-debug {}", debug::VERSION), api::Urgency::Normal, Some("install.js-debug")));
+        assert_eq!(n.body, format!("Its download from {} failed: the server said 404.", debug::url()));
+        assert_eq!((n.actions[0].label.as_str(), n.actions[0].command.as_str()), ("Try again", doctor::INSTALL_JS_DEBUG));
+
+        // Again: the failure's toast goes as it starts.
+        host.take();
+        w.run_command(doctor::INSTALL_JS_DEBUG).unwrap();
+        assert!(host.take().contains(&"dismiss install.js-debug".to_string()));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn eslints_server_is_added_when_asked_and_biome_takes_the_formatter() {
         let dir = vite_project("eslint");
