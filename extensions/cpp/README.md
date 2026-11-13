@@ -10,7 +10,8 @@ on lang-kit (`crates/lang-kit`), as each language pack is.
 It's for a folder with a `CMakeLists.txt`, CMake presets, a
 `compile_commands.json`, a `.clangd`, a `vcpkg.json` or a conanfile, or
 C or C++ files at the top or in `src/`. An Arduino sketch (a `.ino`) is
-left to the Arduino extension.
+left to the Arduino extension. It needs Fenix 1.5 or later (extension API
+1.5); on an older Fenix, C/C++ 1.1.0 is the one you get.
 
 ## The language server
 
@@ -155,5 +156,5 @@ shared library, with GoogleTest, Catch2 or CTest); this adds:
 
 ## Keys
 
-After `SPC m` in a C or C++ project: `p` packages, `d` check again, `c`
-configure.
+After `SPC m` in a C or C++ project (`C-k m` with standard keys): `p`
+packages, `d` check again, `c` configure.
