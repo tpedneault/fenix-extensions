@@ -2632,6 +2632,29 @@
               "ccsds"
             ]
           }
+        },
+        {
+          "version": "1.4.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.4.0/fenix.mib-1.4.0.fenixext",
+          "sha256": "9a6d9364bed739a52adb77f70738e4dcc0ff2c7715d0deb49bfb1900d4d94468",
+          "size": 615236,
+          "dependencies": {},
+          "categories": [
+            "mission"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "folders": {
+              "mib": "${setting:mib.roots}"
+            },
+            "settings": [
+              "ccsds"
+            ]
+          }
         }
       ],
       "name": "SCOS-2000 MIB",
