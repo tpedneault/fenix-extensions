@@ -1390,6 +1390,49 @@
               "rails"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/dotenv-v1.2.0/fenix.dotenv-1.2.0.fenixext",
+          "sha256": "d7cfdec47bda99bf84cde870bc0724613edf8e8200b91c928e2619b1fd17dc3f",
+          "size": 215188,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "process": [
+              "git",
+              "npm",
+              "npx",
+              "pnpm",
+              "yarn",
+              "bun",
+              "node",
+              "deno",
+              "python",
+              "python3",
+              "uv",
+              "poetry",
+              "pipenv",
+              "cargo",
+              "go",
+              "make",
+              "just",
+              "docker",
+              "dotnet",
+              "php",
+              "ruby",
+              "bundle",
+              "rails"
+            ]
+          }
         }
       ],
       "name": "Env files",
