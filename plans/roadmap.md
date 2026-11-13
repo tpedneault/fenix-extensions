@@ -22,7 +22,7 @@ Three threads run through it:
 | 1 | The shop window | JetBrains keys, scripted screenshots, the web catalogue, external packages in the index, a contributor guide | L |
 | 2 | Author tooling | `xtask new` and `xtask install`, a test kit, a widget gallery | M |
 | 3 | Onboarding | Tutorial lessons, the API sweep, more agent tools | M |
-| 4 | Tests | The test explorer, in `lang-kit` and four language packs | L |
+| 4 | Tests | The test explorer: Fenix's page, gutter and runs, with `lang-kit` and four language packs as its providers | L |
 | 5 | Breadth | Theme packs and a converter, three language packs, prose checking | L |
 | 6 | Integrations | Kubernetes, Jira Cloud, GitHub and GitLab Issues, Linear, more languages | L |
 
@@ -50,6 +50,42 @@ left open:
    it (13 November).
 7. **Publisher ids** were left to this plan's recommendation: tied to a
    GitHub owner, below (1.4).
+
+## Milestone 4: built, not yet proven
+
+The test explorer was split: Fenix owns the page, `SPC T`, the gutter,
+problems, runs and debugging; packs are test providers on extension API
+1.6. The plans are `plans/test-explorer.md` here and
+`docs/plans/test-explorer.md` in Fenix.
+
+- **In Fenix, on `master`** (pull requests #149 to #152): the model, API
+  1.6, Fenix running providers, the tests page, tests in the file,
+  debugging a test, and `SPC p r`, the lenses, the agents and the control
+  channel through the explorer. All of it behind `tests.enabled`, which
+  is off.
+- **Here, on `main`** (pull request #30): `lang-kit`'s `tests` feature,
+  the test kit's driver, and providers in Rust, Python, Go and Web,
+  tested on output recorded from the real runners. None is offered: the
+  packs stay on `api = "1.5"` and declare no provider.
+- **Not on `main`**: the `api-1.6` work, where the kits pin Fenix's API
+  commit and the four packs become 1.3.0 with `api = "1.6"` and their
+  provider declared. It waits for Fenix 1.6.0 to be tagged, then a repin
+  from the commit to the tag, then four releases.
+
+Not proven:
+
+- Nothing has run in a Fenix window: no page seen drawn, no real debug
+  adapter, no real rust-analyzer lens, no provider inside Fenix's wasm
+  host with a real project.
+- Windows paths in the packs are recordings written by hand.
+- In a release build a call over 2,000 tests takes 3 to 6 ms against the
+  driver's 5 ms budget.
+
+Still to decide, in Fenix, before the explorer is on by default: what
+counts as a trusted project for run on save, listing and `SPC T d`
+(Fenix's plan, §16 Q9). After that: Java, .NET, C/C++, Ruby and PHP
+providers from `plans/test-providers-recipe.md`, as their owners want
+them.
 
 ## Milestone 1: built, not yet proven
 
