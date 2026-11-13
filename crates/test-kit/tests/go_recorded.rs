@@ -5,7 +5,7 @@
 //! side and the driver's: the same results whatever the batches, however
 //! the lines are cut, and subtests put under their test by their keys.
 
-#![cfg(feature = "lang-kit")]
+#![cfg(feature = "tests")]
 
 use fenix_extension_api::Command;
 use fenix_lang_kit::serde_json::Value;

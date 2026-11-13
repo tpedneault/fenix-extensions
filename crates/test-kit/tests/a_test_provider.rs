@@ -13,7 +13,7 @@
 //! <file>:<line>: <why>` for a file that doesn't build and `CRASH <why>`
 //! when it dies. `tally build` prints `BUILT <path>`.
 
-#![cfg(feature = "lang-kit")]
+#![cfg(feature = "tests")]
 
 use fenix_extension_api::{Command, LaunchConfig};
 use fenix_lang_kit::tests::{api, command_line_len, split, Ask, Asked, At, Covered, Ended, Found, Group, Key, Kind, Launching, Line, Outcome, Reader, Report, Step, StepEnd, TestRunner, DIRECT};

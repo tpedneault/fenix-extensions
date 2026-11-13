@@ -126,7 +126,8 @@ impl Host for Fake {
     }
     /// What a test provider runs (`test-provider-set`, API 1.6), written
     /// down as lang-kit's mock writes it: `test-provider rust: cargo
-    /// nextest`.
+    /// nextest`. With the feature `tests` (lang-kit's `tests`).
+    #[cfg(feature = "tests")]
     fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
         let mut s = self.state_mut();
         s.call(fenix_lang_kit::host::provider_line(provider, runner, problem));

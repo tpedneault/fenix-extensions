@@ -107,7 +107,9 @@ pub trait Host {
     /// What its test provider `provider` runs in this project now, and why
     /// it can't when it can't (`test-provider-set`, API 1.6; `runner` ""
     /// with no problem: nothing to run here). A host without it -- Fenix
-    /// on API 1.5 -- does nothing.
+    /// on API 1.5 -- does nothing. Only with the feature `tests`: a pack
+    /// that runs no tests has no way to reach the import.
+    #[cfg(feature = "tests")]
     fn test_provider_set(&mut self, _provider: &str, _runner: &str, _problem: Option<&str>) -> Result<(), String> {
         Ok(())
     }
@@ -142,6 +144,7 @@ pub fn notification_line(n: &Notification) -> String {
 /// A `test-provider-set` as a line of a test host's log: `test-provider
 /// rust: cargo nextest`, `test-provider python: pytest (pytest isn't
 /// installed)`. The test kit's `Fake` writes the same.
+#[cfg(feature = "tests")]
 pub fn provider_line(provider: &str, runner: &str, problem: Option<&str>) -> String {
     match problem {
         Some(p) => format!("test-provider {provider}: {runner} ({p})"),
@@ -273,6 +276,9 @@ impl Host for Fenix {
     fn dismiss(&mut self, tag: &str) {
         api::notify_dismiss(tag)
     }
+    /// The one call of `test-provider-set` in the kit: under the feature
+    /// `tests` only, so a pack without it never links the import.
+    #[cfg(feature = "tests")]
     fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
         crate::tests::api::provider(provider, runner, problem)
     }
@@ -506,6 +512,7 @@ pub mod mock {
         fn dismiss(&mut self, tag: &str) {
             self.calls.push(format!("dismiss {tag}"));
         }
+        #[cfg(feature = "tests")]
         fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
             self.calls.push(provider_line(provider, runner, problem));
             self.test_providers.push((provider.into(), runner.into(), problem.map(String::from)));
@@ -537,6 +544,10 @@ pub mod mock {
                 }
                 fn notification(&mut self, n: &Notification) {
                     self.0.borrow_mut().notification(n)
+                }
+                #[cfg(feature = "tests")]
+                fn test_provider_set(&mut self, provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String> {
+                    self.0.borrow_mut().test_provider_set(provider, runner, problem)
                 }
             }
         };
@@ -578,6 +589,5 @@ pub mod mock {
         task_show(task: u64) -> Result<(), String>;
         launch_variable(name: &str, choices: &[PickerItem]) -> Result<(), String>;
         dismiss(tag: &str) -> ();
-        test_provider_set(provider: &str, runner: &str, problem: Option<&str>) -> Result<(), String>;
     }
 }
