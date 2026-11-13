@@ -4381,6 +4381,52 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/web-v1.2.0/fenix.web-1.2.0.fenixext",
+          "sha256": "57e457604d970ee3946e1820b548c8b691a94c900f63b00dc395f70a6340e6c1",
+          "size": 404376,
+          "dependencies": {
+            "fenix.config": "^1"
+          },
+          "categories": [
+            "languages",
+            "snippets",
+            "templates",
+            "web"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "node",
+              "${setting:web.node}",
+              "npm",
+              "pnpm",
+              "yarn",
+              "bun",
+              "corepack",
+              "fnm",
+              "volta",
+              "typescript-language-server",
+              "vscode-eslint-language-server",
+              "tailwindcss-language-server",
+              "vscode-css-language-server",
+              "vscode-html-language-server",
+              "prettier",
+              "biome",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Web: JavaScript and TypeScript",
