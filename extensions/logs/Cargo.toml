@@ -10,7 +10,7 @@ description = "Log files read in Fenix: each entry's level and time, stack trace
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", rev = "a39d18b273ace00091d8d170382456bbad0a7c2f" }
 fenix-ui-kit = { path = "../../crates/ui-kit" }
 memchr = "2"
 regex = "1"

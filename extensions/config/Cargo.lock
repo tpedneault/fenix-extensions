@@ -206,8 +206,8 @@ dependencies = [
 
 [[package]]
 name = "fenix-extension-api"
-version = "1.5.0"
-source = "git+https://github.com/tpedneault/fenix?tag=v1.5.0#58a177124dffceacde20bdf6f1c7415c58f18d41"
+version = "1.6.0"
+source = "git+https://github.com/tpedneault/fenix?rev=a39d18b273ace00091d8d170382456bbad0a7c2f#a39d18b273ace00091d8d170382456bbad0a7c2f"
 dependencies = [
  "chrono",
  "lsp-types",
