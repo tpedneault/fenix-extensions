@@ -69,6 +69,10 @@ impl Memory {
 
     fn record(&mut self, f: &Found, file: Option<String>) -> Known {
         let group = self.remember_groups(&f.groups);
+        Self::known_in(f, file, group)
+    }
+
+    fn known_in(f: &Found, file: Option<String>, group: Option<String>) -> Known {
         Known {
             key: f.key.clone(),
             label: f.label.clone(),
@@ -91,10 +95,22 @@ impl Memory {
     pub fn scanned(&mut self, path: &str, found: &[Found]) {
         let path = below(path).to_string();
         let mut ids = Vec::with_capacity(found.len());
+        // Consecutive tests of a file share their groups: each chain is
+        // remembered once, not once a test (a scan of 2,000 tests must
+        // take a few milliseconds).
+        let mut last: Option<(&[Group], Option<String>)> = None;
         for f in found {
             let id = cut_id(&f.key.0).into_owned();
             let file = Some(f.file.as_deref().map(|p| below(p).to_string()).unwrap_or_else(|| path.clone()));
-            let mut k = self.record(f, file);
+            let group = match &last {
+                Some((groups, group)) if *groups == &f.groups[..] => group.clone(),
+                _ => {
+                    let group = self.remember_groups(&f.groups);
+                    last = Some((&f.groups, group.clone()));
+                    group
+                }
+            };
+            let mut k = Self::known_in(f, file, group);
             k.scanned = true;
             k.listed = self.tests.get(&id).is_some_and(|old| old.listed);
             if let (true, Some(file), Some(line)) = (k.template, &k.file, k.line) {

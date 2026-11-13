@@ -98,7 +98,7 @@ mod tests {
 
     #[test]
     fn one_package_with_one_binary_just_runs() {
-        let target = |name: &str, kind: &str, features: &[&str]| Target { name: name.into(), kind: vec![kind.into()], src_path: String::new(), required_features: features.iter().map(|f| f.to_string()).collect() };
+        let target = |name: &str, kind: &str, features: &[&str]| Target { name: name.into(), kind: vec![kind.into()], src_path: String::new(), required_features: features.iter().map(|f| f.to_string()).collect(), ..Target::default() };
         let m = Metadata {
             packages: vec![Package { name: "orbit".into(), targets: vec![target("orbit", "bin", &[]), target("gui", "example", &["gui"]), target("speed", "bench", &[])], ..Package::default() }],
             ..Metadata::default()

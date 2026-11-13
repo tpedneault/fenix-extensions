@@ -1,0 +1,140 @@
+{"reason":"compiler-artifact","package_id":"path+file:///project#0.1.0","manifest_path":"/project/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"orbit","src_path":"/project/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["/project/target/debug/build/orbit/252ce3a0afb1de8e/out/liborbit-252ce3a0afb1de8e.rlib","/project/target/debug/build/orbit/252ce3a0afb1de8e/out/liborbit-252ce3a0afb1de8e.rmeta"],"executable":null,"fresh":true}
+{"reason":"compiler-artifact","package_id":"path+file:///project#0.1.0","manifest_path":"/project/Cargo.toml","target":{"kind":["test"],"crate_types":["bin"],"name":"it","src_path":"/project/tests/it.rs","edition":"2021","doc":false,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["/project/target/debug/build/orbit/fde6b73f68d80ec0/out/it-fde6b73f68d80ec0"],"executable":"/project/target/debug/build/orbit/fde6b73f68d80ec0/out/it-fde6b73f68d80ec0","fresh":true}
+{"reason":"compiler-artifact","package_id":"path+file:///project#0.1.0","manifest_path":"/project/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"orbit","src_path":"/project/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["/project/target/debug/build/orbit/b1fa5706f773b725/out/orbit-b1fa5706f773b725"],"executable":"/project/target/debug/build/orbit/b1fa5706f773b725/out/orbit-b1fa5706f773b725","fresh":true}
+{"reason":"build-finished","success":true}
+
+running 9 tests
+test tests::adds ... ok
+test tests::case_small ... ok
+test geo::tests::dist_is_symmetric ... ok
+test tests::ignored_one ... ignored, slow
+test tests::nested::deep ... ok
+test geo::tests::unwraps_none ... FAILED
+test tests::case_negative ... FAILED
+test tests::fails_on_purpose ... FAILED
+test tests::panics_as_it_should - should panic ... ok
+
+failures:
+
+---- geo::tests::unwraps_none stdout ----
+
+thread 'geo::tests::unwraps_none' (11402) panicked at src/geo/mod.rs:15:11:
+called `Option::unwrap()` on a `None` value
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+   1: core::panicking::panic_fmt
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+   2: core::panicking::panic
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:150:5
+   3: core::option::unwrap_failed
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:2253:5
+   4: <core::option::Option<u8>>::unwrap
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:1016:21
+   5: orbit::geo::tests::unwraps_none
+             at ./src/geo/mod.rs:15:11
+   6: orbit::geo::tests::unwraps_none::{closure#0}
+             at ./src/geo/mod.rs:13:22
+   7: <orbit::geo::tests::unwraps_none::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+   8: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+---- tests::case_negative stdout ----
+
+thread 'tests::case_negative' (11404) panicked at src/lib.rs:43:5:
+assertion `left == right` failed
+  left: -2
+ right: -3
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+   1: core::panicking::panic_fmt
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+   2: core::panicking::assert_failed_inner
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:452:17
+   3: core::panicking::assert_failed::<i32, i32>
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:407:5
+   4: orbit::tests::case_negative
+             at ./src/lib.rs:40:36
+   5: orbit::tests::case_negative::{closure#0}
+             at ./src/lib.rs:40:33
+   6: <orbit::tests::case_negative::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+   7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+---- tests::fails_on_purpose stdout ----
+some output before the failure
+
+thread 'tests::fails_on_purpose' (11406) panicked at src/lib.rs:25:9:
+assertion `left == right` failed: two and two
+  left: 4
+ right: 5
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+   1: core::panicking::panic_fmt
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+   2: core::panicking::assert_failed_inner
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:447:23
+   3: core::panicking::assert_failed::<i32, i32>
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:407:5
+   4: orbit::tests::fails_on_purpose
+             at ./src/lib.rs:25:9
+   5: orbit::tests::fails_on_purpose::{closure#0}
+             at ./src/lib.rs:23:26
+   6: <orbit::tests::fails_on_purpose::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+   7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+failures:
+    geo::tests::unwraps_none
+    tests::case_negative
+    tests::fails_on_purpose
+
+test result: FAILED. 5 passed; 3 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+
+running 2 tests
+test integration_adds ... ok
+test integration_fails ... FAILED
+
+failures:
+
+---- integration_fails stdout ----
+
+thread 'integration_fails' (11412) panicked at tests/it.rs:8:5:
+zero is not one
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+   1: core::panicking::panic_fmt
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+   2: it::integration_fails
+             at ./tests/it.rs:8:5
+   3: it::integration_fails::{closure#0}
+             at ./tests/it.rs:7:23
+   4: <it::integration_fails::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+   5: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+failures:
+    integration_fails
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 1 test
+test src/lib.rs - add (line 6) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+

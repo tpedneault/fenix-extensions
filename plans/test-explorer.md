@@ -1686,3 +1686,41 @@ the last wins; a scanner that parses (`syn`) uses `LastGood` so
 half-typed text keeps the file's tests; the build-first plan for
 debugging runs as the same run as the first `tests_launch`, and `Keep`
 is still how the binary's path reaches the second.
+
+## As built: E2
+
+Built on 13 November 2026 on `main`'s API 1.5, in
+`extensions/rust/src/provider/` (lang-kit's feature `tests`, the test
+kit's as a dev-dependency), recorded with cargo 1.100 and cargo-nextest
+0.9.151 (installed in a scratch folder: `cargo install --locked` worked).
+Not offered to Fenix: the manifest section, the engine lines, 1.3.0 and
+the five forwards are the `api-1.6` branch's, listed in
+`plans/test-providers-recipe.md` §12 (the recipe this plan calls
+`test-explorer-recipe.md`). Where it differs from §6.1:
+
+| §6.1 said | As built | Why |
+|---|---|---|
+| The scan finds `#[test]` ... `#[rstest]` or `#[test_case]` | Also `#[quickcheck]`, `#[proptest]`, `#[test_matrix]`; `#[rstest]` is a template only with `#[case]`s or `#[values]` (without, it's one test of that name); not inside an `impl`, an `fn` or a `macro_rules!`; half-typed text recovered by indentation (no `LastGood`: it never fails to read) | rstest names a plain fixture test as the `fn`; a line scanner always answers |
+| Targets from `cargo metadata` | Also from the nearest Cargo.toml and cargo's conventions before cargo answers; `test = false`, examples and benches give no tests | Fenix scans as the provider starts, before metadata is in |
+| `--exact` for doc tests | Doc tests by their name as a substring: `--exact` matches none (verified) | rustdoc's names |
+| discover lists doc tests apart (not verified) | `cargo test --workspace -- --list` lists them (verified); the listing gives each its file and line from its name | |
+| A file or `mod` with no fill-in: the module path | The same; with nextest a regex, `test(/^geo::/)`, which doesn't also run `other::geo::` | |
+| nextest `-E 'test(=a) \| test(=b)'` | `(binary_id(orbit) & test(=a)) \| ...` (the `\|` verified), so a name in two binaries runs in its own only; doc tests a `cargo test --doc` step; nextest used from 0.9.103 (its CHANGELOG: `libtest-json-plus` streams from it), with `libtest-json-plus` | `libtest-json` names lib and bin binaries alike |
+| The k-th segment is the k-th header's | Paired by order once the header is settled (the next one came), or sooner by the segment's first test, known in that header's target; a `harness = false` binary that panics (`thread 'main' panicked`) has no segment and is `Crashed` alone | §10's risk happened: a `harness = false` target printed no segment and shifted the rest |
+| A build failure: `Broken` on the target, or none | One per target with an error, then one with no id for the rest of the step | cargo runs nothing once a build fails, in a workspace too (verified) |
+| Launch `program` from the last run's JSON | From the build-first step's `compiler-artifact` with `profile.test` (`Keep` named `exe <package>/<target>`); a template is debugged by its path without `--exact` | |
+| `Report::Started` | Only nextest's; libtest says nothing as a test starts | |
+| — | `split` is given batches of names (64 or 2 KiB) | it builds a whole command per item to price it |
+| — | lang-kit's scan makes a group chain's ids once for the tests sharing it (fixed there, with a test) | a 2,000-test file's scan was most of its time in the adapter |
+
+What's verified against cargo here: every reading of §3's table that
+the reader relies on, re-recorded on 1.100 (the build-dir layout
+`target/debug/build/<pkg>/<hash>/out/`, thread ids in panics, a binary
+with no tests printing `running 0 tests`, `--jobs` changing only the
+build). Only against recordings: Windows paths (by hand), Windows'
+order of streams (the driver's shuffles). A 2,000-test plan is ~6 ms
+natively in release, over the driver's 5 ms, the most of it lang-kit's
+ask conversion (its own `tally` test does the same at 2,000); debug, which
+CI runs, is well inside 50 ms. Only in a nightly: everything Fenix does
+with these answers, the cost in wasm, a stop while a test binary runs,
+the debug session itself.

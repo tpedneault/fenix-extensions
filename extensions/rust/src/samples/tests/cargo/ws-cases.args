@@ -1,0 +1,1 @@
+cargo test --no-fail-fast --message-format=json -p orbit-cli --bin orbit-cli -- tests::sums tests::adds

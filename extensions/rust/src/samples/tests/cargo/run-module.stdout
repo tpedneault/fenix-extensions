@@ -1,0 +1,40 @@
+{"reason":"compiler-artifact","package_id":"path+file:///project#0.1.0","manifest_path":"/project/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"orbit","src_path":"/project/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["/project/target/debug/build/orbit/b1fa5706f773b725/out/orbit-b1fa5706f773b725"],"executable":"/project/target/debug/build/orbit/b1fa5706f773b725/out/orbit-b1fa5706f773b725","fresh":true}
+{"reason":"build-finished","success":true}
+
+running 2 tests
+test geo::tests::dist_is_symmetric ... ok
+test geo::tests::unwraps_none ... FAILED
+
+failures:
+
+---- geo::tests::unwraps_none stdout ----
+
+thread 'geo::tests::unwraps_none' (11356) panicked at src/geo/mod.rs:15:11:
+called `Option::unwrap()` on a `None` value
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+   1: core::panicking::panic_fmt
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+   2: core::panicking::panic
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:150:5
+   3: core::option::unwrap_failed
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:2253:5
+   4: <core::option::Option<u8>>::unwrap
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/option.rs:1016:21
+   5: orbit::geo::tests::unwraps_none
+             at ./src/geo/mod.rs:15:11
+   6: orbit::geo::tests::unwraps_none::{closure#0}
+             at ./src/geo/mod.rs:13:22
+   7: <orbit::geo::tests::unwraps_none::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+   8: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+failures:
+    geo::tests::unwraps_none
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.08s
+

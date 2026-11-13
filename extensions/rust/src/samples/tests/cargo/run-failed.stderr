@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/build/orbit/b1fa5706f773b725/out/orbit-b1fa5706f773b725)
+error: test failed, to rerun pass `-p orbit --lib`
+     Running tests/it.rs (target/debug/build/orbit/fde6b73f68d80ec0/out/it-fde6b73f68d80ec0)
+error: test failed, to rerun pass `-p orbit --test it`
+error: 2 targets failed:
+    `-p orbit --lib`
+    `-p orbit --test it`

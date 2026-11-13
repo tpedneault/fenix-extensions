@@ -63,16 +63,23 @@ pub fn formatters(sysroot: &str) -> Vec<String> {
     )]
 }
 
+/// What a launch gives lldb-dap or CodeLLDB: Rust's the source language,
+/// and rustc's formatters from `sysroot` once it's known.
+pub fn attributes(sysroot: Option<&str>) -> Value {
+    let mut attributes = json!({ "sourceLanguages": ["rust"] });
+    if let Some(sysroot) = sysroot {
+        attributes["initCommands"] = Value::from(formatters(sysroot));
+    }
+    attributes
+}
+
 /// A launch for each binary and example: built by its task, then run
 /// from cargo's target folder (`.exe` on Windows).
 pub fn launches(m: &Metadata, windows: bool, sysroot: Option<&str>) -> Vec<LaunchConfig> {
     let exe = if windows { ".exe" } else { "" };
     let dir = m.target_directory.replace('\\', "/");
     let dir = dir.trim_end_matches('/');
-    let mut attributes = json!({ "sourceLanguages": ["rust"] });
-    if let Some(sysroot) = sysroot {
-        attributes["initCommands"] = Value::from(formatters(sysroot));
-    }
+    let attributes = attributes(sysroot);
     let mut out = Vec::new();
     for kind in ["bin", "example"] {
         for (_, t) in m.targets(kind) {

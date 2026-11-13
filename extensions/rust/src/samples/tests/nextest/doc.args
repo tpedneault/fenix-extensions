@@ -1,0 +1,1 @@
+cargo test --workspace --doc --no-fail-fast --message-format=json

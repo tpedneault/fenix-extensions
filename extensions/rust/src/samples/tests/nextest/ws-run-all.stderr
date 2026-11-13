@@ -1,0 +1,127 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+────────────
+ Nextest run ID ad3a0157-822a-4bf8-84a9-044467a3984f with nextest profile: default
+    Starting 7 tests across 4 binaries
+        PASS [   0.005s] (1/7) orbit-cli::bin/orbit-cli tests::it_works
+        PASS [   0.006s] (2/7) orbit-cli::bin/orbit-cli tests::sums::case_1
+        PASS [   0.011s] (3/7) orbit-cli::bin/orbit-cli tests::adds::test_case_1_small
+        PASS [   0.006s] (4/7) orbit-core tests::it_works
+        FAIL [   0.079s] (5/7) orbit-cli::bin/orbit-cli tests::adds::test_case_2_wrong
+  output ───
+
+    running 1 test
+
+    thread 'tests::adds::test_case_2_wrong' (13615) panicked at orbit-cli/src/main.rs:27:5:
+    assertion `left == right` failed
+      left: 4
+     right: 5
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+       1: core::panicking::panic_fmt
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+       2: core::panicking::assert_failed_inner
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:452:17
+       3: core::panicking::assert_failed::<i32, i32>
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:407:5
+       4: orbit_cli::tests::adds::test_case_2_wrong
+                 at ./src/main.rs:27:5
+       5: orbit_cli::tests::adds::test_case_2_wrong::{closure#0}
+                 at ./src/main.rs:27:38
+       6: <orbit_cli::tests::adds::test_case_2_wrong::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+       7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test tests::adds::test_case_2_wrong ... FAILED
+
+    failures:
+
+    failures:
+        tests::adds::test_case_2_wrong
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.07s
+
+
+        FAIL [   0.083s] (6/7) orbit-cli::bin/orbit-cli tests::sums::case_2_negative
+  output ───
+
+    running 1 test
+
+    thread 'tests::sums::case_2_negative' (13623) panicked at orbit-cli/src/main.rs:24:9:
+    assertion `left == right` failed
+      left: -2
+     right: -3
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+       1: core::panicking::panic_fmt
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+       2: core::panicking::assert_failed_inner
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:452:17
+       3: core::panicking::assert_failed::<i32, i32>
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:407:5
+       4: orbit_cli::tests::sums
+                 at ./src/main.rs:24:9
+       5: orbit_cli::tests::sums::case_2_negative
+                 at ./src/main.rs:20:5
+       6: orbit_cli::tests::sums::case_2_negative::{closure#0}
+                 at ./src/main.rs:20:14
+       7: <orbit_cli::tests::sums::case_2_negative::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+       8: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test tests::sums::case_2_negative ... FAILED
+
+    failures:
+
+    failures:
+        tests::sums::case_2_negative
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.07s
+
+
+        FAIL [   0.086s] (7/7) orbit-core::it_works it_works
+  output ───
+
+    running 1 test
+
+    thread 'it_works' (13625) panicked at orbit-core/tests/it_works.rs:3:5:
+    assertion `left == right` failed: three doubled
+      left: 6
+     right: 7
+    stack backtrace:
+       0: __rustc::rust_begin_unwind
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/std/src/panicking.rs:676:5
+       1: core::panicking::panic_fmt
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:80:14
+       2: core::panicking::assert_failed_inner
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:447:23
+       3: core::panicking::assert_failed::<i32, i32>
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/panicking.rs:407:5
+       4: it_works::it_works
+                 at ./tests/it_works.rs:3:5
+       5: it_works::it_works::{closure#0}
+                 at ./tests/it_works.rs:2:14
+       6: <it_works::it_works::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+       7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+                 at /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ops/function.rs:250:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    test it_works ... FAILED
+
+    failures:
+
+    failures:
+        it_works
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+
+────────────
+     Summary [   0.098s] 7 tests run: 4 passed, 3 failed, 0 skipped
+        FAIL [   0.079s] (5/7) orbit-cli::bin/orbit-cli tests::adds::test_case_2_wrong
+        FAIL [   0.083s] (6/7) orbit-cli::bin/orbit-cli tests::sums::case_2_negative
+        FAIL [   0.086s] (7/7) orbit-core::it_works it_works
+error: test run failed

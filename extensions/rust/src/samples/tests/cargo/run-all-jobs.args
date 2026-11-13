@@ -1,0 +1,1 @@
+cargo test --workspace --no-fail-fast --message-format=json --jobs 4 -- --test-threads 4

@@ -325,3 +325,61 @@ fn a_build_first_launch_gets_what_its_build_kept() {
     assert_eq!(r.seen.borrow().kept, [vec![], vec![("binary".to_string(), "/project/target/adds".to_string())]]);
     let _ = std::fs::remove_dir_all(&r.data);
 }
+
+/// A runner whose scan gives what it's told, and that keeps what it's
+/// asked, for the groups' cache.
+struct Given(Vec<Found>, Rc<RefCell<Vec<Ask>>>);
+
+impl TestRunner for Given {
+    fn provider(&self) -> &str {
+        "given"
+    }
+    fn runner(&mut self) -> (String, Option<String>) {
+        ("given".into(), None)
+    }
+    fn scan(&mut self, _path: &str, _text: &str) -> Vec<Found> {
+        self.0.clone()
+    }
+    fn plan(&mut self, ask: &Ask) -> Result<Vec<Step>, String> {
+        self.1.borrow_mut().push(ask.clone());
+        Ok(Vec::new())
+    }
+    fn reader(&mut self, _ask: &Ask, _step: &Step) -> Box<dyn Reader> {
+        Box::new(TallyReader)
+    }
+}
+
+/// Consecutive tests sharing their groups have their ids made once (a
+/// scan of 2,000 tests must take a few milliseconds): each still gets its
+/// own groups' id, each group goes to Fenix once, and the memory places a
+/// listing's test where its scan did, whichever groups came before it.
+#[test]
+fn tests_that_share_their_groups_and_those_that_dont_are_each_placed() {
+    let one = vec![Group::package("p"), Group::file("a.rs"), Group::suite("one", "a.rs", 1)];
+    let two = vec![Group::package("p"), Group::file("a.rs"), Group::suite("two", "a.rs", 5)];
+    let file = vec![Group::package("p"), Group::file("a.rs")];
+    let found = vec![
+        Found::test("x1", "x1").under(one.clone()).line(2),
+        Found::test("x2", "x2").under(one.clone()).line(3),
+        Found::test("y", "y").under(two.clone()).line(6),
+        Found::test("x3", "x3").under(one.clone()).line(4),
+        Found::test("z", "z").under(file.clone()).line(9),
+    ];
+    let asks = Rc::new(RefCell::new(Vec::new()));
+    let mut kit = Kit::with_host("given", Box::new(Shared::default())).tests(Box::new(Given(found, asks.clone())));
+    let answer = kit.tests_scan("given", "/project/a.rs", "");
+    let parent = |id: &str| answer.iter().find(|f| f.id == id).and_then(|f| f.parent.clone());
+    let one_id = group_id(&["p", "a.rs", "one"]);
+    let two_id = group_id(&["p", "a.rs", "two"]);
+    assert_eq!([parent("x1"), parent("x2"), parent("y"), parent("x3"), parent("z")], [Some(one_id.clone()), Some(one_id.clone()), Some(two_id.clone()), Some(one_id.clone()), Some(group_id(&["p", "a.rs"]))]);
+    let groups: Vec<&str> = answer.iter().filter(|f| f.kind != Kind::Test).map(|f| f.id.as_str()).collect();
+    assert_eq!(groups, [group_id(&["p"]), group_id(&["p", "a.rs"]), one_id.clone(), two_id.clone()], "each group once, before its first test");
+    // What the memory has under each suite: asked with no fill-in.
+    let file_id = group_id(&["p", "a.rs"]);
+    kit.tests_plan("given", 1, api::Ask::Run(vec![rec(&one_id, Some(&file_id), "one", Kind::Suite), rec(&two_id, Some(&file_id), "two", Kind::Suite)])).unwrap();
+    let known: Vec<Vec<Key>> = match &asks.borrow()[0] {
+        Ask::Run(items) => items.iter().map(|a| if let Asked::Group { known, .. } = a { known.clone() } else { Vec::new() }).collect(),
+        _ => Vec::new(),
+    };
+    assert_eq!(known, [vec![Key::from("x1"), Key::from("x2"), Key::from("x3")], vec![Key::from("y")]]);
+}

@@ -85,6 +85,37 @@ cargo-audit. A workspace's say `--workspace` and each target its
 package (`-p`); an example that needs features gets them. A task of the
 same name in `.fenix/tools.json` wins.
 
+## Tests, for Fenix 1.6
+
+Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call: built and tested here, but not offered yet.
+Fenix asks for it only once this pack is released for extension API
+1.6, after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5
+as on a nightly. What it will do, as tested on recorded cargo output:
+
+- **Find the tests in a file as you type**, nothing run: `#[test]`,
+  `#[tokio::test]` and any `#[<crate>::test]`, at their `fn`'s line, in
+  their `mod`s; `#[ignore = "why"]` as skipped; `#[rstest]` with cases
+  and `#[test_case]` as templates whose cases appear once run. A test a
+  macro makes, and doc tests, come from `cargo test -- --list`, which
+  builds the tests first.
+- **Run** one, a `mod`, a file, a target, everything or the failed ones
+  with `cargo test --no-fail-fast`, exact names where it has them, a step
+  per package; or with `cargo nextest run` when cargo-nextest 0.9.103 or
+  later is installed, which gives each test's time (cargo test doesn't).
+  It looks for `cargo-nextest` as the pack starts and asks its version.
+- **Read** each result as its binary prints it: a failure at its panic's
+  place, with its message and output; a build that fails as "didn't
+  build", never as failing tests; a binary that crashes errors its own
+  tests and the next ones still run.
+- **Debug one test**: `cargo test --no-run` builds its binary, then
+  lldb-dap or CodeLLDB runs it with `<name> --exact --nocapture` in its
+  package's folder.
+
+What it can't: a test whose module comes from `#[path]` or `include!` is
+found when listed or run, not as you type; a doc test's id holds its
+line, so editing above it makes it another test.
+
 ## The project doctor
 
 - **Toolchain**: the one `rust-toolchain.toml` (or `rust-toolchain`)

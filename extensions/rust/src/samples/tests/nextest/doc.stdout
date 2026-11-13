@@ -1,0 +1,8 @@
+{"reason":"compiler-artifact","package_id":"path+file:///project#0.1.0","manifest_path":"/project/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"orbit","src_path":"/project/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["/project/target/debug/build/orbit/252ce3a0afb1de8e/out/liborbit-252ce3a0afb1de8e.rlib","/project/target/debug/build/orbit/252ce3a0afb1de8e/out/liborbit-252ce3a0afb1de8e.rmeta"],"executable":null,"fresh":true}
+{"reason":"build-finished","success":true}
+
+running 1 test
+test src/lib.rs - add (line 6) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
