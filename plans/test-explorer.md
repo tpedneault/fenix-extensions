@@ -1130,6 +1130,25 @@ same. The 24 other kit users aren't released (D-A2).
 
 ## 11. For Fenix's plan
 
+> **Ruled on, 13 November 2026.** Fenix's plan took all nineteen (its
+> §18, "Review, 13 November 2026"); F1 and F2 with a fix other than the
+> one proposed here. The API changed in four places, and E1a's copy of
+> the types follows them:
+>
+> - `found-test` has `data: option<string>` (4 KiB at most), given back
+>   in an ask and in `tests-launch` (F6).
+> - `test-plan` has `list-after: bool` (F7).
+> - `crashed` carries `test-crash { id: option<string>, message }` (F4).
+> - **F1**: a group, file or suite id in `covers` stands for what's under
+>   it; an empty `covers` claims nothing, and what no step names is
+>   judged when the plan's last step ends.
+> - **F2**: after an asked file or suite, Fenix sends the tests it has
+>   under it (never under a group), 10,000 records an ask at most.
+>
+> Whether a component built on the 1.6 crate with `api = "1.5"` loads on
+> Fenix 1.5 (F15, D-A2) is read as yes, and is a test in Fenix's step 2.
+> What follows is the review as it was sent.
+
 The cross-check: Fenix's plan read as the person who implements a
 provider against it, with §3's facts in hand. Each finding says where
 in Fenix's plan, what doesn't fit, the runner case, a fix, and where the
