@@ -612,4 +612,31 @@ mod tests {
         assert!(checks.contains(&("ShellCheck".into(), Health::Warn)), "{checks:?}");
         std::fs::remove_dir_all(&dir).unwrap();
     }
+
+    /// An install takes minutes: how it ended is a notification, offering
+    /// it again when it failed; starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_taplo_is_a_notification_that_offers_it_again() {
+        let dir = temp("install-told");
+        write(&dir, &["Cargo.toml"]);
+        let host = Shared::default();
+        let mut c = pack(&dir, &host, Settings::default);
+        c.activate().unwrap();
+        host.take();
+        c.run_command("config.install.taplo").unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&format!("notify Downloading Taplo {}…", tools::TAPLO)), "{calls:?}");
+        let id: u64 = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse().ok()).unwrap();
+        c.handle(Event::HttpResponse((id, Err("its SHA-256 isn't the release's".into()))));
+        let calls = host.take();
+        let told = calls.iter().find(|c| c.starts_with("notification ")).unwrap();
+        assert!(told.starts_with(&format!("notification normal #install.taplo: Couldn't install Taplo {} -- Its download from https://", tools::TAPLO)), "{told}");
+        assert!(told.ends_with("failed: its SHA-256 isn't the release's. [Try again -> config.install.taplo]"), "{told}");
+
+        // Again: the old toast goes as it starts.
+        c.run_command("config.install.taplo").unwrap();
+        let calls = host.take();
+        assert!(calls.iter().any(|c| c == "dismiss install.taplo"), "{calls:?}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }
