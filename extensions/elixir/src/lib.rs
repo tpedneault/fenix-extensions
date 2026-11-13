@@ -483,11 +483,11 @@ mod tests {
         let calls = fake.take();
         assert!(calls.iter().any(|c| c.contains("/t/mix local.hex --force")), "run as a task: {calls:?}");
 
-        // Expert: its release for this machine, with no checksum to check.
+        // Expert: its release for this machine, with the release's checksum.
         e.command("elixir.install.expert").unwrap();
         let download = fake.take().into_iter().find(|c| c.starts_with("download ")).unwrap();
         assert!(download.contains("https://github.com/expert-lsp/expert/releases/download/v0.2.3/expert_linux_amd64"), "{download}");
-        assert!(!download.contains("sha256"), "unverified: {download}");
+        assert!(download.contains("036abed27ea17049ede1964a4aeca7e84a52673b356030e9fcfb67a54ef3bd3f"), "checked: {download}");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -56,7 +56,7 @@ title = "Elixir: install Hex (mix local.hex), which mix deps.get needs"
 
 [[contributes.commands]]
 id = "elixir.install.expert"
-title = "Elixir: install Expert 0.2.3, the Elixir language server (its download isn't checksummed: see the README)"
+title = "Elixir: install Expert 0.2.3, the Elixir language server"
 
 [[contributes.settings]]
 key = "elixir.compiler_warnings"

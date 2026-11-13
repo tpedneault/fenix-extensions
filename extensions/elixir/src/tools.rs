@@ -26,19 +26,16 @@ pub fn hints(name: &str) -> Vec<String> {
 /// self-extracting file per system, named `expert_<os>_<arch>`, on GitHub
 /// (expert-lsp/expert).
 ///
-/// **The checksums are unverified.** The release's `expert_checksums.txt`
-/// lists each file's SHA-256, but it couldn't be fetched when this was
-/// written, and a checksum isn't one to guess: each file's is `None`
-/// until it's read from the release and put here. Fenix then downloads
-/// without checking a hash; a test holds the table to whole checksums or
-/// none.
+/// Each file's SHA-256 is the one the release's own `expert_checksums.txt`
+/// gives, and each file was downloaded and found to match it on 13
+/// November 2026. A test holds the table to whole checksums or none.
 pub const EXPERT: &str = "0.2.3";
 const EXPERT_FILES: &[(&str, &str, &str, Option<&str>)] = &[
-    ("linux", "x86_64", "expert_linux_amd64", None),
-    ("linux", "aarch64", "expert_linux_arm64", None),
-    ("macos", "x86_64", "expert_darwin_amd64", None),
-    ("macos", "aarch64", "expert_darwin_arm64", None),
-    ("windows", "x86_64", "expert_windows_amd64.exe", None),
+    ("linux", "x86_64", "expert_linux_amd64", Some("036abed27ea17049ede1964a4aeca7e84a52673b356030e9fcfb67a54ef3bd3f")),
+    ("linux", "aarch64", "expert_linux_arm64", Some("458bfe298c6f6354c251c4185006f8ea2ed493c8e92d40a7373ac1997dc9bcd6")),
+    ("macos", "x86_64", "expert_darwin_amd64", Some("5816f93b679ffca647c3d38a881add3fd7a232427e8fde8e64834da51fc6e7c4")),
+    ("macos", "aarch64", "expert_darwin_arm64", Some("97d50c63c7baa96fdc3d4ff867a34b1cd102d7e1c25be4364284c7553983a594")),
+    ("windows", "x86_64", "expert_windows_amd64.exe", Some("838c002846a7edd49cb8d65b9cca32ba93cdd492bea9f19d0a4971403fa9d43f")),
 ];
 
 /// The machine, as `platform()` says it (`linux`, `x86_64`).

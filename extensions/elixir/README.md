@@ -127,15 +127,12 @@ shims, Homebrew's and the Windows installer's folders; installing it (and
 Erlang) is yours: [elixir-lang.org/install](https://elixir-lang.org/install.html),
 asdf, mise.
 
-**Expert's download is not checksummed.** Its release comes from
+**Expert's download is checked.** Its release comes from
 `github.com/expert-lsp/expert/releases/download/v0.2.3/expert_<os>_<arch>`,
-unpacked into the pack's tools folder, where only the pack looks, and
-used at once. The release publishes a `expert_checksums.txt`, but it
-couldn't be read when this version was made, and a checksum isn't one to
-write from memory: the table in `src/tools.rs` holds none, so Fenix
-downloads the file over https from GitHub without comparing a hash. Fill
-it in from the release's file (a test holds it to whole SHA-256s or
-none). One you installed yourself (`~/.local/bin/expert`, as Expert's own
+unpacked into the pack's tools folder, where only the pack looks. Each
+file's SHA-256 in `src/tools.rs` is the one the release's own
+`expert_checksums.txt` gives, and Fenix refuses a download that doesn't
+match it. One you installed yourself (`~/.local/bin/expert`, as Expert's own
 `just install` makes) is used instead.
 
 Starting an install is said in the message line; how it ended is a
@@ -188,7 +185,6 @@ After `SPC m` in an Elixir project or file (`C-k m` with standard keys):
   there's no page for outdated or vulnerable ones (`mix hex.outdated`,
   `mix hex.audit`).
 - **EEx's own grammar**, and the Elixir inside templates: see above.
-- **Expert's checksum**: see the doctor.
 
 ## What it may do
 
