@@ -555,8 +555,8 @@ Rust's: package 450,072 → 519,797 bytes, `extension.wasm` 1,200,519 →
   that scans 2,000 tests fails the budget on a loaded machine; twenty
   files of 100 don't, and the test for the clock stays alone, best of
   several.
-- **A step that printed nothing never gets `Reader::end`** (§14 of the
-  plan's As built: E3a): a runner that can die before its first line is
+- **A step that printed nothing never gets `Reader::end`** (a kit finding
+  in E3a's "As built"): a runner that can die before its first line is
   reported by nothing; the tests are errored "the run ended without a
   result for it".
 - **Ids and `Found` details that bit**: a case's id holds `::` and
