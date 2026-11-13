@@ -133,6 +133,12 @@ completions. In an env file, names are offered after `$` and `${`.
 | `SPC p e u` | `dotenv.untrack` | Stop tracking env files in Git |
 | `SPC p e c` | `dotenv.check` | Look for env files and ask Git again |
 
+With standard keys, `SPC` is `Ctrl+K`: `Ctrl+K p e e` and so on. It
+needs Fenix 1.5 or later (extension API 1.5). What it says names the keys
+of the key scheme you use, and yours where you rebound them: an env file
+missing what its example has says "`C-k p e m` adds them" with standard
+keys, "`SPC p e m` adds them" with Vim keys.
+
 ## Settings
 
 | Setting | What it does |
