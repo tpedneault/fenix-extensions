@@ -362,6 +362,37 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    /// An install takes a while: how it ended is a notification, the
+    /// newest for the tool in place of the last, saying what failed and
+    /// offering it again. Starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_swiftlint_is_a_notification_that_offers_it_again() {
+        let dir = package("install-told");
+        let host = Shared::default();
+        found(&host, &[("swift", "/usr/bin/swift")]);
+        let mut s = pack(&dir, &host, Settings::default, "linux");
+        s.activate().unwrap();
+        host.take();
+        s.run_command(doctor::INSTALL_SWIFTLINT).unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&format!("notify Downloading SwiftLint {}…", tools::SWIFTLINT)), "{calls:?}");
+        let download = |calls: &[String]| calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse::<u64>().ok()).expect("downloaded");
+        s.handle(Event::HttpResponse((download(&calls), Ok(api::HttpResponse::new(404, Vec::new())))));
+        let shown = host.0.borrow().notifications.clone();
+        assert_eq!(shown.len(), 1, "{shown:?}");
+        let n = &shown[0];
+        assert_eq!((n.summary.clone(), n.urgency, n.tag.as_deref()), (format!("Couldn't install SwiftLint {}", tools::SWIFTLINT), api::Urgency::Normal, Some("install.swiftlint")));
+        assert!(n.body.starts_with("Its download from https://github.com/realm/SwiftLint/") && n.body.ends_with("failed: the server said 404."), "{}", n.body);
+        assert_eq!((n.actions[0].label.as_str(), n.actions[0].command.as_str()), ("Try again", doctor::INSTALL_SWIFTLINT));
+
+        // Again: the failure's toast goes as it starts.
+        host.take();
+        s.run_command(doctor::INSTALL_SWIFTLINT).unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&"dismiss install.swiftlint".to_string()), "{calls:?}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn settings_and_configs_choose_the_formatter_and_linter() {
         let dir = package("settings");

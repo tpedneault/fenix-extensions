@@ -137,7 +137,6 @@ pub fn parse_with_fixes(out: &Output, file: &str) -> Result<Vec<Problem>, String
             };
             let mut p = Problem::new(severity, from_one(d.location.row, d.location.column), from_one(d.end_location.row, d.end_location.column), d.message);
             p.code = d.code.filter(|c| c != "invalid-syntax");
-            let mut p = p;
             if let Some(fix) = d.fix.filter(|f| !f.edits.is_empty()) {
                 let title = fix.message.unwrap_or_else(|| format!("Fix {}", p.code.as_deref().unwrap_or("it")));
                 let title = if fix.applicability == "safe" { title } else { format!("{title} (unsafe)") };

@@ -5,7 +5,9 @@ of its own), buf's language server, `buf format`, `buf lint` on save,
 `buf breaking` against the default branch, `buf generate` and `buf build`
 as tasks, the project doctor's checks with fixes that install buf, protoc
 and grpcurl, and snippets. Built on lang-kit (`crates/lang-kit`), as each
-language pack is; the client's page on ui-kit (`crates/ui-kit`).
+language pack is; the client's page on ui-kit (`crates/ui-kit`). It needs
+Fenix 1.5 or later (extension API 1.5); on an older Fenix, Protobuf & gRPC
+1.1.0 is the one you get.
 
 It starts with Fenix. buf's server is set for `.proto` files whenever buf
 is found; the doctor checks buf, protoc and grpcurl in every project.
@@ -79,13 +81,17 @@ project again. The project's `.env` goes to each.
 Each release comes from its project's GitHub releases, checked against
 the SHA-256 the pack knows (buf's and grpcurl's from their releases'
 checksum files), unpacked into the pack's tools folder, where only the
-pack looks, and used at once. One you installed yourself is used
+pack looks, and used at once. Starting one is said in the message line;
+how it ended is a notification, since a download can take a while:
+"Installed buf 1.75.0", or "Couldn't install buf 1.75.0" with which step
+failed and why, and *Try again*. One you installed yourself is used
 instead: the pack looks on `PATH`, and in Go's, Cargo's, Homebrew's,
 Snap's, Scoop's and winget's folders.
 
 ## The gRPC client
 
-`SPC m g` (or Protobuf: the gRPC client) opens it. It runs grpcurl, which
+`SPC m g` (`C-k m g` with standard keys; or Protobuf: the gRPC client)
+opens it. It runs grpcurl, which
 speaks HTTP/2; the extension reads what grpcurl prints.
 
 - **The server**: `protobuf.targets`, a server a row -- `host:port`, TLS
@@ -165,9 +171,10 @@ speaks HTTP/2; the extension reads what grpcurl prints.
 
 ## Keys
 
-After `SPC m` in a buf project, a `.proto` file or the client: `d` checks
-the project again, `b` runs `buf breaking` as a task, `g` opens the
-client, `r` invokes its method, `t` picks the server.
+After `SPC m` in a buf project, a `.proto` file or the client (`C-k m`
+with standard keys): `d` checks the project again, `b` runs `buf
+breaking` as a task, `g` opens the client, `r` invokes its method, `t`
+picks the server.
 
 ## What it may do
 

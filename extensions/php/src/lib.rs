@@ -361,6 +361,37 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    /// An install takes a while: how it ended is a notification, the
+    /// newest for the tool in place of the last, saying what failed and
+    /// offering it again. Starting one is the message line's.
+    #[test]
+    fn a_failed_install_of_phpactor_is_a_notification_that_offers_it_again() {
+        let dir = temp("phpactor-told");
+        write(&dir, &[("index.php", "<?php echo 1;\n")]);
+        let host = Shared::default();
+        found(&host, &[("php", "/usr/bin/php")]);
+        let mut p = pack(&dir, &host, || Settings { server: Server::Phpactor, formatter: Formatter::Server, phpstan: false });
+        p.activate().unwrap();
+        host.take();
+        p.run_command(doctor::INSTALL_PHPACTOR).unwrap();
+        let calls = host.take();
+        assert!(calls.contains(&format!("notify Downloading Phpactor {}…", tools::PHPACTOR)), "{calls:?}");
+        let download = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse::<u64>().ok()).expect("downloaded");
+        p.handle(Event::HttpResponse((download, Ok(api::HttpResponse::new(404, Vec::new())))));
+        let shown = host.0.borrow().notifications.clone();
+        assert_eq!(shown.len(), 1, "{shown:?}");
+        let n = &shown[0];
+        assert_eq!((n.summary.clone(), n.urgency, n.tag.as_deref()), (format!("Couldn't install Phpactor {}", tools::PHPACTOR), api::Urgency::Normal, Some("install.phpactor")));
+        assert!(n.body.starts_with("Its download from https://") && n.body.ends_with("failed: the server said 404."), "{}", n.body);
+        assert_eq!((n.actions[0].label.as_str(), n.actions[0].command.as_str()), ("Try again", doctor::INSTALL_PHPACTOR));
+
+        // Again: the failure's toast goes as it starts.
+        host.take();
+        p.run_command(doctor::INSTALL_PHPACTOR).unwrap();
+        assert!(host.take().contains(&"dismiss install.phpactor".to_string()));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn phpactor_is_installed_and_run_by_php() {
         let dir = temp("phpactor");

@@ -6,7 +6,8 @@ Cargo.toml's targets, the project doctor's checks with their fixes,
 outdated and vulnerable crates, snippets, and an Axum service in the
 new-project wizard. Built on lang-kit (`crates/lang-kit`), as each
 language pack is. It depends on `fenix.rust-snippets`, which stays
-installable on its own.
+installable on its own. It needs Fenix 1.5 or later (extension API 1.5);
+on an older Fenix, Rust 1.1.0 is the one you get.
 
 What it knows of the project's packages and targets is `cargo metadata
 --no-deps`'s, asked when it starts and when `Cargo.toml` is saved.
@@ -152,5 +153,5 @@ it.
 
 ## Keys
 
-After `SPC m` in a Rust project: `p` crates, `d` check again, `c`
-clippy now.
+After `SPC m` in a Rust project (`C-k m` with standard keys): `p` crates,
+`d` check again, `c` clippy now.

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ruby"
 name = "Ruby"
-version = "1.0.0"
+version = "1.1.0"
 description = "Ruby: tree-sitter-ruby's highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler's, Rake's, RSpec's and Rails' tasks, the project's checks with their fixes, and snippets"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,11 +10,9 @@ categories = ["languages", "snippets"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# Ruby's grammar as WebAssembly, from its language file (0.8.5); a
-# linter's problems with their fixes (0.8.6); RuboCop's text kept when it
-# exits 1 on what isn't layout, the language file's `comment` (0.8.7).
-api = "1.0"
+fenix = ">=1.5, <2"
+# lang-kit, the kit it's built on, is on 1.5.
+api = "1.5"
 
 # With Fenix: the project doctor's checks and the language server are
 # there from the start.

@@ -10,7 +10,7 @@ description = "Rust in Fenix: rust-analyzer, lldb-dap or CodeLLDB, clippy on sav
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.0.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 # The later host calls: launches, problems with their fixes.
 fenix-lang-kit = { path = "../../crates/lang-kit" }
 serde = { version = "1", features = ["derive"] }

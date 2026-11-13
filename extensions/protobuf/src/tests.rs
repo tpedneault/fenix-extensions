@@ -182,6 +182,36 @@ fn a_saved_proto_is_linted_across_the_workspace_and_compared_again() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+/// An install takes a while: how it ended is a notification, the newest
+/// for the tool in place of the last, saying what failed and offering it
+/// again. Starting one is the message line's.
+#[test]
+fn a_failed_install_of_grpcurl_is_a_notification_that_offers_it_again() {
+    let dir = temp("install-told");
+    std::fs::write(dir.join("orbit.proto"), "syntax = \"proto3\";\n").unwrap();
+    let host = Shared::default();
+    let mut p = pack(&dir, &host, &SharedEd::default(), Settings::default);
+    p.activate().unwrap();
+    host.take();
+    p.run_command("protobuf.install.grpcurl").unwrap();
+    let calls = host.take();
+    assert!(calls.contains(&format!("notify Downloading grpcurl {}…", tools::GRPCURL)), "{calls:?}");
+    let download = calls.iter().find_map(|c| c.strip_prefix("download ")?.split(' ').next()?.parse::<u64>().ok()).expect("downloaded");
+    p.handle(Event::HttpResponse((download, Ok(api::HttpResponse::new(404, Vec::new())))));
+    let shown = host.0.borrow().notifications.clone();
+    assert_eq!(shown.len(), 1, "{shown:?}");
+    let n = &shown[0];
+    assert_eq!((n.summary.clone(), n.urgency, n.tag.as_deref()), (format!("Couldn't install grpcurl {}", tools::GRPCURL), api::Urgency::Normal, Some("install.grpcurl")));
+    assert!(n.body.starts_with("Its download from https://github.com/fullstorydev/grpcurl/") && n.body.ends_with("failed: the server said 404."), "{}", n.body);
+    assert_eq!((n.actions[0].label.as_str(), n.actions[0].command.as_str()), ("Try again", "protobuf.install.grpcurl"));
+
+    // Again: the failure's toast goes as it starts.
+    host.take();
+    p.run_command("protobuf.install.grpcurl").unwrap();
+    assert!(host.take().contains(&"dismiss install.grpcurl".to_string()));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
 #[test]
 fn without_buf_or_grpcurl_their_fix_rows_install_them() {
     let dir = temp("fix");
@@ -204,6 +234,8 @@ fn without_buf_or_grpcurl_their_fix_rows_install_them() {
     p.run_command("protobuf.client").unwrap();
     let text = p.client_page(100, 24).text();
     assert!(text.contains("grpcurl isn't installed: I installs it"), "{text}");
+    // The page wraps it; the key is the project doctor's, not the delete's.
+    assert!(text.contains("row (SPC p h)") && !text.contains("SPC p d"), "{text}");
 
     // Installed some other way: found and used; protols when it's all
     // there is.

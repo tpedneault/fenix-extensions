@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.swift"
 name = "Swift"
-version = "1.0.0"
+version = "1.1.0"
 description = "Swift on Linux and macOS: sourcekit-lsp, Swift's highlighting, swift-format or SwiftFormat, SwiftLint on save, SwiftPM's tasks, the project's checks with their fixes, snippets for SwiftUI, concurrency and both test frameworks, and a command-line package"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,12 +10,10 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# Swift's grammar as WebAssembly, from its language file (0.8.5); the
-# machine, for SwiftLint's release and swift.org's page (0.8.4); the
-# formatter, a linter's problems and the tools folder (0.8.3); the
-# language file's `comment` (0.8.7).
-api = "1.0"
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
 
 # With Fenix: the server and the project doctor's checks are there from
 # the start.

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ocaml"
 name = "OCaml"
-version = "1.0.0"
+version = "1.1.0"
 description = "OCaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune's tasks with a dune exec for each executable, debugging bytecode with earlybird, the project's checks with fixes that run opam install, snippets, and a dune project"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,10 +10,9 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# The grammars and their queries (0.8.5), the debug adapter and the
-# formatter (0.8.3), the launches it works out (0.8.6).
-api = "1.0"
+fenix = ">=1.5, <2"
+# lang-kit, the kit it's built on, is on 1.5.
+api = "1.5"
 
 # With Fenix: the project doctor's checks and the language server are
 # there from the start.
