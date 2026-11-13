@@ -528,6 +528,44 @@
               "gitlab"
             ]
           }
+        },
+        {
+          "version": "1.3.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ci-v1.3.0/fenix.ci-1.3.0.fenixext",
+          "sha256": "1fd83e2a1c11e10603f512784b75d12f6e1f67779e8c13f64eb564668d0a36f1",
+          "size": 180490,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "filesystem": "project-read",
+            "network": [
+              "api.github.com",
+              "*.actions.githubusercontent.com",
+              "*.blob.core.windows.net",
+              "gitlab.com",
+              "${setting:ci.github_url}",
+              "${setting:ci.gitlab_url}",
+              "${setting:gitlab.base_url}",
+              "${setting:ci.jenkins_url}"
+            ],
+            "process": [
+              "git",
+              "gh"
+            ],
+            "secrets": [
+              "github.token",
+              "gitlab.token",
+              "ci.jenkins_token"
+            ],
+            "settings": [
+              "gitlab"
+            ]
+          }
         }
       ],
       "name": "CI status",
