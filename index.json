@@ -1660,6 +1660,41 @@
               "localhost:2345"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/go-v1.2.0/fenix.go-1.2.0.fenixext",
+          "sha256": "695eabd0b88f98bcd94ff1d6e37d24d572cde57f655a6ba038b5972ed7469c3a",
+          "size": 353481,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "go",
+              "gofmt",
+              "goimports",
+              "gopls",
+              "dlv",
+              "govulncheck",
+              "golangci-lint",
+              "brew",
+              "winget"
+            ],
+            "sockets": [
+              "${setting:go.delve_server}",
+              "127.0.0.1:2345",
+              "localhost:2345"
+            ]
+          }
         }
       ],
       "name": "Go",
