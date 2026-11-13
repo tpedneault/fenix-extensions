@@ -183,7 +183,8 @@ pub mod tests {
         super::host::test_provider_set(provider, runner, problem)
     }
 
-    const _: [fn(&str, &str, Option<&str>) -> Result<(), String>; 2] = [provider, ::fenix_extension_api::tests::provider];
+    type Signature = fn(&str, &str, Option<&str>) -> Result<(), String>;
+    const _: [Signature; 2] = [provider, ::fenix_extension_api::tests::provider];
 }
 
 same! {
