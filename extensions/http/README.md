@@ -152,9 +152,11 @@ changed.
 and `x` on a folder in the sidebar that folder's: the report says each
 one passed -- its tests, or with none, a status under 400 -- and why
 not. `Enter` there goes to the request. When it's done and you're
-elsewhere, the modeline says how it went (and, for a run of ten seconds
-or more, how long it took); with the report in front of you, it says
-nothing more.
+elsewhere, the message line says how it went; a run of ten seconds or
+more says it in a notification instead, with how long it took -- low
+urgency when all passed, normal when some failed, the last run's
+replaced by the next -- whose *Open the report* (`http.report`) brings
+the report up. With the report in front of you, it says nothing more.
 
 ## Environments
 
@@ -348,11 +350,16 @@ filled in -- secrets too, so mind where it goes.
 | `SPC p r g` | `http.graphql_schema` | Ask the GraphQL server for its schema again |
 | `SPC p r x` | `http.cancel` | Cancel what's in flight, close WebSockets, stop a sign-in |
 | | `http.cookies_clear` | Clear the environment's cookies |
+| | `http.report` | The last run's report, brought up |
 
 `SPC m` in a `.http` file has the same: `r` send, `a` run the file's, `v`
 the response, `e` environment, `y` copy as, `o` the client, `c` import
 curl, `s` sign in, `w` a WebSocket message, `g` the GraphQL schema, `x`
 cancel.
+
+With standard keys, `SPC` is `Ctrl+K`: `Ctrl+K p r r` and so on. It
+needs Fenix 1.5 or later (extension API 1.5). What it says names the keys
+of the key scheme you use, and yours where you rebound them.
 
 ## Settings
 
@@ -404,8 +411,9 @@ your `agents.mcp.allow` lets agents do something external.
 `cargo xtask pack extensions/http dist` from the repository's root.
 `cargo test` covers the parser, variables, auth, imports and exports,
 the pages, and what agents are given: a request found by its name, the
-answer shaped, secrets hidden, a long body cut; and what a run says when
-it ends.
+answer shaped, secrets hidden, a long body cut; what a run says when
+it ends, and a long one's notification; and the keys it names, on the
+[test kit](../../crates/test-kit)'s fake host.
 
 ## Not here yet
 
