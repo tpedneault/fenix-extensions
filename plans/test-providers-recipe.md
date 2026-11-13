@@ -520,3 +520,49 @@ Rust's: package 450,072 → 519,797 bytes, `extension.wasm` 1,200,519 →
   its last step.
 - Frames: read `at` from the stack's end (`:9:21)`) so a drive letter's
   colon stays; take the first frame in the project, `file://` off.
+
+## 17. Notes from E3c (Web)
+
+What §16 and the rest didn't say, found building Vitest's and Jest's
+(`extensions/web/src/provider/`; `plans/test-explorer.md`, "As built:
+E3c"):
+
+- **A run by name reports what it left out.** Vitest and Jest report
+  every collected test of the files given, those `-t` didn't match as
+  `skipped` (Vitest's `mode` `skip`, Jest's `pending`): a reader that
+  sends them errs every run of one test. The reader knows the step's
+  selection from its `covers` (exact keys, a describe's key prefix, a
+  template's title) and sends a skip only for what the step asked.
+- **Jest's `--reporters` takes every argument after it**: files must come
+  after `--`. Its path patterns are regexes on the full path; escape
+  `.` but not `/` (on Windows Jest turns `/` into `\\`, and `\/` breaks).
+- **A reporter's paths need its folder**: the reporters now print `cwd`
+  on every line; a path is made the project's by taking off that folder
+  less the package's own (`/home/ann/orbit/packages/app` less
+  `packages/app`), with no knowledge of where the project is.
+- **A worker's death** is nowhere but Vitest's `onTestRunEnd` unhandled
+  errors (`cause`: `Worker exited unexpectedly with signal SIGKILL …
+  while running test file <path>`; the file's tests get no result at
+  all) and Jest's `testExecError` (`A jest worker process … was
+  terminated`; the file's tests that ended keep theirs). Jest runs one
+  quick file, or files whose cached timings are fast, in its own
+  process: killed, the step ends by a signal. Record Jest's crash with
+  `TMPDIR` set to a fresh folder (its cache is under it) to get workers.
+- **`split`'s commands don't say which items they hold.** Rust counts
+  args; a `make` that joins items into one regex can't. Record each
+  `make`'s slice (its offset in the items and length) with a hash of the
+  command it gave, and match the commands `split` returns to those
+  (`plan.rs`, `named`); making each prefix again to compare is quadratic
+  (40 ms for 2,000). A batch must be well under the *smallest* limit you
+  split for: `split` never cuts one item, so an 8 KiB batch under
+  `BATCH_FILE` would go out over 8,191.
+- **Per-test lookups must be O(1)**: an index whose "is this key a
+  template" was a linear `find` over the file's tests made a 2,000-test
+  plan 130 ms. Debug builds magnify everything ~5×; the driver's 50 ms
+  is per call, and a 2,000-test scan of one file was ~23 ms in debug
+  alone and over 50 ms while the rest of the suite ran beside it. The
+  timed tests take a lock so they don't time each other, and the
+  2,000-rerun test scans four files of 500 (one call each), as Rust's
+  does.
+- **Recording**: a removal of a relative glob after `cd` is refused by
+  the session's safety check; give absolute paths.
