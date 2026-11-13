@@ -308,7 +308,7 @@ pub fn import_match(name: &str, themes: &[&str]) -> Option<(String, bool)> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     /// One of Fenix's own theme files, as it ships in 1.5.2: every key it
