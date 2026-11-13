@@ -1556,3 +1556,133 @@ with failed and errored children; which of a file's tests an ask leaves
 out past 10,000; whether `test-provider-set`'s runner survives the pack
 starting again; and a case dropped by a complete run although Fenix had
 just errored it.
+
+## As built: the kit after Fenix's review
+
+Fenix's review of its steps 1 and 2 (Fenix's `docs/plans/test-explorer.md`
+§19, with `fenix-tests`' Decisions 1 to 36 and
+`fenix-extension-api/src/tests.rs`) ruled on every rule the list above
+found unspecified (its K1 to K14), changed a few, and found that keeping
+`api = "1.5"` depends on what a component links. The kit and the driver
+now follow it; nothing they rely on is left open.
+
+**Opting in (the hazard, §19 finding 4).** Fenix 1.5 refuses a component
+that imports `test-provider-set`, and a call reachable from an export is
+linked even behind a condition that never holds. Every lang-kit pack
+builds `Kit` and the `Fenix` host, so with the E1a code, once the copied
+`provider()` became the real import, all of them would have linked it.
+Now everything provider-related is behind **lang-kit's feature `tests`**:
+the module, `Kit::tests` and the five methods, `Kit.tests` and its calls
+from `activate`, `handle` and `file_saved`, `Host::test_provider_set`
+(the trait method and `Fenix`'s, the one caller of `tests::api::provider`)
+and the mock's. A pack that runs tests writes `fenix-lang-kit = { path =
+"../../crates/lang-kit", features = ["tests"] }`; no other pack changes.
+The feature, not a function pointer set by `Kit::tests`: whether the
+linker drops code reachable only through a `dyn` vtable entry is the
+optimiser's choice, which no test here can pin, while code that isn't
+compiled can't be linked. Each extension is built on its own, so one
+pack's feature never reaches another's, and adding it changed no lock
+(`cargo metadata --locked` holds for Zig, Rust and Python). The test
+kit's new feature `tests` turns on lang-kit's for a pack's tests only
+(the driver, and `Fake` answering `test-provider-set`); its own tests
+have it.
+
+What it measured, built by `cargo xtask pack` with Rust 1.100 (the sizes
+before E1a in the list above were the older toolchain's): Zig's
+`extension.wasm` was 854,533 bytes before E1a and 860,935 after it; now
+854,509, which is what the pre-E1a source gives built in a folder whose
+path is as long (854,509 again: the 24 bytes are the build path's,
+which lang-kit's panic messages carry). Lua's: 863,225 before, 869,881
+after, 863,225 now. `wasm-tools` 1.263 shows the same 2,560 functions in
+Zig before E1a and now (2,600 with E1a; 2,589 with the feature on), the
+same 175 core imports and the same WIT; what differs from a pre-E1a
+build at the same path length is lang-kit's source paths, the line
+numbers of its panic locations, type-id hashes and the functions' order.
+None of the tests module's strings is in the binary. On API 1.5 the real
+import doesn't exist, so the final proof -- no `test-provider-set` among
+a 1.6-built pack's imports without the feature -- is E1b's: it builds
+Zig on the 1.6 crate and runs `wasm-tools component wit` on it.
+
+**What E1b must do, and mustn't.** It swaps `api.rs` for `pub use
+fenix_extension_api::tests::*;` inside the feature (the module is behind
+it already), and adds each test-running pack's five forwards in its
+`impl Extension` -- in a pack that has the feature, so unconditionally
+there. It must not add the forwards, a `test_exports!` macro's
+expansion, or any call of `tests::provider` to code a pack without the
+feature compiles (a default method of `Host` that calls it, a helper in
+`Kit::activate`), nor turn the feature on by default or from another of
+lang-kit's features. It checks with `wasm-tools component wit` that a
+pack without the feature imports no `test-provider-set` and that one
+with it does.
+
+**The copied types** are now the real module's shape exactly: the same
+types, fields, order, field types and enum cases, which they were
+already, and the same derives, which they weren't (`Found`, `Ask`,
+`Line`, `StepEnd`, `Location` lacked `Eq`; `Found`, `Kind`, `Plan`,
+`Line`, `Location` lacked `Default`, `Kind`'s being `Test`; `Kind` and
+`Outcome` lacked `Hash`); the doc comments are the real ones. lang-kit
+uses `Debug`, `Clone`, `PartialEq` and `Default` of them, all on the real
+types. A test builds every type by every field and matches every case,
+so a difference fails to compile on E1b.
+
+| What changed | Where | Pinned by |
+|---|---|---|
+| Ids over 1 KiB: the first 1,007 bytes (back to a character's start), `#`, FNV-1a 64 of the whole in 16 lowercase hex digits (§19 finding 9, K1; Decisions 33), for `id`, `parent`, `covers` and every report's id | `tests::cut_id`, `fnv1a_64`, `is_cut_id` (`line.rs`); the adapter and the driver use it | `a_long_id_is_cut_to_a_prefix_and_a_hash_as_fenix_cuts_it`: all seven of Fenix's vectors (both crates' tests), lengths, the two sharing 1,100 bytes; driver: `a_cut_id_without_its_data_is_asked_as_its_parent` |
+| An ask told apart by `parent` (§19 finding 3, K12; Decisions 20): `Asked::Group.tests` is `Option<Vec<Found>>`, the whole fill-in or `None` (a target, a fill-in that didn't fit or held what Fenix can't name: the runner's own filter); `known` only then. No id is read | `adapter.rs` `ask_from`; the driver's `ask_for` is `fenix-tests`' `ask_records` (topmost, nameable, coarsening, display order, room) | `an_ask_is_told_apart_by_its_records_parents`, `an_ask_after_a_restart_is_planned_from_the_records_alone` (lang-kit); `an_ask_is_told_apart_by_parent_as_fenix_builds_it`, `past_10000_records_a_fill_in_is_left_out_whole` (driver) |
+| What Fenix gives back (§19 finding 2): `/project/<path>`, the place from the first source that has one, the parent Fenix put it under, `data` maybe `None`; a cut id never without its `data` | trait and `Found::data` docs; the driver's `given_back`, `forget_data`, 16 MiB of `data` a provider, `can_be_named` (asks and `launch`) | `without_data_the_pack_plans_from_its_keys`, `a_cut_id_without_its_data_is_asked_as_its_parent`, `a_found_before_its_parent_waits_at_the_top` |
+| Results (§19 K5 to K7; Decisions 7, 11): no result made for a template (removed); no merging -- each `Ended` goes as it came and Fenix's last wins (a retry's pass wins, as Fenix wants); a reader holds a test's phases until whole and sends one, `Ended::and_then` joining them; `broken`/`crashed` never error what has a result in the run | `adapter.rs` `convert`; `mod.rs` `Ended::and_then`; the driver's `errored_under`, leaves (a template with cases isn't counted) and group states | `each_result_goes_as_it_came_and_outputs_are_joined`, `phases_held_until_whole_are_one_result`; `a_crash_or_broken_leaves_what_already_ended_in_the_run`, `a_groups_state_and_a_templates_come_from_what_is_counted_under_them`, `a_run_of_all_gives_each_test_its_result_and_its_place` |
+| The command line (§19 K2): as Rust builds it for `CreateProcessW`, or gives a `.cmd`/`.bat` to `cmd.exe /e:ON /v:OFF /d /c` (its quoting, `%` as `%%cd:~,%`, no line breaks), after `${data}` and `${tools}` are filled in, the program's full path. `split` takes a `Limit` (`DIRECT` 32,766, `BATCH_FILE` 8,191) and counts each of those three at 260 characters with a space (`PATH_ALLOWANCE`); `HEADROOM` is gone | `line.rs` `command_line_len`, `batch_file_line_len`, `Limit`; the driver's `resolved` | `a_command_line_is_counted_as_rust_quotes_it_for_create_process`, `a_batch_files_line_is_counted_as_rust_gives_it_to_cmd_exe`, `a_long_selection_is_split_under_the_limit_in_order`; `a_command_line_is_counted_as_fenix_counts_it` |
+| Cut lines (§19 K3, K4): only a line over 64 KiB is cut, at a character's start; the rest is the next line of the same stream | the driver's `feed::lines`; the adapter already kept a piece per stream | `lines_are_cut_as_fenixs_task_runner_cuts_them`, `a_cut_line_is_joined_across_calls_per_stream` |
+| A plan goes on after a step Fenix failed; a plan of no steps errors its ask at once, and a listing of none isn't complete; a plan's error errors its ask (§19 K8; Decisions 12, 13) | the driver's `execute`, `go` | `a_plan_of_no_steps_errors_its_ask_at_once`, `a_step_fenix_wouldnt_start_fails_and_is_said` |
+| A `found` in a build-first plan is ignored (not sent by the adapter); a build runs as the launch's run (§19 K9, finding 1; Decisions 17, 34) | `convert`; the driver's `apply`, `launch` | `a_build_sends_no_found`; `a_build_ignores_found_and_runs_as_the_launchs_run` |
+| A `found` before its parent at the top until it comes; the same id twice in a scan, the later wins -- the adapter keeps the later too (§19 K10; Decisions 3, 6) | `Tests::scan`; the driver's model | `a_scan_gives_its_groups_first_with_their_ids_and_lines_from_0`; `a_found_before_its_parent_waits_at_the_top` |
+| A case its template's complete run dropped goes with its result; a test that leaves every source keeps its result for when it's back; an empty scan drops the file's tests, so `tests::LastGood` keeps a parser's last good answer per file (§19 K14, finding 8; Decisions 29, 31) | the driver's `end_part`, `Model::restored`; `adapter.rs` `LastGood` | `a_dropped_case_goes_with_its_result_and_a_test_that_comes_back_keeps_its`; `LastGood`'s doc test |
+| `test-provider-set` at each start and on a change is right (§19 K13); a provider that said `("", None)` isn't asked | the driver's `go` | `the_runner_is_told_once_then_only_when_it_changes`, `a_provider_with_nothing_to_run_isnt_asked` |
+
+**The driver against `fenix-tests`**, rule by rule. It was more lenient
+in: a `found` in a build kept; a plan's error putting its tests back
+(Fenix errors them); a listing of no steps complete; a `broken` erroring
+tests that had ended; what a step covers not limited to what the run
+asked (Decisions 10); a template counted with its cases; a step's
+`stopped` reports after a stop applied; a run's records dropped for
+anything in the ask, not strictly under what was selected (Decisions
+24); a hidden provider asked; `data` past 16 MiB kept. Stricter in: an
+id over 1 KiB, a label, a `found` before its parent and an id twice in a
+scan failing the test (Fenix cuts, places at the top, keeps the later);
+a `broken` naming an unknown id failing it (Fenix says it and takes all
+the step covers); a step's env over 64 KiB or `needs` over 32 failing
+the step (Fenix leaves the rest out); groups' ids having to start with
+U+001F (lang-kit's convention, not Fenix's). Different in: fields merged
+one by one (the place now falls through as one, Decisions 30); a
+group's fields from one scan record whatever file gave it (now each
+file's, the latest winning, Decisions 4); children ordered by line and
+label (now path, line, then when found, as the page); a scan's missing
+path given only to tests (now every kind but a group, Decisions 2); the
+timed-out message (`timed out after 30 min`); what a test printed kept
+across runs with a newline added (now as Fenix keeps it); an unknown
+id's parent chosen by depth alone (Decisions 21's order now); lines of
+exactly 64 KiB cut, and cut inside a character. All are fixed. The
+code cites the Decision it follows. What it can't do as Fenix does:
+resolve a program's full path (it takes one under
+`C:\Users\someone\AppData\Local\Programs`), and it doesn't simulate the
+queue, several providers in a run, staleness, the results file, a
+listing started by `list_after` (it says `lists_after`), a provider
+falling behind, or a call's 16 MiB.
+
+**For the Rust pack's author (E2)**, what changed since E1a: turn on
+lang-kit's `tests` (and the test kit's) in `extensions/rust/Cargo.toml`;
+write `Asked::Group { tests: Some(..) | None, .. }` -- with `None`, run
+the target or `mod` by its own filter (`cargo test --lib geo::`), with
+`Some`, name each test exactly; a key over 1 KiB comes back cut and only
+with `data`, so put a test's exact name in `data` only when its key can
+be that long, and plan from the key otherwise (`data` can be `None` after
+Fenix restarts); don't send a result for a parametrized or `#[rstest]`
+template -- its cases' are enough -- and send each test's whole result
+once (libtest's `FAILED` line then its `---- stdout ----` section: hold
+it until whole, as before); `split(items, DIRECT, make)` counts generously
+now, so `cargo test -- --exact` with 2,000 names makes about as many
+steps as before; for nextest's retries, send each attempt's `Ended` --
+the last wins; a scanner that parses (`syn`) uses `LastGood` so
+half-typed text keeps the file's tests; the build-first plan for
+debugging runs as the same run as the first `tests_launch`, and `Keep`
+is still how the binary's path reaches the second.

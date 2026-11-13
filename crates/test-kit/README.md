@@ -15,6 +15,8 @@ after).
 fenix-test-kit = { path = "../../crates/test-kit" }
 # A language pack: the fake as lang-kit's Host too.
 fenix-test-kit = { path = "../../crates/test-kit", features = ["lang-kit"] }
+# A pack that's a test provider: the driver, tests::Fenix.
+fenix-test-kit = { path = "../../crates/test-kit", features = ["tests"] }
 ```
 
 ## Why it's needed
@@ -200,8 +202,8 @@ diff before you commit them. `tests/` isn't packed.
 | `Harness` | `activate`, `command`, `event`, `key`, `keys("jj<Enter>")`, `press`, `ctrl`, `named`, `paste`, `click`, `mouse`, `close` (you closed a page), `saved`, `focus`, `changed`, `serve`, `set_setting` (set, then `setting-changed`), `key_scheme` (set, then `key-scheme-changed`), `cancelled` (`service-cancelled`), `ask_progress` (`agent-ask-progress`), `fire` and `fire_timers`, `said` and `exited` (a process's lines by hand); then `render`, `screen` and `marked` a page. After each call the events waiting are given to the extension (`settles`; off, `settle` does it). `Harness::new` makes the extension with `Default`; `with_fake` once a fake is set up; `wrap` takes one made some other way. |
 | `render` | `text(&Page)`: a page's lines, or a canvas's cells, a line each; hairlines as `─` and `│`, pictures as `▒`, a popup under its line, the keys at the foot. `marked(&Page)`: the same, the focused line with `>` in the gutter, and a run in a role, on a background, underlined or in a colour as `«accent bg=panel:text»`. `canvas` and `canvas_marked` take a `ui-kit` `Canvas` (feature `ui-kit`, on by default): a widget's test, or a gallery's. Spaces at lines' ends go. |
 | `assert_snapshot!` | Text against `tests/snapshots/<name>.txt`; `UPDATE_SNAPSHOTS=1` writes it. |
-| `tests::Fenix` | Feature `lang-kit`: Fenix's side of a test provider, on recorded output ([below](#a-test-provider-on-recorded-output)). |
-| `Fake` as lang-kit's `Host` | Feature `lang-kit`. Its lines are lang-kit's mock's (`spawn 3 /t/zig version`, `tasks build, fmt`, `problems /project/a.zig 1`, `notification low #install.zls: Installed ZLS -- ...`, `test-provider rust: cargo nextest`), except a log line says its level (`warn ...` for what the mock wrote `log ...`). An install the kit ran is in `toasts` and `showing`. `fake.host()` is it boxed for `Kit::with_host`; `server_settings(name)` what a server was given. |
+| `tests::Fenix` | Feature `tests` (which turns on `lang-kit` and lang-kit's own `tests`): Fenix's side of a test provider, on recorded output ([below](#a-test-provider-on-recorded-output)). |
+| `Fake` as lang-kit's `Host` | Feature `lang-kit`. Its lines are lang-kit's mock's (`spawn 3 /t/zig version`, `tasks build, fmt`, `problems /project/a.zig 1`, `notification low #install.zls: Installed ZLS -- ...`, and with the feature `tests` `test-provider rust: cargo nextest`), except a log line says its level (`warn ...` for what the mock wrote `log ...`). An install the kit ran is in `toasts` and `showing`. `fake.host()` is it boxed for `Kit::with_host`; `server_settings(name)` what a server was given. |
 
 ## What it doesn't do
 
@@ -244,13 +246,21 @@ diff before you commit them. `tests/` isn't packed.
 For Fenix 1.6 a language pack can be a test provider (lang-kit's
 [Tests](../lang-kit/README.md#tests), `plans/test-explorer.md`). Fenix
 runs its commands and keeps the results; the pack scans, plans and
-reads. `fenix_test_kit::tests::Fenix` (feature `lang-kit`) is Fenix's
-side, so a provider is tested natively on what its runner printed once:
-it scans a file's text, asks for a plan, "runs" each step by giving the
+reads. `fenix_test_kit::tests::Fenix` (feature `tests`) is Fenix's side,
+so a provider is tested natively on what its runner printed once: it
+scans a file's text, asks for a plan, "runs" each step by giving the
 provider the recorded lines as Fenix would, ends it, and holds what
-Fenix would then hold. On API 1.5 it calls `Kit`'s five methods (its
-`Exports` trait, which `Kit` and `&mut Kit` are); once the kits are on
-1.6, a pack's `impl Extension` too.
+Fenix would then hold. It follows Fenix's plan as its review of steps 1
+and 2 settled it (Fenix's `docs/plans/test-explorer.md` §19) and Fenix's
+model, `fenix-tests`, whose numbered Decisions its code cites. On API
+1.5 it calls `Kit`'s five methods (its `Exports` trait, which `Kit` and
+`&mut Kit` are, and which a test can implement itself to drive Fenix's
+side alone); once the kits are on 1.6, a pack's `impl Extension` too.
+
+The feature `tests` turns on lang-kit's `tests` for the pack's tests
+only (a dev-dependency's features don't reach its WebAssembly); the pack
+turns lang-kit's on in its own `[dependencies]` too, as lang-kit's
+README says.
 
 ```rust,ignore
 use fenix_test_kit::tests::{Fenix, Order, Recorded, State};
@@ -269,6 +279,10 @@ assert_snapshot!("cargo-run-all", fenix.tree("rust"));
 // The same, the streams interleaved as Windows might, three lines a call.
 fenix.order = Order::Shuffled(7);
 fenix.batch = 3;
+// As after Fenix starts again: no `data` until found again; the pack
+// plans from its keys.
+fenix.forget_data("rust");
+fenix.run("rust", &["orbit/lib tests::adds"]);
 ```
 
 **A fixture** is what one command printed: `<name>.stdout` and
@@ -282,72 +296,53 @@ its reporters in `extensions/<pack>/src/tests/`. `Recorded::stdout(..)`
 writes one inline; `exits`, `signal`, `fails`, `stopped_after`,
 `timed_out_after` and `restarts_after` end it otherwise.
 
-| It does | As Fenix's plan says |
+| It does | Fenix |
 |---|---|
-| Gives each step's lines as `TaskRunner` reads them: a line at each `\n`, a piece marked `cut` each 64 KiB of bytes (`cut_at`), its last `\r` dropped, lossy UTF-8, colour codes taken out; the streams interleaved as recorded, stdout first, or shuffled per tick from a seed (`order`), each in its own order; at most 512 lines and 256 KiB a call (`batch`) | §6.4 |
-| Then `tests_step_ended` with the recorded end; after a stop or a timeout, `stopped` for each step not started; a pack that started again gets no call about the run, which is stopped | §6.4, §8.3 |
-| Holds every step to what Fenix starts: a program `permissions.process` allows (a name, `${setting:…}`, `/data/` or `/tools/`), its command line as Windows quotes it at most 32,766 characters (8,191 for a `batch_file`), its env 64 KiB, its `needs` files under `/data` that are there; one that isn't ends `failed`, its tests errored | §5, §6.5 |
-| Holds every answer to Fenix's limits: ids 1 KiB, labels 256 characters, 10,000 found or reports a call, 256 steps, 10,000 ids of covers; no id twice in a scan, a group before its children | §6.5 |
-| Keeps a record per source for each node -- the scan of a file, the listing, a run -- merged field by field (scan, else listing, else run; `skip` the scan's where it has the node); each source dropping its own: a file's next scan, a complete listing, a complete run of a template or group | §4 |
-| Matches results by id: a known one; one a `found` added in the run; an unknown one added under the deepest node of its `at`'s file, *found in a run*. The last `ended` in a run is the result | §4 |
-| Judges what a step covers (a group's, file's or suite's id standing for what's under it) as it ends, and what no step named as the plan ends: `errored` "the run ended without a result for it" if it exited, back to what it was if stopped or of a file with unsaved edits, `errored` if it timed out or failed | §8.3, §8.4, §8.5 |
-| `broken` errors what's under its id; `crashed` what's under its id that hasn't ended in this step; with no id, what the step covers | §8.5 |
-| Builds the ask Fenix makes (`ask_for`, `run`, `run_failed`): each node as it has it, a file or suite followed by the tests under it, 10,000 records at most, more asked as their parents | §4 |
-| `launch`: a `build-first` plan run as a run's (its `ended`s ignored), then asked again once, only if every step exited 0 and nothing was broken or crashed | §11 |
+| Gives each step's lines as Fenix gives them: a line at each `\n`, its last `\r` dropped, lossy UTF-8, colour codes taken out; a line longer than 64 KiB (`cut_at`) in pieces cut at a character's start, each but the last `cut` -- one of 64 KiB or less, at a stream's end too, never; the streams interleaved as recorded, stdout first, or shuffled per tick from a seed (`order`), each in its own order, so a cut line's pieces may have the other stream's lines and a call's end between them; at most 512 lines and 256 KiB a call (`batch`) | §6.4, §19 K3, K4 |
+| Then `tests_step_ended` with the recorded end; after a stop or a timeout, `stopped` for each step not started, what those answer dropped; a pack that started again gets no call about the run, which is stopped, its tests back to what they were | §6.4, §8.3; Decisions 15 |
+| Holds every step to what Fenix starts: a program `permissions.process` allows (a name, `${setting:…}`, `/data/` or `/tools/`); its command line counted as Rust builds it for `CreateProcessW`, after `${data}` and `${tools}` are filled in, with the program's full path (a name taken as under `PROGRAMS_ON_WINDOWS`), at most 32,766 -- for a `batch_file`, the line Rust gives `cmd.exe`, at most 8,191; each `need` a `/data/...` path with `/`, of at most 4 KiB, that's there. One that isn't ends `failed`, its tests errored with why, and the plan goes on | §5, §6.5, §19 K2, K8; Decisions 13 |
+| Holds every plan and answer to Fenix's limits: 10,000 found a scan, 10,000 reports a call, 256 steps, 10,000 ids of covers, 32 needs a step, 64 KiB of env, `data` 4 KiB (one over isn't kept), 16 MiB of `data` a provider (past it, a node's isn't kept, and that's said) | §6.5; Decisions 26 |
+| Cuts what Fenix cuts, and says it once (`said()`): an id over 1 KiB as Fenix cuts it (`cut_id`), a `parent` and `covers` the same; a label over 256 characters, a path over 4 KiB, a skip over 1 KiB, a message over 4 KiB, a text over 64 KiB (its end) | §6.5, §19 finding 9; Decisions 33 |
+| Keeps a record per source for each node -- each file's scan, the listing, a run -- merged as Fenix merges them: field by field scan, else listing, else run; the place (`path`, `line`, `end_line`) as one from the first that gives a path or a line; `skip` the scan's where it has the node; `label`, `kind`, `parent`, `template` the first's. A scan's missing path is the file scanned (but for a group). Each source drops its own: a file's next scan (an empty one drops the file's tests), a complete listing, a complete run of a template or group. A test that leaves every source keeps its result for when it comes back; a case its template's complete run dropped goes with its | §4; Decisions 2, 5, 24, 29, 30, 31 |
+| Places a node under its parent when it has it; a parent not found yet, itself, a loop or a chain past 256 puts it at the top until it's found. Orders children as the page does: by path, line, then when found. The same id twice in one scan: the later wins | §4; Decisions 3, 6 |
+| Matches results by id: a known one; one a `found` added in the run; an unknown one added under the deepest group, file or suite of its `at`'s file holding its line, *found in a run*. The last `ended` in a run is the result; what a test printed before it is kept with it | §4; Decisions 21 |
+| Counts a test or case with none under it: a template once its cases are found isn't counted, its state is its cases' (and its own result's, when the runner gives one); a group's state is failed, errored, running, queued, passed, else unknown | §4; Decisions 7, 8 |
+| Judges a step's scope as it ends -- what it covers (a group's, file's or suite's id standing for what's under it), within what the run asked -- and the plan's rest as its last ends: `errored` "the run ended without a result for it" if it exited, back to what it was if stopped or of a file with unsaved edits, `errored` with why if it failed or timed out. A plan of no steps has its ask judged at once; one that's an error errors its ask with it; a timeout errors what had no result | §8.3, §8.4, §8.5, §19 K8; Decisions 10, 12, 13, 14 |
+| `broken` and `crashed`, with an id or none, error only what has no result in this run yet: what's under the id, or, with none (or one never found, which is said), the step's scope -- for a step that claims nothing, the plan's rest. In a listing they error nothing and make it incomplete | §8.5, §19 K5, K6, K9; Decisions 11, 17 |
+| Builds the ask Fenix makes (`ask_for`, `run`, `run_failed`), as `fenix-tests` does: the topmost selected, a node it can't name (a cut id without `data`) as its nearest ancestor that can be, past 10,000 the deepest as their parents (at the top, `run-all`); in the page's order, each file or suite followed by its whole fill-in -- every node under it, suites included -- while it fits and holds nothing that can't be named. Each node as Fenix gives it back (`given_back`): its path `/project/<path>`, its place, the parent Fenix put it under, its `data` as kept. `forget_data` drops every `data`, as after Fenix starts again | §4, §6.4, §19 findings 2, 3, K12; Decisions 20, 32 |
+| `launch`: a node it can't name isn't debugged; a `build-first` plan runs as the launch's run (its `found`s and `ended`s ignored), then it's asked again once, with that run, only if every step exited 0 and nothing was broken or crashed | §11, §19 finding 1, K9; Decisions 17, 32, 34 |
+| A run says whether it's `complete` (planned, a step or more, all exited, nothing broken or crashed, not stopped) and whether Fenix would list after it (`lists_after`) | §4; Decisions 23 |
 | Times each call natively: over `budget` (5 ms in a release build, 50 ms in a debug one) fails the test | §6.5, §6.7 |
 
-Breaking a rule fails the test, saying which; `lenient()` handles it as
-Fenix does instead and keeps what Fenix would say (`said()`). Read the
-result with `state`, `detail` (message, place, text, time), `at`,
-`record`, `failed`, `assert_states`, `told` (what `test-provider-set`
-said, from the fake), and `tree`: every node a line, children by line,
+It's as strict as Fenix: what Fenix refuses or loses -- a step it
+wouldn't start, a plan or answer past its counts, `data` over 4 KiB --
+fails the test, saying which; `lenient()` handles it as Fenix does
+instead and keeps what Fenix would say (`said()`). What Fenix accepts
+and only says once on the provider's output page -- an id over 1 KiB, a
+label or path cut, a `broken` naming a node it never found -- is in
+`said()` either way, and fails nothing. Read the result with `state`,
+`detail` (message, place, text, time), `at`, `record`, `given_back`,
+`failed`, `assert_states`, `told` (what `test-provider-set` said, from
+the fake), `model`, and `tree`: every node a line, in the page's order,
 with its kind, line, state, result and sources, stable enough to
 snapshot.
 
-### Not yet specified by Fenix
+### Where it can't be Fenix exactly
 
-Where Fenix's plan doesn't say, the driver takes the strictest reading;
-each of these is a question for Fenix's step 2 or 3:
+- **The program's full path** is the machine's: the driver counts a
+  name as `C:\Users\someone\AppData\Local\Programs\<name>\<name>.exe`
+  (`.cmd` for a `batch_file`), `/data/...` and `/tools/...` under
+  Windows-length folders. lang-kit's `split` counts each of these at 260
+  characters, so what it splits fits either way.
+- **What isn't simulated**: the queue and several providers in one run,
+  stale marks, the results file across a restart of Fenix (`forget_data`
+  stands for its `data` side), a listing started by `list_after` (the
+  run says `lists_after`; `discover` runs one), a provider falling behind
+  its step's output, and the 16 MiB a call's answer may hold.
 
-- **How an id over 1 KiB is cut.** Taken as its first 1,024 bytes at a
-  character's boundary (lang-kit's `cut_id` does the same).
-- **What the 32,766 counts.** Taken as the line after `${data}` and
-  `${tools}` are filled in (each counted as a 65-character Windows data
-  folder), with the program in quotes as Rust writes it. Whether the
-  program is counted as written or by its full path isn't said either;
-  lang-kit's `DIRECT` leaves 1,024 for it. The 8,191 of a `.cmd` is
-  counted the same way, though `cmd.exe` quotes differently.
-- **A cut line's pieces between streams.** "The rest is the next line
-  given": taken as the next of the same stream; shuffled, the other
-  stream's lines can come between.
-- **A line of exactly 64 KiB at a stream's end** has `cut` and no last
-  piece (as `TaskRunner` reads today); colour codes split by a cut aren't
-  taken out.
-- **`crashed` or `broken` with no id in a step that claims nothing**
-  (empty `covers`): "all the step covers" is then nothing; taken as what
-  of the plan's rest hasn't ended.
-- **`broken` and tests under it that already ended** in the run: all
-  errored.
-- **A template that never gets an `ended` of its own** (pytest's
-  parametrize, `test.each`) is errored "the run ended without a result for
-  it" by the letter of §8.5. lang-kit sends one for it from its cases, so
-  its packs don't meet this.
-- **A step Fenix fails before it starts**: the plan's later steps still
-  run. **A plan of no steps** for a run: what was asked is judged at once,
-  errored "the run ended without a result for it".
-- **`found` in a build-first plan**: kept as a run's. **`broken` in a
-  listing**: errors nothing, and the listing isn't complete.
-- **A `found` whose parent Fenix doesn't have**, **an id twice in one
-  scan**: breaking the rule fails the test; leniently, kept, and the
-  second left out.
-- **A group's state with a failed and an errored child**: failed.
-- **Over 10,000 records**, a file's or suite's tests are all left out,
-  not some; the order of those under it is the page's (by line).
-- **`test-provider-set` after the pack starts again**: whether Fenix
-  keeps the runner it was told or goes back to the manifest's name.
-- **A run's record and Fenix's own `errored`**: a case no complete run
-  of its template named is dropped, though Fenix errored it as that
-  run's step ended.
+Every rule the kit's first version found unspecified is ruled now
+(Fenix §19, "What the packs' kit asked", K1 to K14), and the driver
+follows each ruling; nothing it relies on is left open.
 
 ## lang-kit's mock
 
@@ -363,5 +358,5 @@ becomes `warn ...`; a process answered by hand can be `on_spawn` instead.
 [Zig's tests](../../extensions/zig/src/lib.rs) are the example.
 
 ```text
-cargo test --manifest-path crates/test-kit/Cargo.toml
+cargo test --manifest-path crates/test-kit/Cargo.toml   # its own tests have every feature
 ```
