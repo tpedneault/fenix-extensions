@@ -5,10 +5,11 @@ that writes down what the extension asked of it and answers with what
 the test gives it, a harness that drives the extension as Fenix does,
 and its pages as text to snapshot.
 
-It's built on extension API 1.5 (`fenix-extension-api`, tag `v1.5.0`),
-as ui-kit and lang-kit are: an extension using it builds its API from
-that tag too, so their types are one (`engine.api = "1.5"`, Fenix 1.5 and
-after).
+It's built on extension API 1.6 (`fenix-extension-api`, Fenix's `a39d18b`
+by `rev`, until Fenix 1.6.0 is tagged), as ui-kit and lang-kit are: an
+extension using it builds its API from that source too, so their types
+are one (`engine.api` is what the extension uses: 1.5, or 1.6 for a test
+provider).
 
 ```toml
 [dev-dependencies]
@@ -30,8 +31,8 @@ a test a host of its own, and two ways to reach it:
 - **`fenix_test_kit::api`**, the API with the fake for its host. It's
   everything `fenix_extension_api` has -- types, `Page`'s builders,
   `export!` -- with each free function, each `page::`, `buffer::`,
-  `project::` and the like call, every `host::` call of API 1.5 (1.0's
-  and what 1.1 to 1.5 added: `key_for`, `key_scheme`, `notify_dismiss`,
+  `project::` and the like call, every `host::` call of API 1.6 (1.0's
+  and what 1.1 to 1.6 added: `tests::provider`, `key_for`, `key_scheme`, `notify_dismiss`,
   `compose_with_ask`, `progress`, `host::notify_with`,
   `host::git_state`, `host::last_task`), and `info!`, `warn!` and
   `error!` going to the fake. Each is checked at compile time to have
@@ -232,12 +233,13 @@ diff before you commit them. `tests/` isn't packed.
 - **The filesystem**: `std::fs` is the machine's, and `/data`,
   `/project` and `/tools` aren't there. Keep paths in a field a test can
   point at a temporary folder, as the language packs do.
-- **Another tag of the API**: it's built on `v1.5.0`, as ui-kit and
-  lang-kit are. An extension on another tag has its types from that tag,
-  which aren't the kit's, and Cargo won't patch one tag of a git
-  dependency with another: it moves to `v1.5.0` to use the kit. An
-  extension on 1.0 to 1.4 that doesn't want Fenix 1.5's floor can't use
-  it.
+- **Another source of the API**: it's built on Fenix's `a39d18b` (API
+  1.6, by `rev`), as ui-kit and lang-kit are. An extension on another tag
+  or rev has its types from that, which aren't the kit's, and Cargo won't
+  patch one source of a git dependency with another: it moves to the
+  kits' `rev` (a `Cargo.lock` change, `cargo update -p
+  fenix-extension-api`) to use the kit, and keeps the `engine.api` it
+  needs.
 - **Timing**: the fake answers at once, in order; timers go off when a
   test fires them.
 
@@ -252,10 +254,14 @@ scans a file's text, asks for a plan, "runs" each step by giving the
 provider the recorded lines as Fenix would, ends it, and holds what
 Fenix would then hold. It follows Fenix's plan as its review of steps 1
 and 2 settled it (Fenix's `docs/plans/test-explorer.md` §19) and Fenix's
-model, `fenix-tests`, whose numbered Decisions its code cites. On API
-1.5 it calls `Kit`'s five methods (its `Exports` trait, which `Kit` and
+model, `fenix-tests`, whose numbered Decisions its code cites. It
+calls `Kit`'s five methods (its `Exports` trait, which `Kit` and
 `&mut Kit` are, and which a test can implement itself to drive Fenix's
-side alone); once the kits are on 1.6, a pack's `impl Extension` too.
+side alone); a pack's `impl Extension` is driven the same way by the
+harness's `tests_scan`, `tests_plan`, `tests_read`, `tests_step_ended` and
+`tests_launch`, and `api::tests::provider` (`test-provider-set`) is the
+fake's: `Fake::test_providers()` and a `test-provider <id>: <runner>`
+line in the log.
 
 The feature `tests` turns on lang-kit's `tests` for the pack's tests
 only (a dev-dependency's features don't reach its WebAssembly); the pack

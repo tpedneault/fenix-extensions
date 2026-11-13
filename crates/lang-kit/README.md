@@ -8,7 +8,7 @@ test provider ([Tests](#tests)).
 
 ```toml
 [dependencies]
-fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", rev = "a39d18b273ace00091d8d170382456bbad0a7c2f" }
 fenix-lang-kit = { path = "../../crates/lang-kit" }
 ```
 
@@ -66,8 +66,11 @@ Its manifest lists the kit's commands -- `python.packages`, `python.doctor`,
 programs it runs (`uv`, `python3`, `/tools/*` for what it installs),
 the hosts it downloads from, `filesystem = "project-read"`, `editor =
 "read"` and `events = ["saved"]` for the linter, and `api = "1.5"`: the kit is built
-on extension API 1.5 (tag `v1.5.0`), so a pack using it builds its API
-from that tag too, and needs Fenix 1.5 (`fenix = ">=1.5, <2"`).
+on extension API 1.6 (Fenix's `a39d18b`, by `rev`, until Fenix 1.6.0 is
+tagged), so a pack using it builds its API from that source too; what it
+declares is what it uses -- a pack that runs no tests needs only Fenix 1.5
+(`fenix = ">=1.5, <2"`, `api = "1.5"`), one with the feature `tests`
+needs 1.6 (`fenix = ">=1.6, <2"`, `api = "1.6"`).
 
 | | |
 |---|---|
@@ -92,10 +95,11 @@ tests in a file's text, what commands list and run them, how to read
 what they print, how to debug one. The design is
 [`plans/test-explorer.md`](../../plans/test-explorer.md) and Fenix's
 `docs/plans/test-explorer.md`, whose §19 settled the rules this follows.
-API 1.6 isn't released: `tests::api` is a copy of its types (the real
-module's shape exactly), nothing here calls more than 1.5 has, and the
-five exports are wired on the `api-1.6` branch
-(`plans/test-explorer.md`, §8.2).
+`tests::api` is API 1.6's own `fenix_extension_api::tests`, re-exported
+(Fenix's `a39d18b`, by `rev`, until 1.6.0 is tagged: `plans/test-explorer.md`,
+§8.2); a test there builds every type by every field and matches every
+case, so a change in Fenix's API fails to compile at the pin that moved.
+`test_exports!(kit)` writes the five forwards of an `impl Extension`.
 
 ### Opting in: the feature `tests`
 
@@ -122,10 +126,13 @@ built on its own, so one pack's features never reach another's. Its
 tests turn it on through the test kit's `tests` feature (which turns on
 this one), or `features = ["tests", "mock"]` here.
 
-On the `api-1.6` branch, the five forwards in a pack's `impl Extension`
-(below) and `api.rs`'s `pub use fenix_extension_api::tests::*` stay
-behind the feature too: a pack without it writes no forwards, the API's
-defaults answer for it, and nothing it links calls `tests::provider`.
+The five forwards in a pack's `impl Extension` (below), `test_exports!`
+and `api.rs`'s `pub use fenix_extension_api::tests::*` are behind the
+feature too: a pack without it writes no forwards, the API's defaults
+answer for it, and nothing it links calls `tests::provider`. What every
+extension built on the 1.6 crate has, feature or not, is the five
+`tests-*` exports with those defaults, which Fenix's `export!` writes:
+about 28 to 30 KB more in `extension.wasm`, and no import.
 
 ### What a pack writes
 

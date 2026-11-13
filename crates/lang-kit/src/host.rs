@@ -106,9 +106,10 @@ pub trait Host {
     fn dismiss(&mut self, _tag: &str) {}
     /// What its test provider `provider` runs in this project now, and why
     /// it can't when it can't (`test-provider-set`, API 1.6; `runner` ""
-    /// with no problem: nothing to run here). A host without it -- Fenix
-    /// on API 1.5 -- does nothing. Only with the feature `tests`: a pack
-    /// that runs no tests has no way to reach the import.
+    /// with no problem: nothing to run here). A host of a pack's own that
+    /// doesn't say does nothing; [`Fenix`] calls Fenix's. Only with the
+    /// feature `tests`: a pack that runs no tests has no way to reach the
+    /// import.
     #[cfg(feature = "tests")]
     fn test_provider_set(&mut self, _provider: &str, _runner: &str, _problem: Option<&str>) -> Result<(), String> {
         Ok(())
