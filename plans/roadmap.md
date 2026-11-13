@@ -51,6 +51,52 @@ left open:
 7. **Publisher ids** were left to this plan's recommendation: tied to a
    GitHub owner, below (1.4).
 
+## Milestone 5: built, not yet proven
+
+- **`cargo xtask theme-import`** and **`cargo xtask snippets-import`**,
+  from VS Code's formats, each reporting what it couldn't carry over.
+  `validate`, and the check of packages built elsewhere, now hold every
+  theme to Fenix's own rules for the oldest Fenix its range admits.
+- **Three theme packs** made with the importer, each MIT with its licence
+  and source commit kept: Vitesse (5 themes), Min (2), Winter is Coming
+  (3).
+- **Terraform**: the HCL grammar, terraform-ls (installed, its checksums
+  from HashiCorp's signed file), `terraform fmt`, `validate` as problems,
+  tasks where `apply` only applies a saved plan.
+- **Elixir**: grammars for Elixir and HEEx, Expert (installed, its
+  checksums from the release's own file), `mix format`, compiler warnings
+  and Credo, `mix` tasks.
+- **Dart and Flutter**: the grammar, the SDK's analysis server and debug
+  adapter, `dart format`, a device picker and `flutter run`, hot reload by
+  signal, the pub packages page.
+- **Prose**: Harper beside each language's own server, a project word
+  list in `.fenix/words.txt`.
+
+Not proven:
+
+- Nothing has run in a Fenix window: no theme seen drawn, no grammar seen
+  highlighting, no server seen attaching.
+- No Flutter SDK or device was available; Flutter's formats are written
+  from its documentation. Credo's output is written from its source.
+- The downloaded servers were hashed, not run, except terraform-ls and
+  Terraform on Linux.
+
+What Fenix would need for the rest:
+
+- **Harper's fixes don't show in `SPC c a`**: Fenix offers only code
+  actions with an edit and no command, and every Harper fix carries a
+  command.
+- **An extension can't send `initializationOptions`** to a server, so the
+  Terraform pack can't point terraform-ls at a Terraform in `/tools`.
+- **Nothing writes to a running task**, so hot reload is a signal on Unix
+  and a terminal on Windows.
+- **No grammar injections**, so Elixir inside a template isn't coloured.
+- **A server is added per language**, and Fenix has no language for plain
+  text or commit messages, so prose checking reaches Markdown only.
+
+Left for later: ExUnit and `dart test` as test providers (the facts each
+needs are in its pack's report in the pull request).
+
 ## Milestone 4: built, not yet proven
 
 The test explorer was split: Fenix owns the page, `SPC T`, the gutter,
