@@ -7,8 +7,8 @@ debugging with js-debug, Prettier or Biome as the formatter,
 their fixes, outdated and vulnerable packages, snippets, and Next.js,
 Express, library and static site projects in the new-project wizard.
 Built on lang-kit (`crates/lang-kit`), as each language pack is.
-It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, Web
-1.1.0 is the one you get. It depends on Config & Shell (`fenix.config`),
+It needs Fenix 1.6 or later (extension API 1.6); on Fenix 1.5, Web
+1.2.0 is the one you get, and on an older Fenix, 1.1.0. It depends on Config & Shell (`fenix.config`),
 installed with it, which serves JSON: `package.json`, `tsconfig.json`
 and the rest get SchemaStore's schemas.
 
@@ -104,12 +104,11 @@ stops it.
 
 ## Tests, for Fenix 1.6
 
-Fenix 1.6 brings a test explorer, and this pack carries the test
-provider it will call for Vitest and Jest: built and tested here,
-offered from Fenix 1.6. Fenix asks for it only once this pack is
-released for extension API 1.6, after Fenix 1.6.0; until then nothing
-changes for you, on Fenix 1.5 as on a nightly. What it will do, as
-tested on what Vitest 5.1 and Jest 30.5 printed:
+Fenix 1.6's tests page (`SPC T T`; `C-k T T` with standard keys) lists a
+project's tests before anything has run, runs one or all of them, and
+shows each result on the page, in the gutter and after the test's line.
+This pack is its test provider for Vitest and Jest. Verified against
+Vitest 5.1 and Jest 30.5, on what they printed. What it does:
 
 - **Find the runner** for each package folder, the project's and each
   workspace's (`workspaces`, `pnpm-workspace.yaml`): Vitest or Jest in
@@ -144,7 +143,9 @@ tested on what Vitest 5.1 and Jest 30.5 printed:
 What it can't: tests a config's own `include` or `testMatch` adds
 outside `*.test.*`, `*.spec.*` (and Jest's `__tests__`) aren't found as
 you type, only when listed or run; Jest gives no test's output of its
-own; Deno's and bun's runners aren't served.
+own; Deno's and bun's runners aren't served. The listing loads the
+project's test files (and so what they import), so Fenix lists only in a
+project you trust.
 
 ## The project doctor
 

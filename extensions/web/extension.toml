@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.web"
 name = "Web: JavaScript and TypeScript"
-version = "1.2.0"
+version = "1.3.0"
 description = "JavaScript and TypeScript: typescript-language-server with the CSS, HTML, Tailwind, ESLint and Biome servers beside it, JSON with its schemas from Config & Shell, debugging with js-debug (Node, each of package.json's scripts, a Vite page in Chrome, Vitest and Jest, attaching to a process), Prettier or Biome, package.json's scripts as tasks, the project's checks with their fixes, outdated and vulnerable packages for npm, pnpm, Yarn and bun, snippets, and Next.js, Express, library and static site projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -10,10 +10,10 @@ categories = ["languages", "snippets", "templates", "web"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.5, <2"
-# How an install ended, as a notification (1.3); lang-kit, the kit it's
-# built on, is on 1.5.
-api = "1.5"
+fenix = ">=1.6, <2"
+# The test provider (tests-scan .. tests-launch, test-provider-set); how
+# an install ended, as a notification (1.3); the keys a hint names (1.5).
+api = "1.6"
 
 # JSON, with SchemaStore's schemas for package.json, tsconfig.json and the
 # rest, is Config & Shell's: one JSON server, not two.
@@ -53,6 +53,16 @@ events = ["saved"]
 name = "web"
 markers = ["package.json", "tsconfig.json", "jsconfig.json", "deno.json"]
 languages = ["javascript", "typescript", "tsx"]
+
+# One provider for Vitest and Jest: each package folder's runner comes from
+# its package.json, and test-provider-set says which it found.
+[[contributes.test_providers]]
+id = "web"
+name = "Vitest or Jest"
+languages = ["javascript", "typescript", "tsx"]
+markers = ["package.json"]
+scan = ["src/**/*.test.*", "src/**/*.spec.*", "test/**", "tests/**", "**/__tests__/**",
+        "packages/*/src/**/*.test.*", "packages/*/src/**/*.spec.*", "apps/*/src/**/*.test.*"]
 
 [[contributes.commands]]
 id = "web.packages"
