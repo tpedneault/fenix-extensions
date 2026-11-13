@@ -3,7 +3,8 @@
 ## 1.4.0
 
 For Fenix 1.5 (extension API 1.5), which it needed since 1.2.0 -- its
-manifest now says so too.
+manifest now says so too, and it's built against API 1.5, as the shared
+`ui-kit` it draws with now is.
 
 - A lesson in the tutorial (`SPC h T`, *Database*): the browser, a table's
   rows, a statement run from a `.sql` buffer, its results, the history and
@@ -12,10 +13,13 @@ manifest now says so too.
 - **Database: a sample database to try it on** (`database.sample`): a
   small shop in SQLite, made afresh in the extension's own folder, opened
   in the browser.
-- The browser names a `.sql` buffer's keys for standard keys too:
-  `Ctrl+K m r` beside `SPC m r`, and `Ctrl+Enter`, in its empty results
-  and its help (`?`). With no connection yet, it says how to add one, or
-  where the sample is.
+- The browser names a `.sql` buffer's keys as your key scheme has them,
+  and yours where you rebound them, in its empty results and its help
+  (`?`): `SPC m r` runs a statement with Vim keys, `C-Enter` with
+  standard keys, under the menu `SPC m` or `C-k m`. The modeline's "no
+  connection" names the keys that pick one the same way, and both say
+  them again when you switch. With no connection yet, the browser says
+  how to add one, or where the sample is.
 - Fixed: a coding agent's session went on with a connection's old host,
   user or options after its row in `database.connections` changed, until
   Fenix restarted; it's closed now, and opened again as the row says.
