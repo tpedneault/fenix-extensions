@@ -2,6 +2,15 @@
 
 ## 1.2.0
 
+- For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,
+  the kit it's on, now is. The text the lldb-dap fix row opens says the
+  keys that check the project again as the key scheme you use has them
+  (`SPC m d`, `C-k m d` with standard keys, or the ones you gave it).
+  Nothing else you see changed: the fixes that install Rust's tools run
+  rustup and cargo as tasks, in Fenix's task pane, not as a download of
+  the pack's own, so there is no install notification for it. The README
+  gives standard keys beside Vim's. On Fenix 1.0 to 1.4, 1.1.0 stays the
+  one you have.
 - A lesson in Fenix's tutorial (`SPC h T`, its *Rust* section), in a Rust
   project of yours: the project doctor and a fix from it, the crates
   page, a task, a debug session stopped at a breakpoint, and rustfmt and

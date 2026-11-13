@@ -10,12 +10,10 @@ categories = ["languages", "snippets", "templates"]
 runtime = "wasm"
 
 [engine]
-fenix = ">=1.0, <2"
-# The debug adapter, the formatter, a linter's problems (0.8.3);
-# CodeLLDB over a socket, the platform (0.8.4); CodeLLDB where you put it,
-# as a hint (0.8.5); a launch for each binary and example, built first,
-# clippy's fixes (0.8.6). Built on 0.8.7's bindings.
-api = "1.0"
+fenix = ">=1.5, <2"
+# The keys a hint names (`key_for`, 1.5); lang-kit, the kit it's built on,
+# is on 1.5.
+api = "1.5"
 
 # The everyday snippets are rust-snippets', which stays installable on
 # its own.

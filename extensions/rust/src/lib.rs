@@ -14,6 +14,7 @@
 pub mod clippy;
 pub mod debug;
 pub mod doctor;
+pub mod keys;
 pub mod packages;
 pub mod project;
 pub mod tasks;
@@ -387,7 +388,7 @@ impl Rust {
                 Ok(())
             }
             doctor::INSTALL_LLDB_DAP => {
-                host.open_text_beside("Installing lldb-dap", doctor::LLDB_DAP_HELP, None);
+                host.open_text_beside("Installing lldb-dap", &doctor::lldb_dap_help(&keys::doctor()), None);
                 Ok(())
             }
             _ => Err(format!("no command {id} here")),

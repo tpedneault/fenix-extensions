@@ -152,10 +152,11 @@ pub fn programs(project: &Project, metadata: Option<&Metadata>, tools: &Tools, d
     out
 }
 
-/// What the lldb-dap fix row opens: where each system has it.
-pub const LLDB_DAP_HELP: &str = "\
+/// What the lldb-dap fix row opens: where each system has it. `{doctor}`
+/// is the keys that check the project again.
+const LLDB_DAP_HELP: &str = "\
 lldb-dap is LLVM's debug adapter; rustup doesn't ship it. Install LLVM's
-lldb, then check the project again (SPC m d):
+lldb, then check the project again ({doctor}):
 
   Debian, Ubuntu   sudo apt install lldb        (lldb-dap-18 and later)
   Fedora           sudo dnf install lldb
@@ -172,6 +173,12 @@ from github.com/vadimcn/codelldb/releases (it's a zip) and set
 rust.codelldb to its extension/adapter/codelldb; VS Code's copy, under
 ~/.vscode/extensions/vadimcn.vscode-lldb-*/adapter/, does too.
 ";
+
+/// [`LLDB_DAP_HELP`], naming `doctor`: the keys that check the project
+/// again, as the key scheme in use writes them.
+pub fn lldb_dap_help(doctor: &str) -> String {
+    LLDB_DAP_HELP.replace("{doctor}", doctor)
+}
 
 #[cfg(test)]
 mod tests {
@@ -191,6 +198,16 @@ mod tests {
     /// `RUST_BACKTRACE` set.
     const NO_RUST_ANALYZER: &str = "error: Unknown binary 'rust-analyzer' in official toolchain 'stable-x86_64-unknown-linux-gnu'.\n\nStack backtrace:\n   0: anyhow::kind::Adhoc::new\n  13: __libc_start_main_impl\n             at ./csu/../csu/libc-start.c:360:3\n  14: <unknown>";
     const NO_TOOLCHAIN: &str = "error: toolchain '1.70.0-x86_64-unknown-linux-gnu' is not installed\nhelp: run `rustup toolchain install 1.70.0-x86_64-unknown-linux-gnu` to install it\n\nStack backtrace:\n   0: anyhow::error::<impl core::convert::From<E> for anyhow::Error>::from\n  11: <unknown>";
+
+    #[test]
+    fn the_lldb_dap_help_names_the_keys_of_the_scheme_in_use() {
+        let vim = lldb_dap_help("SPC m d");
+        assert!(vim.contains("then check the project again (SPC m d):\n"), "{vim}");
+        let standard = lldb_dap_help("C-k m d");
+        assert!(standard.contains("then check the project again (C-k m d):\n") && !standard.contains("SPC"), "{standard}");
+        assert!(!vim.contains("{doctor}") && !standard.contains("{doctor}"));
+        assert_eq!(vim.replace("SPC m d", "C-k m d"), standard, "nothing else differs");
+    }
 
     #[test]
     fn judges_read_what_rustup_and_cargo_said() {
