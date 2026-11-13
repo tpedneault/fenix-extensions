@@ -3740,6 +3740,42 @@
               "gitlab"
             ]
           }
+        },
+        {
+          "version": "1.3.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/review-v1.3.0/fenix.review-1.3.0.fenixext",
+          "sha256": "ff1a7396d8f3045ff0256e7cbaa107fd815d1d79764bc0adef0e99762fddde3a",
+          "size": 260095,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "agents": true,
+            "editor": "write",
+            "filesystem": "project-write",
+            "network": [
+              "api.github.com",
+              "*.actions.githubusercontent.com",
+              "*.blob.core.windows.net",
+              "${setting:gitlab.base_url}"
+            ],
+            "process": [
+              "git",
+              "gh"
+            ],
+            "secrets": [
+              "github.token",
+              "gitlab.token"
+            ],
+            "settings": [
+              "git",
+              "gitlab"
+            ]
+          }
         }
       ],
       "name": "Review",
