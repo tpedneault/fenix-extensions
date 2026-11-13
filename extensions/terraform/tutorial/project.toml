@@ -1,0 +1,69 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor and a fix from it, a task, formatting and checking on save
+# -- filled in for Terraform. Terraform has no packages page or debugger
+# here, so it has the three pairs of steps that apply. See "Tutorial
+# lessons" in the repository's CONTRIBUTING.md.
+id = "terraform.project"
+track = "Terraform"
+order = 1
+title = "A Terraform project: doctor, tasks, formatting"
+about = "In a Terraform root module of yours (a folder with .tf files; the Terraform · root module template makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Terraform root module in Fenix: what it needs, its tasks, and terraform
+fmt and terraform validate as you save.
+
+SPC p h   the project doctor: Terraform and terraform-ls, each checked, and
+          a fix that installs terraform-ls (f runs the fix on the row,
+          r checks again, q closes it)
+SPC p t   the tasks: init, validate, fmt -check, plan, and last, apply saved
+          plan (it changes real infrastructure; it applies the plan file
+          that plan wrote, and Terraform refuses a stale one)
+SPC ,     the settings: editor.format_on_save, terraform.validate
+SPC c F   format the file with terraform fmt
+
+A root module to try it on, if you have none; put it in main.tf of a
+folder of its own, and open that folder as a project:
+
+variable "name" {
+  type    = string
+  default = "orbit"
+}
+
+resource "terraform_data" "greeting" {
+  input = "Hello from ${var.name}"
+}
+
+output "greeting" {
+  value = terraform_data.greeting.output
+}
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Terraform and terraform-ls, each checked."
+hint = "SPC p, then h. In a project with .tf files: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix when there is one: f on terraform-ls's downloads HashiCorp's release, checks its SHA-256 and starts the server. Terraform itself is yours to install (the row says where from). Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC p t: the project's tasks -- init, validate, fmt -check, plan and, last, apply saved plan."
+hint = "SPC p, then t. Without Terraform, or in a folder with no .tf files, there are none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick validate and Enter: terraform validate runs in Task Output (q there closes it). plan writes a plan file; apply saved plan, last in the list, applies that file to real infrastructure and nothing else: leave it for now. Or Esc."
+hint = "Type valid to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Terraform file then runs terraform fmt on it."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a .tf file now: it's formatted, and its folder is checked with terraform validate (terraform.validate turns that off) -- the problems come with terraform-ls's."
+hint = "q, on the settings page."
+closed = "settings"

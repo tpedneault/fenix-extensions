@@ -1,0 +1,9 @@
+# name: Precondition
+# key: prec
+# scope: terraform
+# --
+precondition {
+  condition     = ${1:length(var.items) > 0}
+  error_message = "${2:There must be at least one item.}"
+}
+$0

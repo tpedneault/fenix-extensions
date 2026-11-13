@@ -1,0 +1,10 @@
+# name: Input variable
+# key: var
+# scope: terraform
+# --
+variable "${1:name}" {
+  description = "${2:What it is for}"
+  type        = ${3:string}
+  default     = ${4:null}
+}
+$0

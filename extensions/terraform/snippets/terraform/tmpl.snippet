@@ -1,0 +1,7 @@
+# name: Rendered template file
+# key: tmpl
+# scope: terraform
+# --
+templatefile("\${path.module}/${1:file}.tftpl", {
+  ${2:name} = ${3:var.name}
+})$0

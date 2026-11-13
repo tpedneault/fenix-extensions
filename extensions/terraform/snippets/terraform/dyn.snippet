@@ -1,0 +1,12 @@
+# name: Dynamic block
+# key: dyn
+# scope: terraform
+# --
+dynamic "${1:setting}" {
+  for_each = ${2:var.settings}
+
+  content {
+    ${3:name} = $1.value.$3
+    $0
+  }
+}

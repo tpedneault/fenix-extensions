@@ -1,0 +1,10 @@
+# HCL itself, for what Terraform's tools and others write in it: a
+# `.terraform.lock.hcl`, Terragrunt's, Packer's and Nomad's files, a
+# `.tftest.hcl`, the CLI's configuration. Its own grammar, tree-sitter-hcl's,
+# and the same queries as Terraform's.
+language = "hcl"
+grammar = "grammars/tree-sitter-hcl.wasm"
+queries = "queries/terraform"
+extensions = ["hcl"]
+filenames = [".terraformrc", "terraform.rc"]
+comment = "#"

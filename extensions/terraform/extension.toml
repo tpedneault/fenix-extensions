@@ -1,0 +1,57 @@
+[extension]
+id = "fenix.terraform"
+name = "Terraform"
+version = "1.0.0"
+description = "Terraform and HCL: their grammar, terraform-ls, terraform fmt, terraform validate on save, init, validate, plan and apply as tasks, the project's checks with a fix that installs terraform-ls, snippets, and a root-module project"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Terraform formats, validates, plans and applies; terraform-ls serves; the
+# server where the pack installs it (the tools folder) or where it's found.
+process = ["terraform", "terraform-ls", "/tools/*"]
+# HashiCorp's releases, where terraform-ls is downloaded from.
+network = ["releases.hashicorp.com"]
+# The .tf files at the top and one folder down, and .env, read, to find
+# the root module and give the tasks your environment.
+filesystem = "project-read"
+# The file saved, for terraform validate.
+editor = "read"
+
+[contributes]
+# A file saved: validated; the first .tf file in a folder, noticed.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "terraform"
+markers = ["main.tf", "versions.tf", "providers.tf", "terraform.tfvars", ".terraform.lock.hcl", ".terraform-version"]
+languages = ["terraform", "terraform-vars", "hcl"]
+
+[[contributes.commands]]
+id = "terraform.doctor"
+title = "Terraform: check the project again (Terraform, terraform-ls)"
+
+[[contributes.commands]]
+id = "terraform.install.terraform-ls"
+title = "Terraform: install terraform-ls 0.39.1, the language server"
+
+[[contributes.settings]]
+key = "terraform.validate"
+kind = "bool"
+label = "terraform validate on save"
+description = "Run terraform validate on the folder of a saved .tf file and show its problems with terraform-ls's. It needs the folder initialised (terraform init) for providers and modules."
+default = "true"

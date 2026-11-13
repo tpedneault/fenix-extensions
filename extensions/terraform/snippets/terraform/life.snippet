@@ -1,0 +1,8 @@
+# name: lifecycle block
+# key: life
+# scope: terraform
+# --
+lifecycle {
+  ${1:prevent_destroy} = ${2:true}
+}
+$0

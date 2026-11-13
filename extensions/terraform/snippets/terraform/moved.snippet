@@ -1,0 +1,9 @@
+# name: moved block
+# key: moved
+# scope: terraform
+# --
+moved {
+  from = ${1:aws_instance.old}
+  to   = ${2:aws_instance.new}
+}
+$0

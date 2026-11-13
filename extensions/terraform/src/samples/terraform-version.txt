@@ -1,0 +1,3 @@
+Terraform v1.17.2
+on linux_amd64
+

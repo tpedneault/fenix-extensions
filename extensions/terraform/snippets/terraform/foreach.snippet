@@ -1,0 +1,10 @@
+# name: Resource per item (for_each)
+# key: foreach
+# scope: terraform
+# --
+resource "${1:aws_instance}" "${2:name}" {
+  for_each = ${3:var.items}
+
+  ${4:name} = each.key
+  $0
+}

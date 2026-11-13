@@ -1,0 +1,23 @@
+# Providers and modules, downloaded by terraform init.
+.terraform/
+
+# State holds what exists, secrets included: keep it in a backend, not Git.
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# A saved plan (the plan task writes tfplan) can hold secrets too.
+tfplan
+*.tfplan
+
+# Local overrides and variable files with values in them.
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.auto.tfvars
+terraform.tfvars
+.env
+
+# .terraform.lock.hcl is committed: it pins the providers' checksums.
