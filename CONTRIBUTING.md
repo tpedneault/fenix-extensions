@@ -216,8 +216,10 @@ is `api = "1.5"`). The floor is the first Fenix offering that API:
 |---|---|---|---|---|---|---|
 | First Fenix | 1.0.0 | 1.0.1 | 1.1.0 | 1.2.0 | 1.3.0 | 1.5.0 |
 
-Build against the oldest API that has what you use. Most extensions here
-are on 1.0.
+Build against the oldest API that has what you use -- unless you use a
+shared kit (`ui-kit`, `lang-kit`, `test-kit`): they build against 1.5,
+and an extension on one builds against the same, so its floor is Fenix
+1.5. Most extensions here are on 1.5.
 
 **Raising a floor.** An older Fenix isn't told about a release it can't
 run: it keeps the last one that fits. Nothing breaks, but those users

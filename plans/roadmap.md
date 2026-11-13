@@ -85,6 +85,33 @@ preview, a log, a hex dump opened by command), which Fenix's rule for
   floors are just out of step with 3.2's rule.
 - `validate` accepts `runtime = "lua"`, which Fenix can't run yet.
 
+## The kits on API 1.5: built, not yet proven
+
+Built on 13 November, on `claude/pensive-carson-xu7nwb`, with milestone
+3, as one change. [`kits-to-1.5.md`](kits-to-1.5.md) has the recipe and
+what it turned up. Nothing was run in Fenix.
+
+- **`ui-kit`, `lang-kit` and `test-kit` build against extension API
+  1.5**, and all 28 extensions on them moved with them, to Fenix 1.5.
+  The API was additive: nothing in a kit or an extension needed
+  changing for it.
+- **The test kit fakes what API 1.1 to 1.5 added**: the key scheme and
+  the keys a command has, notifications, and the rest. Any extension
+  can use it now.
+- **A language pack's install ends in a notification**, with *Try
+  again* when it failed, where lang-kit's installer does the install:
+  Ada, Config, .NET, Java, Lua, PHP, Protobuf, Swift, Web, Zig.
+- **The last hard-coded leader keys are gone** from what Database, Env
+  files, HTTP, Jupyter, Java, .NET, Protobuf and Rust say.
+- **HTTP's long run ends in a notification** when you're elsewhere, with
+  *Open the report*.
+- **Two hints named the wrong key**: Java and Protobuf sent you to
+  `SPC p d` for the project doctor, which is *delete project*. The
+  doctor is `SPC p h`.
+- Milestone 3's commit passed CI on its own before the kits moved.
+- 46 extensions have a version the registry doesn't: one release each,
+  covering milestone 3 and this.
+
 ## Milestone 3: built, not yet proven
 
 Built on 13 November, on `claude/pensive-carson-xu7nwb`, not yet on
@@ -110,11 +137,8 @@ What it turned up:
   prompts or a doctor fix, and every step must check something. The
   language packs' lesson says "it stops at the breakpoint"; it can't
   check it.
-- **Extensions on the shared kits stay on API 1.0** (HTTP, Database,
-  Logs, Jupyter and the language packs): no `key_for`, no
-  notifications. Their hints are worded to read right in both schemes.
-  Moving the kits to API 1.5 is the next step, and takes 28 extensions
-  with it.
+- **Extensions on the shared kits were held on API 1.0**; the kits'
+  move, above, lifted that.
 - **Arduino got no notification of its own**: Fenix already shows one
   when a task of 10 seconds or more ends.
 - **Additions made to make a lesson possible**: HTTP sends a request
