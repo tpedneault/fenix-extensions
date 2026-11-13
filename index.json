@@ -2268,6 +2268,28 @@
               "jira.token"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/jira-v1.2.0/fenix.jira-1.2.0.fenixext",
+          "sha256": "303295acbbde621b1431f49faf20fd3c5e677c266b44e1c33f1b980822bb355e",
+          "size": 203309,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "network": [
+              "${setting:jira.base_url}"
+            ],
+            "secrets": [
+              "jira.token"
+            ]
+          }
         }
       ],
       "name": "Jira",
