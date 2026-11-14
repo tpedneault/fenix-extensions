@@ -998,6 +998,44 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.dart",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/dart-v1.0.0/fenix.dart-1.0.0.fenixext",
+          "sha256": "559de0d08bf9bbfd9e821b8e09aa315ab30d4899f6675cb16df7a4a89ae4c8a0",
+          "size": 477758,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "filesystem": "project-read",
+            "process": [
+              "dart",
+              "flutter",
+              "kill",
+              "${setting:dart.sdk}",
+              "${setting:dart.flutter}"
+            ]
+          }
+        }
+      ],
+      "name": "Dart",
+      "description": "Dart and Flutter: the analysis server, Dart's highlighting, dart format, debugging with the SDK's adapters, tasks for both, flutter run on a device you pick with hot reload, the project's checks, pub packages, snippets, and Dart and Flutter projects",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.data-tools",
       "versions": [
         {
