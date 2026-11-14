@@ -1,16 +1,25 @@
 [package]
 name = "fenix-forge"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
-description = "Code-review forges -- GitHub and GitLab -- in neutral terms, their clients talking HTTP through whoever uses them: shared by the review extension."
+description = "Code-review forges -- GitHub and GitLab -- in neutral terms, their clients talking HTTP through whoever uses them: their pull and merge requests for the review extension, their issues for the issue extensions, and the tracker seam served over those."
+
+[features]
+# The tracker seam served over the issue clients (`tracker`): the issue
+# extensions turn it on; the review extension doesn't.
+tracker = ["dep:fenix-tracker", "dep:serde"]
 
 [dependencies]
 serde_json = "1"
+fenix-tracker = { path = "../tracker", optional = true }
+serde = { version = "1", optional = true }
 
 [dev-dependencies]
 futures = { version = "0.3", default-features = false, features = ["executor"] }
+# Its own tests have the seam, so plain `cargo test` runs them.
+fenix-forge = { path = ".", features = ["tracker"] }
 
 # Built with whichever extension uses it.
 [workspace]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": 546732472,
+    "node_id": "LA_kwDObug",
+    "url": "https://api.github.com/repos/acme/rocket/labels/bug",
+    "name": "bug",
+    "description": "Something isn't working",
+    "color": "f29513",
+    "default": false
+  },
+  {
+    "id": 706609554,
+    "node_id": "LA_kwDOblocked",
+    "url": "https://api.github.com/repos/acme/rocket/labels/blocked",
+    "name": "blocked",
+    "description": "Waiting on something else",
+    "color": "f29513",
+    "default": false
+  },
+  {
+    "id": 967649186,
+    "node_id": "LA_kwDOinprogress",
+    "url": "https://api.github.com/repos/acme/rocket/labels/in progress",
+    "name": "in progress",
+    "description": "",
+    "color": "f29513",
+    "default": false
+  },
+  {
+    "id": 834338869,
+    "node_id": "LA_kwDOenhancement",
+    "url": "https://api.github.com/repos/acme/rocket/labels/enhancement",
+    "name": "enhancement",
+    "description": "",
+    "color": "f29513",
+    "default": false
+  }
+]
