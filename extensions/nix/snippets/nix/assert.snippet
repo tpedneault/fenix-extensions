@@ -1,0 +1,6 @@
+# name: assert
+# key: assert
+# scope: nix
+# --
+assert ${1:condition} || throw "${2:message}";
+$0

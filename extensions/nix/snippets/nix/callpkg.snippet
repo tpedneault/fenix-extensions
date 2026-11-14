@@ -1,0 +1,6 @@
+# name: callPackage
+# key: callpkg
+# scope: nix
+# --
+${1:name} = pkgs.callPackage ./${2:package.nix} { };
+$0

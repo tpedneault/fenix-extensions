@@ -1,0 +1,23 @@
+# name: Flake skeleton
+# key: flake
+# scope: nix
+# --
+{
+  description = "${1:A flake}";
+
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/${2:nixos-unstable}";
+
+  outputs = { self, nixpkgs }:
+    let
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      forAllSystems = nixpkgs.lib.genAttrs systems;
+    in
+    {
+      packages = forAllSystems (system:
+        let pkgs = nixpkgs.legacyPackages.\${system}; in
+        {
+          default = pkgs.${3:hello};
+        });
+      $0
+    };
+}

@@ -1,0 +1,10 @@
+# name: mkShell
+# key: mkshell
+# scope: nix
+# --
+pkgs.mkShell {
+  packages = with pkgs; [ ${1:git} ];
+  shellHook = ''
+    ${2:echo "entering the shell" >&2}
+  '';
+}

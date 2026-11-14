@@ -1,0 +1,5 @@
+# nix build's symlink to the store.
+result
+result-*
+# direnv's cache.
+.direnv/

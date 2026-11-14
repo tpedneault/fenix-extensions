@@ -1,0 +1,9 @@
+# name: Overlay
+# key: overlay
+# scope: nix
+# --
+final: prev: {
+  ${1:name} = prev.$1.overrideAttrs (old: {
+    ${2:patches = (old.patches or [ ]) ++ [ ./fix.patch ];}
+  });
+}

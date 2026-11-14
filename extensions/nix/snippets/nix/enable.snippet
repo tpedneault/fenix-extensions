@@ -1,0 +1,6 @@
+# name: mkEnableOption
+# key: enable
+# scope: nix
+# --
+enable = lib.mkEnableOption "${1:the service}";
+$0

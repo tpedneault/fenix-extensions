@@ -1,0 +1,12 @@
+# name: mkOption
+# key: opt
+# scope: nix
+# --
+${1:name} = lib.mkOption {
+  type = lib.types.${2:str};
+  default = ${3:""};
+  description = ''
+    ${4:What it sets.}
+  '';
+};
+$0

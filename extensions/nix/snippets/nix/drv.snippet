@@ -1,0 +1,26 @@
+# name: mkDerivation
+# key: drv
+# scope: nix
+# --
+pkgs.stdenv.mkDerivation {
+  pname = "${1:name}";
+  version = "${2:0.1.0}";
+
+  src = ${3:./.};
+
+  nativeBuildInputs = [ ${4} ];
+  buildInputs = [ ${5} ];
+
+  installPhase = ''
+    runHook preInstall
+    mkdir -p \$out/bin
+    ${6:cp app \$out/bin/}
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "${7:What it is}";
+    license = pkgs.lib.licenses.${8:mit};
+    mainProgram = "$1";
+  };
+}
