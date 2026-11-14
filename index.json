@@ -4254,6 +4254,46 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.terraform",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/terraform-v1.0.0/fenix.terraform-1.0.0.fenixext",
+          "sha256": "36906e4532f9a06b8d846aad79a1d81af1efea24f0c7dc113c40aa1831599a4f",
+          "size": 374515,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "releases.hashicorp.com"
+            ],
+            "process": [
+              "terraform",
+              "terraform-ls",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Terraform",
+      "description": "Terraform and HCL: their grammar, terraform-ls, terraform fmt, terraform validate on save, init, validate, plan and apply as tasks, the project's checks with a fix that installs terraform-ls, snippets, and a root-module project",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.vitesse-themes",
       "versions": [
         {
