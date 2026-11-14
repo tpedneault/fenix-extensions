@@ -19,9 +19,6 @@ pub struct Check {
     pub detail: String,
 }
 
-/// Fenix's MIB tables: a folder holding one is a MIB project.
-const MIB_TABLES: &[&str] = &["vdf.dat", "ccf.dat", "pcf.dat", "pid.dat", "tpcf.dat", "caf.dat", "txf.dat"];
-
 /// What makes a folder another kind of project, as Fenix tells them
 /// apart: these come before Tcl.
 const OTHER_MARKERS: &[&str] = &["sketch.yaml", "library.properties", "Cargo.toml", "pyproject.toml", "setup.py", "requirements.txt", "uv.lock", "go.mod", "package.json", "CMakeLists.txt"];
@@ -41,8 +38,10 @@ pub fn is_tcl_project(root: &Path) -> bool {
     // A sketch is `<folder>.ino`; inside the sandbox the folder is
     // `/project`, so any `.ino` at the top does.
     let sketch = with("ino") || with("pde");
-    let mib = MIB_TABLES.iter().any(|t| has(t) || root.join("mib").join(t).is_file());
-    if sketch || mib || OTHER_MARKERS.iter().any(|m| has(m)) {
+    // MIB tables beside the scripts don't make it another kind: an ops
+    // repository is its Tcl procedures and its MIB, whether or not the
+    // Fenix it's in makes a MIB folder a project of its own.
+    if sketch || OTHER_MARKERS.iter().any(|m| has(m)) {
         return false;
     }
     has("pkgIndex.tcl") || with("tcl")
@@ -119,8 +118,8 @@ mod tests {
         assert!(is_tcl_project(project(&["pkgIndex.tcl", "lib/a.tm"]).path()));
         assert!(!is_tcl_project(project(&["notes.txt", "lib/a.tcl"]).path()), "only what's at its top");
         assert!(!is_tcl_project(project(&["Cargo.toml", "build.tcl"]).path()), "a Rust project with a script in it");
-        assert!(!is_tcl_project(project(&["ccf.dat", "procedure.tcl"]).path()), "a MIB");
-        assert!(!is_tcl_project(project(&["mib/pcf.dat", "procedure.tcl"]).path()), "a MIB, its tables in mib/");
+        assert!(is_tcl_project(project(&["main.tcl", "mib/ccf.dat", "mib/pcf.dat"]).path()), "an ops repository: its procedures and its MIB");
+        assert!(is_tcl_project(project(&["ccf.dat", "procedure.tcl"]).path()), "MIB tables beside the scripts");
         assert!(!is_tcl_project(project(&["Blink.ino", "upload.tcl"]).path()), "an Arduino sketch");
     }
 
