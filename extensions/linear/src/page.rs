@@ -120,8 +120,6 @@ pub enum Action {
     Browser(String),
     AddToAgenda { key: String, clock: bool },
     OpenTask(String),
-    /// The form was left: answer the agenda's `create` that opened it.
-    FormClosed(Option<u64>),
 }
 
 /// What the page needs of the extension to draw and decide.
@@ -186,12 +184,10 @@ pub struct Form {
     pub field: usize,
     /// A text field has the keyboard.
     pub editing: bool,
-    /// The agenda's `create` call this form answers.
-    pub waiting: Option<u64>,
 }
 
 impl Form {
-    fn new(waiting: Option<u64>, title: &str, description: &str, team: Option<TeamInfo>) -> Form {
+    fn new(title: &str, description: &str, team: Option<TeamInfo>) -> Form {
         Form {
             team,
             meta: None,
@@ -204,7 +200,6 @@ impl Form {
             labels: Vec::new(),
             field: 0,
             editing: false,
-            waiting,
         }
     }
 
@@ -403,9 +398,9 @@ impl LinearPage {
 
     /// The new-issue form, started from a title and description (the agenda's
     /// task), in `team` when it's known.
-    pub fn start_form(&mut self, waiting: Option<u64>, title: &str, description: &str) -> Action {
+    pub fn start_form(&mut self, title: &str, description: &str) -> Action {
         let team = self.current_team();
-        let mut form = Form::new(waiting, title, description, team.clone());
+        let mut form = Form::new(title, description, team.clone());
         form.field = if form.team.is_some() { 1 } else { 0 };
         self.form = Some(form);
         self.menu = None;
@@ -492,7 +487,7 @@ impl LinearPage {
             Key::Char('R') => {
                 return self.refresh();
             }
-            Key::Char('n') => return self.start_form(None, "", ""),
+            Key::Char('n') => return self.start_form("", ""),
             Key::Char('/') => {
                 self.typing_filter = Some(TextField::new().with_text(self.typed.as_deref().unwrap_or("")).with_placeholder("team:ENG state:started assignee:me label:bug words"));
                 return Action::None;
@@ -788,8 +783,8 @@ impl LinearPage {
     // -- The form ----------------------------------------------------------------------
 
     fn close_form(&mut self) -> Action {
-        let waiting = self.form.take().and_then(|f| f.waiting);
-        Action::FormClosed(waiting)
+        self.form = None;
+        Action::None
     }
 
     fn form_key(&mut self, key: Key) -> Action {
@@ -1587,14 +1582,15 @@ mod tests {
         assert_eq!(key(&mut p, Key::Char('2')), Action::TeamMeta("t2".into()));
         assert_eq!(key(&mut p, Key::Char('S')), Action::None);
         assert_eq!(p.note, Some(("an issue needs a title".into(), true)));
-        assert_eq!(key(&mut p, Key::Escape), Action::FormClosed(None));
+        assert_eq!(key(&mut p, Key::Escape), Action::None);
         assert!(p.form.is_none());
-        // The agenda's own: opened for its call, closed answers it.
+        // The agenda's own: opened filled in.
         let mut p = page();
-        p.start_form(Some(7), "From a task", "Its notes");
+        p.start_form("From a task", "Its notes");
         assert_eq!(p.form.as_ref().unwrap().title.text(), "From a task");
         assert_eq!(p.form.as_ref().unwrap().description.text(), "Its notes");
-        assert_eq!(key(&mut p, Key::Escape), Action::FormClosed(Some(7)));
+        assert_eq!(key(&mut p, Key::Escape), Action::None);
+        assert!(p.form.is_none());
     }
 
     #[test]

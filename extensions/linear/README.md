@@ -89,10 +89,19 @@ such as `jo/eng-12-fix-the-login-timeout`), or your own, with
 [The agenda](../agenda) finds Linear and can import your assigned issues, link
 a task to an issue (`ENG-123` or its address), keep it up to date, move it
 between Linear's workflow states (one move for each state of its team; Linear
-has no Blocked state, so Blocked stays in the agenda), set its priority
-(Linear's 0 to 4 are Urgent, High, Medium, Low, and no priority), due date and
-assignee, comment, and open the new-issue form from a task. Bodies are
-Markdown, as Linear has them.
+has no Blocked state, so Blocked stays in the agenda and sends nothing), set its priority
+(Linear's 0 to 4 are Urgent, High, Medium, Low, and none, which has no level), due date and
+assignee, labels, comment, and open the new-issue form from a task (it opens
+on Linear's page, filled in, and the agenda is told at once; add the issue to
+the agenda with `a` once it's made). Bodies are Markdown, as Linear has them.
+
+**What the agenda may change.** Fenix 1.5 doesn't tell an extension who is
+asking it, so any extension could ask Linear's tracker to change your issues
+as you. Before the first change that arrives through the seam each session,
+Linear asks ("Agenda wants to change issues in Linear for you -- allow for
+this session?"); `linear.seam_writes` says for good. Reads aren't asked about,
+and neither are your own changes on Linear's page. A change sent twice (the
+same `op`) is done once.
 
 ## Coding agents
 
@@ -110,7 +119,9 @@ the whole at 48 KiB). Nothing creates, comments or changes a state.
 | `linear.token` | your API key (a secret) |
 | `linear.teams` | team keys the page lists a cycle and backlog for; empty is all |
 | `linear.branch_pattern` | how a branch is named; empty is Linear's suggestion |
-| `linear.sync_minutes` | how often linked agenda tasks are brought up to date |
+| `linear.team` | the team key (`ENG`) of the project you're in; a project's own settings may set it, and the agenda's "this project only" uses it |
+| `linear.seam_writes` | `ask` (the default), `always` or `never`: whether the agenda, or any extension, may change your issues through the tracker seam |
+| `linear.sync_minutes` | how often linked agenda tasks are brought up to date (at least 5) |
 
 ## What it may do
 

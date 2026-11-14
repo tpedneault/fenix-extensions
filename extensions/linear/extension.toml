@@ -30,12 +30,12 @@ process = ["git"]
 filesystem = "project-read"
 
 [contributes]
-# The tracker seam the agenda calls (`linear.tracker.*`), and two read-only
+# The tracker seam the agenda calls (`fenix.linear.tracker.*`), and two read-only
 # tools for coding agents.
 services = [
-    "linear.tracker.about", "linear.tracker.assigned", "linear.tracker.issues", "linear.tracker.transitions",
-    "linear.tracker.transition", "linear.tracker.update", "linear.tracker.priorities", "linear.tracker.people",
-    "linear.tracker.comment", "linear.tracker.create",
+    "fenix.linear.tracker.about", "fenix.linear.tracker.assigned", "fenix.linear.tracker.issues", "fenix.linear.tracker.transitions",
+    "fenix.linear.tracker.transition", "fenix.linear.tracker.update", "fenix.linear.tracker.priorities", "fenix.linear.tracker.people",
+    "fenix.linear.tracker.comment", "fenix.linear.tracker.create", "fenix.linear.tracker.project",
     "linear.tool.read_issue", "linear.tool.list_mine",
 ]
 
@@ -99,3 +99,19 @@ kind = "minutes"
 label = "Sync every"
 description = "How often linked agenda tasks are brought up to date, in minutes."
 default = "10"
+
+[[contributes.settings]]
+key = "linear.team"
+kind = "text"
+label = "Team of this project"
+description = "The key of the Linear team (ENG) the project you're in belongs to, so the agenda's \"this project only\" finds its issues. Set it in the project's own settings."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "linear.seam_writes"
+kind = "choice"
+label = "Changes from the agenda"
+description = "Whether the agenda (or any extension) may change your Linear issues through the tracker seam: ask the first time each session, always, or never. Your own changes on Linear's page are not asked about."
+choices = ["ask", "always", "never"]
+default = "ask"

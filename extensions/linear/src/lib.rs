@@ -41,7 +41,7 @@ const PROJECT: &str = "/project";
 
 /// Seam service `call` of this tracker: the one place its names are made.
 fn service(call: &str) -> String {
-    fenix_tracker::service("linear", call)
+    fenix_tracker::service(seam::ID, call)
 }
 
 /// The tools' services.
@@ -99,7 +99,12 @@ fn page_keys() -> String {
 }
 
 fn seam_settings() -> seam::Settings {
-    seam::Settings { ready: token().is_ok(), sync_minutes: api::setting("linear.sync_minutes").and_then(|m| m.trim().parse().ok()).unwrap_or(10), keys: keys() }
+    seam::Settings {
+        ready: token().is_ok(),
+        sync_minutes: api::setting("linear.sync_minutes").and_then(|m| m.trim().parse().ok()).unwrap_or(10),
+        keys: keys(),
+        team: api::setting("linear.team").map(|t| t.trim().to_string()).filter(|t| !t.is_empty()),
+    }
 }
 
 fn teams_setting() -> Vec<String> {
@@ -235,7 +240,7 @@ enum Done {
     Menu { purpose: Purpose, title: String, items: Vec<(String, String)>, current: Option<String>, key: String, error: Option<String> },
     /// A write to `key`, said when done, and the page brought up to date.
     Wrote { key: String, result: Result<String, String> },
-    Created { result: Result<fenix_linear_client::linear::Created, String>, waiting: Option<u64> },
+    Created { result: Result<fenix_linear_client::linear::Created, String> },
     /// What a branch came to: said, asked about, or done.
     Branch { key: String, result: Result<Outcome, String>, name: Option<String> },
     InAgenda(HashSet<String>),
@@ -256,14 +261,26 @@ enum Asked {
     Comment(String),
     /// Whether to carry a dirty tree's changes to a new branch.
     Dirty(String),
+    /// The write gate's question (`fenix_tracker::gate`).
+    Gate,
 }
 
 #[derive(Default)]
 pub struct LinearExt {
     page: Option<(u64, LinearPage)>,
     asked: HashMap<u64, Asked>,
-    /// Agenda `create` calls whose form is open.
-    forms: HashSet<u64>,
+    /// Whether the seam may write this session, and what waits on it.
+    gate: fenix_tracker::gate::Gate,
+    held: Vec<Held>,
+    /// The seam's writes done this session, by `op`.
+    done_ops: Rc<RefCell<fenix_tracker::Dedupe>>,
+}
+
+/// A seam write held while you're asked whether to allow it.
+struct Held {
+    call: u64,
+    seam_call: &'static str,
+    payload: String,
 }
 
 fn say(message: &str) {
@@ -349,7 +366,7 @@ impl LinearExt {
             }
         };
         let as_view = match &view {
-            ViewId::Mine => View::Assigned { since: None },
+            ViewId::Mine => View::Assigned,
             ViewId::Created => View::Created,
             ViewId::Cycle(t) => View::Cycle { team: t.clone() },
             ViewId::Backlog(t) => View::Backlog { team: t.clone() },
@@ -504,13 +521,7 @@ impl LinearExt {
                 let id = api::compose(&format!("Comment on {key}"), "post", "", false);
                 self.asked.insert(id, Asked::Comment(key));
             }
-            A::Create(new) => self.create(new, None),
-            A::FormClosed(waiting) => {
-                if let Some(call) = waiting {
-                    self.forms.remove(&call);
-                    api::answer(call, Ok(serde_json::json!({ "ref": null }).to_string()));
-                }
-            }
+            A::Create(new) => self.create(new),
             A::Branch { key, confirmed } => self.start_branch(key, confirmed),
             A::CopyUrl(key) => {
                 let url = self.url_of(&key);
@@ -557,15 +568,15 @@ impl LinearExt {
         }
     }
 
-    /// A new issue from the form, made once it's sent.
-    fn create(&mut self, new: NewIssue, _waiting: Option<u64>) {
+    /// A new issue from the form, made once it's sent: the page's own
+    /// act, not gated.
+    fn create(&mut self, new: NewIssue) {
         let l = match linear() {
             Ok(l) => l,
             Err(why) => return complain(&why),
         };
-        let waiting = self.page.as_mut().and_then(|(_, p)| p.form.as_mut().and_then(|f| f.waiting.take()));
         say("Creating the issue...");
-        spawn(async move { Done::Created { result: l.create(&new).await.map_err(told), waiting } });
+        spawn(async move { Done::Created { result: l.create(&new).await.map_err(told) } });
     }
 
     /// The branch for `key` in the project; Linear's own `branchName`
@@ -651,12 +662,8 @@ impl LinearExt {
                         });
                     }
                 }
-                Done::Created { result, waiting } => match result {
+                Done::Created { result } => match result {
                     Ok(made) => {
-                        if let Some(call) = waiting {
-                            self.forms.remove(&call);
-                            api::answer(call, Ok(serde_json::json!({ "ref": made.identifier }).to_string()));
-                        }
                         say(&format!("Created {}", made.identifier));
                         if let Some((_, p)) = &mut self.page {
                             p.form = None;
@@ -664,15 +671,8 @@ impl LinearExt {
                         }
                         self.fetch_wanted();
                     }
-                    Err(why) => {
-                        // The form stays, to send again: the agenda's call keeps waiting.
-                        if let (Some(call), Some((_, p))) = (waiting, &mut self.page) {
-                            if let Some(f) = &mut p.form {
-                                f.waiting = Some(call);
-                            }
-                        }
-                        complain(&format!("couldn't create the issue: {why}"));
-                    }
+                    // The form stays, to send again.
+                    Err(why) => complain(&format!("couldn't create the issue: {why}")),
                 },
                 Done::Branch { key, result, name } => match result {
                     Ok(Outcome::Switched { name, created }) => say(&if created { format!("Created {name} and switched to it") } else { format!("Switched to {name}") }),
@@ -703,10 +703,13 @@ impl LinearExt {
         self.refresh();
     }
 
-    /// `linear.tracker.<call>` and the tools: answered once Linear has.
+    /// The tracker's seam and the tools: answered once Linear has. Every
+    /// write that comes through the seam passes the gate first
+    /// (`fenix_tracker::gate`: asked once a session, `linear.seam_writes`),
+    /// and one already done this session (its `op`) is answered as it was.
+    /// The page's own writes (`write`, `create`) don't come this way.
     fn serve_ours(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
-        let settings = seam_settings();
-        let refuse = |c: &str, why: String| Some(Err(SeamError::new(c, why).to_err()));
+        use fenix_tracker::gate::{self, Verdict};
         if name == TOOL_ISSUE || name == TOOL_MINE {
             let l = match linear() {
                 Ok(l) => l,
@@ -722,39 +725,96 @@ impl LinearExt {
         let Some(seam_call) = fenix_tracker::call::ALL.iter().find(|c| service(c) == name).copied() else {
             return Some(Err(format!("no service {name}")));
         };
-        match seam_call {
-            fenix_tracker::call::ABOUT => Some(serde_json::to_string(&seam::about(&settings)).map_err(|e| e.to_string())),
-            fenix_tracker::call::CREATE => {
-                let new: fenix_tracker::Create = match serde_json::from_str(payload) {
-                    Ok(n) => n,
-                    Err(e) => return refuse(code::BAD_REQUEST, format!("a Linear call: {e}")),
-                };
-                if !settings.ready {
-                    return refuse(code::NOT_SET_UP, seam::not_ready(&settings.keys));
-                }
-                self.open_page();
-                self.forms.insert(call);
-                let action = self.page.as_mut().map(|(_, p)| p.start_form(Some(call), &new.title, &new.body));
-                if let Some(a) = action {
-                    self.action(a);
-                }
-                self.take_done();
+        if seam_call == fenix_tracker::call::ABOUT {
+            return Some(serde_json::to_string(&seam::about(&seam_settings())).map_err(|e| e.to_string()));
+        }
+        if !fenix_tracker::call::writes(seam_call) {
+            return self.serve_now(call, seam_call, payload);
+        }
+        let settings = seam_settings();
+        if !settings.ready {
+            return Some(Err(SeamError::new(code::NOT_SET_UP, seam::not_ready(&settings.keys)).to_err()));
+        }
+        // A write Linear has no way to do is `unsupported`, nothing asked.
+        if ![fenix_tracker::call::TRANSITION, fenix_tracker::call::UPDATE, fenix_tracker::call::COMMENT, fenix_tracker::call::CREATE].contains(&seam_call) {
+            return Some(Err(SeamError::new(code::UNSUPPORTED, format!("no service {name}")).to_err()));
+        }
+        let op = op_of(payload);
+        if let Some(answer) = self.done_ops.borrow().get(op.as_deref()) {
+            return Some(answer);
+        }
+        let held = Held { call, seam_call, payload: payload.to_string() };
+        match self.gate.check(api::setting("linear.seam_writes").as_deref(), "Linear") {
+            Verdict::Go => self.serve_now(call, seam_call, payload),
+            Verdict::Refuse(why) => Some(Err(why.to_err())),
+            Verdict::Wait => {
+                self.held.push(held);
                 None
             }
-            _ => {
-                let l = match linear() {
-                    Ok(l) => l,
-                    Err(_) => return refuse(code::NOT_SET_UP, seam::not_ready(&settings.keys)),
-                };
-                let tracker = Seam::new(l, settings);
-                let (c, payload) = (seam_call.to_string(), payload.to_string());
-                run::spawn(async move {
-                    api::answer(call, tracker.serve(&c, &payload).await);
-                });
+            Verdict::Ask => {
+                self.held.push(held);
+                let rows = [PickerItem::new(gate::ALLOW, "allow"), PickerItem::new(gate::DENY, "deny")];
+                let id = api::pick(&gate::question("Linear"), &rows);
+                self.asked.insert(id, Asked::Gate);
                 None
             }
         }
     }
+
+    /// You answered the gate: the writes held go through, or are refused.
+    fn gate_answered(&mut self, allow: bool) {
+        self.gate.answered(allow);
+        for Held { call, seam_call, payload } in std::mem::take(&mut self.held) {
+            let answer = if allow { self.serve_now(call, seam_call, &payload) } else { Some(Err(fenix_tracker::gate::Gate::denied("Linear").to_err())) };
+            if let Some(answer) = answer {
+                api::answer(call, answer);
+            }
+        }
+    }
+
+    /// A seam call, served now (past the gate, if it's a write): `Some`
+    /// answered at once, `None` later. Never retried here.
+    fn serve_now(&mut self, call: u64, seam_call: &'static str, payload: &str) -> Option<Result<String, String>> {
+        let settings = seam_settings();
+        let op = op_of(payload);
+        if seam_call == fenix_tracker::call::CREATE {
+            // Linear's form is its own page: opened, filled in, and said at
+            // once; the call isn't held while you fill it in.
+            let new: fenix_tracker::Create = match serde_json::from_str(payload) {
+                Ok(n) => n,
+                Err(e) => return Some(Err(SeamError::new(code::BAD_REQUEST, format!("a Linear call: {e}")).to_err())),
+            };
+            self.open_page();
+            let action = self.page.as_mut().map(|(_, p)| p.start_form(&new.title, &new.body));
+            if let Some(a) = action {
+                self.action(a);
+            }
+            self.take_done();
+            let answer = Ok(serde_json::json!({ "ref": null, "opened": format!("Opened a new-issue form on Linear's page ({}) -- add the issue to the agenda once it's made", page_keys()) }).to_string());
+            self.done_ops.borrow_mut().put(op.as_deref(), &answer);
+            return Some(answer);
+        }
+        let l = match linear() {
+            Ok(l) => l,
+            Err(_) => return Some(Err(SeamError::new(code::NOT_SET_UP, seam::not_ready(&settings.keys)).to_err())),
+        };
+        let tracker = Seam::new(l, settings);
+        let payload = payload.to_string();
+        let done_ops = self.done_ops.clone();
+        run::spawn(async move {
+            let answer = tracker.serve(seam_call, &payload).await;
+            if fenix_tracker::call::writes(seam_call) {
+                done_ops.borrow_mut().put(op.as_deref(), &answer);
+            }
+            api::answer(call, answer);
+        });
+        None
+    }
+}
+
+/// A write's `op`, if it has one.
+fn op_of(payload: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string))
 }
 
 impl Extension for LinearExt {
@@ -776,7 +836,7 @@ impl Extension for LinearExt {
             }
             "linear.new_issue" => {
                 self.open_page();
-                let action = self.page.as_mut().map(|(_, p)| p.start_form(None, "", ""));
+                let action = self.page.as_mut().map(|(_, p)| p.start_form("", ""));
                 if let Some(a) = action {
                     self.action(a);
                 }
@@ -799,6 +859,8 @@ impl Extension for LinearExt {
         let Some(event) = event else { return };
         match event {
             Event::SettingChanged(_) => {
+                // The agenda asks again: the key, the team or the sync may have changed.
+                api::call_service("agenda.tracker_changed", &serde_json::json!({ "tracker": seam::ID }).to_string());
                 if let Some((_, p)) = &mut self.page {
                     p.lists.clear();
                     p.teams = None;
@@ -845,10 +907,10 @@ impl Extension for LinearExt {
                 _ => {}
             },
             Event::Picked((id, choice)) => {
-                if let Some(Asked::Dirty(key)) = self.asked.remove(&id) {
-                    if choice.as_deref() == Some("yes") {
-                        self.start_branch(key, true);
-                    }
+                match self.asked.remove(&id) {
+                    Some(Asked::Dirty(key)) if choice.as_deref() == Some("yes") => self.start_branch(key, true),
+                    Some(Asked::Gate) => self.gate_answered(choice.as_deref() == Some("allow")),
+                    _ => {}
                 }
             }
             Event::Prompted((id, None)) | Event::Composed((id, None)) => {
@@ -1005,7 +1067,8 @@ mod tests {
         let manifest = include_str!("../extension.toml");
         for c in fenix_tracker::call::ALL {
             let name = service(c);
-            let served = ["about", "assigned", "issues", "transitions", "transition", "update", "priorities", "people", "comment", "create"].contains(&c);
+            let served = ["about", "assigned", "issues", "transitions", "transition", "update", "priorities", "people", "comment", "create", "project"].contains(&c);
+            assert!(name.starts_with("fenix.linear.tracker."), "{name}");
             assert_eq!(manifest.contains(&format!("\"{name}\"")), served, "{name}");
         }
         for tool in [TOOL_ISSUE, TOOL_MINE] {
@@ -1145,27 +1208,121 @@ mod tests {
     }
 
     #[test]
-    fn a_form_made_from_an_agenda_task_answers_its_call() {
+    fn create_opens_the_form_filled_in_and_answers_at_once() {
         let mut h = linear_with(true);
+        h.fake.setting("linear.seam_writes", "always");
         h.command("linear.open").unwrap();
-        let call = Fake::with(|s| s.id());
-        let payload = json!({ "seam": 1, "title": "From a task", "body": "its notes" }).to_string();
-        assert_eq!(h.ext.serve(call, &service("create"), &payload), None, "answered once it's made or closed");
-        h.settle();
+        let answer: Value = serde_json::from_str(&ask(&mut h, &service("create"), json!({ "title": "From a task", "body": "its notes", "op": "agenda:1:1" })).unwrap()).unwrap();
+        assert_eq!(answer["ref"], Value::Null);
+        assert!(answer["opened"].as_str().unwrap().contains("add the issue to the agenda"), "{answer}");
         let page = h.page(KIND);
         assert!(h.screen(page).contains("From a task"), "{}", h.screen(page));
+        // Sent from the page with S: that's your own act, and writes.
         h.keys(page, "S");
-        h.settle();
-        let answer = h.fake.state().answers.get(&call).cloned().expect("answered");
-        assert_eq!(serde_json::from_str::<Value>(&answer.unwrap()).unwrap()["ref"], "ENG-21");
-        // Closing it answers with no issue.
+        assert!(h.fake.notifications().iter().any(|n| n == "Created ENG-21"), "{:?}", h.fake.notifications());
+    }
+
+    #[test]
+    fn project_is_the_team_a_project_sets() {
+        let mut h = linear_with(true);
+        let none: fenix_tracker::Project = serde_json::from_str(&ask(&mut h, &service("project"), json!({})).unwrap()).unwrap();
+        assert_eq!(none.project, None);
+        h.fake.setting("linear.team", " ENG ");
+        let p: fenix_tracker::Project = serde_json::from_str(&ask(&mut h, &service("project"), json!({})).unwrap()).unwrap();
+        assert_eq!(p.project.as_deref(), Some("ENG"));
+        let about: About = serde_json::from_str(&ask(&mut h, &service("about"), json!({ "seam": 7 })).unwrap_or_default()).unwrap();
+        assert!(about.can("project") && !about.blocked && about.id == "fenix.linear", "about answers whatever seam it's asked with");
+    }
+
+    fn comment(h: &mut Harness<LinearExt>, op: &str) -> Option<Result<String, String>> {
         let call = Fake::with(|s| s.id());
-        assert_eq!(h.ext.serve(call, &service("create"), &payload), None);
+        let payload = json!({ "seam": 1, "ref": "ENG-12", "body": "hi", "op": op }).to_string();
+        let first = h.ext.serve(call, &service("comment"), &payload);
         h.settle();
-        h.keys(page, "\u{1b}");
-        h.key(page, Key::Escape);
-        let answer = h.fake.state().answers.get(&call).cloned();
-        assert_eq!(answer.map(|a| serde_json::from_str::<Value>(&a.unwrap()).unwrap()["ref"].clone()), Some(Value::Null));
+        first.or_else(|| h.fake.state().answers.get(&call).cloned())
+    }
+
+    fn mutations(h: &Harness<LinearExt>) -> usize {
+        h.fake.requests().iter().filter(|(_, r)| String::from_utf8_lossy(&r.body).contains("mutation")).count()
+    }
+
+    #[test]
+    fn the_gate_asks_once_a_session_and_holds_writes_until_answered() {
+        let mut h = linear_with(true);
+        h.fake.on_pick("Agenda wants to change issues in Linear", fenix_tracker::gate::ALLOW);
+        assert!(comment(&mut h, "op-1").unwrap().is_ok());
+        assert_eq!(h.fake.pickers().len(), 1, "asked");
+        assert_eq!(mutations(&h), 1);
+        // Allowed for the session: the next is not asked.
+        assert!(comment(&mut h, "op-2").unwrap().is_ok());
+        assert_eq!((h.fake.pickers().len(), mutations(&h)), (1, 2));
+        // The same op again is answered as it was, and not done twice.
+        assert!(comment(&mut h, "op-2").unwrap().is_ok());
+        assert_eq!(mutations(&h), 2, "a comment is the write that isn't idempotent: sent once");
+        no_key_anywhere(&h);
+    }
+
+    #[test]
+    fn not_now_refuses_and_asks_again_next_time() {
+        let mut h = linear_with(true);
+        h.fake.on_pick("Agenda wants to change issues in Linear", fenix_tracker::gate::DENY);
+        let err = SeamError::from_err(&comment(&mut h, "op-1").unwrap().unwrap_err());
+        assert_eq!(err.code, "refused");
+        assert!(err.message.contains("you didn't allow the agenda"));
+        assert_eq!(mutations(&h), 0, "nothing was written");
+        let _ = comment(&mut h, "op-2");
+        assert_eq!(h.fake.pickers().len(), 2, "asked again");
+    }
+
+    #[test]
+    fn never_refuses_always_does_and_neither_asks() {
+        let mut h = linear_with(true);
+        h.fake.setting("linear.seam_writes", "never");
+        let err = SeamError::from_err(&comment(&mut h, "op-1").unwrap().unwrap_err());
+        assert_eq!(err.code, "refused");
+        assert!(err.message.contains("turned off"));
+        for call in ["transition", "update", "create"] {
+            let call_id = Fake::with(|s| s.id());
+            let payload = json!({ "seam": 1, "ref": "ENG-12", "id": "s", "set": { "title": "x" }, "title": "x", "op": call }).to_string();
+            let got = h.ext.serve(call_id, &service(call), &payload);
+            assert_eq!(SeamError::from_err(&got.unwrap().unwrap_err()).code, "refused", "{call} is gated too");
+        }
+        assert!(h.fake.pickers().is_empty() && mutations(&h) == 0);
+        h.fake.setting("linear.seam_writes", "always");
+        assert!(comment(&mut h, "op-2").unwrap().is_ok());
+        assert!(h.fake.pickers().is_empty(), "always doesn't ask");
+        assert_eq!(mutations(&h), 1);
+    }
+
+    #[test]
+    fn the_pages_own_writes_are_not_gated() {
+        let mut h = linear_with(true);
+        h.command("linear.open").unwrap();
+        let page = h.page(KIND);
+        h.keys(page, "ll");
+        h.keys(page, "p");
+        h.keys(page, "1");
+        assert_eq!(mutations(&h), 1, "your own pick wrote at once");
+        assert!(h.fake.pickers().iter().all(|p| !p.title.contains("Agenda wants")), "no gate question");
+    }
+
+    #[test]
+    fn a_write_that_isnt_linears_to_do_is_unsupported_and_unasked() {
+        let mut h = linear_with(true);
+        for call in ["worklog", "remember"] {
+            let id = Fake::with(|s| s.id());
+            let got = h.ext.serve(id, &service(call), &json!({ "seam": 1, "ref": "ENG-12", "seconds": 1, "started": "x", "remember": "x" }).to_string());
+            assert_eq!(SeamError::from_err(&got.unwrap().unwrap_err()).code, "unsupported", "{call}");
+        }
+        assert!(h.fake.pickers().is_empty());
+    }
+
+    #[test]
+    fn changing_a_setting_tells_the_agenda_to_ask_again() {
+        let mut h = linear_with(true);
+        h.set_setting("linear.team", Some("OPS"));
+        let told = h.fake.services().into_iter().find(|c| c.name == "agenda.tracker_changed").expect("told");
+        assert_eq!(serde_json::from_str::<Value>(&told.payload).unwrap()["tracker"], "fenix.linear");
     }
 
     fn branch_world(repo: bool, dirty: &str) -> Harness<LinearExt> {
