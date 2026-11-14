@@ -969,6 +969,52 @@
               "xcode-select"
             ]
           }
+        },
+        {
+          "version": "1.3.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/cpp-v1.3.0/fenix.cpp-1.3.0.fenixext",
+          "sha256": "8d48c3a54ca3573ce646d8616f718c72aee050b4993384b99383da262db94e24",
+          "size": 404654,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-write",
+            "process": [
+              "cmake",
+              "ctest",
+              "ninja",
+              "c++",
+              "cc",
+              "g++",
+              "gcc",
+              "clang++",
+              "clang",
+              "cl",
+              "clangd",
+              "clang-format",
+              "clang-tidy",
+              "lldb-dap",
+              "lldb-vscode",
+              "gdb",
+              "vcpkg",
+              "conan",
+              "uv",
+              "pipx",
+              "python3",
+              "python",
+              "brew",
+              "winget",
+              "xcode-select"
+            ]
+          }
         }
       ],
       "name": "C/C++",
