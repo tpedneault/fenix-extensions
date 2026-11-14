@@ -1,0 +1,66 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2024.2.1)  14 NOV 2026 10:14
+entering extended mode
+ restricted \write18 enabled.
+ file:line:error style messages enabled.
+ %&-line parsing enabled.
+**main.tex
+(./main.tex
+LaTeX2e <2023-11-01> patch level 1
+(/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2023/05/17 v1.4n Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo))
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref.sty
+Package hyperref Warning: Option `hidelinks' is deprecated, use
+(hyperref)                the option `colorlinks=false' instead on input line 14.
+
+)
+(./main.aux)
+[1{/usr/share/texlive/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}]
+
+Overfull \hbox (13.40111pt too wide) in paragraph at lines 21--22
+[]\OT1/cmr/m/n/10 A ver-y long word-that-can-not-be-bro-ken-any-where-at-all-and-th
+ []
+
+(./chapters/body.tex
+
+Underfull \hbox (badness 10000) in paragraph at lines 5--6
+[]\OT1/cmr/m/n/10 Short.
+ []
+
+
+LaTeX Warning: Reference `fig:missing' on page 1 undefined on input line 12.
+
+
+LaTeX Warning: Citation `knuth84' on page 1 undefined on input line 13.
+
+
+Overfull \hbox (4.5pt too wide) in alignment at lines 30--33
+[] | [] | []
+ []
+
+
+LaTeX Font Warning: Font shape `OT1/cmr/bx/sc' undefined
+(Font)              using `OT1/cmr/bx/n' instead on input line 40.
+
+) [2]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `sec:a-rather-long-label-name-for-wrapping' on page 12
+ undefined on input line 77.
+
+
+Package natbib Warning: Citation `lamport94' on page 3 undefined on input line 51.
+
+(./main.aux)
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ )
+(see the transcript file for additional information)
+Output written on main.pdf (3 pages, 41234 bytes).
+Transcript written on main.log.

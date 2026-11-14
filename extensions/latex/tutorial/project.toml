@@ -1,0 +1,64 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor and a fix from it, a task, formatting and checking on save
+# -- filled in for LaTeX, with what is LaTeX's own: building and seeing the
+# PDF. LaTeX has no packages page or debugger here, so it has the pairs of
+# steps that apply. See "Tutorial lessons" in the repository's CONTRIBUTING.md.
+id = "latex.project"
+track = "LaTeX"
+order = 1
+title = "A LaTeX project: doctor, build, preview, formatting"
+about = "In a LaTeX project of yours (a folder with a main.tex; the LaTeX · article template makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A LaTeX document in Fenix: what builds it, building it, its PDF beside it,
+and formatting as you save.
+
+SPC p h   the project doctor: what builds the document (latexmk, Tectonic or
+          an engine), texlab, tex-fmt and chktex (f runs a fix, r checks
+          again, q closes it). With no TeX distribution, the fix installs
+          Tectonic, which downloads packages on its first build
+SPC p t   the tasks: build, clean, clean (all), word count
+SPC m b   build the document: the log's errors become problems, and the PDF
+          opens in the PDF reader (the fenix.pdf extension) the first time
+SPC m w   build continuously, with latexmk (again to stop)
+SPC m p   open the PDF again;  SPC m s  its page for the cursor's line
+SPC ,     the settings: editor.format_on_save, latex.build_on_save
+SPC c F   format the file with tex-fmt
+
+A document to try it on, if you have none; put it in main.tex of a folder
+of its own, and open that folder as a project:
+
+\\documentclass{article}
+\\begin{document}
+Hello, \\LaTeX. \\(e^{i\\pi} + 1 = 0\\)
+\\end{document}
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- what builds the document, texlab, tex-fmt and chktex."
+hint = "SPC p, then h. In a project with .tex files: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green may have a fix: f on texlab's or tex-fmt's downloads the release from GitHub, checks its SHA-256 and uses it at once; with nothing to build with, f on the build row installs Tectonic. A TeX distribution is yours to install. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC p t: the project's tasks -- build, clean, clean (all) and word count."
+hint = "SPC p, then t. Without anything to build with, or in a folder with no document, there are few: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick build and Enter: the builder runs in Task Output and writes the PDF beside main.tex (q there closes it). SPC m b does the same from the file, reads the log into problems, and opens the PDF in the reader. Or Esc."
+hint = "Type build to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a LaTeX file then runs tex-fmt on it. latex.build_on_save builds on each save too."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a .tex file now: it's formatted, and chktex's warnings come with texlab's. With latex.build_on_save on, it's built, and the PDF in the reader reloads by itself."
+hint = "q, on the settings page."
+closed = "settings"

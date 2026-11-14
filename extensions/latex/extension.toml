@@ -1,0 +1,139 @@
+[extension]
+id = "fenix.latex"
+name = "LaTeX"
+version = "1.0.0"
+description = "LaTeX and BibTeX: their grammars, texlab, tex-fmt, chktex, a build with latexmk, Tectonic or an engine whose log becomes problems, the PDF it makes opened in the PDF reader, the project's checks with fixes that install the tools, snippets, and templates"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# latexmk, Tectonic or an engine builds; texlab serves; tex-fmt or latexindent
+# formats; chktex lints; texcount counts words; synctex finds the page of a
+# line; the tools where the pack installs them (the tools folder) or where
+# they're found.
+process = ["latexmk", "tectonic", "pdflatex", "xelatex", "lualatex", "texlab", "tex-fmt", "latexindent", "chktex", "texcount", "synctex", "/tools/*"]
+# GitHub's releases, where texlab, Tectonic and tex-fmt are downloaded from,
+# and where GitHub sends the downloads.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# The .tex files at the top, .latexmkrc, Tectonic.toml, the document's first
+# lines (magic comments), and the log and PDF a build made, read.
+filesystem = "project-read"
+# Where you are: the project's folder, which the PDF reader's path needs, and
+# the .tex file you're in, which names its document.
+editor = "read"
+
+[contributes]
+# A file saved: chktex; the first .tex file in a folder noticed; build on save.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "latex"
+markers = [".latexmkrc", "latexmkrc", "Tectonic.toml", "main.tex"]
+languages = ["latex", "bibtex"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack
+# applies. A folder of .tex files and no marker stays a plain folder.
+[[contributes.project_kinds]]
+id = "latex"
+name = "LaTeX"
+tag = "TEX"
+color = "function"
+markers = [".latexmkrc", "latexmkrc", "Tectonic.toml"]
+main = ["main.tex"]
+
+[[contributes.commands]]
+id = "latex.doctor"
+title = "LaTeX: check the project again (what builds, texlab, tex-fmt, chktex)"
+
+[[contributes.commands]]
+id = "latex.install.texlab"
+title = "LaTeX: install texlab 5.26.0, the language server"
+
+[[contributes.commands]]
+id = "latex.install.tectonic"
+title = "LaTeX: install Tectonic 0.17.0 (it downloads packages on first build)"
+
+[[contributes.commands]]
+id = "latex.install.tex-fmt"
+title = "LaTeX: install tex-fmt 0.5.7, the formatter"
+
+[[contributes.commands]]
+id = "latex.build"
+title = "LaTeX: build the document, and show its log's errors as problems"
+
+[[contributes.commands]]
+id = "latex.watch"
+title = "LaTeX: build continuously in the background with latexmk (again to stop), and open the PDF"
+
+[[contributes.commands]]
+id = "latex.preview"
+title = "LaTeX: open the document's PDF in the PDF reader"
+
+[[contributes.commands]]
+id = "latex.forward_search"
+title = "LaTeX: go to the page of the PDF the cursor's line is on (synctex)"
+
+[[contributes.commands]]
+id = "latex.clean"
+title = "LaTeX: clean the build's auxiliary files (latexmk -c)"
+
+[[contributes.commands]]
+id = "latex.clean_all"
+title = "LaTeX: clean everything the build made, the PDF too (latexmk -C)"
+
+[[contributes.commands]]
+id = "latex.word_count"
+title = "LaTeX: count the document's words (texcount)"
+
+[[contributes.settings]]
+key = "latex.main"
+kind = "text"
+label = "Document"
+description = "The .tex file to build, in the project, when it isn't main.tex (the only .tex file with a \\documentclass at the top is found without it; a file's % !TEX root comment, or its own \\documentclass, wins for that file). Empty: found."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "latex.preview"
+kind = "bool"
+label = "Open the PDF after a build"
+description = "The first successful build opens the PDF in the PDF reader (fenix.pdf), which shows it again each time it's built. Off: only SPC m p opens it."
+default = "true"
+
+[[contributes.settings]]
+key = "latex.build_on_save"
+kind = "bool"
+label = "Build on save"
+description = "Saving a .tex, .sty, .cls or .bib file builds the document, so its errors show as problems and its PDF is up to date. Not while latexmk -pvc runs, which does the building."
+default = "false"
+
+[[contributes.settings]]
+key = "latex.chktex"
+kind = "bool"
+label = "chktex on save"
+description = "Run chktex on a saved .tex, .sty or .cls file and show its warnings as problems, with texlab's. Needs chktex (it comes with TeX Live and MiKTeX)."
+default = "true"
+
+[[contributes.settings]]
+key = "latex.formatter"
+kind = "choice"
+choices = ["auto", "tex-fmt", "latexindent"]
+label = "Formatter"
+description = "Auto: tex-fmt when it's found (one program, no Perl, installed from the doctor), else latexindent (Perl, and a TeX distribution)."
+default = "auto"

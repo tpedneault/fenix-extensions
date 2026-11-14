@@ -1,0 +1,9 @@
+note: connected to the bundle; reading the index
+note: generating a format file for latex.fmt
+note: running TeX ...
+warning: main.tex:7: Overfull \hbox (13.0pt too wide) in paragraph at lines 7--7
+warning: main.tex:7: []\OT1/cmr/m/n/10 A ver-y long word-that-can-not-be-bro-ken
+warning: main.tex:7:  []
+error: main.tex:5: Undefined control sequence
+error: main.tex:5: \foo
+error: main.tex:5: halted on potentially-recoverable error as specified

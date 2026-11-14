@@ -1,0 +1,8 @@
+# LaTeX, which Fenix doesn't highlight itself: tree-sitter-latex's grammar,
+# compiled to WebAssembly (grammars/), and its queries from queries/latex.
+# The server is the extension's to set, once it has found texlab. `.sty`
+# and `.cls` files are LaTeX too.
+language = "latex"
+grammar = "grammars/tree-sitter-latex.wasm"
+extensions = ["tex", "sty", "cls"]
+comment = "%"
