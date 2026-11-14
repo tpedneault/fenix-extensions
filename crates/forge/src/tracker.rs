@@ -340,7 +340,13 @@ impl<C: Issues> Seam<C> {
     /// last saw when it says, else from the issue.
     async fn transitions(&self, req: seam::Transitions) -> Answer {
         let key = self.parse_ref(&req.key).ok_or_else(|| self.bad_ref(&req.key))?;
-        let issue = self.client.issue(&key).await.map_err(classify)?;
+        json(&self.moves(&key, req.toward.as_deref()).await?)
+    }
+
+    /// An issue's moves, as `transitions` answers them (cleaned): for the
+    /// seam and for the page's `s`. Changes nothing.
+    pub async fn moves(&self, key: &IssueRef, toward: Option<&str>) -> Result<seam::Moves, SeamError> {
+        let issue = self.client.issue(key).await.map_err(classify)?;
         let now = self.state(&issue);
         let labels = self.labels(&key.project).await.unwrap_or_default();
         let blocked = self.settings.blocked_label.trim().to_string();
@@ -386,7 +392,7 @@ impl<C: Issues> Seam<C> {
         let mut answer = seam::Moves { transitions: moves, ..Default::default() };
         if !has_blocked_label {
             answer.blocked = Some("Blocked  (in your agenda only)".into());
-            if req.toward.as_deref() == Some(column::BLOCKED) && issue.open {
+            if toward == Some(column::BLOCKED) && issue.open {
                 let why = if blocked.is_empty() { "no label says an issue is blocked".to_string() } else { format!("{} has no \"{blocked}\" label", key.project) };
                 answer.transitions.push(seam::Move {
                     id: "local".into(),
@@ -400,14 +406,22 @@ impl<C: Issues> Seam<C> {
         } else {
             answer.blocked = Some(format!("Blocked  (the {blocked} label)"));
         }
-        json(&answer.cleaned())
+        Ok(answer.cleaned())
     }
 
     /// Doing a move.
     async fn transition(&self, req: seam::Transition) -> Answer {
         let key = self.parse_ref(&req.key).ok_or_else(|| self.bad_ref(&req.key))?;
-        let (change, said) = match req.id.as_str() {
-            "local" => return json(&seam::Said::default()),
+        let Some((change, said)) = self.change_for_move(&key, &req.id)? else { return json(&seam::Said::default()) };
+        self.client.change(&key, &change).await.map_err(classify)?;
+        json(&seam::Said { said: Some(said) })
+    }
+
+    /// What move `id` changes on the forge, and what's said once it has;
+    /// none for a move that's only the agenda's (`local`).
+    pub fn change_for_move(&self, key: &IssueRef, id: &str) -> Result<Option<(Change, String)>, SeamError> {
+        Ok(Some(match id {
+            "local" => return Ok(None),
             "close" if self.host() == Host::GitHub => (Change::Close(Some("completed".into())), "closed as completed".to_string()),
             "close" => (Change::Close(None), "closed".to_string()),
             "close:not_planned" if self.host() == Host::GitHub => (Change::Close(Some("not_planned".into())), "closed as not planned".to_string()),
@@ -426,9 +440,7 @@ impl<C: Issues> Seam<C> {
                 }
                 None => return Err(SeamError::new(code::REFUSED, format!("no move {id} for {key}"))),
             },
-        };
-        self.client.change(&key, &change).await.map_err(classify)?;
-        json(&seam::Said { said: Some(said) })
+        }))
     }
 
     async fn update(&self, req: seam::Update) -> Answer {
