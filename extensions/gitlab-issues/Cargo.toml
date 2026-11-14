@@ -1,0 +1,32 @@
+[package]
+name = "fenix-gitlab-issues"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "GitLab Issues in Fenix: searches, an issue with its comments, a new issue, a branch from one -- and GitLab's issues for the agenda."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
+fenix-forge = { path = "../../crates/forge", features = ["tracker"] }
+fenix-issues = { path = "../../crates/issues" }
+fenix-tracker = { path = "../../crates/tracker" }
+fenix-ui-kit = { path = "../../crates/ui-kit" }
+serde_json = "1"
+
+[dev-dependencies]
+# A fake host for its tests.
+fenix-test-kit = { path = "../../crates/test-kit" }
+# Its manifest, read in a test.
+toml = "0.8"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

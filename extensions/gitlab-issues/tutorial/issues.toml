@@ -1,0 +1,30 @@
+id = "gitlab-issues.issues"
+track = "Issues"
+order = 2
+title = "GitLab issues"
+about = "Your GitLab issues, one open with its comments, and a branch started from it. Needs your GitLab server and token on the settings page (Forges) -- the ones Review uses."
+text = """
+GitLab's issues in Fenix. If you already use Review, there's nothing to
+set up: it uses the same server and token. Without them, s on the
+tutorial page skips a step.
+
+SPC g I   the issues page: your searches across the top -- assigned to
+          you, created by you, mentioning you, the project you're in,
+          your saved ones. Tab steps through them, / types a filter.
+On an issue:
+          Enter opens it with its comments, C comments, e and E edit
+          its title and description, l labels, A assignees, s moves it
+          (close, reopen, a workflow:: step), b starts a branch for it,
+          a adds it to the agenda, o the browser, y copies it.
+n         a new issue, from the project's templates; S S sends it.
+"""
+
+[[step]]
+say = "SPC g I: the issues page, the issues assigned to you first."
+hint = "Space, g, capital I. It needs your GitLab set up; s on the tutorial page skips this."
+page = "fenix.gitlab-issues/issues"
+
+[[step]]
+say = "Tab steps through the searches, Enter on an issue opens it. q closes the page for now."
+hint = "q, on the issues page (twice when an issue is open)."
+closed = "fenix.gitlab-issues/issues"
