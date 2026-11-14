@@ -1,0 +1,28 @@
+id = "linear.issues"
+track = "Linear"
+order = 1
+title = "Your Linear issues"
+about = "Your Linear issues on a page: a team's cycle and backlog, an issue with its comments, a branch started from it. Needs a personal API key."
+text = """
+Linear on a page, and in your agenda. It needs a personal API key: make one
+in Linear (Settings, Security & access, Personal API keys) and set it on
+the settings page ({key:settings.open}), under Linear. Without one, s on
+the tutorial page skips a step.
+
+{leader} o w w   the page: your issues, each team's active cycle and
+                 backlog. l opens the issue under the cursor; on it, s
+                 moves it to another state, p sets its priority, C
+                 comments, b starts a branch for it in this project,
+                 y copies its address. Nothing changes in Linear until
+                 you pick or send something.
+"""
+
+[[step]]
+say = "{leader} o w w: your Linear issues."
+hint = "Space, o, w, w. It needs the API key in the settings; s on the tutorial page skips this."
+page = "fenix.linear/linear"
+
+[[step]]
+say = "j and k move between the views, l goes into the issues, l again opens one. ? lists every key. q closes the page for now."
+hint = "q, on the Linear page."
+closed = "fenix.linear/linear"
