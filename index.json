@@ -67,6 +67,38 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ada-v1.2.0/fenix.ada-1.2.0.fenixext",
+          "sha256": "e1626f6ec1f558081c9f2e26290c18e13f9001b1981bb75d1539a4666aba9f45",
+          "size": 387722,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "alr",
+              "gnat",
+              "gprbuild",
+              "gprclean",
+              "gnatprove",
+              "ada_language_server",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Ada and SPARK",
