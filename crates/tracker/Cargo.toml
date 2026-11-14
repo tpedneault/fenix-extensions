@@ -1,0 +1,14 @@
+[package]
+name = "fenix-tracker"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "The tracker seam: the shapes the agenda and a tracker extension (Jira, GitHub Issues, ...) send each other, their cleaning, their errors, and a fake tracker for tests."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Built with whichever extension uses it.
+[workspace]
