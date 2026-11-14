@@ -3424,6 +3424,45 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.prose",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/prose-v1.0.0/fenix.prose-1.0.0.fenixext",
+          "sha256": "580e62dc73e720f4d9c4fed207bc119e3ab319815e70e5366db1770078ea0683",
+          "size": 290378,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-write",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "harper-ls",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Prose",
+      "description": "Spelling and grammar in the languages you name, offline: Harper added beside their language servers, installed with a checksum, with a project word list and a command that adds the word under the cursor",
+      "categories": [
+        "languages",
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.protobuf",
       "versions": [
         {
