@@ -2735,10 +2735,33 @@
               "ccsds"
             ]
           }
+        },
+        {
+          "version": "1.5.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.5.0/fenix.mib-1.5.0.fenixext",
+          "sha256": "7c279b6388bb301622287e46ed21c724a5d2ce804f776905ce6e18b71baa91a4",
+          "size": 645483,
+          "dependencies": {},
+          "categories": [
+            "mission"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "write",
+            "filesystem": "project-write",
+            "folders": {
+              "mib": "${setting:mib.roots}"
+            },
+            "settings": [
+              "ccsds"
+            ]
+          }
         }
       ],
       "name": "SCOS-2000 MIB",
-      "description": "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them",
+      "description": "SCOS-2000 MIBs, found in the project or opened from anywhere: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them",
       "categories": [
         "mission"
       ],
