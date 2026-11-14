@@ -70,7 +70,7 @@ fn list_for(path: &str) -> Option<&'static str> {
 }
 
 /// kubectl, kubeconfig and a cluster as Fenix's defaults and the
-/// fixtures have them: `kind-dev` current (a kind cluster on 127.0.0.1:
+/// fixtures have them: `kind-dev` current (named as kind names its clusters:
 /// local, so unprotected), namespace `shop`.
 fn cluster() -> Fake {
     cluster_on("kind-dev")
@@ -187,7 +187,8 @@ fn the_context_and_namespace_are_this_projects_and_kubeconfig_is_never_changed()
     let picker = fake.pickers().pop().unwrap();
     let names: Vec<&str> = picker.items.iter().map(|i| i.label.as_str()).collect();
     assert_eq!(names, ["fake", "gke_acme_europe-west1_prod", "kind-dev", "prod", "prod "], "exactly as kubeconfig has them; a tab or a newline left out");
-    assert!(picker.items[1].detail.contains("protected") && picker.items[2].detail.contains("local: unprotected"));
+    assert!(picker.items[0].detail.ends_with("protected"), "fake's server is on 127.0.0.1, which says nothing: {}", picker.items[0].detail);
+    assert!(picker.items[1].detail.ends_with("protected") && picker.items[2].detail.ends_with("unprotected: a local cluster's name"));
     let lines = spawned(&fake);
     assert!(!lines.is_empty() && lines.iter().all(|l| l.contains("--context=gke_acme_europe-west1_prod")), "{lines:#?}");
     assert!(lines.iter().any(|l| l.contains("/namespaces/payments/deployments")), "the context's own namespace");
@@ -436,6 +437,9 @@ fn every_change_is_asked_naming_the_context_and_the_namespace() {
     h.ext.confirmed(asked.0);
     assert!(fake.notifications().last().unwrap().contains("context changed"));
     // A pattern added while a plain question is open: y no longer does it.
+    // (fake's server is on 127.0.0.1, but that doesn't make it local: it's
+    // exempted by name first.)
+    h.set_setting("kubernetes.unprotected", Some("fake"));
     keys(&mut h, page, "gjR");
     h.set_setting("kubernetes.protected", Some("fake"));
     keys(&mut h, page, "y");
@@ -470,6 +474,25 @@ fn a_protected_context_needs_the_name_typed_or_refuses() {
     h.set_setting("kubernetes.unprotected", Some("gke_*_prod"));
     keys(&mut h, page, "x");
     assert!(h.screen(page).contains("Delete pod api-5f6d7c8b9-abcde? context gke_acme_europe-west1_prod, namespace shop"));
+}
+
+/// A context whose API server is on 127.0.0.1 -- a tunnel or a
+/// port-forward to production looks exactly so -- is protected with no
+/// setting: only a local cluster's name, or kubernetes.unprotected, says
+/// otherwise.
+#[test]
+fn a_server_on_localhost_alone_doesnt_make_a_context_local() {
+    let fake = cluster_on("fake");
+    let (mut h, page) = opened(&fake);
+    assert!(h.screen(page).contains("context fake protected (kubeconfig's current"), "{}", h.screen(page));
+    keys(&mut h, page, "2jjj");
+    fake.take();
+    keys(&mut h, page, "x");
+    assert!(fake.prompts().pop().unwrap().label.starts_with("PROTECTED context fake, namespace shop: type api-5f6d7c8b9-abcde"));
+    assert!(!h.screen(page).contains("y yes, do it"));
+    h.set_setting("kubernetes.unprotected", Some("fake"));
+    keys(&mut h, page, "x");
+    assert!(h.screen(page).contains("Delete pod api-5f6d7c8b9-abcde? context fake, namespace shop"));
 }
 
 #[test]

@@ -537,21 +537,10 @@ pub fn encode(text: &str) -> String {
     out
 }
 
-/// Contexts and clusters that are clearly on this machine, by name.
+/// Contexts and clusters that are clearly on this machine, by name. A
+/// server's address isn't: a tunnel or a port-forward to a production API
+/// server is on localhost too.
 pub const LOCAL_NAMES: [&str; 9] = ["kind-*", "minikube", "docker-desktop", "docker-for-desktop", "rancher-desktop", "k3d-*", "colima", "colima-*", "orbstack"];
-
-/// Whether `server` (`https://127.0.0.1:6443`) is this machine's own:
-/// localhost, 127.0.0.1 (any 127.x) or ::1.
-pub fn local_server(server: &str) -> bool {
-    let rest = server.split_once("://").map_or(server, |(_, r)| r);
-    let host = if let Some(v6) = rest.strip_prefix('[') {
-        v6.split(']').next().unwrap_or_default()
-    } else {
-        rest.split(['/', ':', '?', '#']).next().unwrap_or_default()
-    };
-    let host = host.to_ascii_lowercase();
-    host == "localhost" || host == "::1" || host.starts_with("127.") && host.split('.').count() == 4 && host.split('.').all(|p| p.parse::<u8>().is_ok())
-}
 
 /// What decides whether a context is protected.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -563,20 +552,26 @@ pub struct Protection {
 }
 
 impl Protection {
-    /// Whether a change in `context` (on `cluster`, at `server`, when
-    /// kubeconfig says) needs its object's name typed. Every context is,
-    /// unless it's clearly local -- its name or its cluster's named as a
-    /// local cluster is, or its server this machine -- or exempted by
-    /// name. `kubernetes.protected` wins over both.
-    pub fn protects(&self, context: &str, cluster: Option<&str>, server: Option<&str>) -> bool {
-        let names: Vec<&str> = std::iter::once(context).chain(cluster).collect();
-        let any = |patterns: &[String]| names.iter().any(|n| patterns.iter().any(|p| glob(&p.to_lowercase(), &n.to_lowercase())));
-        if any(&self.extra) {
+    /// Whether a change in `context` (on `cluster`, when kubeconfig says)
+    /// needs its object's name typed. Every context does, unless its name
+    /// or its cluster's is a local cluster's (`LOCAL_NAMES`) or listed in
+    /// `exempt`. `extra` wins over both. Where its server is plays no
+    /// part.
+    pub fn protects(&self, context: &str, cluster: Option<&str>) -> bool {
+        if matches_any(&self.extra, context, cluster) {
             return true;
         }
-        let local = LOCAL_NAMES.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        !(any(&self.exempt) || any(&local) || server.is_some_and(local_server))
+        !(matches_any(&self.exempt, context, cluster) || local_name(context, cluster))
     }
+}
+
+/// Whether `context` or `cluster` is named as a local cluster is.
+pub fn local_name(context: &str, cluster: Option<&str>) -> bool {
+    matches_any(&LOCAL_NAMES.iter().map(|s| s.to_string()).collect::<Vec<_>>(), context, cluster)
+}
+
+fn matches_any(patterns: &[String], context: &str, cluster: Option<&str>) -> bool {
+    std::iter::once(context).chain(cluster).any(|n| patterns.iter().any(|p| glob(&p.to_lowercase(), &n.to_lowercase())))
 }
 
 fn glob(pattern: &str, text: &str) -> bool {
@@ -698,21 +693,28 @@ mod tests {
     fn every_context_is_protected_but_the_clearly_local_ones() {
         let p = Protection::default();
         // Protected: production's names, and names that say nothing.
-        assert!(p.protects("arn:aws:eks:eu-west-1:123:cluster/shop", Some("arn:aws:eks:eu-west-1:123:cluster/shop"), Some("https://ABC.gr7.eu-west-1.eks.amazonaws.com")));
-        assert!(p.protects("gke_acme_europe-west1_main", Some("gke_acme_europe-west1_main"), Some("https://34.1.2.3")));
-        assert!(p.protects("staging", None, None), "unknown to kubeconfig: protected");
-        // Local: by context name, cluster name or server.
-        assert!(!p.protects("kind-dev", Some("kind-dev"), Some("https://127.0.0.1:6443")));
-        assert!(!p.protects("minikube", None, None));
-        assert!(!p.protects("dev", Some("k3d-dev"), None));
-        assert!(!p.protects("lab", Some("lab"), Some("https://localhost:6443")));
-        assert!(!p.protects("lab", Some("lab"), Some("https://[::1]:6443")));
-        assert!(p.protects("lab", Some("lab"), Some("https://127.example.com:6443")));
-        assert!(p.protects("lab", Some("lab"), Some("https://localhost.example.com")));
+        assert!(p.protects("arn:aws:eks:eu-west-1:123:cluster/shop", Some("arn:aws:eks:eu-west-1:123:cluster/shop")));
+        assert!(p.protects("gke_acme_europe-west1_main", Some("gke_acme_europe-west1_main")));
+        assert!(p.protects("staging", None), "unknown to kubeconfig: protected");
+        // A tunnel to production on localhost is named like anything else:
+        // protected, with no setting. (Its server isn't asked.)
+        assert!(p.protects("lab", Some("lab")));
+        assert!(p.protects("tunnel", Some("prod-eu")));
+        // Local: by context name or cluster name, and nothing else.
+        for name in kubectl_local() {
+            assert!(!p.protects(name, None), "{name}");
+        }
+        assert!(!p.protects("dev", Some("k3d-dev")), "the cluster's name counts");
+        assert!(p.protects("my-kind-dev", Some("eks-kind")), "a pattern matches whole names");
         // Exempt by name; protected by name over everything.
         let p = Protection { extra: vec!["*prod*".into()], exempt: vec!["dev-*".into()] };
-        assert!(!p.protects("dev-eu", Some("dev-eu"), Some("https://10.0.0.1")));
-        assert!(p.protects("kind-prod", Some("kind-prod"), Some("https://127.0.0.1:6443")), "kubernetes.protected wins");
-        assert!(p.protects("tunnel", Some("prod-eu"), Some("https://127.0.0.1:16443")), "the cluster's name counts too");
+        assert!(!p.protects("dev-eu", Some("dev-eu")));
+        assert!(!p.protects("lab", Some("dev-lab")), "the cluster's name exempts too");
+        assert!(p.protects("kind-prod", Some("kind-prod")), "kubernetes.protected wins over a local name");
+        assert!(p.protects("dev-x", Some("prod-eu")), "and over an exemption, by the cluster's name too");
+    }
+
+    fn kubectl_local() -> [&'static str; 9] {
+        ["kind-dev", "minikube", "docker-desktop", "docker-for-desktop", "rancher-desktop", "k3d-lab", "colima", "colima-arm", "orbstack"]
     }
 }

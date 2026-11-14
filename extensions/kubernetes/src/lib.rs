@@ -258,8 +258,8 @@ impl Kube {
     }
 
     fn protected(&self, context: &str) -> bool {
-        let (cluster, server) = self.cluster_of(context);
-        Protection { extra: list_setting("kubernetes.protected"), exempt: list_setting("kubernetes.unprotected") }.protects(context, cluster.as_deref(), server.as_deref())
+        let (cluster, _) = self.cluster_of(context);
+        Protection { extra: list_setting("kubernetes.protected"), exempt: list_setting("kubernetes.unprotected") }.protects(context, cluster.as_deref())
     }
 
     /// The context, or a refusal said: nothing runs without one.
@@ -799,7 +799,13 @@ impl Kube {
                 if current.as_deref() == Some(c.name.as_str()) {
                     detail.push("in use here".into());
                 }
-                detail.push(if self.protected(&c.name) { "protected".into() } else { "local: unprotected".into() });
+                detail.push(if self.protected(&c.name) {
+                    "protected".into()
+                } else if kubectl::local_name(&c.name, Some(&c.cluster)) {
+                    "unprotected: a local cluster's name".into()
+                } else {
+                    "unprotected: kubernetes.unprotected".into()
+                });
                 PickerItem::new(c.name.clone(), c.name.clone()).detail(detail.join(" · "))
             })
             .collect();

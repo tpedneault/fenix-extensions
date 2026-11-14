@@ -136,9 +136,12 @@ change in a protected context needs the object's name **typed** in place
 of `y` (`kubernetes.protected_mode = "type-name"`), or isn't made at all
 (`"refuse"`; kubectl in a terminal still can). A context is unprotected
 only when its name, or its cluster's name in kubeconfig, is a local
-cluster's -- `kind-*`, `minikube`, `docker-desktop`, `rancher-desktop`,
-`k3d-*`, `colima`, `orbstack` -- or its cluster's server is this machine
-(`localhost`, `127.x.x.x`, `::1`). Why: production contexts often say
+cluster's -- `kind-*`, `minikube`, `docker-desktop`, `docker-for-desktop`,
+`rancher-desktop`, `k3d-*`, `colima`, `colima-*`, `orbstack` -- or you
+list it in `kubernetes.unprotected`. **Where its API server is doesn't
+count**: a tunnel or a port-forward to a production API server is on
+`localhost` too, so a server on `localhost`, `127.x.x.x` or `::1` is
+protected like any other unless it's named as above. Why: production contexts often say
 nothing about it -- EKS names them by ARN, GKE as
 `gke_<project>_<zone>_<cluster>` -- so a pattern like `*prod*` misses
 them, and the costs aren't even: typing a name on a cluster that didn't
@@ -147,11 +150,11 @@ need it costs seconds, a stray `y` on production costs an outage.
 - `kubernetes.unprotected` exempts your own dev clusters by name
   (context or cluster: `dev-*`).
 - `kubernetes.protected` protects by name whatever else matches -- a
-  tunnel to production on `localhost`, for one, which would otherwise
-  look local.
+  production context someone named `kind-something`, say.
 
 A protected context is red on the page and says `protected`; the context
-picker says which are.
+picker says which are, and why one isn't (a local cluster's name, or
+`kubernetes.unprotected`).
 
 ## Secrets
 
