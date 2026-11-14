@@ -1,0 +1,30 @@
+[template]
+name = "Scala · scala-cli script"
+kind = "other"
+group = "Scala"
+description = "A script for scala-cli: a hello.sc with its using directives, which `scala-cli run hello.sc` runs with no build file, and scalafmt's configuration."
+needs = ["scala-cli"]
+open = ["hello.sc"]
+
+[[ask]]
+key = "scala"
+label = "Scala"
+choices = ["3.10.1", "3.3.6", "2.13.17"]
+default = "3.10.1"
+hint = "scala-cli downloads the compiler on the first run"
+
+[[file]]
+path = "hello.sc"
+from = "hello.sc"
+
+[[file]]
+path = ".scalafmt.conf"
+from = "scalafmt.conf"
+
+[[file]]
+path = ".gitignore"
+from = "gitignore"
+
+[[file]]
+path = "README.md"
+from = "README.md"

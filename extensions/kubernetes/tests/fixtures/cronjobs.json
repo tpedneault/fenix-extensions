@@ -1,0 +1,3 @@
+{"kind":"CronJobList","apiVersion":"batch/v1","metadata":{"resourceVersion":"48211"},"items":[
+{"metadata":{"name":"migrate","namespace":"shop","uid":"8d8d8d8d-0000-4000-8000-000000000006","creationTimestamp":"2026-10-01T00:00:00Z"},"spec":{"schedule":"0 * * * *","suspend":false,"jobTemplate":{"spec":{"template":{"spec":{"containers":[{"name":"migrate","image":"shop-api:2.3.1"}]}}}}},"status":{"lastScheduleTime":"2026-11-14T11:00:00Z"}}
+]}

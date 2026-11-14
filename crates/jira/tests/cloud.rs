@@ -56,17 +56,18 @@ fn server_info_says_its_cloud() {
 }
 
 #[test]
-fn about_leaves_out_edit_and_names_the_email() {
+fn about_leaves_out_only_the_body_and_names_the_email() {
     let a = about_for(&settings(), true, Deployment::Cloud);
-    assert!(!a.can(can::EDIT), "a description written back from text would lose its rich text");
-    for c in [can::COMMENTS, can::PRIORITIES, can::ASSIGN, can::COMMENT, can::WORKLOG, can::CREATE, can::REMEMBER] {
+    assert!(!a.can(can::EDIT_BODY), "a description written back from text would lose its rich text");
+    assert_eq!(a.can.len(), can::ALL.len() - 1);
+    for c in [can::COMMENTS, can::EDIT_TITLE, can::EDIT_PRIORITY, can::EDIT_DUE, can::EDIT_ASSIGNEE, can::EDIT_LABELS, can::COMMENT, can::WORKLOG, can::CREATE, can::REMEMBER] {
         assert!(a.can(c), "{c}");
     }
     assert_eq!(a.browse.as_deref(), Some("https://acme.atlassian.net/browse/{ref}"));
-    assert_eq!(a.name, "Jira");
+    assert_eq!((a.name.as_str(), a.id.as_str(), a.blocked), ("Jira", "fenix.jira", true));
     let not = about_for(&settings(), false, Deployment::Cloud);
     assert_eq!(not.not_ready.as_deref(), Some("Jira Cloud isn't set up yet -- set its site, your email and an API token in SPC , (Jira)"));
-    assert_eq!(about_for(&settings(), true, Deployment::Server).can.len(), can::ALL.len(), "Server keeps all eight");
+    assert_eq!(about_for(&settings(), true, Deployment::Server).can.len(), can::ALL.len(), "Server keeps them all");
 }
 
 #[test]
@@ -89,7 +90,7 @@ fn linked_issues_come_from_the_enhanced_search_their_rich_text_as_text() {
     assert_eq!(one.updated, "2026-11-13T16:05:09.402+0100");
 
     assert_eq!((two.body.as_str(), two.state.column.as_str()), ("", "blocked"));
-    assert_eq!(two.priority.as_ref().map(|p| p.level.as_str()), Some("medium"), "jira.priorities");
+    assert_eq!(two.priority.as_ref().map(|p| p.level.as_deref()), Some(Some("medium")), "jira.priorities");
     assert_eq!((ops.mine, ops.state.column.as_str(), ops.body.as_str()), (Some(false), "blocked", "Expires on the 2026-11-30."));
 
     let asked = jira.asked();
@@ -111,6 +112,44 @@ fn linked_issues_come_from_the_enhanced_search_their_rich_text_as_text() {
 }
 
 #[test]
+fn issues_by_id_and_key_say_what_they_were_asked_as_and_refs_are_checked_first() {
+    let (seam, jira) = seam();
+    jira.on("GET", "/rest/api/3/search/jql?jql=id%20IN", 200, std::fs::read_to_string(fixtures().join("search-jql-linked.json")).unwrap());
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["10201", "proj-2", "https://acme.atlassian.net/browse/OPS-7", "../../evil", "PROJ-404"]})).unwrap()).unwrap();
+    assert_eq!(found.issues.iter().map(|i| (i.id.as_str(), i.key.as_str(), i.asked.as_deref())).collect::<Vec<_>>(), [
+        ("10201", "PROJ-1", Some("10201")),
+        ("10202", "PROJ-2", Some("proj-2")),
+        ("10340", "OPS-7", Some("https://acme.atlassian.net/browse/OPS-7")),
+    ]);
+    assert_eq!(found.missing, ["../../evil", "PROJ-404"], "as asked");
+    let search = jira.asked().into_iter().find(|a| a.contains("search")).unwrap();
+    assert!(
+        search.starts_with("GET /rest/api/3/search/jql?jql=id%20IN%20%2810201%29%20OR%20key%20IN%20%28%22PROJ-2%22%2C%22OPS-7%22%2C%22PROJ-404%22%29&maxResults=4&fields="),
+        "{search}"
+    );
+    assert!(!search.contains("validateQuery"), "the enhanced search takes none");
+    assert!(jira.asked().iter().all(|a| !a.contains("evil")));
+
+    // A search Cloud refuses (a key that never was): each alone.
+    jira.on("GET", "/rest/api/3/search/jql?jql=key%20IN", 400, r#"{"errorMessages":["An issue with key 'NOPE-1' does not exist for field 'key'."]}"#);
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["PROJ-1", "NOPE-1"]})).unwrap()).unwrap();
+    assert_eq!((found.issues.len(), found.missing.as_slice()), (1, ["NOPE-1".to_string()].as_slice()));
+
+    // A ref that isn't one never reaches a path.
+    let before = jira.asked().len();
+    for (name, payload) in [
+        ("transition", serde_json::json!({"seam": 1, "ref": "PROJ-1/../../x", "id": "31"})),
+        ("update", serde_json::json!({"seam": 1, "ref": "A-1?x=1", "set": {"title": "T"}})),
+        ("comment", serde_json::json!({"seam": 1, "ref": "", "body": "x"})),
+        ("people", serde_json::json!({"seam": 1, "ref": "PROJ-1&issueKey=X-1"})),
+    ] {
+        let err = SeamError::from_err(&call(&seam, name, payload).unwrap_err());
+        assert_eq!(err.code, code::BAD_REQUEST, "{name}");
+    }
+    assert_eq!(jira.asked().len(), before);
+}
+
+#[test]
 fn whats_assigned_pages_by_the_searchs_token() {
     let (seam, jira) = seam();
     let first: Page = serde_json::from_str(&call(&seam, "assigned", serde_json::json!({"seam": 1, "limit": 2})).unwrap()).unwrap();
@@ -126,9 +165,6 @@ fn whats_assigned_pages_by_the_searchs_token() {
     assert_eq!(second.next, None, "isLast");
     assert_eq!(second.issues[0].title, "Write the [31mrelease notes for 2.0", "cleaned");
     assert!(jira.asked().last().unwrap().contains("&nextPageToken=Ch0jU3RyaW5nJlVGSlBTZz09JUludCZOakF3&maxResults=2&"), "{:?}", jira.asked());
-
-    call(&seam, "assigned", serde_json::json!({"seam": 1, "since": "2026-11-10T00:00:00.000+0100"})).unwrap();
-    assert!(jira.asked().last().unwrap().contains("updated%20%3E%3D%20%222026%2F11%2F10%2000%3A00%22%20ORDER%20BY"));
 }
 
 #[test]
@@ -179,6 +215,8 @@ fn writes_go_as_cloud_takes_them() {
             ]}})
             .to_string(),
         ),
+        ("update", serde_json::json!({"seam": 1, "ref": "PROJ-1", "set": {"assignee": null}, "op": "agenda:1:1"}), "PUT /rest/api/3/issue/PROJ-1/assignee", r#"{"accountId":null}"#.to_string()),
+        ("update", serde_json::json!({"seam": 1, "ref": "10201", "set": {"labels": ["auth", "web"]}, "op": "agenda:1:2"}), "PUT /rest/api/2/issue/10201", r#"{"fields":{"labels":["auth","web"]}}"#.to_string()),
         (
             "worklog",
             serde_json::json!({"seam": 1, "ref": "PROJ-1", "seconds": 4500, "started": "2026-11-12T09:15:00.000+01:00"}),
@@ -195,12 +233,12 @@ fn writes_go_as_cloud_takes_them() {
     // The description is never written from text on Cloud.
     let before = jira.sent.borrow().len();
     let err = SeamError::from_err(&call(&seam, "update", serde_json::json!({"seam": 1, "ref": "PROJ-1", "set": {"body": "flattened"}})).unwrap_err());
-    assert_eq!(err.code, code::REFUSED);
+    assert_eq!(err.code, code::UNSUPPORTED, "a field it doesn't take");
     assert!(err.message.starts_with("Jira Cloud keeps a description as rich text"), "{}", err.message);
     assert_eq!(jira.sent.borrow().len(), before, "nothing sent");
 
     let priorities: fenix_tracker::Priorities = serde_json::from_str(&call(&seam, "priorities", serde_json::json!({"seam": 1, "ref": "PROJ-1"})).unwrap()).unwrap();
-    assert_eq!(priorities.priorities.iter().map(|p| format!("{} {}", p.name, p.level)).collect::<Vec<_>>(), ["Highest urgent", "High high", "Medium medium", "Low medium", "Lowest low"]);
+    assert_eq!(priorities.priorities.iter().map(|p| format!("{} {}", p.name, p.level.as_deref().unwrap_or("-"))).collect::<Vec<_>>(), ["Highest urgent", "High high", "Medium medium", "Low medium", "Lowest low"]);
     assert!(jira.asked().last().unwrap().starts_with("GET /rest/api/3/priority/search?maxResults=100"));
 
     let people: fenix_tracker::People = serde_json::from_str(&call(&seam, "people", serde_json::json!({"seam": 1, "ref": "PROJ-1"})).unwrap()).unwrap();

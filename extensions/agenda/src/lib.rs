@@ -20,20 +20,22 @@ pub mod page;
 pub mod sync;
 pub mod trackers;
 
+#[cfg(any(test, feature = "testing"))]
+pub mod testing;
 #[cfg(test)]
 mod tests;
 
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
-#[cfg(not(test))]
+#[cfg(not(any(test, feature = "testing")))]
 use fenix_extension_api as api;
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 use fenix_test_kit::api;
 
 use api::{host, Event, Extension, HomeMark, HomeRow, HomeSection, Key, KeyScheme, Notification, Page, PickerItem, Urgency};
 use chrono::{DateTime, NaiveDate};
-use fenix_tracker::{can, code, Issue, Move, Moves, SeamError};
+use fenix_tracker::{self as seam, can, code, Issue, Move, Moves, SeamError};
 
 use clock::Local;
 use model::{AgendaStore, CodeRef, OpKind, Priority, Status, Task, TaskId};
@@ -259,6 +261,7 @@ impl Agenda {
     fn open_page(&mut self, tab: Option<Tab>) {
         self.probe_if_stale();
         self.sync_if_stale();
+        self.ask_projects();
         let project = here_project(&self.sync.trackers);
         if project.is_some() {
             self.project = project.clone();
@@ -458,7 +461,7 @@ impl Agenda {
                 self.store.resolve_conflict(task, field, mine);
                 self.after_edit();
             }
-            A::Link(task) => self.with_tracker(|a| a.start_link(task)),
+            A::Link(task) => self.with_tracker(move |a| a.start_link(task)),
             A::Assign(task) => self.assignee_picker(task),
             A::CopyLink(task) => {
                 if let Some(url) = self.issue_url(task) {
@@ -471,7 +474,7 @@ impl Agenda {
                     let _ = api::open_url(&url);
                 }
             }
-            A::Retry(task) => self.with_tracker(|a| a.retry(task)),
+            A::Retry(task) => self.with_tracker(move |a| a.retry(task)),
             A::OpenCode(task) => {
                 let Some(code) = self.store.task(task).and_then(|t| t.code.clone()) else { return };
                 host::open_file(&code.path.to_string_lossy(), Some(code.line as u32));
@@ -751,51 +754,100 @@ fn format_elapsed(d: chrono::Duration) -> String {
 /// Which capability an op needs of its tracker, if any.
 fn needs(op: &OpKind) -> Option<&'static str> {
     match op {
-        OpKind::SetSummary(_) | OpKind::SetDescription(_) | OpKind::SetPriority(_) | OpKind::SetDue(_) => Some(can::EDIT),
+        OpKind::SetSummary(_) => Some(can::EDIT_TITLE),
+        OpKind::SetDescription(_) => Some(can::EDIT_BODY),
+        OpKind::SetPriority(_) => Some(can::EDIT_PRIORITY),
+        OpKind::SetDue(_) => Some(can::EDIT_DUE),
+        OpKind::SetAssignee { .. } => Some(can::EDIT_ASSIGNEE),
         OpKind::AddComment(_) => Some(can::COMMENT),
-        OpKind::SetAssignee { .. } => Some(can::ASSIGN),
         OpKind::Transition { .. } | OpKind::SetFlag(_) => None,
     }
 }
 
 impl Agenda {
-    /// Asks every tracker it knows of who it is.
-    fn probe(&mut self) {
-        if self.sync.probing {
+    /// Asks the trackers in `ids` who they are, all at once.
+    fn probe_ids(&mut self, ids: Vec<String>) {
+        if self.sync.is_probing() {
             self.sync.probe_again = true;
             return;
         }
-        self.sync.probing = true;
-        sync::probe(trackers::ids(api::setting("agenda.trackers").as_deref()));
+        if ids.is_empty() {
+            return self.probed_all();
+        }
+        self.sync.probing = ids.iter().map(|id| (id.clone(), None)).collect();
+        for id in ids {
+            sync::probe(id);
+        }
+    }
+
+    /// Asks every tracker it knows of.
+    fn probe(&mut self) {
+        self.probe_ids(trackers::ids(api::setting("agenda.trackers").as_deref()));
+    }
+
+    /// At start, only the trackers your linked tasks and queued changes
+    /// are with: asking a tracker starts its extension.
+    fn probe_in_use(&mut self) {
+        let mut ids: Vec<String> = Vec::new();
+        for link in self.store.tasks.iter().filter_map(|t| t.link.as_ref()) {
+            if !ids.contains(&link.tracker) {
+                ids.push(link.tracker.clone());
+            }
+        }
+        self.probe_ids(ids);
     }
 
     /// Asks again when it last asked a while ago: a tracker installed
     /// since is found.
     fn probe_if_stale(&mut self) {
-        if !self.sync.probing && self.sync.probed.is_none_or(|at| at.elapsed() > sync::PROBE_AFTER) {
+        let asked_all = self.sync.probed.is_some_and(|at| at.elapsed() <= sync::PROBE_AFTER);
+        if !self.sync.is_probing() && !asked_all {
             self.probe();
         }
     }
 
-    fn probed(&mut self, found: Vec<trackers::Tracker>, other: Vec<(String, String, u32)>) {
-        let first = self.sync.probed.is_none();
-        self.sync.probing = false;
-        self.sync.probed = Some(Instant::now());
-        for (id, name, seam) in other {
-            if !self.sync.warned.contains(&id) {
-                let newer = if seam > fenix_tracker::SEAM { "the agenda" } else { name.as_str() };
-                host::notify(api::Level::Error, &format!("{name} speaks version {seam} of the tracker seam and the agenda {} -- update {newer} to link its issues", fenix_tracker::SEAM));
-                self.sync.warned.push(id);
+    /// One tracker said who it is (or nothing did).
+    fn probed_one(&mut self, id: String, found: trackers::Found) {
+        if let Some(slot) = self.sync.probing.iter_mut().find(|(i, _)| *i == id) {
+            slot.1 = Some(found);
+        }
+        if self.sync.probing.iter().any(|(_, f)| f.is_none()) {
+            return;
+        }
+        let asked = std::mem::take(&mut self.sync.probing);
+        let all = asked.len() == trackers::ids(api::setting("agenda.trackers").as_deref()).len();
+        let first = self.sync.trackers.list.is_empty();
+        for (id, found) in asked {
+            match found.and_then(|f| f.tracker()) {
+                Some(t) => {
+                    if !t.ready() && !self.sync.warned.contains(&id) && t.about.not_ready.as_deref().is_some_and(|w| w.contains("tracker seam") || w.contains("says it's")) {
+                        host::notify(api::Level::Error, t.about.not_ready.as_deref().unwrap_or_default());
+                        self.sync.warned.insert(id.clone());
+                    }
+                    match self.sync.trackers.list.iter_mut().find(|x| x.id == id) {
+                        Some(old) => *old = t,
+                        None => self.sync.trackers.list.push(t),
+                    }
+                }
+                None => self.sync.trackers.list.retain(|x| x.id != id),
             }
         }
-        self.sync.trackers = Trackers { list: found };
-        // Linked tasks current while Fenix runs, and what was queued
-        // before the last exit sent.
-        if self.store.tasks.iter().any(|t| t.link.is_some()) && self.sync.any_ready() {
-            self.start_ticker();
-            if first {
-                self.drain_outbox();
-            }
+        if all {
+            self.sync.probed = Some(Instant::now());
+        }
+        let order = trackers::ids(api::setting("agenda.trackers").as_deref());
+        self.sync.trackers.list.sort_by_key(|t| order.iter().position(|i| *i == t.id).unwrap_or(usize::MAX));
+        if first && self.sync.any_ready() {
+            self.drain_outbox();
+        }
+        self.probed_all();
+    }
+
+    /// The asking's done: what waited on it runs, and any asking wanted
+    /// meanwhile starts.
+    fn probed_all(&mut self) {
+        for then in std::mem::take(&mut self.sync.waiting) {
+            then(self);
         }
         if std::mem::take(&mut self.sync.probe_again) {
             self.probe();
@@ -803,14 +855,36 @@ impl Agenda {
         self.refresh();
     }
 
-    /// Runs `f` when a tracker is ready, or says why none is.
-    fn with_tracker(&mut self, f: impl FnOnce(&mut Agenda)) {
+    /// Runs `f` when a tracker is ready. When none is, the trackers are
+    /// asked now -- one just set up is ready by then -- and `f` runs when
+    /// they've answered, or what's wrong is said.
+    fn with_tracker(&mut self, f: impl FnOnce(&mut Agenda) + 'static) {
         if self.sync.any_ready() {
             return f(self);
         }
-        match self.sync.trackers.list.first() {
-            Some(t) => host::notify(api::Level::Error, &t.about.not_ready.clone().unwrap_or_else(|| format!("{} isn't set up yet", t.name()))),
-            None => api::notify(&format!("Nothing syncs the agenda -- that needs a tracker extension, such as Jira ({})", keys::keys_for("extensions.open", "SPC h x"))),
+        self.sync.waiting.push(Box::new(move |a: &mut Agenda| {
+            if a.sync.any_ready() {
+                return f(a);
+            }
+            match a.sync.trackers.list.first() {
+                Some(t) => host::notify(api::Level::Error, &t.about.not_ready.clone().unwrap_or_else(|| format!("{} isn't set up yet", t.name()))),
+                None => api::notify(&format!("Nothing syncs the agenda -- that needs a tracker extension, such as Jira ({})", keys::keys_for("extensions.open", "SPC h x"))),
+            }
+        }));
+        if !self.sync.is_probing() {
+            self.probe();
+        }
+    }
+
+    /// A call answered that the tracker isn't set up or signed in: asked
+    /// again, so the agenda knows as soon as it is.
+    fn not_ready(&mut self, tracker: &str, err: &SeamError) {
+        if err.is(code::NOT_SET_UP) || err.is(code::SIGNED_OUT) {
+            if let Some(t) = self.sync.trackers.list.iter_mut().find(|t| t.id == tracker) {
+                t.about.ready = false;
+                t.about.not_ready = Some(err.message.clone());
+            }
+            self.probe_ids(vec![tracker.to_string()]);
         }
     }
 
@@ -874,51 +948,59 @@ impl Agenda {
         url
     }
 
-    /// Linked tasks stay current while Fenix runs.
-    fn start_ticker(&mut self) {
-        let minutes = self.sync.trackers.sync_minutes();
-        match self.sync.ticker {
-            Some((_, m)) if m == minutes => return,
-            Some((timer, _)) => {
-                host::cancel_timer(timer);
-                self.sync.ticker = None;
-            }
-            None => {}
+    /// The timed syncs: each tracker on its own schedule (`sync_minutes`,
+    /// never under 5), none before its `retry_after`; changes that failed
+    /// for want of a connection tried again.
+    fn sync_due(&mut self, now: Instant) {
+        let due: Vec<String> = self.sync.trackers.ready().filter(|t| self.sync.trackers.due(&t.id, now)).map(|t| t.id.clone()).collect();
+        if due.is_empty() {
+            return;
         }
-        if minutes > 0 {
-            self.sync.ticker = Some((host::set_timer(minutes * 60_000, true), minutes));
+        let transient: Vec<TaskId> = self.store.tasks.iter().filter(|t| t.link.as_ref().is_some_and(|l| l.error.is_some() && l.transient && due.contains(&l.tracker))).map(|t| t.id).collect();
+        for id in transient {
+            self.store.retry(id);
         }
+        self.probe_if_stale();
+        self.sync_these(&due, true, now);
+        self.drain_outbox_at(now);
     }
 
     /// `SPC A s`: every linked task from its tracker, then what's waiting
     /// sent. `quiet` keeps a failure from shouting.
     fn sync_now(&mut self, quiet: bool) {
-        if !self.sync.any_ready() {
+        let now = Instant::now();
+        let ids: Vec<String> = self.sync.trackers.ready().filter(|t| !self.sync.trackers.backing_off(&t.id, now)).map(|t| t.id.clone()).collect();
+        if ids.is_empty() {
             return;
         }
-        self.start_ticker();
+        if !self.sync_these(&ids, quiet, now) && !quiet {
+            api::notify(&format!("No tasks are linked to {} yet -- I on a task links one, {} imports your issues", self.label(), keys::keys_for("agenda.import", "SPC A i")));
+        }
+    }
+
+    /// A sync of trackers `ids`' linked tasks; false when none has any.
+    fn sync_these(&mut self, ids: &[String], quiet: bool, now: Instant) -> bool {
         if self.sync.pulling() {
-            return;
+            return true;
         }
         let mut asks: Vec<(Via, Vec<String>)> = Vec::new();
-        for t in self.sync.trackers.ready() {
-            let keys: Vec<String> = self.store.tasks.iter().filter_map(|task| task.link.as_ref().filter(|l| l.tracker == t.id).map(|l| l.key.clone())).collect();
-            if !keys.is_empty() {
-                asks.push((t.via(), keys));
+        for t in self.sync.trackers.ready().filter(|t| ids.contains(&t.id)) {
+            let asked: Vec<String> = self.store.tasks.iter().filter_map(|task| task.link.as_ref().filter(|l| l.tracker == t.id).map(|l| l.asked().to_string())).collect();
+            if !asked.is_empty() {
+                asks.push((t.via(), asked));
             }
         }
         if asks.is_empty() {
-            if !quiet {
-                api::notify(&format!("No tasks are linked to {} yet -- I on a task links one, {} imports your issues", self.label(), keys::keys_for("agenda.import", "SPC A i")));
-            }
-            return;
+            return false;
         }
-        self.sync.round = Some(sync::Round { quiet, waiting: asks.len(), trackers: asks.iter().map(|(v, _)| v.id.clone()).collect(), ..Default::default() });
-        self.sync.last_pull = Some(Instant::now());
+        self.sync.round = Some(sync::Round { quiet, waiting: asks.len(), ..Default::default() });
+        self.sync.last_pull = Some(now);
         self.status();
-        for (via, keys) in asks {
-            sync::pull(via, keys);
+        for (via, asked) in asks {
+            self.sync.trackers.synced.insert(via.id.clone(), now);
+            sync::pull(via, asked);
         }
+        true
     }
 
     fn sync_if_stale(&mut self) {
@@ -928,45 +1010,72 @@ impl Agenda {
         }
     }
 
+    /// Tracker `tracker` said to slow down: left alone until then.
+    fn back_off(&mut self, tracker: &str, err: &SeamError) {
+        if err.is(code::RATE_LIMITED) {
+            let wait = std::time::Duration::from_secs(err.retry_after.unwrap_or(60).clamp(1, 24 * 3600));
+            self.sync.trackers.backoff.insert(tracker.to_string(), Instant::now() + wait);
+        }
+    }
+
     /// One tracker's part of a sync, taken in; the sync said once the
     /// last has answered.
-    fn pulled(&mut self, tracker: String, keys: Vec<String>, result: Result<fenix_tracker::Found, SeamError>) {
+    fn pulled(&mut self, tracker: String, asked: Vec<String>, result: Result<fenix_tracker::Found, SeamError>) {
         let name = self.sync.trackers.name(&tracker);
         let missing = sync::not_found(&name);
-        let (mut synced, mut conflicts, mut failure) = (0, 0, None);
+        let (mut synced, mut conflicts, mut failure) = (None, 0, None);
         match result {
             Ok(found) => {
+                let mut answered: Vec<String> = Vec::new();
                 for issue in &found.issues {
-                    let Some(id) = self.store.find_by_key(&tracker, &issue.key) else { continue };
+                    // What asked for it -- by id, or a ref that may since
+                    // have changed -- else its id, else its ref.
+                    let task = issue
+                        .asked
+                        .as_deref()
+                        .and_then(|a| self.store.find_by_key(&tracker, a))
+                        .or_else(|| self.store.find_issue(&tracker, &issue.id, &issue.key));
+                    let Some(id) = task else { continue };
+                    if let Some(a) = &issue.asked {
+                        answered.push(a.clone());
+                    }
+                    answered.push(issue.id.clone());
+                    answered.push(issue.key.clone());
+                    self.store.rekey(id, &issue.id, &issue.key);
                     self.store.apply_remote(id, sync::remote_update(issue));
                     if self.store.task(id).and_then(|t| t.link.as_ref()).is_some_and(|l| l.error.as_deref() == Some(missing.as_str())) {
                         self.store.set_link_error(id, None);
                     }
                     conflicts += self.store.task(id).and_then(|t| t.link.as_ref()).map_or(0, |l| l.conflicts.len());
                 }
-                for key in &keys {
-                    if !found.issues.iter().any(|i| &i.key == key) {
-                        if let Some(id) = self.store.find_by_key(&tracker, key) {
+                for a in &asked {
+                    if !answered.contains(a) {
+                        if let Some(id) = self.store.find_by_key(&tracker, a) {
                             self.store.set_link_error(id, Some(missing.clone()));
                         }
                     }
                 }
-                synced = found.issues.len();
+                synced = Some(found.issues.len());
                 self.save();
             }
-            // The one issue asked for isn't there: that task's, not the
-            // sync's.
-            Err(err) if err.is(code::NOT_FOUND) && keys.len() == 1 => {
-                if let Some(id) = self.store.find_by_key(&tracker, &keys[0]) {
+            Err(err) if err.is(code::NOT_FOUND) && asked.len() == 1 => {
+                if let Some(id) = self.store.find_by_key(&tracker, &asked[0]) {
                     self.store.set_link_error(id, Some(missing));
                 }
+                synced = Some(0);
                 self.save();
             }
-            Err(err) => failure = Some(err.message),
+            Err(err) => {
+                self.back_off(&tracker, &err);
+                self.not_ready(&tracker, &err);
+                failure = Some(err.message);
+            }
         }
         let Some(round) = &mut self.sync.round else { return self.refresh() };
-        round.synced += synced;
         round.conflicts += conflicts;
+        if let Some(n) = synced {
+            round.synced.push((tracker.clone(), n));
+        }
         if let Some(why) = failure {
             round.failures.push((tracker, why));
         }
@@ -976,24 +1085,42 @@ impl Agenda {
         }
         let Some(round) = self.sync.round.take() else { return };
         self.refresh();
-        let note = match round.failures.first() {
-            Some((failed, why)) => sync_note(&self.sync.trackers.name(failed), Err(why), 0, round.quiet),
-            None => sync_note(&self.sync.trackers.names(&round.trackers), Ok(round.synced), round.conflicts, round.quiet),
-        };
-        if let Some(note) = note {
+        if let Some(note) = self.round_note(&round) {
             api::host::notify_with(&note);
         }
+        // Each tracker's changes go, whatever another's sync did.
+        self.drain_outbox();
+    }
+
+    /// What a finished sync says: every failure, and what did sync.
+    fn round_note(&self, round: &sync::Round) -> Option<Notification> {
+        let synced_ids: Vec<String> = round.synced.iter().map(|(t, _)| t.clone()).collect();
+        let n: usize = round.synced.iter().map(|(_, n)| n).sum();
         if round.failures.is_empty() {
-            self.drain_outbox();
+            return sync_note(&self.sync.trackers.names(&synced_ids), Ok(n), round.conflicts, round.quiet);
         }
+        let failed: Vec<String> = round.failures.iter().map(|(t, _)| t.clone()).collect();
+        let mut body: Vec<String> = match round.failures.as_slice() {
+            [(_, why)] => vec![why.clone()],
+            all => all.iter().map(|(t, why)| format!("{}: {why}", self.sync.trackers.name(t))).collect(),
+        };
+        if !round.synced.is_empty() {
+            body.push(format!("Synced {n} issue(s) with {}.", self.sync.trackers.names(&synced_ids)));
+        }
+        sync_note(&self.sync.trackers.names(&failed), Err(&body.join(" ")), round.conflicts, round.quiet)
     }
 
     /// The next queued op, sent, if nothing's in flight.
     fn drain_outbox(&mut self) {
+        self.drain_outbox_at(Instant::now());
+    }
+
+    /// `drain_outbox`, a tracker backing off until after `now` skipped.
+    fn drain_outbox_at(&mut self, now: Instant) {
         if self.sync.in_flight.is_some() || !self.sync.any_ready() {
             return;
         }
-        let ready: Vec<String> = self.sync.trackers.ready().map(|t| t.id.clone()).collect();
+        let ready: Vec<String> = self.sync.trackers.ready().filter(|t| !self.sync.trackers.backing_off(&t.id, now)).map(|t| t.id.clone()).collect();
         let Some(op) = self.store.next_op(|tracker| ready.iter().any(|r| r == tracker)).cloned() else {
             if std::mem::take(&mut self.sync.pull_after_drain) {
                 self.sync_now(true);
@@ -1010,7 +1137,9 @@ impl Agenda {
 
     fn op_done(&mut self, op_id: u64, key: String, tracker: String, what: String, result: Result<Option<String>, SeamError>) {
         self.sync.in_flight = None;
-        let comment = self.store.outbox.iter().any(|op| op.id == op_id && matches!(op.kind, OpKind::AddComment(_)));
+        let op = self.store.outbox.iter().find(|op| op.id == op_id).cloned();
+        let comment = op.as_ref().is_some_and(|op| matches!(op.kind, OpKind::AddComment(_)));
+        let name = self.sync.trackers.name(&tracker);
         match result {
             Ok(said) => {
                 self.store.op_succeeded(op_id);
@@ -1019,17 +1148,43 @@ impl Agenda {
                 self.save_and_refresh();
                 self.drain_outbox();
             }
-            Err(err) => {
-                self.store.op_failed(op_id, err.message.clone(), err.transient());
-                host::notify(api::Level::Error, &format!("{key}: {} refused a change ({what}): {err} -- r on the task retries", self.sync.trackers.name(&tracker)));
+            // It'll never be taken: dropped, and the task's later
+            // changes go on.
+            Err(err) if err.never() => {
+                if let (true, Some(cap)) = (err.is(code::UNSUPPORTED), op.as_ref().and_then(|op| needs(&op.kind))) {
+                    self.sync.trackers.drop_capability(&tracker, cap);
+                }
+                self.store.discard_op(op_id);
+                host::notify(api::Level::Error, &format!("{key}: {name} doesn't take that change ({what}): {err} -- it stays on the task"));
                 self.save_and_refresh();
+                self.drain_outbox();
+            }
+            // No answer: it may have been made. Never sent again by itself.
+            Err(err) if err.is(code::UNKNOWN) => {
+                self.store.op_failed(op_id, format!("{what} may have been made -- no answer from {name} ({err})"), false, true);
+                host::notify(api::Level::Error, &format!("{key}: no answer from {name} about a change ({what}) -- it may have been made; r on the task asks whether to send it again"));
+                self.save_and_refresh();
+                self.drain_outbox();
+            }
+            Err(err) => {
+                self.back_off(&tracker, &err);
+                self.not_ready(&tracker, &err);
+                self.store.op_failed(op_id, err.message.clone(), err.transient(), false);
+                host::notify(api::Level::Error, &format!("{key}: {name} refused a change ({what}): {err} -- r on the task retries"));
+                self.save_and_refresh();
+                self.drain_outbox();
             }
         }
     }
 
+    /// `r`: a failed change sent again -- or, when it may have been made,
+    /// asked first.
     fn retry(&mut self, id: TaskId) {
-        if self.store.task(id).and_then(|t| t.link.as_ref()).is_none() {
-            return;
+        let Some(link) = self.store.task(id).and_then(|t| t.link.as_ref()) else { return };
+        if link.unknown {
+            let what = self.store.held_op(id).map(|op| op.kind.describe()).unwrap_or_default();
+            let rows = vec![(format!("Send it again ({what})"), Pick::SendAgain), (format!("It was made -- forget it ({what})"), Pick::Forget)];
+            return self.sync_picker(&format!("{}: no answer came -- was it made?", link.key), Some(id), None, None, rows);
         }
         self.store.retry(id);
         self.after_edit();
@@ -1039,11 +1194,11 @@ impl Agenda {
     /// Moves a task to `target`: a local one just moves; a linked one
     /// moves at once too, then the matching move in its tracker is
     /// worked out -- nothing, when the tracker has it in that column
-    /// already, or one of the moves it offers. If none gets there, the
-    /// card goes back.
+    /// already or has no Blocked of its own, or one of the moves it
+    /// offers. If none gets there, the card goes back.
     fn set_status(&mut self, id: TaskId, target: Status) {
         let Some(task) = self.store.task(id) else { return };
-        let Some((link, via)) = task.link.clone().and_then(|l| Some((l.clone(), self.sync.ready(&l.tracker)?.via()))) else {
+        let Some((link, t)) = task.link.clone().and_then(|l| Some((l.clone(), self.sync.ready(&l.tracker)?.clone()))) else {
             self.store.move_to_status(id, target);
             return self.save_and_refresh();
         };
@@ -1052,12 +1207,14 @@ impl Agenda {
             return;
         }
         self.store.move_to_status(id, target);
-        if link.column() == Some(model::link::column_for_status(target)) {
+        let column = model::link::column_for_status(target);
+        let blocked_here = !t.about.blocked && (target == Status::Blocked || (prev.0 == Status::Blocked && link.column() == Some(column)));
+        if link.column() == Some(column) || blocked_here {
             return self.after_edit();
         }
         self.store.set_resolving(id, true);
         self.save_and_refresh();
-        sync::transitions(via, id, link.key.clone(), sync::seen(&link.base), Some(target), prev);
+        sync::transitions(t.via(), id, link.key.clone(), sync::seen(&link.base), Some(target), prev);
     }
 
     /// `s` on a linked task: its tracker's moves, plus a Blocked row.
@@ -1083,6 +1240,7 @@ impl Agenda {
             Ok(moves) => moves,
             Err(err) => {
                 revert(self);
+                self.not_ready(&link.tracker, &err);
                 return host::notify(api::Level::Error, &format!("{key}: couldn't read {}'s workflow: {err}", self.sync.trackers.name(&link.tracker)));
             }
         };
@@ -1128,6 +1286,11 @@ impl Agenda {
         self.sync_picker(&title, Some(id), Some(tracker.to_string()), revert, rows);
     }
 
+    /// A fresh `op` for a write that isn't queued.
+    fn op_id(&self) -> String {
+        format!("agenda:{}:x{}", clock::now().timestamp_millis(), self.store.outbox.len())
+    }
+
     /// A move picked or worked out: the card into the column it lands
     /// in, and the move queued -- unless it's local, which sends nothing.
     fn take_move(&mut self, id: TaskId, tracker: &str, m: Move) {
@@ -1137,7 +1300,7 @@ impl Agenda {
         }
         if let (Some(remember), Some(via)) = (&m.remember, self.sync.ready(tracker).map(Tracker::via)) {
             let key = self.store.task(id).and_then(|t| t.issue_key()).unwrap_or_default().to_string();
-            sync::remember(via, key, remember.clone());
+            sync::remember(via, key, remember.clone(), self.op_id());
         }
         if m.local {
             return;
@@ -1151,13 +1314,13 @@ impl Agenda {
         sync::priorities(via, id, key);
     }
 
-    /// `A` on a linked task: the people its tracker offers.
+    /// `A` on a linked task: the people its tracker offers, and nobody.
     fn assignee_picker(&mut self, id: TaskId) {
         let Some(link) = self.store.task(id).and_then(|t| t.link.as_ref()) else {
             return api::notify(&format!("A reassigns a {} issue -- link this task first with I", self.label()));
         };
         let name = self.sync.trackers.name(&link.tracker);
-        if !self.sync.trackers.can(&link.tracker, can::ASSIGN) && self.sync.ready(&link.tracker).is_some() {
+        if !self.sync.trackers.can(&link.tracker, can::EDIT_ASSIGNEE) && self.sync.ready(&link.tracker).is_some() {
             return api::notify(&format!("{name} doesn't take an assignee from the agenda -- assign it on its own page"));
         }
         let Some((via, key)) = self.task_tracker(id) else { return };
@@ -1183,16 +1346,15 @@ impl Agenda {
 
     /// Links `task` to issue `key`, from whichever tracker has it.
     fn link_key(&mut self, task: TaskId, key: String) {
-        self.with_tracker(|a| sync::issue(IssueFetch::LinkKey(task), a.sync.trackers.ready().map(Tracker::via).collect(), key.trim().to_string()));
+        self.with_tracker(move |a| sync::issue(IssueFetch::LinkKey(task), a.sync.trackers.ready().map(Tracker::via).collect(), key.trim().to_string()));
     }
 
     fn link_issue(&mut self, id: TaskId, tracker: &str, issue: &Issue) {
-        if let Some(existing) = self.store.find_by_key(tracker, &issue.key).filter(|&t| t != id) {
+        if let Some(existing) = self.store.find_issue(tracker, &issue.id, &issue.key).filter(|&t| t != id) {
             let title = self.store.task(existing).map(|t| t.title.clone()).unwrap_or_default();
             return host::notify(api::Level::Error, &format!("{} is already linked to \"{title}\"", issue.key));
         }
-        self.store.link(id, tracker, issue.key.clone(), sync::remote_update(issue));
-        self.start_ticker();
+        self.store.link_with_id(id, tracker, Some(issue.id.clone()), issue.key.clone(), sync::remote_update(issue));
         self.save_and_refresh();
         api::notify(&format!("Linked to {} -- edits now go to {} too", issue.key, self.sync.trackers.name(tracker)));
     }
@@ -1203,11 +1365,15 @@ impl Agenda {
     }
 
     fn issues_came(&mut self, purpose: IssueFetch, found: Vec<(String, Issue)>, failures: Vec<(String, SeamError)>) {
+        for (tracker, err) in &failures {
+            self.not_ready(tracker, err);
+        }
         let say_failures = |a: &Agenda| {
             for (tracker, err) in &failures {
                 host::notify(api::Level::Error, &format!("couldn't list your {} issues: {err}", a.sync.trackers.name(tracker)));
             }
         };
+        let unlinked = |a: &Agenda, (t, i): &(String, Issue)| a.store.find_issue(t, &i.id, &i.key).is_none();
         match purpose {
             IssueFetch::LinkPicker(id) => {
                 let mut rows: Vec<(String, Pick)> = self
@@ -1219,7 +1385,7 @@ impl Agenda {
                     .collect();
                 rows.push(("Type an issue key...".to_string(), Pick::TypeKey));
                 say_failures(self);
-                rows.extend(found.into_iter().filter(|(t, i)| self.store.find_by_key(t, &i.key).is_none()).map(|(t, i)| (sync::issue_label(&i, self.tracker_tag(&t).as_deref()), Pick::Issue(t, Box::new(i)))));
+                rows.extend(found.into_iter().filter(|f| unlinked(self, f)).map(|(t, i)| (sync::issue_label(&i, self.tracker_tag(&t).as_deref()), Pick::Issue(t, Box::new(i)))));
                 let title = match self.sync.trackers.one() {
                     Some(name) => format!("Link to {name}"),
                     None => "Link to an issue".to_string(),
@@ -1231,7 +1397,7 @@ impl Agenda {
                 if found.is_empty() && !failures.is_empty() {
                     return;
                 }
-                let rows: Vec<(String, Pick)> = found.into_iter().filter(|(t, i)| self.store.find_by_key(t, &i.key).is_none()).map(|(t, i)| (sync::issue_label(&i, self.tracker_tag(&t).as_deref()), Pick::Import(t, Box::new(i)))).collect();
+                let rows: Vec<(String, Pick)> = found.into_iter().filter(|f| unlinked(self, f)).map(|(t, i)| (sync::issue_label(&i, self.tracker_tag(&t).as_deref()), Pick::Import(t, Box::new(i)))).collect();
                 if rows.is_empty() {
                     return api::notify("Every open issue assigned to you is already in the agenda");
                 }
@@ -1247,9 +1413,9 @@ impl Agenda {
             },
             IssueFetch::AddIssue { clock } => match found.into_iter().next() {
                 Some((tracker, issue)) => {
-                    let id = match self.store.find_by_key(&tracker, &issue.key) {
+                    let id = match self.store.find_issue(&tracker, &issue.id, &issue.key) {
                         Some(id) => id,
-                        None => self.store.create_linked(&tracker, issue.key.clone(), sync::remote_update(&issue), None),
+                        None => self.store.create_linked(&tracker, Some(issue.id.clone()), issue.key.clone(), sync::remote_update(&issue), None),
                     };
                     self.finish_add_issue(id, &issue.key, clock);
                 }
@@ -1262,7 +1428,6 @@ impl Agenda {
     }
 
     fn finish_add_issue(&mut self, id: TaskId, key: &str, clock: bool) {
-        self.start_ticker();
         if clock {
             self.store.clock_in(id);
             api::notify(&format!("{key} is in your agenda, clock running"));
@@ -1276,10 +1441,10 @@ impl Agenda {
     fn add_issue(&mut self, tracker: String, key: String, clock: bool) {
         match self.store.find_by_key(&tracker, &key) {
             Some(id) => self.finish_add_issue(id, &key, clock),
-            None => match self.sync.ready(&tracker).map(Tracker::via) {
+            None => self.with_tracker(move |a| match a.sync.ready(&tracker).map(Tracker::via) {
                 Some(via) => sync::issue(IssueFetch::AddIssue { clock }, vec![via], key),
                 None => host::notify(api::Level::Error, &format!("couldn't fetch {key}: {tracker} isn't ready")),
-            },
+            }),
         }
     }
 
@@ -1309,8 +1474,9 @@ impl Agenda {
             }
             Pick::CreateIssue(tracker) => {
                 let via = self.sync.ready(&tracker).map(Tracker::via);
+                let op = self.op_id();
                 if let (Some(t), Some(via)) = (task.and_then(|id| self.store.task(id)), via) {
-                    sync::create(via, t.id, t.title.clone(), t.description.clone());
+                    sync::create(via, t.id, t.title.clone(), t.description.clone(), op);
                 }
             }
             Pick::TypeKey => {
@@ -1335,11 +1501,10 @@ impl Agenda {
             }
             Pick::Import(..) => {
                 let count = picks.len();
-                self.start_ticker();
                 for pick in picks {
                     if let Pick::Import(tracker, issue) = pick {
-                        if self.store.find_by_key(&tracker, &issue.key).is_none() {
-                            self.store.create_linked(&tracker, issue.key.clone(), sync::remote_update(&issue), None);
+                        if self.store.find_issue(&tracker, &issue.id, &issue.key).is_none() {
+                            self.store.create_linked(&tracker, Some(issue.id.clone()), issue.key.clone(), sync::remote_update(&issue), None);
                         }
                     }
                 }
@@ -1362,14 +1527,31 @@ impl Agenda {
             }
             Pick::Priority(p) => {
                 if let Some(id) = task {
-                    self.store.set_priority(id, model::link::priority_for_level(Some(&p.level)));
+                    self.store.set_priority(id, model::link::priority_for_level(p.level.as_deref()));
                     self.enqueue(id, OpKind::SetPriority(p.name));
                     self.after_edit();
                 }
             }
             Pick::Assignee(p) => {
                 if let Some(id) = task {
-                    self.enqueue(id, OpKind::SetAssignee { id: p.id, name: p.name });
+                    let (uid, name) = p.map(|p| (p.id, p.name)).unwrap_or_default();
+                    self.enqueue(id, OpKind::SetAssignee { id: uid, name });
+                    self.after_edit();
+                }
+            }
+            Pick::SendAgain => {
+                if let Some(id) = task {
+                    self.store.retry(id);
+                    self.after_edit();
+                }
+            }
+            Pick::Forget => {
+                if let Some(id) = task {
+                    if let Some(op) = self.store.held_op(id).cloned() {
+                        // Made: folded into what the agenda last saw.
+                        self.store.op_succeeded(op.id);
+                    }
+                    self.store.retry(id);
                     self.after_edit();
                 }
             }
@@ -1381,7 +1563,16 @@ impl Agenda {
         if self.sync.sending_worklogs {
             return;
         }
-        let rows: Vec<(Via, model::WorklogRow)> = self.worklog_rows().into_iter().filter(|r| r.minutes > 0).filter_map(|r| Some((self.sync.ready(&r.tracker)?.via(), r))).collect();
+        let stamp = clock::now().timestamp_millis();
+        let rows: Vec<(Via, model::WorklogRow, String)> = self
+            .worklog_rows()
+            .into_iter()
+            .filter(|r| r.minutes > 0)
+            .filter_map(|r| {
+                let op = format!("agenda:{stamp}:w{}:{}", r.task.0, r.date);
+                Some((self.sync.ready(&r.tracker)?.via(), r, op))
+            })
+            .collect();
         if rows.is_empty() {
             return api::notify("Nothing to send");
         }
@@ -1401,6 +1592,9 @@ impl Agenda {
                     sent += 1;
                     minutes += row_minutes;
                 }
+                // No answer: it may have been logged. Said so, so it isn't
+                // simply sent again.
+                Err(err) if err.is(code::UNKNOWN) => failures.push(format!("{key}: no answer -- it may have been logged; check before sending it again")),
                 Err(err) => failures.push(format!("{key}: {err}")),
             }
         }
@@ -1412,12 +1606,21 @@ impl Agenda {
         }
     }
 
+    /// Asks each tracker that can tell, and has no Fenix metadata key,
+    /// which of its projects you're in.
+    fn ask_projects(&mut self) {
+        let vias: Vec<Via> = self.sync.trackers.ready().filter(|t| t.can(can::PROJECT) && t.about.project_meta.is_none()).map(Tracker::via).collect();
+        if !vias.is_empty() {
+            sync::projects(vias);
+        }
+    }
+
     /// The sync's jobs that have ended, taken in.
     fn take_done(&mut self) {
         for done in sync::take_done() {
             match done {
-                Done::Probed { found, other } => self.probed(found, other),
-                Done::Pulled { tracker, keys, result } => self.pulled(tracker, keys, result),
+                Done::Probed { id, found } => self.probed_one(id, found),
+                Done::Pulled { tracker, asked, result } => self.pulled(tracker, asked, result),
                 Done::OpDone { op_id, key, tracker, what, result } => self.op_done(op_id, key, tracker, what, result),
                 Done::Issues { purpose, found, failures } => self.issues_came(purpose, found, failures),
                 Done::Transitions { task, target, prev, result } => self.transitions_came(task, target, prev, result),
@@ -1436,23 +1639,34 @@ impl Agenda {
                     }
                     Ok(people) => {
                         let key = self.store.task(task).and_then(|t| t.issue_key()).unwrap_or_default().to_string();
-                        let rows = people.people.into_iter().map(|p| (format!("{} ({})", p.name, p.id), Pick::Assignee(p))).collect();
+                        let mut rows: Vec<(String, Pick)> = people.people.into_iter().map(|p| (format!("{} ({})", p.name, fenix_tracker::clean::line(&p.id, 100)), Pick::Assignee(Some(p)))).collect();
+                        rows.push(("Nobody (unassign)".to_string(), Pick::Assignee(None)));
                         self.sync_picker(&format!("Assign {key}"), Some(task), None, None, rows);
                     }
                     Err(err) => host::notify(api::Level::Error, &format!("couldn't list who to assign to: {err}")),
                 },
                 Done::WorklogsSent(results) => self.worklogs_sent(results),
                 Done::Created { task, tracker, result } => match result {
-                    Ok(Some(key)) => {
+                    Ok(seam::Created { key: Some(key), .. }) => {
                         if let Some(via) = self.sync.ready(&tracker).map(Tracker::via) {
                             sync::issue(IssueFetch::Created(task), vec![via], key);
                         }
                     }
-                    Ok(None) => {}
+                    Ok(seam::Created { opened: Some(said), .. }) => api::notify(&said),
+                    Ok(_) => {}
                     Err(err) => host::notify(api::Level::Error, &format!("couldn't make the issue: {err}")),
                 },
                 Done::Remembered { tracker, result: Err(err) } => host::notify(api::Level::Error, &format!("{} couldn't keep that choice: {err}", self.sync.trackers.name(&tracker))),
                 Done::Remembered { result: Ok(()), .. } => {}
+                Done::Projects(found) => {
+                    for (tracker, project) in found {
+                        for p in self.project.iter_mut().chain(self.page.as_mut().and_then(|(_, page)| page.project.as_mut())) {
+                            p.issues.retain(|(t, _)| *t != tracker);
+                            p.issues.push((tracker.clone(), project.clone()));
+                        }
+                    }
+                    self.refresh();
+                }
             }
         }
     }
@@ -1460,17 +1674,6 @@ impl Agenda {
     /// The name of the tracker task `id` is linked to.
     fn task_tracker_name(&self, id: TaskId) -> String {
         self.store.task(id).and_then(|t| t.link.as_ref()).map_or_else(|| self.label(), |l| self.sync.trackers.name(&l.tracker))
-    }
-
-    /// The periodic sync: a dropped connection retried once it's back.
-    fn sync_tick(&mut self) {
-        let transient: Vec<TaskId> = self.store.tasks.iter().filter(|t| t.link.as_ref().is_some_and(|l| l.error.is_some() && l.transient)).map(|t| t.id).collect();
-        for id in transient {
-            self.store.retry(id);
-        }
-        self.probe_if_stale();
-        self.sync_now(true);
-        self.drain_outbox();
     }
 }
 
@@ -1487,7 +1690,7 @@ impl Extension for Agenda {
         // writer's `agenda.json`.
         self.tick = Some(host::set_timer(5_000, true));
         self.minute = clock::now().timestamp() / 60;
-        self.probe();
+        self.probe_in_use();
         self.status();
         self.home();
         Ok(())
@@ -1540,6 +1743,7 @@ impl Extension for Agenda {
             Event::Timer(t) if Some(t) == self.tick => {
                 calls::expire(Instant::now());
                 self.take_done();
+                self.sync_due(Instant::now());
                 self.reload_if_changed();
                 let minute = clock::now().timestamp() / 60;
                 if minute != self.minute && self.store.active_timer.is_some() {
@@ -1547,7 +1751,6 @@ impl Extension for Agenda {
                     self.refresh();
                 }
             }
-            Event::Timer(t) if self.sync.ticker.is_some_and(|(timer, _)| timer == t) => self.sync_tick(),
             Event::Active => self.note_activity(),
             Event::SettingChanged(key) => {
                 if key == "agenda.trackers" {
@@ -1745,6 +1948,14 @@ impl Extension for Agenda {
             // An issue in the agenda changed on a tracker's page.
             "agenda.sync_quietly" => {
                 self.sync_now(true);
+                Ok(String::new())
+            }
+            // A tracker's settings or sign-in changed: asked again.
+            "agenda.tracker_changed" => {
+                match IssueRef::tracker_of(payload) {
+                    Some(tracker) => self.probe_ids(vec![tracker]),
+                    None => self.probe(),
+                }
                 Ok(String::new())
             }
             other => Err(format!("no service {other}")),

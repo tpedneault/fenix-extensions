@@ -17,9 +17,13 @@ Center.
   your site.
 - On Cloud, descriptions and comments are shown as plain text, and a
   description isn't edited from Fenix -- its rich text would be lost.
-  Comments and new issues are sent as paragraphs and line breaks. The
-  agenda keeps title, priority and due date changes on the task for a
-  Cloud issue; moves, comments, worklogs and assignees go to Jira.
+  Everything else the agenda sends goes to Jira Cloud as to Server:
+  moves, title, priority, due date, assignee (or nobody), labels,
+  comments and worklogs. Comments and new issues are sent as paragraphs
+  and line breaks.
+- The agenda's changes to a Cloud site are asked about once a session,
+  as for Server (`jira.seam_writes`), and a change sent twice is made
+  once.
 - When Jira says to slow down, the agenda is told how long to wait.
 
 ## 1.3.0
@@ -30,8 +34,16 @@ Blocked means in each project, comments and worklogs work as they did.
 - It serves the agenda the tracker seam, the way every tracker will, so
   the agenda knows nothing of Jira itself any more. The agenda 1.2 keeps
   working with it as it did.
-- Its search for the agenda pages through more than one screen of
-  issues, and an issue's labels come with it.
+- The first change the agenda sends in a session asks whether to allow
+  it: Fenix doesn't say which extension is asking, so Jira asks you.
+  `jira.seam_writes` (ask, always, never) says it for good.
+- A deleted issue no longer fails the agenda's whole sync: its task is
+  marked not found. A moved issue is followed to its new key.
+- Jira's maintenance pages (502, 503, 504) are retried by the next sync.
+- Changing Jira's server forgets who you were on the old one.
+- `jira.request`, which the agenda 1.2 uses, is deprecated: it lets any
+  extension send any request to your Jira as you, without asking. It
+  goes at 2.0, with the agenda 1.2's other three services.
 
 ## 1.2.0
 

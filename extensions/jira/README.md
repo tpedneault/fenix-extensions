@@ -73,12 +73,12 @@ What Cloud doesn't do here yet, that Server does:
   agenda: Cloud keeps it as rich text, which Fenix shows as plain text
   (lists, code, tables, links and mentions as you'd read them; colours,
   bold and pictures left out), and writing that back would lose the
-  rest. Comments and a new issue's description are sent as paragraphs
-  and line breaks.
-- **The agenda doesn't send title, priority or due date changes** to
-  Cloud: it sends them with the description, under one permission, so
-  they stay on the task. Moves, comments, worklogs, assignees and new
-  issues go to Jira as on Server.
+  rest. A description you change on a linked task stays on the task.
+  Comments and a new issue's description are sent as paragraphs and
+  line breaks. Everything else the agenda changes -- moves, title,
+  priority, due date, assignee (or nobody), labels, comments, worklogs
+  -- goes to Jira Cloud as to Server, after the same question once a
+  session (`jira.seam_writes`).
 - **People** (`jira.users`, and those added with `a` on the page) are
   account ids on Cloud, not usernames: add someone from an issue they're
   assigned. The agenda's assignee picker lists who Jira says can be
@@ -94,7 +94,8 @@ What Cloud doesn't do here yet, that Server does:
 | `jira.queries` | Saved searches |
 | `jira.blocked` | Per project, what Blocked means: a status, the Flagged field, or nothing |
 | `jira.priorities` | How Jira's priorities map onto the agenda's |
-| `jira.sync_minutes` | How often the agenda's linked tasks are brought up to date |
+| `jira.sync_minutes` | How often the agenda's linked tasks are brought up to date (every 5 minutes at most) |
+| `jira.seam_writes` | Whether the agenda may change your issues: `ask` once a session (the default), `always`, or `never` |
 
 ## What it may do
 
@@ -109,16 +110,24 @@ What Cloud doesn't do here yet, that Server does:
 
 The agenda reaches Jira through the tracker seam
 ([`plans/tracker-seam.md`](../../plans/tracker-seam.md)) that this
-extension serves, `jira.tracker.*`: the issues assigned to you, the
+extension serves, `fenix.jira.tracker.*`: the issues assigned to you, the
 issues linked to tasks, their workflow's moves, and the agenda's edits,
 comments and worklogs. What Blocked means in a project (`jira.blocked`)
 and how priorities map (`jira.priorities`) are kept here, and the agenda
 holds neither your server nor your token.
 
+Fenix doesn't tell an extension who's calling it, so any installed
+extension could use the seam. The first change the seam brings in a
+session asks you: *"Agenda wants to change issues in Jira for you --
+allow for this session?"*; `jira.seam_writes` says it for good. A change
+sent twice (the agenda gave up waiting, and you said send it again) is
+made once in a session.
+
 The agenda 1.2, from before the seam, uses `jira.request`,
 `jira.config`, `jira.set_blocked` and `jira.new_issue`, which this one
-still answers; they go at 2.0. `jira.request` sends what it's given to
-your Jira as you, so until then any extension may ask it to.
+still answers, unchanged; they go at 2.0. **`jira.request` is
+deprecated**: it sends whatever request it's given to your Jira as you,
+for any extension that asks, without asking you.
 
 ## Building
 

@@ -2,8 +2,9 @@
 //! Cloud was added: every request the client and the seam make, with its
 //! body, for a script of every call, compared with
 //! `fixtures/server-requests.txt` -- written by the client before Cloud
-//! (Jira client 1.1.0) and left alone since. `UPDATE_SERVER_REQUESTS=1`
-//! writes it again, which should only ever be done on purpose.
+//! (Jira client 1.1.0 after the seam's review) and left alone since.
+//! `UPDATE_SERVER_REQUESTS=1` writes it again, which should only ever be
+//! done on purpose.
 
 use std::cell::RefCell;
 use std::path::Path;
@@ -35,9 +36,9 @@ fn script() -> String {
     let jira = Rc::new(Recorded::jira_server(fixtures()));
     let client = JiraClient::new(jira.clone());
     let seam = Seam::new(client.clone(), settings(), Rc::new(RefCell::new(Learned::default())));
-    let calls: [(&str, serde_json::Value); 16] = [
+    let calls: [(&str, serde_json::Value); 20] = [
         ("assigned", serde_json::json!({"seam": 1, "limit": 2})),
-        ("assigned", serde_json::json!({"seam": 1, "limit": 2, "cursor": "2", "since": "2026-11-10T00:00:00.000+0100"})),
+        ("assigned", serde_json::json!({"seam": 1, "limit": 2, "cursor": "2"})),
         ("issues", serde_json::json!({"seam": 1, "refs": ["PROJ-1", "OPS-7"]})),
         ("issues", serde_json::json!({"seam": 1, "refs": ["https://jira.example.com/browse/PROJ-1"]})),
         ("transitions", serde_json::json!({"seam": 1, "ref": "PROJ-1"})),
@@ -52,6 +53,12 @@ fn script() -> String {
         ("priorities", serde_json::json!({"seam": 1, "ref": "PROJ-1"})),
         ("comment", serde_json::json!({"seam": 1, "ref": "PROJ-1", "body": "Done.\nReally."})),
         ("worklog", serde_json::json!({"seam": 1, "ref": "PROJ-1", "seconds": 4500, "started": "2026-11-12T09:15:00.000+01:00"})),
+        // What the seam's review added: ids, unassigning, labels, op (kept
+        // once by the extension, not here).
+        ("issues", serde_json::json!({"seam": 1, "refs": ["10201", "PROJ-2", "OPS-7"]})),
+        ("update", serde_json::json!({"seam": 1, "ref": "PROJ-1", "set": {"assignee": null}, "op": "agenda:1:1"})),
+        ("update", serde_json::json!({"seam": 1, "ref": "PROJ-1", "set": {"labels": ["auth", "web"]}, "op": "agenda:1:2"})),
+        ("comment", serde_json::json!({"seam": 1, "ref": "PROJ-1", "body": "With an op.", "op": "agenda:1:3"})),
     ];
     for (name, payload) in calls {
         let _ = block_on(seam.serve(name, &payload.to_string()));

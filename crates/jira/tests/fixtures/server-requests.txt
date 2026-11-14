@@ -1,8 +1,8 @@
 GET /rest/api/2/myself	-
 GET /rest/api/2/search?jql=assignee%20%3D%20currentUser%28%29%20AND%20statusCategory%20%21%3D%20Done%20AND%20project%20IN%20%28PROJ%29%20ORDER%20BY%20updated%20DESC&maxResults=2&fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels	-
-GET /rest/api/2/search?jql=assignee%20%3D%20currentUser%28%29%20AND%20statusCategory%20%21%3D%20Done%20AND%20project%20IN%20%28PROJ%29%20AND%20updated%20%3E%3D%20%222026%2F11%2F10%2000%3A00%22%20ORDER%20BY%20updated%20DESC&startAt=2&maxResults=2&fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels	-
+GET /rest/api/2/search?jql=assignee%20%3D%20currentUser%28%29%20AND%20statusCategory%20%21%3D%20Done%20AND%20project%20IN%20%28PROJ%29%20ORDER%20BY%20updated%20DESC&startAt=2&maxResults=2&fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels	-
 GET /rest/api/2/field	-
-GET /rest/api/2/search?jql=key%20IN%20%28%22PROJ-1%22%2C%22OPS-7%22%29&maxResults=2&fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels%2Ccustomfield_10000	-
+GET /rest/api/2/search?jql=key%20IN%20%28%22PROJ-1%22%2C%22OPS-7%22%29&maxResults=2&fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels%2Ccustomfield_10000&validateQuery=false	-
 GET /rest/api/2/issue/PROJ-1?fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels%2Ccustomfield_10000	-
 GET /rest/api/2/issue/PROJ-1/transitions	-
 GET /rest/api/2/issue/PROJ-1/transitions	-
@@ -17,6 +17,10 @@ PUT /rest/api/2/issue/PROJ-1/assignee	{"name":"jo1"}
 GET /rest/api/2/priority	-
 POST /rest/api/2/issue/PROJ-1/comment	{"body":"Done.\nReally."}
 POST /rest/api/2/issue/PROJ-1/worklog	{"started":"2026-11-12T09:15:00.000+0100","timeSpentSeconds":4500}
+GET /rest/api/2/search?jql=id%20IN%20%2810201%29%20OR%20key%20IN%20%28%22PROJ-2%22%2C%22OPS-7%22%29&maxResults=3&fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels%2Ccustomfield_10000&validateQuery=false	-
+PUT /rest/api/2/issue/PROJ-1/assignee	{"name":null}
+PUT /rest/api/2/issue/PROJ-1	{"fields":{"labels":["auth","web"]}}
+POST /rest/api/2/issue/PROJ-1/comment	{"body":"With an op."}
 GET /rest/api/2/search?jql=project%20%3D%20PROJ%20ORDER%20BY%20updated%20DESC&maxResults=100&fields=summary%2Cstatus%2Cassignee%2Cupdated%2Cpriority%2Cissuetype%2Cduedate	-
 GET /rest/api/2/issue/PROJ-1?fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomment%2Cduedate%2Cissuetype%2Clabels	-
 GET /rest/api/2/issue/PROJ-1/transitions	-

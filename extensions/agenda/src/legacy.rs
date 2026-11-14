@@ -29,7 +29,7 @@ use crate::calls;
 use crate::model::AgendaStore;
 
 /// The tracker a link, or a call, without one is: the only one there was.
-pub const ID: &str = "jira";
+pub const ID: &str = fenix_jira_client::tracker::ID;
 
 /// Jira's move for its Flagged field set (`true`) or cleared.
 pub fn flag_move(on: bool) -> &'static str {
@@ -54,6 +54,15 @@ pub fn migrate(store: &mut AgendaStore) {
     };
     for task in &mut store.tasks {
         let Some(link) = task.link.as_mut() else { continue };
+        // 1.3's builds before review called Jira `jira`.
+        if link.tracker == "jira" {
+            link.tracker = ID.to_string();
+        }
+        // Flagged in 1.2: Blocked, as far as the next move knows, so an
+        // unflag is offered before the first sync.
+        if link.tracker == ID && link.base.flagged && link.base.column.is_none() {
+            link.base.column = Some(fenix_tracker::column::BLOCKED.into());
+        }
         if link.tracker == ID && link.base.project.is_none() {
             link.base.project = Some(fenix_jira_client::project_of(&link.key).to_string());
         }
@@ -158,33 +167,40 @@ mod tests {
             "notes":[],"time_entries":[],"subtasks":[],"depends_on":[],"created_at":"2026-01-01T10:00:00+00:00","updated_at":"2026-01-01T10:00:00+00:00",
             "done_at":null,"archived":false,"order":0,
             "jira":{"key":"OPS-12","base":{"summary":"Old","description":"","status_id":"3","status_name":"In Progress","status_category":"indeterminate",
-              "priority":"Major","assignee":null,"assignee_id":null,"flagged":false,"updated":"x","comments":[]},
+              "priority":"Major","assignee":null,"assignee_id":null,"flagged":true,"updated":"x","comments":[]},
               "last_synced":null,"error":"request failed: offline","conflicts":[],"not_mine":false}}],
             "next_id":1,"active_timer":null,
             "outbox":[{"id":1,"task":0,"kind":{"Transition":{"id":"31","to_id":"1","to_name":"Open","to_category":"new"}}},{"id":2,"task":0,"kind":{"SetFlag":true}}]}"#;
         let mut store: AgendaStore = serde_json::from_str(json).unwrap();
         migrate(&mut store);
         let link = store.tasks[0].link.as_ref().unwrap();
-        assert_eq!((link.tracker.as_str(), link.project(), link.base.status_category.as_str(), link.transient), ("jira", Some("OPS"), "doing", true));
-        assert_eq!(link.column(), None, "not known until the first sync");
+        assert_eq!((link.tracker.as_str(), link.project(), link.base.status_category.as_str(), link.transient), ("fenix.jira", Some("OPS"), "doing", true));
+        assert_eq!(link.column(), Some("blocked"), "flagged in 1.2: unflag offered before the first sync");
+        assert_eq!(link.id, None, "learned at the first sync");
         assert!(matches!(&store.outbox[0].kind, OpKind::Transition { to_category, .. } if to_category == "todo"));
         assert_eq!(store.outbox[1].kind, OpKind::SetFlag(true));
         assert_eq!(flag_move(true), "flag");
     }
 
     #[test]
-    fn this_agendas_file_still_reads_in_1_2s_shape() {
+    fn jiras_links_stay_where_1_2_reads_them_and_no_other_trackers_do() {
         let mut store = AgendaStore::default();
-        let id = store.create_task("T".into(), String::new(), Priority::Low, None);
-        let update = RemoteUpdate { snapshot: RemoteSnapshot { summary: "T".into(), column: Some("doing".into()), ..Default::default() }, status: Status::InProgress, priority: Priority::Low, mine: None };
-        store.link(id, "github-issues", "o/r#1".into(), update);
+        let update = |s: &str| RemoteUpdate { snapshot: RemoteSnapshot { summary: s.into(), column: Some("doing".into()), ..Default::default() }, status: Status::InProgress, priority: Priority::Low, mine: None };
+        let jira = store.create_task("J".into(), String::new(), Priority::Low, None);
+        store.link(jira, ID, "ENG-12".into(), update("J"));
+        let linear = store.create_task("L".into(), String::new(), Priority::Low, None);
+        store.link(linear, "fenix.linear", "ENG-12".into(), update("L"));
         let json: serde_json::Value = serde_json::to_value(&store).unwrap();
-        let link = &json["tasks"][0]["jira"];
-        assert_eq!(link["key"], "o/r#1");
-        assert_eq!(link["tracker"], "github-issues");
-        // What 1.2 requires is all there, by the names it had.
+        let (j, l) = (&json["tasks"][0], &json["tasks"][1]);
+        assert_eq!((j["jira"]["key"].as_str(), j.get("link")), (Some("ENG-12"), None));
+        assert_eq!((l.get("jira"), l["link"]["tracker"].as_str()), (None, Some("fenix.linear")), "1.2 never sees Linear's ENG-12");
+        // What 1.2 requires of a Jira link is all there, by the names it had.
         for field in ["summary", "description", "status_id", "status_name", "status_category", "priority", "assignee", "assignee_id", "flagged", "updated", "comments"] {
-            assert!(link["base"].get(field).is_some(), "{field}");
+            assert!(j["jira"]["base"].get(field).is_some(), "{field}");
         }
+        // And read back as it was.
+        let back: AgendaStore = serde_json::from_value(json).unwrap();
+        assert_eq!(back.tasks[1].link.as_ref().map(|l| l.tracker.as_str()), Some("fenix.linear"));
+        assert_eq!(back.tasks[0].link.as_ref().map(|l| l.tracker.as_str()), Some(ID));
     }
 }

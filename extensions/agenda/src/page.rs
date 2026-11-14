@@ -910,7 +910,7 @@ impl AgendaPage {
                 self.status_menu(t);
             }
             Key::Char('p') => {
-                if linked && ctx.can(t, fenix_tracker::can::PRIORITIES) {
+                if linked && ctx.can(t, fenix_tracker::can::EDIT_PRIORITY) {
                     return Action::TrackerPriority(id);
                 }
                 self.priority_menu(t);
@@ -1114,7 +1114,7 @@ impl AgendaPage {
         match field {
             Field::Title => Action::None,
             Field::Status if linked => Action::TrackerStatus(id),
-            Field::Priority if linked && ctx.can(t, fenix_tracker::can::PRIORITIES) => Action::TrackerPriority(id),
+            Field::Priority if linked && ctx.can(t, fenix_tracker::can::EDIT_PRIORITY) => Action::TrackerPriority(id),
             Field::Status => {
                 let i = Status::ALL.iter().position(|s| *s == t.status).unwrap_or(0);
                 let to = Status::ALL[step(i, 4)];
@@ -2622,13 +2622,13 @@ mod tests {
     /// Jira, as the page sees it once it's found.
     fn jira() -> &'static Trackers {
         thread_local! {
-            static JIRA: &'static Trackers = Box::leak(Box::new(Trackers { list: vec![crate::tests::tracker("jira", "Jira")] }));
+            static JIRA: &'static Trackers = Box::leak(Box::new(Trackers { list: vec![crate::tests::tracker("fenix.jira", "Jira")], ..Default::default() }));
         }
         JIRA.with(|j| *j)
     }
 
     fn page() -> AgendaPage {
-        AgendaPage::new(Tab::Today, Some(Project { name: "fenix".into(), issues: vec![("jira".into(), "FEN".into())] }))
+        AgendaPage::new(Tab::Today, Some(Project { name: "fenix".into(), issues: vec![("fenix.jira".into(), "FEN".into())] }))
     }
 
     #[test]
@@ -2684,7 +2684,7 @@ mod tests {
         assert_eq!(p.key(Key::Enter, &ctx(&s, &cats)), Action::SetStatus(a, Status::Blocked));
 
         let update = RemoteUpdate { snapshot: RemoteSnapshot::default(), status: Status::Todo, priority: Priority::High, mine: None };
-        s.link(b, "jira", "OPS-88".into(), update);
+        s.link(b, "fenix.jira", "OPS-88".into(), update);
         p.select(b);
         assert_eq!(p.key(Key::Char('s'), &ctx(&s, &cats)), Action::TrackerStatus(b));
     }

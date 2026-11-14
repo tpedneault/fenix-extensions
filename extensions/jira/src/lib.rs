@@ -204,7 +204,7 @@ fn tracker_settings() -> seam::Settings {
 /// The agenda's payload for an issue of this tracker's: `tracker` and
 /// `ref` for the agenda 1.3, `key` for 1.2.
 fn agenda_payload(key: &str, clock: Option<bool>) -> String {
-    let mut payload = serde_json::json!({ "tracker": "jira", "ref": key, "key": key });
+    let mut payload = serde_json::json!({ "tracker": seam::ID, "ref": key, "key": key });
     if let Some(clock) = clock {
         payload["clock"] = clock.into();
     }
@@ -226,15 +226,22 @@ fn email() -> Option<String> {
 }
 
 /// What it has learned of the site it talks to, forgotten when the
-/// address changes: which Jira it is and how it knows, a scoped token's
-/// cloud id, and what the seam learned (who you are, the Flagged field).
+/// address changes: which Jira it is and how it knows, and a scoped
+/// token's cloud id. (What the seam learned -- who you are, the Flagged
+/// field -- is `Jira::learned`, which the seam forgets itself when the
+/// address changes.)
 #[derive(Default)]
 struct Site {
     base: String,
     /// What `serverInfo` said (or, when it wouldn't, the address).
     said: Option<(Deployment, String)>,
     cloud_id: Option<String>,
-    learned: Rc<RefCell<Learned>>,
+}
+
+#[cfg(test)]
+thread_local! {
+    /// A test's Jira, in place of HTTP (`run::fetch` is Fenix's).
+    static TEST_JIRA: RefCell<Option<Rc<dyn Transport>>> = RefCell::new(None);
 }
 
 type Known = Rc<RefCell<Site>>;
@@ -264,10 +271,12 @@ struct Connect {
     forced: Option<Deployment>,
     scoped: bool,
     site: Known,
+    /// What the seam learned of the site.
+    learned: Rc<RefCell<Learned>>,
 }
 
 /// A connection, or why there's none.
-fn connect(site: &Known) -> Result<Connect, String> {
+fn connect(site: &Known, learned: &Rc<RefCell<Learned>>) -> Result<Connect, String> {
     let (Some(base), Some(token)) = (base_url(), token()) else { return Err(not_set_up(&settings_keys())) };
     let email = email();
     if deployment_now(site, &base).is_cloud() && email.is_none() {
@@ -275,7 +284,7 @@ fn connect(site: &Known) -> Result<Connect, String> {
     }
     let forced = Deployment::forced(api::setting("jira.kind").as_deref());
     let scoped = api::setting("jira.scoped_token").is_some_and(|v| v.trim() == "true");
-    Ok(Connect { base, token, email, forced, scoped, site: site.clone() })
+    Ok(Connect { base, token, email, forced, scoped, site: site.clone(), learned: learned.clone() })
 }
 
 impl Connect {
@@ -302,15 +311,10 @@ impl Connect {
         let mut site = site_for(&self.site, &self.base);
         if said.0 != guess {
             // A Cloud site on its own domain: who you are is an account id.
-            *site.learned.borrow_mut() = Learned::default();
+            self.learned.borrow_mut().forget();
         }
         site.said = Some(said.clone());
         said.0
-    }
-
-    /// The seam's memory of this site.
-    fn learned(&self) -> Rc<RefCell<Learned>> {
-        site_for(&self.site, &self.base).learned.clone()
     }
 
     /// A scoped API token's base: Atlassian's gateway to the site, by the
@@ -329,6 +333,11 @@ impl Connect {
 
     /// A client for the site, signed in as it takes it.
     async fn client(self) -> Result<JiraClient, String> {
+        // A test's Jira: as the settings say it is, nothing asked.
+        #[cfg(test)]
+        if let Some(test) = TEST_JIRA.with(|t| t.borrow().clone()) {
+            return Ok(JiraClient::for_deployment(test, deployment_now(&self.site, &self.base)));
+        }
         let deployment = self.settle().await;
         if !deployment.is_cloud() {
             return Ok(JiraClient::new(Rc::new(Direct::new(&self.base, Some(Auth::Bearer(self.token))))));
@@ -382,6 +391,15 @@ enum Asked {
     Comment(String),
     /// What Blocked means in a project: the meanings offered.
     Blocked(String, Vec<String>),
+    /// The write gate's question (`fenix_tracker::gate`).
+    Gate,
+}
+
+/// A seam write held while you're asked whether to allow it.
+struct Held {
+    call: Waiting,
+    name: String,
+    payload: String,
 }
 
 #[derive(Default)]
@@ -392,12 +410,19 @@ pub struct Jira {
     /// The token owner's username.
     me: Option<String>,
     asked: HashMap<u64, Asked>,
-    /// What it has learned of the site: which Jira it is, and what the
-    /// tracker seam learned (who you are, its Flagged field).
+    /// What it has learned of the site: which Jira it is.
     site: Known,
+    /// What the tracker seam has learned of this Jira: who you are, its
+    /// Flagged field.
+    learned: Rc<RefCell<Learned>>,
     /// New-issue forms the seam's `create` opened, answered as the seam
     /// answers (`{"ref": ...}`) rather than with a bare key.
     seam_creates: HashSet<Waiting>,
+    /// Whether the seam may write this session, and what waits on it.
+    gate: fenix_tracker::gate::Gate,
+    held: Vec<Held>,
+    /// The seam's writes done this session, by `op`.
+    done_ops: Rc<RefCell<fenix_tracker::Dedupe>>,
 }
 
 impl Jira {
@@ -423,7 +448,12 @@ impl Jira {
     }
 
     fn connect(&self) -> Result<Connect, String> {
-        connect(&self.site)
+        connect(&self.site, &self.learned)
+    }
+
+    /// Which Jira it is, as far as it knows now (nothing asked).
+    fn deployment(&self) -> Deployment {
+        base_url().map_or(Deployment::Server, |b| deployment_now(&self.site, &b))
     }
 
     fn is_cloud(&self) -> bool {
@@ -439,7 +469,7 @@ impl Jira {
     /// Which issues are in the agenda, from the agenda.
     fn ask_agenda(&self) {
         spawn(async {
-            let keys = run::call("agenda.linked", "null").await.ok().and_then(|t| serde_json::from_str::<Vec<String>>(&t).ok()).unwrap_or_default();
+            let keys = run::call("agenda.linked", &serde_json::json!({ "tracker": seam::ID }).to_string()).await.ok().and_then(|t| serde_json::from_str::<Vec<String>>(&t).ok()).unwrap_or_default();
             Done::InAgenda(keys.into_iter().collect())
         });
     }
@@ -565,8 +595,11 @@ impl Jira {
         set_map(key, &entries);
     }
 
-    /// The searches again, after the settings changed.
+    /// The searches again, after the settings changed; what the seam
+    /// learned of the server forgotten, and the agenda told to ask again.
     fn settings_changed(&mut self) {
+        self.learned.borrow_mut().forget();
+        api::call_service("agenda.tracker_changed", &serde_json::json!({ "tracker": seam::ID }).to_string());
         let here = self.page.as_ref().and_then(|(_, p)| p.here.clone());
         let queries = self.queries(here.as_deref());
         if let Some((_, page)) = &mut self.page {
@@ -890,30 +923,72 @@ impl Jira {
         self.take_done();
     }
 
-    /// `jira.tracker.<call>`: the tracker seam. `about`, `create` and
-    /// `remember` are this extension's own (its settings, its form); the
-    /// rest are `fenix_jira_client::tracker`'s, over its own HTTP,
-    /// answered once Jira has.
+    /// `fenix.jira.tracker.<call>`: the tracker seam. `about`, `create`
+    /// and `remember` are this extension's own (its settings, its form);
+    /// the rest are `fenix_jira_client::tracker`'s, over its own HTTP,
+    /// answered once Jira has. Every write passes the gate first
+    /// (`fenix_tracker::gate`), and one already done this session (its
+    /// `op`) is answered as it was.
     fn serve_seam(&mut self, call: Waiting, name: &str, payload: &str) -> Option<Result<String, String>> {
+        use fenix_tracker::gate::{self, Verdict};
+        // About: what it knows now -- no network, nothing asked.
+        if name == fenix_tracker::call::ABOUT {
+            let ready = self.connect().is_ok();
+            return Some(serde_json::to_string(&seam::about_for(&tracker_settings(), ready, self.deployment())).map_err(|e| e.to_string()));
+        }
+        if !fenix_tracker::call::writes(name) {
+            return self.serve_seam_now(call, name, payload);
+        }
+        // Not set up: said at once, nothing asked.
+        if self.connect().is_err() {
+            let why = seam::about_for(&tracker_settings(), false, self.deployment()).not_ready.unwrap_or_default();
+            return Some(Err(SeamError::new(code::NOT_SET_UP, why).to_err()));
+        }
+        let op = serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string));
+        if let Some(answer) = self.done_ops.borrow().get(op.as_deref()) {
+            return Some(answer);
+        }
+        let held = Held { call, name: name.to_string(), payload: payload.to_string() };
+        match self.gate.check(api::setting("jira.seam_writes").as_deref(), "Jira") {
+            Verdict::Go => self.serve_seam_now(call, name, payload),
+            Verdict::Refuse(why) => Some(Err(why.to_err())),
+            Verdict::Wait => {
+                self.held.push(held);
+                None
+            }
+            Verdict::Ask => {
+                self.held.push(held);
+                let rows = [PickerItem::new(gate::ALLOW, "allow"), PickerItem::new(gate::DENY, "deny")];
+                let id = api::pick(&gate::question("Jira"), &rows);
+                self.asked.insert(id, Asked::Gate);
+                None
+            }
+        }
+    }
+
+    /// You answered the gate: the writes held go through, or are refused.
+    fn gate_answered(&mut self, allow: bool) {
+        self.gate.answered(allow);
+        for Held { call, name, payload } in std::mem::take(&mut self.held) {
+            let answer = if allow { self.serve_seam_now(call, &name, &payload) } else { Some(Err(fenix_tracker::gate::Gate::denied("Jira").to_err())) };
+            if let Some(answer) = answer {
+                api::answer(call, answer);
+            }
+        }
+    }
+
+    /// A seam call, served now: `Some` answered at once, `None` later.
+    fn serve_seam_now(&mut self, call: Waiting, name: &str, payload: &str) -> Option<Result<String, String>> {
         let settings = tracker_settings();
         let refuse = |code: &str, why: String| Some(Err(SeamError::new(code, why).to_err()));
+        let op = serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string));
         match name {
-            fenix_tracker::call::ABOUT => {
-                let connect = self.connect();
-                let deployment = base_url().map_or(Deployment::Server, |b| deployment_now(&self.site, &b));
-                // Not known yet: asked now, so the agenda's next look sees it.
-                if let Ok(connect) = &connect {
-                    let connect = connect.clone();
-                    run::spawn(async move {
-                        connect.settle().await;
-                    });
-                }
-                Some(serde_json::to_string(&seam::about_for(&settings, connect.is_ok(), deployment)).map_err(|e| e.to_string()))
-            }
             fenix_tracker::call::REMEMBER => match serde_json::from_str::<fenix_tracker::Remember>(payload).ok().and_then(|r| seam::parse_remember(&r.remember)) {
                 Some((project, blocked)) => {
                     self.set_blocked(&project, &blocked.text());
-                    Some(Ok("{}".into()))
+                    let answer = Ok("{}".to_string());
+                    self.done_ops.borrow_mut().put(op.as_deref(), &answer);
+                    Some(answer)
                 }
                 None => refuse(code::BAD_REQUEST, format!("a Jira call: what to remember isn't Jira's: {payload}")),
             },
@@ -930,19 +1005,23 @@ impl Jira {
                 None
             }
             _ => {
-                let deployment = base_url().map_or(Deployment::Server, |b| deployment_now(&self.site, &b));
+                let deployment = self.deployment();
                 let connect = match self.connect() {
                     Ok(connect) => connect,
                     Err(_) => return refuse(code::NOT_SET_UP, seam::about_for(&settings, false, deployment).not_ready.unwrap_or_default()),
                 };
                 let (name, payload) = (name.to_string(), payload.to_string());
+                let done_ops = self.done_ops.clone();
                 run::spawn(async move {
-                    let learned = connect.learned();
+                    let learned = connect.learned.clone();
                     let answer = match connect.client().await {
                         Ok(client) => seam::Seam::new(client, settings, learned).serve(&name, &payload).await,
                         Err(why) if why.contains("isn't set up") => Err(SeamError::new(code::NOT_SET_UP, why).to_err()),
                         Err(why) => Err(seam::classify(why).to_err()),
                     };
+                    if fenix_tracker::call::writes(&name) {
+                        done_ops.borrow_mut().put(op.as_deref(), &answer);
+                    }
                     api::answer(call, answer);
                 });
                 None
@@ -1024,14 +1103,16 @@ impl Extension for Jira {
                 }
                 _ => {}
             },
-            Event::Picked((id, choice)) => {
-                if let Some(Asked::Blocked(project, meanings)) = self.asked.remove(&id) {
+            Event::Picked((id, choice)) => match self.asked.remove(&id) {
+                Some(Asked::Blocked(project, meanings)) => {
                     if let Some(meaning) = choice.and_then(|c| c.parse::<usize>().ok()).and_then(|i| meanings.get(i)) {
                         self.set_blocked(&project, meaning);
                         api::notify(&format!("Blocked in {project} now means {meaning}"));
                     }
                 }
-            }
+                Some(Asked::Gate) => self.gate_answered(choice.as_deref() == Some("allow")),
+                _ => {}
+            },
             Event::Composed((id, None)) => {
                 self.asked.remove(&id);
             }
@@ -1090,7 +1171,7 @@ impl Extension for Jira {
     }
 
     fn serve(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
-        if let Some(seam_call) = fenix_tracker::call_of("jira", name) {
+        if let Some(seam_call) = fenix_tracker::call_of(seam::ID, name) {
             return self.serve_seam(call, seam_call, payload);
         }
         let answer = match name {
@@ -1204,38 +1285,105 @@ mod tests {
         for old in ["jira.request", "jira.config", "jira.set_blocked", "jira.new_issue"] {
             assert!(manifest.0.iter().any(|s| s == old), "{old} still served");
         }
-        for call in fenix_tracker::call::ALL {
-            assert!(manifest.0.contains(&fenix_tracker::service("jira", call)), "jira.tracker.{call}");
+        for call in fenix_tracker::call::ALL.into_iter().filter(|c| *c != fenix_tracker::call::PROJECT) {
+            assert!(manifest.0.contains(&fenix_tracker::service(seam::ID, call)), "fenix.jira.tracker.{call}");
         }
+        assert!(!manifest.0.iter().any(|s| s.starts_with("jira.tracker.")), "no short names left");
     }
 
     #[test]
     fn the_seam_says_who_it_is_and_keeps_what_blocked_means() {
         let mut h = jira(true);
-        let about: fenix_tracker::About = serde_json::from_str(&h.serve("jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+        let about: fenix_tracker::About = serde_json::from_str(&h.serve("fenix.jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
         assert_eq!((about.name.as_str(), about.ready, about.sync_minutes), ("Jira", true, 5));
         assert_eq!(about.browse.as_deref(), Some("https://jira.example.com/browse/{ref}"));
         assert_eq!(about.can.len(), fenix_tracker::can::ALL.len());
 
+        h.fake.setting("jira.seam_writes", "always");
         let remember = serde_json::json!({ "seam": 1, "ref": "OPS-1", "remember": serde_json::json!({ "project": "OPS", "blocked": "10103: On Hold" }).to_string() }).to_string();
-        assert_eq!(h.serve("jira.tracker.remember", &remember), Some(Ok("{}".into())));
+        assert_eq!(h.serve("fenix.jira.tracker.remember", &remember), Some(Ok("{}".into())));
         assert_eq!(h.fake.setting_value("jira.blocked").as_deref(), Some(r#"[["PROJ","flag"],["OPS","10103: On Hold"]]"#));
-        let odd = SeamError::from_err(&h.serve("jira.tracker.remember", r#"{"seam": 1, "remember": "not Jira's"}"#).unwrap().unwrap_err());
+        let odd = SeamError::from_err(&h.serve("fenix.jira.tracker.remember", r#"{"seam": 1, "remember": "not Jira's"}"#).unwrap().unwrap_err());
         assert_eq!(odd.code, fenix_tracker::code::BAD_REQUEST);
 
         let mut h = jira(false);
-        let about: fenix_tracker::About = serde_json::from_str(&h.serve("jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+        let about: fenix_tracker::About = serde_json::from_str(&h.serve("fenix.jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
         assert_eq!((about.ready, about.not_ready.as_deref()), (false, Some("Jira isn't set up yet -- set its server and token in SPC , (Jira)")));
-        let err = SeamError::from_err(&h.serve("jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap().unwrap_err());
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap().unwrap_err());
         assert_eq!((err.code.as_str(), err.message.as_str()), ("not_set_up", "Jira isn't set up yet -- set its server and token in SPC , (Jira)"));
-        let err = SeamError::from_err(&h.serve("jira.tracker.create", r#"{"seam": 1, "title": "T"}"#).unwrap().unwrap_err());
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.create", r#"{"seam": 1, "title": "T"}"#).unwrap().unwrap_err());
         assert_eq!(err.code, "not_set_up");
     }
 
     #[test]
     fn its_page_tells_the_agenda_which_tracker_an_issue_is_from() {
-        assert_eq!(json(&agenda_payload("PROJ-1", Some(true))), serde_json::json!({ "tracker": "jira", "ref": "PROJ-1", "key": "PROJ-1", "clock": true }));
-        assert_eq!(json(&agenda_payload("PROJ-1", None)), serde_json::json!({ "tracker": "jira", "ref": "PROJ-1", "key": "PROJ-1" }));
+        assert_eq!(json(&agenda_payload("PROJ-1", Some(true))), serde_json::json!({ "tracker": "fenix.jira", "ref": "PROJ-1", "key": "PROJ-1", "clock": true }));
+        assert_eq!(json(&agenda_payload("PROJ-1", None)), serde_json::json!({ "tracker": "fenix.jira", "ref": "PROJ-1", "key": "PROJ-1" }));
+    }
+
+    fn recorded() -> Rc<fenix_jira_client::recorded::Recorded> {
+        let dir = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../crates/jira/tests/fixtures"));
+        let jira = Rc::new(fenix_jira_client::recorded::Recorded::jira_server(dir));
+        let transport: Rc<dyn Transport> = jira.clone();
+        TEST_JIRA.with(|t| *t.borrow_mut() = Some(transport));
+        jira
+    }
+
+    fn last_answer(h: &Harness<Jira>) -> Result<String, String> {
+        h.fake.state().answers.values().last().cloned().expect("an answer")
+    }
+
+    const COMMENT: &str = r#"{"seam": 1, "ref": "PROJ-1", "body": "Done.", "op": "agenda:1:7"}"#;
+
+    #[test]
+    fn the_first_write_of_a_session_asks_and_the_rest_dont() {
+        let server = recorded();
+        let mut h = jira(true);
+        h.fake.on_pick("Agenda wants to change issues in Jira", fenix_tracker::gate::ALLOW);
+        assert_eq!(h.serve("fenix.jira.tracker.comment", COMMENT), None, "held while asking");
+        assert_eq!(last_answer(&h), Ok("{}".into()));
+        assert_eq!(server.asked(), ["POST /rest/api/2/issue/PROJ-1/comment"]);
+        let questions = h.fake.pickers().len();
+        h.serve("fenix.jira.tracker.comment", &COMMENT.replace("agenda:1:7", "agenda:1:8"));
+        assert_eq!(h.fake.pickers().len(), questions, "asked once a session");
+        assert_eq!(server.asked().len(), 2);
+        // The same op again (the agenda gave up waiting): done once.
+        assert_eq!(h.serve("fenix.jira.tracker.comment", COMMENT), Some(Ok("{}".into())));
+        assert_eq!(server.asked().len(), 2, "not posted twice");
+        // Reads never ask.
+        let _ = h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#);
+        assert_eq!(h.fake.pickers().len(), questions);
+    }
+
+    #[test]
+    fn not_now_refuses_what_waited_and_never_refuses_everything() {
+        let server = recorded();
+        let mut h = jira(true);
+        h.fake.on_pick("Agenda wants to change issues in Jira", fenix_tracker::gate::DENY);
+        h.serve("fenix.jira.tracker.remember", r#"{"seam": 1, "remember": "{\"project\":\"OPS\",\"blocked\":\"local\"}"}"#);
+        let err = SeamError::from_err(&last_answer(&h).unwrap_err());
+        assert_eq!((err.code.as_str(), err.message.as_str()), ("refused", "you didn't allow the agenda to change issues in Jira -- r on the task asks again"));
+        assert!(!h.fake.setting_value("jira.blocked").unwrap_or_default().contains("OPS"), "remember is gated too");
+
+        let mut h = jira(true);
+        h.fake.setting("jira.seam_writes", "never");
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.create", r#"{"seam": 1, "title": "T"}"#).unwrap().unwrap_err());
+        assert_eq!(err.code, "refused", "create is gated too");
+        h.fake.setting("jira.seam_writes", "always");
+        h.serve("fenix.jira.tracker.transition", r#"{"seam": 1, "ref": "PROJ-1", "id": "41"}"#);
+        assert!(h.fake.pickers().is_empty());
+        assert_eq!(server.asked().last().map(String::as_str), Some("POST /rest/api/2/issue/PROJ-1/transitions"));
+    }
+
+    #[test]
+    fn a_settings_change_forgets_the_server_and_tells_the_agenda() {
+        let _jira = recorded();
+        let mut h = jira(true);
+        h.ext.learned.borrow_mut().me = Some("jo1".into());
+        h.set_setting("jira.base_url", Some("https://other.example.com"));
+        assert_eq!(h.ext.learned.borrow().me, None);
+        let told = h.fake.services().into_iter().find(|c| c.name == "agenda.tracker_changed").expect("told");
+        assert_eq!(told.payload, r#"{"tracker":"fenix.jira"}"#);
     }
 
     /// A Jira Cloud site, answering from the client's Cloud fixtures
@@ -1272,11 +1420,15 @@ mod tests {
     #[test]
     fn cloud_is_told_by_its_address_and_signed_in_to_with_email_and_token() {
         let mut h = cloud(true);
-        let about: fenix_tracker::About = serde_json::from_str(&h.serve("jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
-        assert!(about.ready && !about.can(fenix_tracker::can::EDIT), "{about:?}");
+        let about: fenix_tracker::About = serde_json::from_str(&h.serve("fenix.jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+        assert!(about.ready && !about.can(fenix_tracker::can::EDIT_BODY), "{about:?}");
+        for c in [fenix_tracker::can::EDIT_TITLE, fenix_tracker::can::EDIT_PRIORITY, fenix_tracker::can::EDIT_DUE, fenix_tracker::can::EDIT_ASSIGNEE, fenix_tracker::can::EDIT_LABELS] {
+            assert!(about.can(c), "Cloud takes {c} from the agenda");
+        }
+        assert!(h.fake.requests().is_empty(), "about asks nothing of the network");
         assert_eq!(about.browse.as_deref(), Some("https://acme.atlassian.net/browse/{ref}"));
 
-        assert_eq!(h.serve("jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#), None);
+        assert_eq!(h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#), None);
         h.settle();
         let found: fenix_tracker::Found = serde_json::from_str(&answered(&h).unwrap()).unwrap();
         assert_eq!(found.issues[0].assignee.as_ref().unwrap().id, "5b10ac8d82e05b22cc7d4ef5");
@@ -1305,25 +1457,71 @@ mod tests {
     #[test]
     fn cloud_without_an_email_isnt_ready_and_says_what_to_set() {
         let mut h = cloud(false);
-        let about: fenix_tracker::About = serde_json::from_str(&h.serve("jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+        let about: fenix_tracker::About = serde_json::from_str(&h.serve("fenix.jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
         assert_eq!((about.ready, about.not_ready.as_deref()), (false, Some("Jira Cloud isn't set up yet -- set its site, your email and an API token in SPC , (Jira)")));
-        let err = SeamError::from_err(&h.serve("jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap().unwrap_err());
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap().unwrap_err());
         assert_eq!(err.code, "not_set_up");
         assert!(h.fake.requests().iter().all(|(_, r)| r.headers.iter().all(|(n, _)| n != "Authorization")), "nothing sent as you");
     }
 
     #[test]
-    fn a_comment_from_the_page_goes_to_cloud_as_rich_text_and_its_description_isnt_edited() {
+    fn clouds_seam_writes_pass_the_gate_as_servers_and_an_op_is_done_once() {
         let mut h = cloud(true);
-        h.serve("jira.tracker.comment", r#"{"seam": 1, "ref": "PROJ-1", "body": "Done.\nShipped."}"#);
+        h.fake.on_pick("Agenda wants to change issues in Jira", fenix_tracker::gate::ALLOW);
+        let comment = r#"{"seam": 1, "ref": "PROJ-1", "body": "Done.\nShipped.", "op": "agenda:1:9"}"#;
+        assert_eq!(h.serve("fenix.jira.tracker.comment", comment), None, "held while asking");
         h.settle();
+        assert_eq!(h.fake.pickers().len(), 1, "asked once");
         assert_eq!(answered(&h), Ok("{}".to_string()));
-        let (_, post) = h.fake.requests().into_iter().find(|(_, r)| r.method == "POST").unwrap();
+        let posts = |h: &Harness<Jira>| h.fake.requests().into_iter().filter(|(_, r)| r.method == "POST").collect::<Vec<_>>();
+        let (_, post) = posts(&h).into_iter().next().unwrap();
+        assert_eq!(post.url, "https://acme.atlassian.net/rest/api/3/issue/PROJ-1/comment");
         let body: serde_json::Value = serde_json::from_slice(&post.body).unwrap();
         assert_eq!(body["body"]["content"][0]["content"][1], serde_json::json!({"type": "hardBreak"}));
+        // The same op again: answered as before, not posted twice.
+        assert_eq!(h.serve("fenix.jira.tracker.comment", comment), Some(Ok("{}".to_string())));
+        assert_eq!(posts(&h).len(), 1);
 
+        // Never: every write refused, create and remember too, nothing sent.
+        let mut h = cloud(true);
+        h.fake.setting("jira.seam_writes", "never");
+        for (name, payload) in [
+            ("comment", r#"{"seam": 1, "ref": "PROJ-1", "body": "x"}"#),
+            ("update", r#"{"seam": 1, "ref": "PROJ-1", "set": {"title": "T"}}"#),
+            ("create", r#"{"seam": 1, "title": "T"}"#),
+            ("remember", r#"{"seam": 1, "remember": "{\"project\":\"OPS\",\"blocked\":\"local\"}"}"#),
+        ] {
+            let err = SeamError::from_err(&h.serve(&format!("fenix.jira.tracker.{name}"), payload).unwrap().unwrap_err());
+            assert_eq!(err.code, "refused", "{name}");
+        }
+        assert!(h.fake.requests().is_empty());
+
+        // The page's own description edit is refused on Cloud, ungated.
         h.ext.action(A::EditDescription("PROJ-1".into()));
         assert!(h.fake.notifications().iter().any(|n| n.contains("Jira Cloud keeps a description as rich text")), "{:?}", h.fake.notifications());
+    }
+
+    #[test]
+    fn cloud_takes_title_priority_due_and_assignee_from_the_agenda_and_unassigns_by_account_id() {
+        let mut h = cloud(true);
+        h.fake.setting("jira.seam_writes", "always");
+        h.fake.on_http("PUT https://acme.atlassian.net/*", api::HttpResponse::new(204, ""));
+        for set in [r#"{"title": "New"}"#, r#"{"priority": "High"}"#, r#"{"due": "2026-12-01"}"#, r#"{"assignee": {"id": "557058:f58131cb", "name": "Kim"}}"#, r#"{"assignee": null}"#] {
+            h.serve("fenix.jira.tracker.update", &format!(r#"{{"seam": 1, "ref": "PROJ-1", "set": {set}}}"#));
+            h.settle();
+            assert_eq!(answered(&h), Ok("{}".to_string()), "{set}");
+        }
+        let puts: Vec<(String, String)> = h.fake.requests().into_iter().filter(|(_, r)| r.method == "PUT").map(|(_, r)| (r.url, String::from_utf8(r.body).unwrap())).collect();
+        assert_eq!(puts.last().unwrap(), &("https://acme.atlassian.net/rest/api/3/issue/PROJ-1/assignee".to_string(), r#"{"accountId":null}"#.to_string()));
+        assert_eq!(puts[3].1, r#"{"accountId":"557058:f58131cb"}"#);
+        assert_eq!(puts.len(), 5);
+        let err = SeamError::from_err(&{
+            h.serve("fenix.jira.tracker.update", r#"{"seam": 1, "ref": "PROJ-1", "set": {"body": "flat"}}"#);
+            h.settle();
+            answered(&h).unwrap_err()
+        });
+        assert_eq!(err.code, "unsupported");
+        assert_eq!(h.fake.requests().into_iter().filter(|(_, r)| r.method == "PUT").count(), 5, "the description never sent");
     }
 
     #[test]
@@ -1332,7 +1530,7 @@ mod tests {
         let mut slow = api::HttpResponse::new(429, "");
         slow.headers.push(("Retry-After".into(), "42".into()));
         h.fake.on_http("GET https://acme.atlassian.net/rest/api/3/issue/PROJ-1?*", slow);
-        h.serve("jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#);
+        h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#);
         h.settle();
         let err = SeamError::from_err(&answered(&h).unwrap_err());
         assert_eq!((err.code.as_str(), err.retry_after), ("rate_limited", Some(42)));
@@ -1344,7 +1542,7 @@ mod tests {
         h.fake
             .on_http("GET https://jira.example.com/rest/api/2/serverInfo", api::HttpResponse::new(200, r#"{"version":"9.12.4","deploymentType":"DataCenter"}"#))
             .on_http("GET https://jira.example.com/rest/api/2/issue/PROJ-1/transitions", api::HttpResponse::new(200, r#"{"transitions":[]}"#));
-        h.serve("jira.tracker.transitions", r#"{"seam": 1, "ref": "PROJ-1"}"#);
+        h.serve("fenix.jira.tracker.transitions", r#"{"seam": 1, "ref": "PROJ-1"}"#);
         h.settle();
         assert_eq!(answered(&h), Ok(r#"{"transitions":[],"blocked":"Blocked  (flag as impediment)"}"#.to_string()));
         let (_, asked) = h.fake.requests().into_iter().find(|(_, r)| r.url.ends_with("/transitions")).unwrap();

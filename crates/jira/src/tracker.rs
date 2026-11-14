@@ -2,18 +2,18 @@
 //! Data Center, and for Jira Cloud, over a [`JiraClient`]: what the agenda did with Jira
 //! itself before -- which requests, how an issue maps onto its columns
 //! and priorities, what Blocked means in a project -- moved here, so the
-//! Jira extension serves it (`jira.tracker.*`, its own HTTP) and the
+//! Jira extension serves it (`fenix.jira.tracker.*`, its own HTTP) and the
 //! agenda serves it to itself when the Jira extension is older than the
 //! seam (over `jira.request`). The same code either way, so the same
 //! answers.
 //!
 //! On Cloud the same calls, asked Cloud's way (the client's), with these
 //! differences: an issue's description and comments are rich text read
-//! as plain text, so `about.can` leaves out `edit` (the agenda sends
-//! title, description, priority and due date under it, and a description
+//! as plain text, so `about.can` leaves out `edit.body` (a description
 //! written back from text would lose what's in it); assignees are account
-//! ids and `people` is who Jira says can be assigned the issue; `assigned`
-//! pages by the enhanced search's token.
+//! ids, unassigning is `accountId: null`, and `people` is who Jira says
+//! can be assigned the issue; `assigned` pages by the enhanced search's
+//! token, passed through as it came.
 //!
 //! `about`, `create` and `remember` need the extension (its settings,
 //! its form): [`about`] and [`parse_remember`] are for the caller, and
@@ -24,7 +24,10 @@ use std::rc::Rc;
 
 use fenix_tracker::{self as seam, can, code, column, level, Change, SeamError};
 
-use crate::{build_keys_jql, build_my_open_issues_jql, project_of, Deployment, IssueDetail, JiraClient, Transition};
+use crate::{build_ids_and_keys_jql, build_my_open_issues_jql, project_of, Deployment, IssueDetail, JiraClient, Transition};
+
+/// The Jira extension's id, and so the start of its seam's names.
+pub const ID: &str = "fenix.jira";
 
 /// The keys the messages name, as the key scheme in use has them.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -177,11 +180,19 @@ pub fn guess_level(name: &str) -> &'static str {
 
 /// What it learns once and keeps: the token owner's username, and the
 /// Flagged field's id (`None` until asked, `Some(None)` when there's
-/// none).
+/// none) -- of the server at `base`, and forgotten when that changes.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Learned {
     pub me: Option<String>,
     pub flag_field: Option<Option<String>>,
+    pub base: Option<String>,
+}
+
+impl Learned {
+    /// Forgets it all: another server, or another sign-in.
+    pub fn forget(&mut self) {
+        *self = Learned::default();
+    }
 }
 
 /// `about`: Jira, ready when it has a server (and, for the extension, a
@@ -190,25 +201,27 @@ pub fn about(settings: &Settings, ready: bool) -> seam::About {
     about_for(settings, ready, Deployment::Server)
 }
 
-/// `about` for `deployment`. Cloud needs your email too, and can't take
-/// `edit`: see the module's words.
+/// `about` for `deployment`. Cloud needs your email too, and doesn't
+/// take `edit.body`: see the module's words.
 pub fn about_for(settings: &Settings, ready: bool, deployment: Deployment) -> seam::About {
     let not_ready = match deployment {
         Deployment::Server => format!("Jira isn't set up yet -- set its server and token in {} (Jira)", settings.keys.settings),
         Deployment::Cloud => format!("Jira Cloud isn't set up yet -- set its site, your email and an API token in {} (Jira)", settings.keys.settings),
     };
-    let can = can::ALL.iter().filter(|c| !(deployment.is_cloud() && **c == can::EDIT)).map(|c| c.to_string()).collect();
     seam::About {
         seam: seam::SEAM,
+        seams: seam::SEAMS.to_vec(),
         minor: seam::MINOR,
+        id: ID.into(),
         name: "Jira".into(),
         ready,
         not_ready: (!ready).then_some(not_ready),
-        can,
+        can: can::ALL.iter().filter(|c| !(deployment.is_cloud() && **c == can::EDIT_BODY)).map(|c| c.to_string()).collect(),
         sync_minutes: settings.sync_minutes,
         project_meta: Some("jira".into()),
         browse: settings.base().map(|b| format!("{b}/browse/{{ref}}")),
         ref_hint: Some("PROJ-123".into()),
+        blocked: true,
     }
 }
 
@@ -228,8 +241,10 @@ fn remember(project: &str, blocked: &Blocked) -> String {
 pub fn classify(message: String) -> SeamError {
     let code = if message.starts_with("HTTP 401") {
         code::SIGNED_OUT
-    } else if message.starts_with("HTTP 404") {
+    } else if message.starts_with("HTTP 404") || message.starts_with("HTTP 410") {
         code::NOT_FOUND
+    } else if ["HTTP 502", "HTTP 503", "HTTP 504"].iter().any(|s| message.starts_with(s)) {
+        code::OFFLINE
     } else if message.starts_with("HTTP 429") {
         code::RATE_LIMITED
     } else if message.starts_with("HTTP 4") {
@@ -249,13 +264,59 @@ pub fn classify(message: String) -> SeamError {
 fn key_of(r: &str) -> String {
     if r.starts_with("http") {
         if let Some((_, rest)) = r.split_once("selectedIssue=") {
-            return rest.split(['&', '#']).next().unwrap_or(rest).to_string();
+            return rest.split(['&', '#']).next().unwrap_or(rest).to_uppercase();
         }
     }
     match r.split_once("/browse/") {
-        Some((_, rest)) if r.starts_with("http") => rest.split(['?', '#', '/']).next().unwrap_or(rest).to_string(),
+        Some((_, rest)) if r.starts_with("http") => rest.split(['?', '#', '/']).next().unwrap_or(rest).to_uppercase(),
         _ => r.trim().to_uppercase(),
     }
+}
+
+/// What a ref or id names, checked before it goes anywhere near a URL.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Named {
+    /// Jira's numeric issue id.
+    Id(String),
+    /// An issue key, `PROJ-12`.
+    Key(String),
+}
+
+impl Named {
+    /// As it goes in a path: either is what `/issue/{idOrKey}` takes, and
+    /// neither has a character that needs encoding.
+    pub fn path(&self) -> &str {
+        match self {
+            Named::Id(s) | Named::Key(s) => s,
+        }
+    }
+}
+
+/// `r` -- a key, its address, or a numeric id -- checked: a key is
+/// `^[A-Z][A-Z0-9_]*-[0-9]+$` once upper-cased, an id only digits.
+/// Anything else (`../../x`, `A-1?x=1`) never reaches a request.
+pub fn named(r: &str) -> Result<Named, SeamError> {
+    let r = r.trim();
+    if !r.is_empty() && r.len() <= 20 && r.bytes().all(|b| b.is_ascii_digit()) {
+        return Ok(Named::Id(r.to_string()));
+    }
+    let key = key_of(r);
+    let ok = key.split_once('-').is_some_and(|(project, number)| {
+        project.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+            && project.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+            && !number.is_empty()
+            && number.chars().all(|c| c.is_ascii_digit())
+    });
+    if ok {
+        Ok(Named::Key(key))
+    } else {
+        Err(SeamError::new(code::BAD_REQUEST, format!("{r:?} isn't a Jira issue key or id")))
+    }
+}
+
+/// `r`, checked, as it goes in a path.
+fn checked(r: &str) -> Result<String, SeamError> {
+    named(r).map(|n| n.path().to_string())
 }
 
 /// `2026-11-12T09:15:00.000+01:00` as Jira writes a worklog's start,
@@ -305,7 +366,9 @@ impl Seam {
     pub fn issue(&self, d: &IssueDetail, me: Option<&str>) -> Option<seam::Issue> {
         let project = project_of(&d.key);
         seam::Issue {
+            id: d.id.clone(),
             key: d.key.clone(),
+            asked: None,
             url: self.settings.url(&d.key),
             project: Some(project.to_string()),
             title: d.summary.clone(),
@@ -313,7 +376,7 @@ impl Seam {
             body_cut: false,
             state: seam::State { id: d.status_id.clone(), name: d.status.clone(), stage: stage(&d.status_category).into(), column: self.settings.column(project, &d.status_id, &d.status_category, d.flagged).into() },
             kind: d.issue_type.clone(),
-            priority: d.priority.as_ref().map(|p| seam::Priority { name: p.clone(), level: self.settings.level(p).into() }),
+            priority: d.priority.as_ref().map(|p| seam::Priority { name: p.clone(), level: Some(self.settings.level(p).into()) }),
             assignee: (d.assignee.is_some() || d.assignee_id.is_some()).then(|| seam::Person { id: d.assignee_id.clone().unwrap_or_default(), name: d.assignee.clone().unwrap_or_default() }),
             mine: me.map(|me| d.assignee_id.as_deref() == Some(me)),
             labels: d.labels.clone(),
@@ -324,8 +387,19 @@ impl Seam {
         .cleaned()
     }
 
+    /// What it learned, unless it was of another server: then forgotten.
+    fn fresh(&self) {
+        let base = self.settings.base().map(str::to_string);
+        let mut learned = self.learned.borrow_mut();
+        if learned.base != base {
+            learned.forget();
+            learned.base = base;
+        }
+    }
+
     /// The token owner, asked once.
     async fn me(&self) -> Option<String> {
+        self.fresh();
         let known = self.learned.borrow().me.clone();
         if known.is_some() {
             return known;
@@ -343,6 +417,7 @@ impl Seam {
         if !self.settings.flags_anywhere() {
             return None;
         }
+        self.fresh();
         let known = self.learned.borrow().flag_field.clone();
         match known {
             Some(field) => field,
@@ -377,11 +452,11 @@ impl Seam {
             seam::call::TRANSITION | seam::call::UPDATE | seam::call::COMMENT | seam::call::WORKLOG => self.write(call, payload).await,
             seam::call::PRIORITIES => {
                 let ps = self.client.list_priorities().await.map_err(|e| self.fail(e))?;
-                json(&seam::Priorities { priorities: ps.into_iter().map(|p| seam::Priority { level: self.settings.level(&p.name).into(), name: p.name }).collect() }.cleaned())
+                json(&seam::Priorities { priorities: ps.into_iter().map(|p| seam::Priority { level: Some(self.settings.level(&p.name).into()), name: p.name }).collect() }.cleaned())
             }
             seam::call::PEOPLE if self.deployment().is_cloud() => {
                 let one: seam::One = serde_json::from_str(payload).map_err(bad)?;
-                let key = key_of(&one.key);
+                let key = checked(&one.key)?;
                 let found = self.client.assignable(&key).await.map_err(|e| self.fail(e))?;
                 let people = found.into_iter().map(|(id, name)| seam::Person { id, name }).collect();
                 json(&seam::People { people, none: Some(format!("no one can be assigned {key} in Jira -- the project's Assignable User permission says who")) }.cleaned())
@@ -394,21 +469,20 @@ impl Seam {
         }
     }
 
-    /// Every call that changes something in Jira, in one place: whatever
-    /// is to stand in front of the seam's writes stands here.
+    /// Every call that changes something in Jira, in one place.
     async fn write(&self, call: &str, payload: &str) -> Answer {
         match call {
             seam::call::TRANSITION => self.transition(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::UPDATE => self.update(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::COMMENT => {
                 let c: seam::NewComment = serde_json::from_str(payload).map_err(bad)?;
-                self.client.add_comment(&c.key, &c.body).await.map_err(|e| self.fail(e))?;
+                self.client.add_comment(&checked(&c.key)?, &c.body).await.map_err(|e| self.fail(e))?;
                 json(&seam::Said::default())
             }
             seam::call::WORKLOG => {
                 let w: seam::Worklog = serde_json::from_str(payload).map_err(bad)?;
                 let started = jira_time(&w.started).map_err(|e| SeamError::new(code::BAD_REQUEST, e))?;
-                self.client.add_worklog_at(&w.key, w.seconds, &started).await.map_err(|e| self.fail(e))?;
+                self.client.add_worklog_at(&checked(&w.key)?, w.seconds, &started).await.map_err(|e| self.fail(e))?;
                 json(&seam::Said::default())
             }
             other => Err(SeamError::new(code::UNSUPPORTED, format!("no service jira.tracker.{other}"))),
@@ -417,39 +491,94 @@ impl Seam {
 
     /// Open issues assigned to you, as the agenda's import always asked.
     async fn assigned(&self, req: seam::Assigned) -> Answer {
-        let mut jql = build_my_open_issues_jql(&self.settings.projects);
-        if let Some(since) = req.since.as_deref().and_then(jql_time) {
-            jql = jql.replacen(" ORDER BY", &format!(" AND updated >= \"{since}\" ORDER BY"), 1);
-        }
+        let jql = build_my_open_issues_jql(&self.settings.projects);
+        let start: u32 = req.cursor.as_deref().and_then(|c| c.parse().ok()).unwrap_or(0);
         let me = self.me().await;
         let flag = self.flag(false).await;
         if self.deployment().is_cloud() {
+            // Cloud's token, passed back as it came (an opaque value).
             let (found, next) = self.client.search_details_after(&jql, req.cursor.as_deref(), req.limit(), flag.as_deref()).await.map_err(|e| self.fail(e))?;
-            return json(&seam::Page { issues: found.iter().filter_map(|d| self.issue(d, me.as_deref())).collect(), next }.cleaned());
+            return json(&seam::Page { issues: found.iter().filter_map(|d| self.issue(d, me.as_deref())).collect(), next }.cleaned()?);
         }
-        let start: u32 = req.cursor.as_deref().and_then(|c| c.parse().ok()).unwrap_or(0);
         let (found, total) = self.client.search_details_page(&jql, start, req.limit(), flag.as_deref()).await.map_err(|e| self.fail(e))?;
         let end = start + found.len() as u32;
         let next = (!found.is_empty() && end < total).then(|| end.to_string());
-        json(&seam::Page { issues: found.iter().filter_map(|d| self.issue(d, me.as_deref())).collect(), next }.cleaned())
+        json(&seam::Page { issues: found.iter().filter_map(|d| self.issue(d, me.as_deref())).collect(), next }.cleaned()?)
     }
 
-    /// These issues: one fetched directly, more in one search.
+    /// These issues: one fetched directly, more in one search that
+    /// leaves out what's gone (`validateQuery=false`) -- or, should the
+    /// server still refuse the search, each fetched alone.
     async fn issues(&self, req: seam::Issues) -> Answer {
         if req.refs.len() > seam::Issues::MAX_REFS {
             return Err(SeamError::new(code::BAD_REQUEST, format!("at most {} refs a call", seam::Issues::MAX_REFS)));
         }
-        let keys: Vec<String> = req.refs.iter().map(|r| key_of(r)).collect();
         let me = self.me().await;
         let flag = self.flag(true).await;
-        let details = match keys.as_slice() {
-            [] => Vec::new(),
-            [key] => vec![self.client.get_issue_with(key, flag.as_deref()).await.map_err(|e| self.fail(e))?],
-            many => self.client.search_details(&build_keys_jql(many), many.len() as u32, flag.as_deref()).await.map_err(|e| self.fail(e))?,
-        };
-        let issues: Vec<seam::Issue> = details.iter().filter_map(|d| self.issue(d, me.as_deref())).collect();
-        let missing = req.refs.iter().zip(&keys).filter(|(_, k)| !issues.iter().any(|i| &i.key == *k)).map(|(r, _)| r.clone()).collect();
-        json(&seam::Found { issues, missing }.cleaned())
+        // What each asked names; one that names nothing Jira's is missing.
+        let asked: Vec<(String, Option<Named>)> = req.refs.iter().map(|r| (r.clone(), named(r).ok())).collect();
+        let valid: Vec<&(String, Option<Named>)> = asked.iter().filter(|(_, n)| n.is_some()).collect();
+        let mut found: Vec<seam::Issue> = Vec::new();
+        let mut missing: Vec<String> = asked.iter().filter(|(_, n)| n.is_none()).map(|(r, _)| r.clone()).collect();
+        let issue = |d: &IssueDetail, asked: &str| self.issue(d, me.as_deref()).map(|i| seam::Issue { asked: Some(asked.to_string()), ..i });
+        match valid.as_slice() {
+            [] => {}
+            // One alone: fetched directly, so a moved issue answers under
+            // its new key -- and is still what was asked.
+            [(r, Some(n))] => {
+                let d = self.client.get_issue_with(n.path(), flag.as_deref()).await.map_err(|e| self.fail(e))?;
+                found.extend(issue(&d, r));
+            }
+            many => {
+                let ids: Vec<String> = many.iter().filter_map(|(_, n)| match n {
+                    Some(Named::Id(i)) => Some(i.clone()),
+                    _ => None,
+                }).collect();
+                let keys: Vec<String> = many.iter().filter_map(|(_, n)| match n {
+                    Some(Named::Key(k)) => Some(k.clone()),
+                    _ => None,
+                }).collect();
+                let jql = build_ids_and_keys_jql(&ids, &keys);
+                match self.client.search_details_lenient(&jql, many.len() as u32, flag.as_deref()).await {
+                    Ok(details) => {
+                        for (r, n) in many {
+                            let hit = details.iter().find(|d| match n {
+                                Some(Named::Id(i)) => &d.id == i,
+                                Some(Named::Key(k)) => &d.key == k,
+                                None => false,
+                            });
+                            match hit {
+                                Some(d) => found.extend(issue(d, r)),
+                                None => missing.push(r.clone()),
+                            }
+                        }
+                    }
+                    // Refused as a query (a server that validates anyway):
+                    // one at a time, a 404 only that one's.
+                    Err(why) if why.starts_with("HTTP 400") => {
+                        for (r, n) in many {
+                            let Some(n) = n else { continue };
+                            match self.client.get_issue_with(n.path(), flag.as_deref()).await.map_err(|e| self.fail(e)) {
+                                Ok(d) => found.extend(issue(&d, r)),
+                                Err(e) if e.is(code::NOT_FOUND) => missing.push(r.clone()),
+                                Err(e) => return Err(e),
+                            }
+                        }
+                    }
+                    Err(why) => return Err(self.fail(why)),
+                }
+            }
+        }
+        json(&seam::Found { issues: found, missing }.cleaned())
+    }
+
+    /// The project issue `key` (a key or a numeric id) is in: a key's
+    /// own, or asked of Jira for an id.
+    async fn project(&self, key: &str) -> Result<String, SeamError> {
+        match named(key)? {
+            Named::Key(k) => Ok(project_of(&k).to_string()),
+            Named::Id(i) => self.client.get_issue(&i).await.map(|d| project_of(&d.key).to_string()).map_err(|e| self.fail(e)),
+        }
     }
 
     fn moved(&self, t: &Transition, project: &str, flagged: bool) -> seam::Move {
@@ -463,8 +592,9 @@ impl Seam {
 
     /// What can be done next: the workflow's transitions, and what
     /// Blocked means in the issue's project.
-    async fn transitions(&self, req: seam::Transitions) -> Answer {
-        let project = project_of(&req.key).to_string();
+    async fn transitions(&self, mut req: seam::Transitions) -> Answer {
+        req.key = checked(&req.key)?;
+        let project = self.project(&req.key).await?;
         let blocked = self.settings.blocked_for(&project);
         let from = req.from.clone().unwrap_or_default();
         let flagged = from.column == column::BLOCKED && blocked == Some(Blocked::Flag);
@@ -568,7 +698,8 @@ impl Seam {
     }
 
     /// Doing a move: a workflow transition, the Flagged field, or both.
-    async fn transition(&self, req: seam::Transition) -> Answer {
+    async fn transition(&self, mut req: seam::Transition) -> Answer {
+        req.key = checked(&req.key)?;
         let said = match req.id.as_str() {
             "local" => None,
             "flag" => {
@@ -595,26 +726,21 @@ impl Seam {
     }
 
     async fn update(&self, req: seam::Update) -> Answer {
-        let key = req.key.clone();
+        let key = checked(&req.key)?;
         let c = &self.client;
-        let done = match req.change().map_err(|e| SeamError::new(code::BAD_REQUEST, e))? {
+        let done = match req.change()? {
             Change::Title(s) => c.update_summary(&key, &s).await,
-            Change::Body(_) if c.is_cloud() => return Err(SeamError::new(code::REFUSED, crate::CLOUD_DESCRIPTION)),
+            Change::Body(_) if c.is_cloud() => return Err(SeamError::new(code::UNSUPPORTED, crate::CLOUD_DESCRIPTION)),
             Change::Body(s) => c.update_description(&key, &s).await,
             Change::Priority(p) => c.update_priority(&key, &p).await,
             Change::Due(d) => c.update_due(&key, d.as_deref()).await,
-            Change::Assignee(p) => c.update_assignee(&key, &p.id).await,
+            Change::Assignee(Some(p)) => c.update_assignee(&key, &p.id).await,
+            Change::Assignee(None) => c.unassign(&key).await,
+            Change::Labels(l) => c.update_labels(&key, &l).await,
         };
         done.map_err(|e| self.fail(e))?;
         json(&seam::Said::default())
     }
-}
-
-/// An `updated` as JQL takes it, `yyyy/MM/dd HH:mm`.
-fn jql_time(updated: &str) -> Option<String> {
-    let b = updated.as_bytes();
-    let ok = b.len() >= 16 && b[4] == b'-' && b[7] == b'-' && b[10] == b'T' && b[13] == b':';
-    ok.then(|| format!("{}/{}/{} {}", &updated[0..4], &updated[5..7], &updated[8..10], &updated[11..16]))
 }
 
 #[cfg(test)]
@@ -647,7 +773,9 @@ mod tests {
             ("HTTP 429", code::RATE_LIMITED),
             ("HTTP 400 (priority: bad)", code::REFUSED),
             ("HTTP 403", code::REFUSED),
-            ("HTTP 503", code::FAILED),
+            ("HTTP 503", code::OFFLINE),
+            ("HTTP 500", code::FAILED),
+            ("HTTP 410", code::NOT_FOUND),
             ("request failed: timed out", code::OFFLINE),
             ("Jira isn't set up yet -- set its server", code::NOT_SET_UP),
         ];
@@ -665,12 +793,10 @@ mod tests {
     }
 
     #[test]
-    fn times_are_written_as_jira_and_jql_want_them() {
+    fn times_are_written_as_jira_wants_them() {
         assert_eq!(jira_time("2026-11-12T09:15:00.000+01:00").unwrap(), "2026-11-12T09:15:00.000+0100");
         assert_eq!(jira_time("2026-11-12T09:15:00Z").unwrap(), "2026-11-12T09:15:00.000+0000");
         assert!(jira_time("Tuesday").is_err());
-        assert_eq!(jql_time("2026-11-14T09:30:00.000+0000").as_deref(), Some("2026/11/14 09:30"));
-        assert_eq!(jql_time("soon"), None);
     }
 
     #[test]

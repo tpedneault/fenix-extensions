@@ -1,0 +1,10 @@
+Logs  pod web-7d9c8b6f4-x2k4q · nginx · kind-dev/shop  following
+──────────────────────────────────────────────────────────────────────────────────────────
+GET / 200
+ERROR upstream timed out
+
+
+
+
+
+s stop/start  p previous  S since  c container  a all  t times  / filter  o buffer  G fol…
