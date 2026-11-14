@@ -1,0 +1,9 @@
+# Scala, which Fenix doesn't highlight itself: tree-sitter-scala's grammar
+# (0.24.0, Scala 2 and 3), compiled to WebAssembly, and the pack's queries
+# from queries/scala. `.sc` is Ammonite's and scala-cli's scripts and Mill's
+# old build files, `.sbt` sbt's, `.mill` Mill's own (`build.mill`). The
+# server is the extension's to set, once it has found Metals.
+language = "scala"
+grammar = "grammars/tree-sitter-scala.wasm"
+extensions = ["scala", "sc", "sbt", "mill"]
+comment = "//"

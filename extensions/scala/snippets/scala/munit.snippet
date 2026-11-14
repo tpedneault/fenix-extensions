@@ -1,0 +1,11 @@
+# name: MUnit suite
+# key: munit
+# scope: scala
+# --
+import munit.FunSuite
+
+class ${1:Orbit}Suite extends FunSuite:
+  test("${2:it works}") {
+    assertEquals(${3:1 + 1}, ${4:2})
+  }
+$0

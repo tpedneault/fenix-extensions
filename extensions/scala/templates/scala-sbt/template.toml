@@ -1,0 +1,48 @@
+[template]
+name = "Scala · sbt project"
+kind = "other"
+group = "Scala"
+description = "An sbt project: its build, scalafmt's configuration, a Main to run and a MUnit suite to test, for Scala 3 or Scala 2.13."
+needs = ["sbt"]
+open = ["src/main/scala/Main.scala"]
+
+[[ask]]
+key = "scala"
+label = "Scala"
+choices = ["3.10.1", "3.3.6", "2.13.17"]
+default = "3.10.1"
+hint = "3.3.6 is Scala 3's long-term support line; sbt downloads the compiler on the first compile"
+
+[[file]]
+path = "build.sbt"
+from = "build.sbt"
+
+[[file]]
+path = "project/build.properties"
+from = "build.properties"
+
+[[file]]
+path = ".scalafmt.conf"
+from = "scalafmt.conf"
+
+[[file]]
+path = ".gitignore"
+from = "gitignore"
+
+[[file]]
+path = "README.md"
+from = "README.md"
+
+[[file]]
+path = "src/main/scala/Main.scala"
+from = "Main3.scala"
+when = "scala != 2.13.17"
+
+[[file]]
+path = "src/main/scala/Main.scala"
+from = "Main2.scala"
+when = "scala == 2.13.17"
+
+[[file]]
+path = "src/test/scala/MainSuite.scala"
+from = "MainSuite.scala"
