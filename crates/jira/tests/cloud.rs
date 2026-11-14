@@ -233,6 +233,7 @@ fn a_new_issue_is_v3_with_its_description_as_rich_text() {
     assert_eq!(body["fields"]["description"]["content"][0]["content"][1], serde_json::json!({"type": "hardBreak"}));
     // The page's description edit is refused, as the seam's is.
     assert!(block_on(client.update_description("PROJ-1", "x")).unwrap_err().starts_with("Jira Cloud keeps"));
+    assert_eq!(block_on(client.get_issue("PROJ-1")).unwrap().id, "10201", "Jira's own id, kept beside the key");
     assert_eq!(block_on(client.myself()), Ok("5b10ac8d82e05b22cc7d4ef5".to_string()), "an account id, not a username");
     jira.on("GET", "/rest/api/3/search/jql?jql=project", 200, std::fs::read_to_string(fixtures().join("search-jql-linked.json")).unwrap());
     let rows = block_on(client.search_issues("project = PROJ", 50)).unwrap();

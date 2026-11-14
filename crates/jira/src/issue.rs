@@ -33,6 +33,9 @@ pub struct Comment {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct IssueDetail {
     pub key: String,
+    /// Jira's own id for it (`10201`): unlike the key, it stays when the
+    /// issue moves to another project. Empty when the answer hadn't it.
+    pub id: String,
     pub summary: String,
     pub description: Option<String>,
     pub status: String,
@@ -315,6 +318,7 @@ fn parse_issue_detail(v: &serde_json::Value, flag_field: Option<&str>) -> Option
         .unwrap_or_default();
     Some(IssueDetail {
         key,
+        id: v.get("id").and_then(|i| i.as_str()).unwrap_or_default().to_string(),
         summary: text_field(fields, "summary").unwrap_or_default(),
         description: rich_text(fields, "description"),
         status: fields.get("status").and_then(|s| s.get("name")).and_then(|n| n.as_str()).unwrap_or("Unknown").to_string(),

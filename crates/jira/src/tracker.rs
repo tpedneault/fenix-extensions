@@ -374,8 +374,7 @@ impl Seam {
             seam::call::ASSIGNED => self.assigned(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::ISSUES => self.issues(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::TRANSITIONS => self.transitions(serde_json::from_str(payload).map_err(bad)?).await,
-            seam::call::TRANSITION => self.transition(serde_json::from_str(payload).map_err(bad)?).await,
-            seam::call::UPDATE => self.update(serde_json::from_str(payload).map_err(bad)?).await,
+            seam::call::TRANSITION | seam::call::UPDATE | seam::call::COMMENT | seam::call::WORKLOG => self.write(call, payload).await,
             seam::call::PRIORITIES => {
                 let ps = self.client.list_priorities().await.map_err(|e| self.fail(e))?;
                 json(&seam::Priorities { priorities: ps.into_iter().map(|p| seam::Priority { level: self.settings.level(&p.name).into(), name: p.name }).collect() }.cleaned())
@@ -391,6 +390,16 @@ impl Seam {
                 let people = self.settings.users.iter().map(|(id, name)| seam::Person { id: id.clone(), name: name.clone() }).collect();
                 json(&seam::People { people, none: Some(format!("no people to assign to -- a on the Jira page ({}) adds one", self.settings.keys.page)) }.cleaned())
             }
+            other => Err(SeamError::new(code::UNSUPPORTED, format!("no service jira.tracker.{other}"))),
+        }
+    }
+
+    /// Every call that changes something in Jira, in one place: whatever
+    /// is to stand in front of the seam's writes stands here.
+    async fn write(&self, call: &str, payload: &str) -> Answer {
+        match call {
+            seam::call::TRANSITION => self.transition(serde_json::from_str(payload).map_err(bad)?).await,
+            seam::call::UPDATE => self.update(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::COMMENT => {
                 let c: seam::NewComment = serde_json::from_str(payload).map_err(bad)?;
                 self.client.add_comment(&c.key, &c.body).await.map_err(|e| self.fail(e))?;
