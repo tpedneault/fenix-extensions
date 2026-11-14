@@ -1,0 +1,67 @@
+{
+  "data": {
+    "issue": {
+      "id": "1550e000-0000-4000-8000-000000000012",
+      "identifier": "ENG-12",
+      "state": {
+        "id": "57000000-0000-4000-8000-000000000004"
+      },
+      "team": {
+        "id": "5e000000-0000-4000-8000-0000000000e1",
+        "key": "ENG",
+        "states": {
+          "nodes": [
+            {
+              "id": "57000000-0000-4000-8000-000000000008",
+              "name": "Duplicate",
+              "type": "canceled",
+              "position": 7
+            },
+            {
+              "id": "57000000-0000-4000-8000-000000000007",
+              "name": "Canceled",
+              "type": "canceled",
+              "position": 6
+            },
+            {
+              "id": "57000000-0000-4000-8000-000000000006",
+              "name": "Done",
+              "type": "completed",
+              "position": 5
+            },
+            {
+              "id": "57000000-0000-4000-8000-000000000005",
+              "name": "In Review",
+              "type": "started",
+              "position": 4
+            },
+            {
+              "id": "57000000-0000-4000-8000-000000000004",
+              "name": "In Progress",
+              "type": "started",
+              "position": 3
+            },
+            {
+              "id": "57000000-0000-4000-8000-000000000003",
+              "name": "Todo",
+              "type": "unstarted",
+              "position": 2
+            },
+            {
+              "id": "57000000-0000-4000-8000-000000000002",
+              "name": "Backlog",
+              "type": "backlog",
+              "position": 1
+            },
+            {
+              "id": "57000000-0000-4000-8000-000000000001",
+              "name": "Triage",
+              "type": "triage",
+              "position": 0
+            }
+          ]
+        }
+      }
+    }
+  }
+}

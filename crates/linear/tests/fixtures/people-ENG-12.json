@@ -1,0 +1,30 @@
+{
+  "data": {
+    "issue": {
+      "team": {
+        "members": {
+          "nodes": [
+            {
+              "id": "7a1c2b3d-0000-4000-8000-0000000000a1",
+              "name": "Jo Bloggs",
+              "displayName": "jo",
+              "active": true
+            },
+            {
+              "id": "7a1c2b3d-0000-4000-8000-0000000000a2",
+              "name": "Amy Park",
+              "displayName": "amy",
+              "active": true
+            },
+            {
+              "id": "7a1c2b3d-0000-4000-8000-0000000000a3",
+              "name": "Former Colleague",
+              "displayName": "old",
+              "active": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

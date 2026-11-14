@@ -1,0 +1,24 @@
+[package]
+name = "fenix-linear-client"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Linear's GraphQL API, async over a transport, and the tracker seam served over it: shared by the Linear extension and the agenda's tests."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# The seam's shapes and cleaning.
+fenix-tracker = { path = "../tracker" }
+
+[dev-dependencies]
+futures-executor = "0.3"
+# Every query this crate sends, read and held to Linear's schema.
+graphql-parser = "0.4"
+# The agenda run against this tracker's answers (`tests/agenda.rs`).
+fenix-agenda = { path = "../../extensions/agenda", features = ["testing"] }
+fenix-test-kit = { path = "../test-kit" }
+
+# Built with whichever extension uses it.
+[workspace]
