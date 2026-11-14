@@ -57,7 +57,7 @@ fn linked_issues_come_back_as_the_seam_has_them() {
     assert_eq!(one.title, "Fix the login timeout");
     assert_eq!(one.body, "Users are logged out after 5 minutes.\n\n*Steps*\n# Log in\n# Wait", "wiki markup as it is, line ends as \\n");
     assert_eq!((one.state.id.as_str(), one.state.name.as_str(), one.state.stage.as_str(), one.state.column.as_str()), ("3", "In Progress", "doing", "doing"));
-    assert_eq!(one.priority.as_ref().map(|p| (p.name.as_str(), p.level.as_str())), Some(("Major", "high")));
+    assert_eq!(one.priority.as_ref().map(|p| (p.name.as_str(), p.level.as_deref())), Some(("Major", Some("high"))));
     assert_eq!(one.assignee.as_ref().map(|p| (p.id.as_str(), p.name.as_str())), Some(("jo1", "Jo Bloggs")));
     assert_eq!(one.mine, Some(true));
     assert_eq!(one.labels, ["auth", "backend"]);
@@ -68,9 +68,9 @@ fn linked_issues_come_back_as_the_seam_has_them() {
 
     // On Hold is what Blocked means in PROJ; OPS's Blocked is the flag.
     assert_eq!((two.state.stage.as_str(), two.state.column.as_str()), ("doing", "blocked"));
-    assert_eq!(two.priority.as_ref().unwrap().level, "medium", "jira.priorities over the guess");
+    assert_eq!(two.priority.as_ref().unwrap().level.as_deref(), Some("medium"), "jira.priorities over the guess");
     assert_eq!((ops.state.column.as_str(), ops.mine), ("blocked", Some(false)));
-    assert_eq!(ops.priority.as_ref().unwrap().level, "urgent");
+    assert_eq!(ops.priority.as_ref().unwrap().level.as_deref(), Some("urgent"));
 
     // As the agenda asked before: who you are, the Flagged field, one search.
     let asked = jira.asked();
@@ -195,7 +195,7 @@ fn writes_are_the_requests_the_agenda_sent_before() {
         assert_eq!((sent.0.as_str(), sent.1.as_deref()), (request, Some(body)), "{name}");
     }
     let priorities: fenix_tracker::Priorities = serde_json::from_str(&call(&seam, "priorities", serde_json::json!({"seam": 1, "ref": "PROJ-1"})).unwrap()).unwrap();
-    assert_eq!(priorities.priorities.iter().map(|p| format!("{} {}", p.name, p.level)).collect::<Vec<_>>(), ["Highest urgent", "High high", "Major high", "Minor medium", "Lowest low"]);
+    assert_eq!(priorities.priorities.iter().map(|p| format!("{} {}", p.name, p.level.as_deref().unwrap_or("none"))).collect::<Vec<_>>(), ["Highest urgent", "High high", "Major high", "Minor medium", "Lowest low"]);
     let people: fenix_tracker::People = serde_json::from_str(&call(&seam, "people", serde_json::json!({"seam": 1, "ref": "PROJ-1"})).unwrap()).unwrap();
     assert_eq!(people.people.len(), 2);
     assert_eq!(people.none.as_deref(), Some("no people to assign to -- a on the Jira page (SPC j j) adds one"));

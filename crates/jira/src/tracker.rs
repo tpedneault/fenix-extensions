@@ -203,6 +203,7 @@ pub fn about(settings: &Settings, ready: bool) -> seam::About {
         project_meta: Some("jira".into()),
         browse: settings.base().map(|b| format!("{b}/browse/{{ref}}")),
         ref_hint: Some("PROJ-123".into()),
+        blocked: true,
     }
 }
 
@@ -337,7 +338,7 @@ impl Seam {
             body_cut: false,
             state: seam::State { id: d.status_id.clone(), name: d.status.clone(), stage: stage(&d.status_category).into(), column: self.settings.column(project, &d.status_id, &d.status_category, d.flagged).into() },
             kind: d.issue_type.clone(),
-            priority: d.priority.as_ref().map(|p| seam::Priority { name: p.clone(), level: self.settings.level(p).into() }),
+            priority: d.priority.as_ref().map(|p| seam::Priority { name: p.clone(), level: Some(self.settings.level(p).into()) }),
             assignee: (d.assignee.is_some() || d.assignee_id.is_some()).then(|| seam::Person { id: d.assignee_id.clone().unwrap_or_default(), name: d.assignee.clone().unwrap_or_default() }),
             mine: me.map(|me| d.assignee_id.as_deref() == Some(me)),
             labels: d.labels.clone(),
@@ -414,7 +415,7 @@ impl Seam {
             seam::call::UPDATE => self.update(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::PRIORITIES => {
                 let ps = self.client.list_priorities().await.map_err(classify)?;
-                json(&seam::Priorities { priorities: ps.into_iter().map(|p| seam::Priority { level: self.settings.level(&p.name).into(), name: p.name }).collect() }.cleaned())
+                json(&seam::Priorities { priorities: ps.into_iter().map(|p| seam::Priority { level: Some(self.settings.level(&p.name).into()), name: p.name }).collect() }.cleaned())
             }
             seam::call::PEOPLE => {
                 let people = self.settings.users.iter().map(|(id, name)| seam::Person { id: id.clone(), name: name.clone() }).collect();
