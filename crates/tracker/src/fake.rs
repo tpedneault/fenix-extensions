@@ -185,8 +185,9 @@ impl FakeTracker {
     pub fn serve(&self, name: &str, payload: &str) -> Result<String, String> {
         let mut s = self.0.borrow_mut();
         s.calls.push((name.into(), payload.into()));
+        let me = s.about.as_ref().map(|a| a.id.clone()).filter(|i| !i.is_empty()).unwrap_or_else(|| "fake".into());
         if s.unserved.iter().any(|u| u == name) {
-            return Err(format!("no service fake.tracker.{name}"));
+            return Err(format!("no service {me}.tracker.{name}"));
         }
         if let Some(err) = s.failing.get(name) {
             return Err(err.to_err());
@@ -286,7 +287,7 @@ impl FakeTracker {
                 s.remembered.push(req.remember);
                 json(&Said::default())
             }
-            other => Err(format!("no service fake.tracker.{other}")),
+            other => Err(format!("no service {me}.tracker.{other}")),
         }
     }
 }
