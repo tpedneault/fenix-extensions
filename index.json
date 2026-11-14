@@ -2797,6 +2797,42 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/lua-v1.2.0/fenix.lua-1.2.0.fenixext",
+          "sha256": "33f44cf3f8eaa3c1e9b1794a6871831fd8c5a4c671b1ea6a8e2a51beb2f8ff3e",
+          "size": 330194,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "lua",
+              "luajit",
+              "luarocks",
+              "busted",
+              "love",
+              "lua-language-server",
+              "stylua",
+              "selene",
+              "luacheck",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Lua",
