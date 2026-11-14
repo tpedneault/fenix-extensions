@@ -1,0 +1,10 @@
+tinymist 
+Build Timestamp:     2026-11-03T06:19:51.256320801Z
+Build Git Describe:  VERGEN_IDEMPOTENT_OUTPUT
+Commit SHA:          VERGEN_IDEMPOTENT_OUTPUT
+Commit Date:         None
+Commit Branch:       None
+Cargo Target Triple: x86_64-unknown-linux-gnu
+Typst Version:       0.15.1
+Typst Source:        git+https://github.com/Myriad-Dreamin/typst.git?tag=tinymist/v0.15.1#59b5999da8e74e74583069408d2564fc1f9bc973
+

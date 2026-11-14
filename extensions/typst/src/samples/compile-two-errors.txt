@@ -1,0 +1,2 @@
+h3.typ:1:2: error: unclosed delimiter
+h3.typ:2:9: error: unclosed delimiter

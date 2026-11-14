@@ -1,0 +1,1 @@
+main.typ:5:9: error: unknown variable: undefined-name

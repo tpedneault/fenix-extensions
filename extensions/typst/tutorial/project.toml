@@ -1,0 +1,65 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor and a fix from it, a task, formatting and checking on save
+# -- filled in for Typst, with what is Typst's own: compiling and seeing the
+# PDF. Typst has no packages page or debugger here, so it has the pairs of
+# steps that apply. See "Tutorial lessons" in the repository's
+# CONTRIBUTING.md.
+id = "typst.project"
+track = "Typst"
+order = 1
+title = "A Typst project: doctor, compile, preview, formatting"
+about = "In a Typst project of yours (a folder with a main.typ; the Typst · article template makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Typst document in Fenix: what it needs, compiling it, its PDF beside it,
+and formatting as you save.
+
+SPC p h   the project doctor: Typst, tinymist and typstyle, each checked,
+          each with a fix that installs it (f runs the fix on the row,
+          r checks again, q closes it)
+SPC p t   the tasks: compile, compile (png), fonts, format -check
+SPC m c   compile the document: its errors become problems, and the PDF
+          opens in the PDF reader (the fenix.pdf extension) the first time
+SPC m w   watch: compile again whenever a file changes (again to stop)
+SPC m p   open the PDF again
+SPC ,     the settings: editor.format_on_save, typst.compile_on_save
+SPC c F   format the file with typstyle
+
+A document to try it on, if you have none; put it in main.typ of a folder
+of its own, and open that folder as a project:
+
+#set page(paper: "a4")
+= Hello
+Typst reads like text. #lorem(20)
+
+$ sum_(k=1)^n k = (n (n + 1)) / 2 $
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Typst, tinymist and typstyle, each checked."
+hint = "SPC p, then h. In a project with a typst.toml or .typ files: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix: f on one downloads the release from GitHub, checks its SHA-256 and uses it at once -- Typst compiles, tinymist is the language server, typstyle the formatter. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC p t: the project's tasks -- compile, compile (png), fonts and format -check."
+hint = "SPC p, then t. Without Typst, or in a folder with no Typst files, there are few: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick compile and Enter: typst compile runs in Task Output and writes the PDF beside main.typ (q there closes it). SPC m c does the same from the file, shows its errors as problems, and opens the PDF in the reader. Or Esc."
+hint = "Type comp to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Typst file then runs typstyle on it. typst.compile_on_save compiles on each save too."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a .typ file now: it's formatted. With typst.compile_on_save on, it's compiled, and its errors come with tinymist's -- and the PDF in the reader reloads by itself."
+hint = "q, on the settings page."
+closed = "settings"

@@ -1,0 +1,2 @@
+w.typ:6:6: error: unexpected argument
+w.typ:1:16: warning: unknown font family: no such font

@@ -1,0 +1,13 @@
+# name: Template function
+# key: tmpl
+# scope: typst
+# --
+#let ${1:template}(title: "${2:Title}", body) = {
+  set document(title: title)
+  set page(numbering: "1")
+  align(center, text(1.6em, weight: "bold", title))
+  body
+}
+
+#show: $1.with(title: "$2")
+$0

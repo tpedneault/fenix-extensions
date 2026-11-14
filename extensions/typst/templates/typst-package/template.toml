@@ -1,0 +1,20 @@
+[template]
+name = "Typst · package"
+kind = "other"
+group = "Typst"
+description = "A package for Typst's universe or your own: a typst.toml with its name, version and entrypoint, a lib.typ with a function and its documentation, a main.typ that imports it as an example, and a README."
+needs = ["typst"]
+open = ["lib.typ"]
+
+[[ask]]
+key = "author"
+label = "Author"
+default = "Ada Lovelace"
+hint = "in typst.toml's authors"
+
+[[ask]]
+key = "license"
+label = "Licence"
+choices = ["MIT", "Apache-2.0", "MIT-0", "GPL-3.0-or-later"]
+default = "MIT"
+hint = "an SPDX identifier; the Typst universe takes OSI-approved ones"
