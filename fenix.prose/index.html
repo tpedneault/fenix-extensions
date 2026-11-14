@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prose · Fenix extensions</title>
+<meta name="description" content="Spelling and grammar in the languages you name, offline: Harper added beside their language servers, installed with a checksum, with a project word list and a command that adds the word under the cursor">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Prose</h1>
+<p class="id"><code>fenix.prose</code></p>
+<p class="lead">Spelling and grammar in the languages you name, offline: Harper added beside their language servers, installed with a checksum, with a project word list and a command that adds the word under the cursor</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>290 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/prose">extensions/prose</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Prose</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/prose-v1.0.0/fenix.prose-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.prose-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>harper-ls</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads and changes the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Spelling and grammar in the languages you name, offline: Harper added
+beside their language servers, so what it finds shows in the problems
+list and the margin like any other problem, with a word list for the
+project. Built on lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It starts with Fenix. It needs Fenix 1.5 or later (extension API 1.5).</p>
+<h3 id="readme-what-it-checks">What it checks</h3>
+<p><a href="https://writewithharper.com">Harper</a> (<code>harper-ls</code>, Apache-2.0), a
+grammar and spelling checker that runs on your machine: <strong>it&#39;s offline</strong>.
+Nothing you write leaves it, and nothing is sent anywhere once Harper is
+downloaded (the download is the one network use, below). It checks
+spelling, repeated words, a/an, punctuation, capitalisation, common
+confusions and some grammar, in English.</p>
+<p>It reads the languages in <code>prose.languages</code>, by Fenix&#39;s names for them,
+and nothing else; by default that&#39;s <code>markdown</code>.</p>
+<div class="table"><table>
+<thead><tr><th>Language</th><th>What Harper reads</th></tr></thead>
+<tbody>
+<tr><td><code>markdown</code></td><td>The text: not code blocks, URLs or inline code.</td></tr>
+<tr><td><code>html</code></td><td>The text of the page.</td></tr>
+<tr><td><code>rust</code>, <code>python</code>, <code>go</code>, <code>java</code>, <code>javascript</code>, <code>typescript</code>, <code>c</code>, <code>cpp</code>, <code>csharp</code>, <code>lua</code>, <code>ruby</code>, <code>php</code>, <code>kotlin</code>, <code>swift</code>, <code>haskell</code>, <code>zig</code>, <code>toml</code></td><td>Comments, and doc comments as Markdown. Not strings or identifiers.</td></tr>
+</tbody>
+</table></div>
+<p>Not every language Fenix has: Harper calls <code>bash</code> and <code>tsx</code> by other
+names than Fenix does, so it reads nothing in them. Name a code language
+only if you want its comments checked: Harper is made for prose, and
+comments full of code terms will show words it doesn&#39;t know (add them to
+the project&#39;s list).</p>
+<h4 id="readme-plain-text-and-commit-messages">Plain text and commit messages</h4>
+<p>Harper reads both, but the pack can&#39;t hand them to it: Fenix adds a
+server by its <strong>language</strong>, and plain text and a commit message
+(<code>COMMIT_EDITMSG</code>) are no language of Fenix&#39;s. Until they are, you can
+read one as Markdown with a language file of your own, in your settings
+folder (<code>languages/text.toml</code>):</p>
+<pre><code class="language-toml">language = &quot;markdown&quot;
+extensions = [&quot;txt&quot;]
+filenames = [&quot;COMMIT_EDITMSG&quot;, &quot;TAG_EDITMSG&quot;, &quot;MERGE_MSG&quot;]
+</code></pre>
+<p>That makes Fenix highlight those files as Markdown too, which is why the
+pack doesn&#39;t ship it.</p>
+<h3 id="readme-fixes">Fixes</h3>
+<p>Harper&#39;s suggestions are code actions, and it offers to add a word to its
+dictionaries. <strong>Fenix&#39;s <code>SPC c a</code> applies only an action that is a plain
+edit</strong>, and Harper marks each of its suggestions with a command that
+records a statistic, and its dictionary actions are commands: until Fenix
+runs those, <code>SPC c a</code> lists no Harper fix. The finding and its message
+show; fix the text by hand, and add a word with the pack&#39;s own commands (Words, below).</p>
+<h3 id="readme-words">Words</h3>
+<p>The project&#39;s word list is <code>.fenix/words.txt</code> (<code>prose.words</code>): one word a
+line, sorted, as Harper writes it. Harper is told it&#39;s its workspace
+dictionary, so a word in it isn&#39;t a finding in any file of the project;
+words are case-sensitive, and the list is the project&#39;s to keep in Git.</p>
+<ul class="tight">
+<li><p><code>SPC m w</code> (<code>prose.add-word</code>): the word under the cursor, or the single
+word you&#39;ve selected, is added, and Harper checks the open files again
+at once.</p></li>
+<li><p><code>SPC m W</code> (<code>prose.words</code>): the list, opened; made empty if the project
+has none.</p></li>
+</ul>
+<p>Harper&#39;s own <em>user</em> dictionary (words for every project) is a file in its
+own configuration folder, which an extension can&#39;t write: it isn&#39;t
+offered here. Harper&#39;s other code action, ignoring one finding, saves
+where Harper keeps those.</p>
+<h3 id="readme-settings">Settings</h3>
+<p><code>SPC ,</code>. Each can be set for one project (<code>.fenix/settings.toml</code>), which
+is how it&#39;s switched off for a project.</p>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>prose.enabled</code></td><td><code>true</code></td><td>Off: Harper isn&#39;t added for the project.</td></tr>
+<tr><td><code>prose.languages</code></td><td><code>markdown</code></td><td>Fenix&#39;s names, separated by commas. Changed, Harper is started again for the new set.</td></tr>
+<tr><td><code>prose.severity</code></td><td><code>information</code></td><td><code>error</code>, <code>warning</code>, <code>information</code> or <code>hint</code>: how its findings show.</td></tr>
+<tr><td><code>prose.dialect</code></td><td><code>American</code></td><td><code>American</code>, <code>British</code>, <code>Canadian</code>, <code>Australian</code> or <code>Indian</code>: the spelling it holds you to.</td></tr>
+<tr><td><code>prose.words</code></td><td><code>.fenix/words.txt</code></td><td>The project&#39;s word list, a path under the project.</td></tr>
+</tbody>
+</table></div>
+<p>To turn a rule off, or set what the pack doesn&#39;t, use the project&#39;s own
+<code>.fenix/lsp/harper.json</code> (read once the project is trusted), in Harper&#39;s
+section: <code>{&quot;harper-ls&quot;: {&quot;linters&quot;: {&quot;SpellCheck&quot;: false}}}</code>. The pack&#39;s
+settings win over the file&#39;s where both say a thing.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<p><code>SPC p h</code>:</p>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>Harper (grammar and spelling)</td><td><code>harper-ls --version</code>; a warning when it isn&#39;t found</td><td>Install Harper 3.2.0</td></tr>
+<tr><td>Prose checking</td><td>The languages and the word list in use, or why none is: off for the project, no language named, waiting for Harper</td><td></td></tr>
+</tbody>
+</table></div>
+<p><code>SPC m d</code> checks again. Harper is looked for in the pack&#39;s tools folder
+first, then <code>PATH</code> and Cargo&#39;s, Homebrew&#39;s and Scoop&#39;s folders: a Harper
+you installed yourself (<code>cargo install harper-ls</code>, <code>brew install harper</code>) is used as it is found.</p>
+<h3 id="readme-what-it-downloads">What it downloads</h3>
+<p>Harper 3.2.0 from its GitHub release, once, into the pack&#39;s tools folder
+(<code>/tools/harper</code>), when you run the fix row or <code>prose.install.harper</code>.
+The release is pinned, and Fenix refuses a download that isn&#39;t the file
+whose SHA-256 is in the pack:</p>
+<div class="table"><table>
+<thead><tr><th>Machine</th><th>File</th><th>Download</th><th>Installed</th></tr></thead>
+<tbody>
+<tr><td>Linux x86-64</td><td><code>harper-ls-x86_64-unknown-linux-musl.tar.gz</code> (static)</td><td>14.8 MB</td><td>65 MB</td></tr>
+<tr><td>Linux ARM64</td><td><code>harper-ls-aarch64-unknown-linux-gnu.tar.gz</code></td><td>14.2 MB</td><td>64 MB</td></tr>
+<tr><td>macOS Intel</td><td><code>harper-ls-x86_64-apple-darwin.tar.gz</code></td><td>14.1 MB</td><td>62 MB</td></tr>
+<tr><td>macOS Apple silicon</td><td><code>harper-ls-aarch64-apple-darwin.tar.gz</code></td><td>14.0 MB</td><td>61 MB</td></tr>
+<tr><td>Windows x86-64</td><td><code>harper-ls-x86_64-pc-windows-msvc.zip</code></td><td>13.8 MB</td><td>62 MB</td></tr>
+</tbody>
+</table></div>
+<p>Harper publishes no checksums, so the SHA-256s in <code>src/tools.rs</code> are of
+the files as they were downloaded from the release on 13 November 2026:
+they pin what was there then, and prove no more than that. There&#39;s no
+build for Windows on ARM; there the doctor says Harper isn&#39;t found, with
+no fix row, and a Harper of your own is used.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run <code>harper-ls</code></strong> (<code>permissions.process</code>), where the pack installs it
+(<code>/tools/*</code>) or it&#39;s found, as the language server; and ask its
+version for the doctor. No other program.</p></li>
+<li><p><strong>Reach <code>github.com</code></strong> and the hosts GitHub sends release downloads
+from (<code>permissions.network</code>): to download Harper, when you ask. Nothing
+else, and nothing of yours.</p></li>
+<li><p><strong>Write in the project</strong> (<code>filesystem = &quot;project-write&quot;</code>): the word
+list, <code>.fenix/words.txt</code>, when you add a word or open it. Nothing else
+is written, and a <code>prose.words</code> outside the project is refused.</p></li>
+<li><p><strong>Read where the cursor is</strong> (<code>editor = &quot;read&quot;</code>): the word under it
+or your selection, for <code>prose.add-word</code>.</p></li>
+</ul>
+<p>Harper itself runs as a language server of the project, as any does: it&#39;s
+given the files you have open, and reads and writes the word list.</p>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/prose dist
+cargo xtask install extensions/prose
+cargo test --manifest-path extensions/prose/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> runs the pack on the test kit&#39;s fake host: Harper is added
+for exactly the languages named, with its settings, and taken away when
+the project switches it off or names none; a setting changed is set again
+where it changed; each machine&#39;s install is its release and checksum; the
+word under the cursor goes in the list where Harper reads it, sorted and
+once, and Harper is told; and the data -- that the manifest lists every
+command the code and keymap use, its settings against what the code
+reads, the lesson (<code>src/data.rs</code>, <code>src/tests.rs</code>).</p>
+<p>What can&#39;t be tested here is Harper in Fenix: that it attaches, that a
+finding is drawn, and what <code>SPC c a</code> shows.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>290 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/prose-v1.0.0/fenix.prose-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 580e62dc73e720f4d9c4fed207bc119e3ab319815e70e5366db1770078ea0683">580e62dc73…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.5: spelling and grammar, offline. Harper
+(3.2.0) is added beside the language servers of the languages you name
+(<code>prose.languages</code>; Markdown to begin with), so its findings are
+problems, and is installed into the tools folder from its release, held to a
+SHA-256, by a fix row on the project doctor&#39;s page.</p></li>
+<li><p>A project word list, <code>.fenix/words.txt</code>, that Harper reads: <code>SPC m w</code>
+adds the word under the cursor, <code>SPC m W</code> opens the list.</p></li>
+<li><p>Settings, each settable for one project: on or off, the languages, how
+severe a finding is, the dialect of English, and where the word list is.</p></li>
+<li><p>Harper&#39;s own fixes aren&#39;t offered by <code>SPC c a</code> yet: Fenix applies only an
+action that is a plain edit, and Harper&#39;s carry a command. Plain text and
+commit messages aren&#39;t Fenix languages, so they aren&#39;t read until you map
+them to Markdown (README).</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
