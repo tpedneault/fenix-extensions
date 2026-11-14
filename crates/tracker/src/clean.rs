@@ -8,6 +8,11 @@ use crate::{column, level};
 
 /// The most a `ref` is, in bytes.
 pub const REF_BYTES: usize = 200;
+/// The most an id (an issue's, a state's, a person's, a move's) is, in
+/// bytes. Ids are opaque: kept byte for byte, or not at all.
+pub const ID_BYTES: usize = 512;
+/// The most a cursor or a `remember` is, in bytes; opaque as ids are.
+pub const OPAQUE_BYTES: usize = 4096;
 /// The most a URL is, in bytes.
 pub const URL_BYTES: usize = 2048;
 /// The most a title is, in characters.
@@ -36,16 +41,20 @@ pub const PEOPLE: usize = 500;
 pub const PRIORITIES: usize = 100;
 
 /// A character never shown: control characters (but newline and tab,
-/// which the callers decide about), DEL, C1 controls, the bidirectional
-/// overrides and isolates that can make text read other than it is, and
-/// the byte-order mark.
-fn hidden(c: char) -> bool {
-    (c < ' ' && c != '\n' && c != '\t')
-        || c == '\u{7f}'
-        || ('\u{80}'..='\u{9f}').contains(&c)
-        || ('\u{202a}'..='\u{202e}').contains(&c)
-        || ('\u{2066}'..='\u{2069}').contains(&c)
-        || c == '\u{feff}'
+/// which the callers decide about), DEL, C1 controls, and the invisible
+/// format characters that can make text read other than it is or hide
+/// text in it -- the bidirectional marks, overrides and isolates
+/// (LRM, RLM, ALM among them), the zero-width characters, the word
+/// joiner and invisible operators, the soft hyphen, the byte-order mark,
+/// the interlinear annotation marks, the fillers that draw nothing, and
+/// the tag characters (U+E0000 to U+E007F), which spell hidden ASCII.
+pub fn hidden(c: char) -> bool {
+    matches!(c,
+        '\u{0}'..='\u{8}' | '\u{b}'..='\u{1f}' | '\u{7f}'..='\u{9f}'
+        | '\u{ad}' | '\u{34f}' | '\u{61c}' | '\u{115f}' | '\u{1160}' | '\u{17b4}' | '\u{17b5}' | '\u{180b}'..='\u{180f}'
+        | '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{206f}'
+        | '\u{3164}' | '\u{feff}' | '\u{ffa0}' | '\u{fff9}'..='\u{fffb}'
+        | '\u{1d173}'..='\u{1d17a}' | '\u{e0000}'..='\u{e007f}')
 }
 
 /// `s` with line ends as `\n` and nothing hidden.
@@ -106,9 +115,25 @@ pub fn key(s: &str) -> Option<String> {
     ok.then(|| s.to_string())
 }
 
-/// An id that may be empty (a state's): as [`key`], or empty.
+/// An opaque value -- an id, a cursor, a `remember` -- kept byte for
+/// byte when it's at most `max` bytes, and not at all when it's longer
+/// or empty: never cut, trimmed or cleaned, since it goes back to the
+/// tracker as it came. Spaces are fine (`workflow::In Review`). Shown,
+/// it goes through [`line`] first.
+pub fn opaque(s: &str, max: usize) -> Option<String> {
+    (!s.is_empty() && s.len() <= max).then(|| s.to_string())
+}
+
+/// An id that may be empty (a state's, a person's): as [`opaque`], or
+/// empty.
 fn id(s: &str) -> String {
-    key(s).unwrap_or_default()
+    opaque(s, ID_BYTES).unwrap_or_default()
+}
+
+/// Whether an answer is too big to read at all: bigger than an answer
+/// may be, and some.
+pub fn too_big(answer: &str) -> bool {
+    answer.len() > ANSWER_BYTES + 64 * 1024
 }
 
 /// A URL to open in a browser: `http` or `https`, nothing hidden, no
@@ -189,8 +214,14 @@ impl Issue {
         if comments.len() > COMMENTS {
             comments.drain(..comments.len() - COMMENTS);
         }
+        let id = match self.id.as_str() {
+            "" => key.clone(),
+            given => opaque(given, ID_BYTES)?,
+        };
         Some(Issue {
+            id,
             key,
+            asked: self.asked.as_deref().and_then(|a| opaque(a, URL_BYTES)),
             url: self.url.as_deref().and_then(url),
             project: self.project.as_deref().map(name).filter(|p| !p.is_empty()),
             title: line(&self.title, TITLE),
@@ -236,10 +267,16 @@ pub fn fit(issues: &mut [Issue]) {
 }
 
 impl Page {
-    pub fn cleaned(self) -> Page {
+    /// Its issues cleaned; a cursor longer than [`OPAQUE_BYTES`] is an
+    /// error, never cut.
+    pub fn cleaned(self) -> Result<Page, crate::SeamError> {
         let mut issues: Vec<Issue> = self.issues.into_iter().filter_map(Issue::cleaned).collect();
         fit(&mut issues);
-        Page { issues, next: self.next.as_deref().map(|n| line(n, URL_BYTES)).filter(|n| !n.is_empty()) }
+        let next = match self.next.as_deref() {
+            None | Some("") => None,
+            Some(n) => Some(opaque(n, OPAQUE_BYTES).ok_or_else(|| crate::SeamError::new(crate::code::FAILED, format!("a cursor of {} bytes, more than {OPAQUE_BYTES}", n.len())))?),
+        };
+        Ok(Page { issues, next })
     }
 }
 
@@ -247,20 +284,24 @@ impl Found {
     pub fn cleaned(self) -> Found {
         let mut issues: Vec<Issue> = self.issues.into_iter().filter_map(Issue::cleaned).collect();
         fit(&mut issues);
-        Found { issues, missing: self.missing.iter().filter_map(|m| key(m).or_else(|| url(m))).collect() }
+        Found { issues, missing: self.missing.iter().filter_map(|m| opaque(m, URL_BYTES)).collect() }
     }
 }
 
 impl Move {
-    /// None when its id can't be kept.
+    /// None when its id, or what it would have kept, can't be kept whole.
     pub fn cleaned(self) -> Option<Move> {
+        let remember = match self.remember.as_deref() {
+            None | Some("") => None,
+            Some(r) => Some(opaque(r, OPAQUE_BYTES)?),
+        };
         Some(Move {
-            id: key(&self.id)?,
+            id: opaque(&self.id, ID_BYTES)?,
             name: name(&self.name),
             to: self.to.cleaned(),
             label: self.label.as_deref().map(message).filter(|l| !l.is_empty()),
             local: self.local,
-            remember: self.remember.map(|r| line(&r, URL_BYTES)).filter(|r| !r.is_empty()),
+            remember,
             note: self.note.as_deref().map(message).filter(|n| !n.is_empty()),
             said: self.said.as_deref().map(message).filter(|s| !s.is_empty()),
         })
@@ -280,14 +321,21 @@ impl Moves {
 
 impl About {
     pub fn cleaned(self) -> About {
+        let mut seams: Vec<u32> = self.seams.into_iter().filter(|s| *s > 0).collect();
+        if seams.is_empty() {
+            seams.push(self.seam);
+        }
         About {
             seam: self.seam,
+            seams,
             minor: self.minor,
+            id: Some(self.id).filter(|i| crate::extension_id(i)).unwrap_or_default(),
             name: Some(name(&self.name)).filter(|n| !n.is_empty()).unwrap_or_else(|| "tracker".into()),
             ready: self.ready,
             not_ready: self.not_ready.as_deref().map(message),
             can: self.can.iter().map(|c| name(c)).collect(),
-            sync_minutes: self.sync_minutes.min(24 * 60),
+            // Never more often than every five minutes, never less than daily.
+            sync_minutes: if self.sync_minutes == 0 { 0 } else { self.sync_minutes.clamp(5, 24 * 60) },
             project_meta: self.project_meta.as_deref().and_then(key),
             browse: self.browse.as_deref().and_then(url).filter(|b| b.contains("%7Bref%7D") || b.contains("{ref}")),
             ref_hint: self.ref_hint.as_deref().map(name),
@@ -316,6 +364,11 @@ mod tests {
         assert_eq!(line("Fix\u{1b}[31m the\nthing\t\u{202e}now", 100), "Fix[31m the thing now");
         assert_eq!(text("a\r\nb\rc\u{0}\u{85}d", 100), ("a\nb\ncd".to_string(), false));
         assert_eq!(text("tab\tkept", 100).0, "tab\tkept");
+        // Invisible marks, zero-width characters and tag characters
+        // spelling hidden ASCII ("IGN") all go.
+        let sneaky = "Fix\u{200b} it\u{200e}\u{200f}\u{61c}\u{2060}\u{ad}\u{3164}\u{fffa}\u{e0049}\u{e0047}\u{e004e}";
+        assert_eq!(line(sneaky, 100), "Fix it");
+        assert_eq!(key("A-1\u{200b}"), None);
         assert_eq!(line("  padded  ", 100), "padded");
     }
 
@@ -336,6 +389,34 @@ mod tests {
         assert_eq!(url("file:///etc/passwd"), None);
         assert_eq!(url("https://x.org/a b"), None);
         assert_eq!(url("https://"), None);
+    }
+
+    #[test]
+    fn opaque_values_come_back_byte_for_byte_or_not_at_all() {
+        assert_eq!(opaque("workflow::In Review", ID_BYTES).as_deref(), Some("workflow::In Review"));
+        assert_eq!(opaque("a\tb ", ID_BYTES).as_deref(), Some("a\tb "), "not trimmed, not cleaned");
+        assert_eq!(opaque(&"c".repeat(OPAQUE_BYTES + 1), OPAQUE_BYTES), None, "never cut");
+        let cursor = "x".repeat(3000);
+        let page = Page { issues: vec![], next: Some(cursor.clone()) }.cleaned().unwrap();
+        assert_eq!(page.next.as_deref(), Some(cursor.as_str()));
+        assert!(Page { issues: vec![], next: Some("x".repeat(OPAQUE_BYTES + 1)) }.cleaned().is_err());
+        let m = Move { id: "workflow::In Review".into(), name: "Review".into(), remember: Some("r".repeat(2100)), ..Default::default() };
+        let m = m.cleaned().unwrap();
+        assert_eq!((m.id.as_str(), m.remember.as_ref().map(String::len)), ("workflow::In Review", Some(2100)));
+        assert!(Move { id: "1".into(), remember: Some("r".repeat(OPAQUE_BYTES + 1)), ..Default::default() }.cleaned().is_none());
+        let s = State { id: "In Review".into(), name: "x".into(), stage: "doing".into(), column: String::new() }.cleaned();
+        assert_eq!(s.id, "In Review");
+        let p = Person { id: "jo smith".into(), name: "Jo".into() }.cleaned();
+        assert_eq!(p.id, "jo smith");
+    }
+
+    #[test]
+    fn about_keeps_a_whole_id_and_a_sane_schedule() {
+        let raw = |id: &str, minutes: u32| About { seam: 1, seams: vec![], minor: 0, id: id.into(), name: "X".into(), ready: true, not_ready: None, can: vec![], sync_minutes: minutes, project_meta: None, browse: None, ref_hint: None };
+        let a = raw("fenix.jira", 1).cleaned();
+        assert_eq!((a.id.as_str(), a.sync_minutes, a.seams.as_slice()), ("fenix.jira", 5, &[1][..]));
+        assert_eq!(raw("Not An Id", 0).cleaned().id, "");
+        assert_eq!(raw("fenix.jira", 0).cleaned().sync_minutes, 0);
     }
 
     #[test]
@@ -373,6 +454,8 @@ mod tests {
         assert_eq!(issue.comments.len(), COMMENTS);
         assert_eq!(issue.comments[0].id, "20", "the most recent kept");
         assert!(Issue { key: "bad ref".into(), ..Default::default() }.cleaned().is_none());
+        assert_eq!(Issue { key: "A-1".into(), ..Default::default() }.cleaned().unwrap().id, "A-1", "no id: its ref");
+        assert_eq!(Issue { key: "A-1".into(), id: "10201".into(), ..Default::default() }.cleaned().unwrap().id, "10201");
     }
 
     #[test]

@@ -17,12 +17,27 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
-/// `about`'s answer: who the tracker is, and whether it's ready.
+fn seams() -> Vec<u32> {
+    vec![crate::SEAM]
+}
+
+/// `about`'s answer: who the tracker is, which versions of the seam it
+/// speaks, and whether it's ready. Answered whatever `seam` it was asked
+/// with.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct About {
+    /// The version this answer is in: the highest of `seams`.
     pub seam: u32,
+    /// Every major version it speaks; the caller picks the highest it
+    /// shares.
+    #[serde(default = "seams")]
+    pub seams: Vec<u32>,
     #[serde(default)]
     pub minor: u32,
+    /// Its extension's full id, `fenix.jira`: the caller checks it's the
+    /// one it asked.
+    #[serde(default)]
+    pub id: String,
     pub name: String,
     pub ready: bool,
     /// What to do about it, when it isn't ready.
@@ -96,9 +111,18 @@ pub struct Comment {
 /// One issue, as every call that returns issues returns it.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Issue {
-    /// The tracker's own key for it: what the agenda keeps.
+    /// The tracker's immutable id for it, never shown: what a link is
+    /// kept by. A tracker with none gives its `ref`.
+    #[serde(default)]
+    pub id: String,
+    /// Its key as people write it (`PROJ-12`, `owner/repo#3`), shown;
+    /// it may change when the issue moves.
     #[serde(rename = "ref")]
     pub key: String,
+    /// In `issues`' answer: the item of `refs` it answers, as it was
+    /// asked -- a ref, an id or a URL -- so a moved issue is found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asked: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -149,10 +173,9 @@ pub struct Assigned {
     pub seam: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
+    /// A previous answer's `next`, byte for byte.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub since: Option<String>,
 }
 
 impl Assigned {
@@ -160,7 +183,7 @@ impl Assigned {
     pub const MAX_LIMIT: u32 = 200;
 
     pub fn new(limit: u32, cursor: Option<String>) -> Self {
-        Assigned { seam: crate::SEAM, limit: Some(limit), cursor, since: None }
+        Assigned { seam: crate::SEAM, limit: Some(limit), cursor }
     }
 
     /// `limit`, held to 1 to 200.
@@ -177,7 +200,7 @@ pub struct Page {
     pub next: Option<String>,
 }
 
-/// `issues`.
+/// `issues`: each of `refs` an issue's `id`, its `ref` or its URL.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Issues {
     #[serde(default = "seam")]
@@ -280,6 +303,11 @@ pub struct Transition {
     #[serde(rename = "ref")]
     pub key: String,
     pub id: String,
+    /// This write's own id, the same each time it's sent: a tracker may
+    /// answer a second one as it answered the first, without doing it
+    /// again.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op: Option<String>,
 }
 
 /// What a write says when it's done.
@@ -307,7 +335,10 @@ pub enum Change {
     Priority(String),
     /// `YYYY-MM-DD`, or none to clear it.
     Due(Option<String>),
-    Assignee(Person),
+    /// Someone from `people`, or none: unassigned.
+    Assignee(Option<Person>),
+    /// Every label it should have.
+    Labels(Vec<String>),
 }
 
 /// `update`: one field of an issue.
@@ -318,37 +349,47 @@ pub struct Update {
     #[serde(rename = "ref")]
     pub key: String,
     pub set: serde_json::Map<String, serde_json::Value>,
+    /// This write's own id (see `Transition::op`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op: Option<String>,
 }
 
 impl Update {
-    pub fn new(key: &str, change: &Change) -> Self {
+    pub fn new(key: &str, change: &Change, op: Option<String>) -> Self {
         let (name, value) = match change {
             Change::Title(s) => ("title", serde_json::Value::from(s.as_str())),
             Change::Body(s) => ("body", serde_json::Value::from(s.as_str())),
             Change::Priority(s) => ("priority", serde_json::Value::from(s.as_str())),
             Change::Due(d) => ("due", d.as_deref().map(serde_json::Value::from).unwrap_or(serde_json::Value::Null)),
-            Change::Assignee(p) => ("assignee", serde_json::json!({ "id": p.id, "name": p.name })),
+            Change::Assignee(Some(p)) => ("assignee", serde_json::json!({ "id": p.id, "name": p.name })),
+            Change::Assignee(None) => ("assignee", serde_json::Value::Null),
+            Change::Labels(l) => ("labels", serde_json::json!(l)),
         };
         let mut set = serde_json::Map::new();
         set.insert(name.into(), value);
-        Update { seam: crate::SEAM, key: key.to_string(), set }
+        Update { seam: crate::SEAM, key: key.to_string(), set, op }
     }
 
-    /// The one field it sets.
-    pub fn change(&self) -> Result<Change, String> {
+    /// The one field it sets. A field the seam doesn't have is
+    /// `unsupported` (a newer caller's); a malformed one `bad_request`.
+    pub fn change(&self) -> Result<Change, crate::SeamError> {
+        use crate::code;
+        let bad = |why: String| crate::SeamError::new(code::BAD_REQUEST, why);
         let mut fields = self.set.iter();
         let (Some((name, value)), None) = (fields.next(), fields.next()) else {
-            return Err("update sets one field at a time".into());
+            return Err(bad("update sets one field at a time".into()));
         };
-        let text = |v: &serde_json::Value| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: a string"));
+        let text = |v: &serde_json::Value| v.as_str().map(str::to_string).ok_or_else(|| bad(format!("{name}: a string")));
         match name.as_str() {
             "title" => text(value).map(Change::Title),
             "body" => text(value).map(Change::Body),
             "priority" => text(value).map(Change::Priority),
             "due" if value.is_null() => Ok(Change::Due(None)),
             "due" => text(value).map(|d| Change::Due(Some(d))),
-            "assignee" => serde_json::from_value::<Person>(value.clone()).map(Change::Assignee).map_err(|e| format!("assignee: {e}")),
-            other => Err(format!("update can't set {other}")),
+            "assignee" if value.is_null() => Ok(Change::Assignee(None)),
+            "assignee" => serde_json::from_value::<Person>(value.clone()).map(|p| Change::Assignee(Some(p))).map_err(|e| bad(format!("assignee: {e}"))),
+            "labels" => serde_json::from_value::<Vec<String>>(value.clone()).map(Change::Labels).map_err(|e| bad(format!("labels: {e}"))),
+            other => Err(crate::SeamError::new(code::UNSUPPORTED, format!("update can't set {other}"))),
         }
     }
 }
@@ -376,6 +417,8 @@ pub struct NewComment {
     #[serde(rename = "ref")]
     pub key: String,
     pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op: Option<String>,
 }
 
 /// `worklog`: time worked, filed on the day it started.
@@ -388,6 +431,8 @@ pub struct Worklog {
     pub seconds: i64,
     /// RFC 3339.
     pub started: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op: Option<String>,
 }
 
 /// `create`: the tracker's own new-issue form, filled in.
@@ -398,6 +443,8 @@ pub struct Create {
     pub title: String,
     #[serde(default)]
     pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op: Option<String>,
 }
 
 /// `create`'s answer: what was made, or nothing.
@@ -415,6 +462,8 @@ pub struct Remember {
     #[serde(rename = "ref", default)]
     pub key: String,
     pub remember: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op: Option<String>,
 }
 
 #[cfg(test)]
@@ -442,15 +491,19 @@ mod tests {
 
     #[test]
     fn an_update_sets_one_field_and_due_can_be_cleared() {
-        let up = Update::new("A-1", &Change::Due(None));
-        assert_eq!(serde_json::to_string(&up).unwrap(), r#"{"seam":1,"ref":"A-1","set":{"due":null}}"#);
+        let up = Update::new("A-1", &Change::Due(None), Some("op-1".into()));
+        assert_eq!(serde_json::to_string(&up).unwrap(), r#"{"seam":1,"ref":"A-1","set":{"due":null},"op":"op-1"}"#);
         assert_eq!(up.change(), Ok(Change::Due(None)));
-        let up = Update::new("A-1", &Change::Assignee(Person { id: "jo".into(), name: "Jo".into() }));
-        assert_eq!(up.change(), Ok(Change::Assignee(Person { id: "jo".into(), name: "Jo".into() })));
+        let jo = Person { id: "jo smith".into(), name: "Jo".into() };
+        assert_eq!(Update::new("A-1", &Change::Assignee(Some(jo.clone())), None).change(), Ok(Change::Assignee(Some(jo))));
+        let nobody = Update::new("A-1", &Change::Assignee(None), None);
+        assert_eq!(serde_json::to_value(&nobody).unwrap()["set"]["assignee"], serde_json::Value::Null);
+        assert_eq!(nobody.change(), Ok(Change::Assignee(None)), "unassigned");
+        assert_eq!(Update::new("A-1", &Change::Labels(vec!["x".into()]), None).change(), Ok(Change::Labels(vec!["x".into()])));
         let two: Update = serde_json::from_str(r#"{"ref": "A-1", "set": {"title": "a", "body": "b"}}"#).unwrap();
-        assert!(two.change().is_err());
+        assert_eq!(two.change().unwrap_err().code, "bad_request");
         let odd: Update = serde_json::from_str(r#"{"ref": "A-1", "set": {"colour": "red"}}"#).unwrap();
-        assert_eq!(odd.change(), Err("update can't set colour".to_string()));
+        assert_eq!(odd.change().unwrap_err().code, "unsupported", "a newer caller's field");
     }
 
     #[test]
@@ -464,6 +517,12 @@ mod tests {
     }
 
     #[test]
+    fn since_is_gone_from_seam_1_and_an_old_caller_sending_it_is_ignored() {
+        let a: Assigned = serde_json::from_str(r#"{"seam": 1, "since": "2026-01-01T00:00:00Z"}"#).unwrap();
+        assert!(!serde_json::to_string(&a).unwrap().contains("since"));
+    }
+
+    #[test]
     fn a_limit_is_held_to_what_the_seam_allows() {
         assert_eq!(Assigned::new(500, None).limit(), 200);
         assert_eq!(Assigned::new(0, None).limit(), 1);
@@ -472,7 +531,8 @@ mod tests {
 
     #[test]
     fn browse_fills_in_the_ref() {
-        let about = About { seam: 1, minor: 0, name: "J".into(), ready: true, not_ready: None, can: vec![], sync_minutes: 10, project_meta: None, browse: Some("https://j/browse/{ref}".into()), ref_hint: None };
+        let about: About = serde_json::from_str(r#"{"seam": 1, "name": "J", "ready": true, "browse": "https://j/browse/{ref}"}"#).unwrap();
+        assert_eq!(about.seams, [1], "an about without seams speaks its seam");
         assert_eq!(about.browse_url("A-1").as_deref(), Some("https://j/browse/A-1"));
     }
 }

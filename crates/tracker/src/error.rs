@@ -24,8 +24,12 @@ pub mod code {
     pub const UNSUPPORTED: &str = "unsupported";
     /// Anything else.
     pub const FAILED: &str = "failed";
+    /// No answer came -- the caller gave up, or the tracker's extension
+    /// stopped: it may or may not have happened. A tracker never sends
+    /// it; a caller never re-sends a write that ended so by itself.
+    pub const UNKNOWN: &str = "unknown";
 
-    pub const ALL: [&str; 9] = [NOT_SET_UP, SIGNED_OUT, NOT_FOUND, RATE_LIMITED, OFFLINE, REFUSED, BAD_REQUEST, UNSUPPORTED, FAILED];
+    pub const ALL: [&str; 10] = [NOT_SET_UP, SIGNED_OUT, NOT_FOUND, RATE_LIMITED, OFFLINE, REFUSED, BAD_REQUEST, UNSUPPORTED, FAILED, UNKNOWN];
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,9 +49,16 @@ impl SeamError {
         self.code == code
     }
 
-    /// Worth trying again by itself, later: the next timed sync does.
+    /// Worth trying again by itself, later: the next timed sync does. A
+    /// write whose fate is `unknown` isn't.
     pub fn transient(&self) -> bool {
         self.is(code::OFFLINE) || self.is(code::RATE_LIMITED)
+    }
+
+    /// The tracker doesn't take this: a call, a field or a version it
+    /// doesn't serve, or a request it can't read. Retrying won't help.
+    pub fn never(&self) -> bool {
+        self.is(code::UNSUPPORTED) || self.is(code::BAD_REQUEST)
     }
 
     /// Fenix's answer for a tracker that isn't installed.
@@ -74,7 +85,7 @@ impl SeamError {
         let code = if text.starts_with("nothing offers ") || text.starts_with("no service ") {
             code::UNSUPPORTED
         } else if text.starts_with("the extension stopped") {
-            code::OFFLINE
+            code::UNKNOWN
         } else {
             code::FAILED
         };
@@ -107,7 +118,7 @@ mod tests {
         assert!(gone.is(code::UNSUPPORTED) && gone.absent());
         let older = SeamError::from_err("no service jira.tracker.worklog");
         assert!(older.is(code::UNSUPPORTED) && !older.absent());
-        assert!(SeamError::from_err("the extension stopped: it took too long").is(code::OFFLINE));
+        assert!(SeamError::from_err("the extension stopped: it took too long").is(code::UNKNOWN), "it may have done it first");
         let plain = SeamError::from_err("HTTP 500");
         assert_eq!((plain.code.as_str(), plain.message.as_str()), ("failed", "HTTP 500"));
     }

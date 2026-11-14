@@ -7,7 +7,7 @@
 //! let tracker = FakeTracker::new("Fake");
 //! for call in fenix_tracker::call::ALL {
 //!     let t = tracker.clone();
-//!     fake.on_service_with(&fenix_tracker::service("fake", call), move |payload| t.serve(call, payload));
+//!     fake.on_service_with(&fenix_tracker::service("acme.fake", call), move |payload| t.serve(call, payload));
 //! }
 //! ```
 
@@ -58,7 +58,9 @@ impl FakeTracker {
             let mut s = t.0.borrow_mut();
             s.about = Some(About {
                 seam: SEAM,
+                seams: crate::SEAMS.to_vec(),
                 minor: crate::MINOR,
+                id: String::new(),
                 name: name.into(),
                 ready: true,
                 not_ready: None,
@@ -80,9 +82,11 @@ impl FakeTracker {
         t
     }
 
-    /// An open issue assigned to you, as most tests want one.
+    /// An open issue assigned to you, as most tests want one; its id is
+    /// `id-` and its ref.
     pub fn issue(key: &str, title: &str) -> Issue {
         Issue {
+            id: format!("id-{key}"),
             key: key.into(),
             url: Some(format!("https://tracker.example/{key}")),
             project: key.rsplit_once('-').map(|(p, _)| p.to_string()),
@@ -182,6 +186,7 @@ impl FakeTracker {
         let bad = |e: serde_json::Error| SeamError::new(crate::code::BAD_REQUEST, e.to_string()).to_err();
         let json = |v: &dyn erased::Json| Ok(v.json());
         match name {
+            // Answered whatever seam it's asked with.
             call::ABOUT => json(s.about.as_ref().ok_or("no about")?),
             call::ASSIGNED => {
                 let req: Assigned = serde_json::from_str(payload).map_err(bad)?;
@@ -197,8 +202,8 @@ impl FakeTracker {
                 let mut found = Found::default();
                 for r in &req.refs {
                     let key = r.rsplit('/').next().unwrap_or(r);
-                    match s.issues.iter().find(|i| i.key == *r || i.key == key) {
-                        Some(issue) => found.issues.push(issue.clone()),
+                    match s.issues.iter().find(|i| i.key == *r || i.key == key || i.id == *r) {
+                        Some(issue) => found.issues.push(Issue { asked: Some(r.clone()), ..issue.clone() }),
                         None => found.missing.push(r.clone()),
                     }
                 }
@@ -206,7 +211,7 @@ impl FakeTracker {
             }
             call::TRANSITIONS => {
                 let req: Transitions = serde_json::from_str(payload).map_err(bad)?;
-                if !s.issues.iter().any(|i| i.key == req.key) {
+                if !s.issues.iter().any(|i| i.key == req.key || i.id == req.key) {
                     return Err(SeamError::new(crate::code::NOT_FOUND, format!("{} isn't there", req.key)).to_err());
                 }
                 let moves = s.moves.get(&req.key).cloned().unwrap_or_else(|| Moves { transitions: s.default_moves.clone(), ..Default::default() });
@@ -218,7 +223,7 @@ impl FakeTracker {
                 let Some(m) = moves.into_iter().find(|m| m.id == req.id) else {
                     return Err(SeamError::new(crate::code::REFUSED, format!("no move {} from here", req.id)).to_err());
                 };
-                let issue = s.issues.iter_mut().find(|i| i.key == req.key).ok_or_else(|| SeamError::new(crate::code::NOT_FOUND, "gone").to_err())?;
+                let issue = s.issues.iter_mut().find(|i| i.key == req.key || i.id == req.key).ok_or_else(|| SeamError::new(crate::code::NOT_FOUND, "gone").to_err())?;
                 if !m.local {
                     issue.state = m.to.clone();
                 }
@@ -226,17 +231,22 @@ impl FakeTracker {
             }
             call::UPDATE => {
                 let req: Update = serde_json::from_str(payload).map_err(bad)?;
-                let change = req.change().map_err(|e| SeamError::new(crate::code::BAD_REQUEST, e).to_err())?;
-                let issue = s.issues.iter_mut().find(|i| i.key == req.key).ok_or_else(|| SeamError::new(crate::code::NOT_FOUND, "gone").to_err())?;
+                let change = req.change().map_err(|e| e.to_err())?;
+                let can = crate::can::of(&change);
+                if !s.about.as_ref().is_some_and(|a| a.can(can)) {
+                    return Err(SeamError::new(crate::code::UNSUPPORTED, format!("no {can} here")).to_err());
+                }
+                let issue = s.issues.iter_mut().find(|i| i.key == req.key || i.id == req.key).ok_or_else(|| SeamError::new(crate::code::NOT_FOUND, "gone").to_err())?;
                 match change {
                     Change::Title(t) => issue.title = t,
                     Change::Body(b) => issue.body = b,
                     Change::Priority(p) => issue.priority = Some(Priority { level: if p == "P1" { "urgent".into() } else { "medium".into() }, name: p }),
                     Change::Due(d) => issue.due = d,
                     Change::Assignee(p) => {
-                        issue.mine = Some(p.id == "me");
-                        issue.assignee = Some(p);
+                        issue.mine = Some(p.as_ref().is_some_and(|p| p.id == "me"));
+                        issue.assignee = p;
                     }
+                    Change::Labels(l) => issue.labels = l,
                 }
                 json(&Said::default())
             }
@@ -244,7 +254,7 @@ impl FakeTracker {
             call::PEOPLE => json(&People { people: s.people.clone(), none: Some("no one to assign to".into()) }),
             call::COMMENT => {
                 let req: NewComment = serde_json::from_str(payload).map_err(bad)?;
-                let issue = s.issues.iter_mut().find(|i| i.key == req.key).ok_or_else(|| SeamError::new(crate::code::NOT_FOUND, "gone").to_err())?;
+                let issue = s.issues.iter_mut().find(|i| i.key == req.key || i.id == req.key).ok_or_else(|| SeamError::new(crate::code::NOT_FOUND, "gone").to_err())?;
                 let id = issue.comments.len().to_string();
                 issue.comments.push(Comment { id, author: "Me".into(), body: req.body, created: "2026-11-14T10:00:00+00:00".into() });
                 json(&Said::default())
