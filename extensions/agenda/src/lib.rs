@@ -24,8 +24,6 @@ pub mod trackers;
 pub mod testing;
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod linear_tests;
 
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;

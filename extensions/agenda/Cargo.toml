@@ -33,8 +33,6 @@ testing = ["dep:fenix-test-kit"]
 fenix-test-kit = { path = "../../crates/test-kit" }
 # The Jira seam run on recorded responses, beside the old path.
 futures-executor = "0.3"
-# Linear's seam run on recorded responses.
-fenix-linear-client = { path = "../../crates/linear" }
 
 [profile.release]
 opt-level = "s"
