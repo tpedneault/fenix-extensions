@@ -3278,6 +3278,33 @@
               "ocamlearlybird"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/ocaml-v1.2.0/fenix.ocaml-1.2.0.fenixext",
+          "sha256": "3bce6d71ed4f8929ddc9082c3afdff2eaf18ff1f5f33f71d0b21e5b4966983a7",
+          "size": 1385969,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "opam",
+              "ocaml",
+              "dune",
+              "ocamllsp",
+              "ocamlformat",
+              "ocamlearlybird"
+            ]
+          }
         }
       ],
       "name": "OCaml",
