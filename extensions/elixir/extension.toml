@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.elixir"
 name = "Elixir"
-version = "1.0.0"
+version = "1.1.0"
 description = "Elixir: its grammar and HEEx's, Expert, mix format, the compiler's warnings and Credo on save, mix's tasks, the project's checks with fixes that install Hex and Expert, and snippets"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -41,6 +41,17 @@ events = ["saved"]
 name = "elixir"
 markers = ["mix.exs"]
 languages = ["elixir", "heex"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "elixir"
+name = "Elixir"
+tag = "EX"
+color = "function"
+markers = ["mix.exs"]
+main = ["lib/{folder}.ex"]
 
 [[contributes.commands]]
 id = "elixir.doctor"

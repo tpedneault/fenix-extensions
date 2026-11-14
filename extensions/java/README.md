@@ -148,6 +148,10 @@ Java: `cls`, `rec`, `iface`, `enum`, `sealed`, `main`, `mainc`, `ctor`,
 Each makes its wrapper with the Gradle or Maven installed (`needs`), as
 the wizard can't write the wrapper's jar.
 
+## Project kind
+
+Fenix 1.6 and later know a Java project (`JAVA`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `pom.xml`, `build.gradle`, `build.gradle.kts`, `settings.gradle` or `settings.gradle.kts` at its top. A Kotlin project is also a Gradle project, so Fenix finds it as Java; `kind = "kotlin"` in its `.fenix/settings.toml` makes it a Kotlin one (`KT`). `kind = "java"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "java"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a Gradle or Maven project (`C-k m` with standard keys):

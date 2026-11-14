@@ -69,6 +69,11 @@ the hosts it downloads from, `filesystem = "project-read"`, `editor =
 on extension API 1.5 (tag `v1.5.0`), so a pack using it builds its API
 from that tag too, and needs Fenix 1.5 (`fenix = ">=1.5, <2"`).
 
+One thing in a pack's manifest the kit has no part in: the project kind
+it knows (`[[contributes.project_kinds]]`, which Fenix 1.6 reads and earlier
+Fenix ignores, so it asks nothing of `api`). It's data for Fenix, beside the
+context's markers; `CONTRIBUTING.md` has the fields.
+
 | | |
 |---|---|
 | `PackageManager` | `list`, `outdated`, `audit` and their parsers; `upgrade`, `upgrade_all`, `add`, `remove` as commands run as tasks; optionally `search` (for `a`), `normalize` (Python's names) and `lockfiles` (the cache's key). Each command runs with its stdin closed; a parser gets the exit code too, since `npm outdated` and most audits exit 1 when they find something. The page runs `*_steps`: by default the one command, else several in turn (`go get`, then `go mod tidy`; a `dotnet add package` each), stopping at one that fails, or a reason it can't (`Err`), said on the page. |

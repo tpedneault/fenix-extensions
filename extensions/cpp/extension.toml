@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.cpp"
 name = "C/C++"
-version = "1.2.0"
+version = "1.3.0"
 description = "C and C++: clangd with the build's compile_commands.json, debugging each CMake target with lldb-dap or GDB, CMake's presets as tasks, clang-format, clang-tidy on save with its fixes, the project's checks with their fixes, vcpkg and Conan packages, snippets, and vcpkg and Conan projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -47,6 +47,15 @@ events = ["saved"]
 name = "cpp"
 markers = ["CMakeLists.txt", "CMakePresets.json", "compile_commands.json", "vcpkg.json", "conanfile.txt", "conanfile.py", ".clangd"]
 languages = ["c", "cpp"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+# Fenix's own C/C++ kind: this adds files that say a project is one, and nothing else
+# (CMakeLists.txt is Fenix's already).
+[[contributes.project_kinds]]
+id = "cpp"
+markers = ["CMakePresets.json", "compile_commands.json", "vcpkg.json", "conanfile.txt", "conanfile.py", ".clangd"]
 
 [[contributes.commands]]
 id = "cpp.packages"

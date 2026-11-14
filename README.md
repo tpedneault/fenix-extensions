@@ -337,7 +337,7 @@ adds each release the index hasn't. For each it:
 - reads `extension.toml` **from inside the package** and requires its id
   and version to be the entry's;
 - holds it to what `validate` checks of a folder here: the manifest,
-  keymaps' chords, agent tools, themes, snippets, screenshots' format and
+  keymaps' chords, agent tools, project kinds, themes, snippets, screenshots' format and
   size, `extension.wasm` for a `wasm` extension, and dependencies the
   index has;
 - writes its index entry from that manifest -- name, description,

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ruby"
 name = "Ruby"
-version = "1.1.0"
+version = "1.2.0"
 description = "Ruby: tree-sitter-ruby's highlighting, folding and indenting, Ruby LSP or Solargraph, RuboCop and Standard formatting and linting with their corrections, Bundler's, Rake's, RSpec's and Rails' tasks, the project's checks with their fixes, and snippets"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -37,6 +37,19 @@ events = ["saved"]
 name = "ruby"
 markers = ["Gemfile", "gems.rb", "Rakefile", ".ruby-version", "config.ru"]
 languages = ["ruby"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+# Not Rakefile: plenty of projects that aren't Ruby have one, and a kind is what a
+# project IS (it stays in the context above, where a false match is cheap).
+[[contributes.project_kinds]]
+id = "ruby"
+name = "Ruby"
+tag = "RB"
+color = "constant"
+markers = ["Gemfile", "gems.rb", ".ruby-version", "config.ru"]
+main = ["config.ru"]
 
 [[contributes.commands]]
 id = "ruby.doctor"

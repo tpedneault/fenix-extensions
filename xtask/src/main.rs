@@ -24,6 +24,7 @@ mod external;
 mod fenix_theme;
 mod install;
 mod jsonc;
+mod kinds;
 mod lessons;
 mod new;
 mod snippets_import;
@@ -286,6 +287,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
     };
     let mut here = BTreeSet::new();
     let mut ids = BTreeMap::new();
+    let mut kind_packs = Vec::new();
     let dirs = std::fs::read_dir(root.join("extensions")).map_err(|e| format!("extensions/: {e}"))?;
     let mut count = 0;
     for dir in dirs.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
@@ -323,6 +325,7 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
         }
         check_agent_tools(&dir)?;
         check_chords(&dir)?;
+        kind_packs.push(kinds::check_pack(&dir)?);
         let version = semver::Version::parse(&m.extension.version).map_err(|e| e.to_string())?;
         let entry = known.entry(m.extension.id.clone()).or_insert(Known { versions: Vec::new(), dependencies: BTreeMap::new() });
         entry.versions.push(version);
@@ -333,6 +336,11 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
         count += 1;
     }
     check_dependencies(&known, &here)?;
+    for warning in kinds::check_store(&kind_packs)? {
+        println!("warn {warning}");
+    }
+    let (kinds, markers) = kinds::totals(&kind_packs);
+    println!("project kinds: {kinds} of {} (Fenix's cap), {markers} distinct markers of {}", kinds::MAX_STORE_KINDS, kinds::MAX_STORE_MARKERS);
     screenshots::validate_all(root)?;
     lessons::validate_all(root)?;
     println!("{count} extension(s)");

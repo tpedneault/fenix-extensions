@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ocaml"
 name = "OCaml"
-version = "1.1.0"
+version = "1.2.0"
 description = "OCaml: its grammars for .ml and .mli, ocaml-lsp-server, ocamlformat where the project has an .ocamlformat, dune's tasks with a dune exec for each executable, debugging bytecode with earlybird, the project's checks with fixes that run opam install, snippets, and a dune project"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -39,6 +39,17 @@ events = ["saved"]
 name = "ocaml"
 markers = ["dune-project", "dune-workspace", "{folder}.opam"]
 languages = ["ocaml", "ocaml_interface"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "ocaml"
+name = "OCaml"
+tag = "ML"
+color = "string"
+markers = ["dune-project", "dune-workspace", "{folder}.opam"]
+main = ["bin/main.ml"]
 
 [[contributes.commands]]
 id = "ocaml.doctor"

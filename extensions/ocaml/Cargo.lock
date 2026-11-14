@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "fenix-ocaml"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "fenix-extension-api",
  "fenix-lang-kit",

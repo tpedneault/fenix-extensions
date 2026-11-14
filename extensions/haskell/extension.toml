@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.haskell"
 name = "Haskell"
-version = "1.1.0"
+version = "1.2.0"
 description = "Haskell: its grammar, the Haskell Language Server, ormolu or fourmolu, hlint on save with its rewrites as fixes, Cabal's and Stack's tasks for each component, the project's checks with fixes that run ghcup, snippets, and a Cabal project"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -42,6 +42,17 @@ events = ["saved"]
 name = "haskell"
 markers = ["cabal.project", "stack.yaml", "{folder}.cabal", "package.yaml"]
 languages = ["haskell"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "haskell"
+name = "Haskell"
+tag = "HS"
+color = "keyword"
+markers = ["cabal.project", "stack.yaml", "{folder}.cabal", "package.yaml"]
+main = ["app/Main.hs", "src/Main.hs"]
 
 [[contributes.commands]]
 id = "haskell.doctor"

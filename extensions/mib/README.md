@@ -1,10 +1,15 @@
 # SCOS-2000 MIB
 
-SCOS-2000 MIBs in Fenix. Browse
-a MIB, look a definition up by kind, write telecommand calls into your
+SCOS-2000 MIBs in Fenix. Open
+a MIB -- one in your project is found, nothing to set -- browse it, look a
+definition up by kind, write telecommand calls into your
 scripts with a form for their arguments, have the MIB check the calls
 you wrote, and generate code from it.
 
+- **Open a MIB** (`SPC k o`): every MIB known here -- found in the
+  project, named in its settings or yours -- and another folder on disk.
+  Picking one opens its page, and it's the MIB `K`, `gd` and the rest use
+  in this project from then on.
 - **The MIB page** (`SPC k k`). A tab for each kind of definition:
   - `1` telecommands, `2` TC parameters, `3` TM packets, `4` TM
     parameters, `5` calibrations.
@@ -14,6 +19,8 @@ you wrote, and generate code from it.
     by PUS service.
   - `Enter` opens a definition's own page, `i` a telecommand's insert
     form.
+  - `M` switches to another MIB; the header says where this one is from,
+    and how many there are.
 - **A definition's page.** Every name on it is a link: `Enter` follows
   it, and `H`/`L` (or Backspace) go back and forward.
 - **The insert form** (`SPC k i`, or `i` on a telecommand).
@@ -45,7 +52,7 @@ you wrote, and generate code from it.
   telecommands it sends, with its formal parameters' defaults, its
   timing and comments as comments.
 - **Two MIBs compared** (`SPC k D`): what was added, removed and changed
-  between two of the project's MIBs, as Markdown in `generated/`.
+  between two of the MIBs known here, as Markdown in `generated/`.
 - **Generated from the MIB** (`SPC k g`): XTCE, a Wireshark dissector, C,
   Python, an ICD, or TC test vectors, written to the project's
   `generated/` -- repeated groups included.
@@ -71,15 +78,83 @@ As the SCOS-2000 Database Import ICD lays them out:
 
 ## Which MIBs
 
-1. The folders `mib.roots` names: the project's own list (in its
-   `.fenix/settings.toml`, folders relative to it) in place of yours.
-   In a project's list, an XTCE file relative to it is a MIB too
-   (`XTCE = "generated/xtce-OPS.xml"`).
-2. Else the project itself, when it's a MIB (`.dat` tables in it or in
-   its `mib/`).
+A MIB is a folder of `.dat` tables -- any of `vdf`, `ccf`, `pcf`, `pid`,
+`tpcf`, `caf` or `txf` -- or an XTCE file. The rule is the shared
+crate's (`fenix_mib::which`), and the CCSDS extension decodes against
+the same MIBs: the MIB extension tells it which.
+
+The MIBs **known** in a project are:
+
+1. **Those found in it**, nothing to set. Its `mib/` and its top are
+   looked at directly, as ever, links followed. Anywhere else in it,
+   it's looked through as far as 6 folders down and 3,000 folders in
+   all, leaving out hidden folders (`.git`), `target`, `node_modules`,
+   `generated`, `dist`, `vendor`, virtual environments, and the folders
+   its `.gitignore` names (a `.gitignore` that takes anything back with
+   `!` isn't used). It's looked through as the extension starts --
+   unless the settings name MIBs and none of the project's is picked --
+   and on `SPC k o`, `SPC k r` and `SPC k D`: never while you type, hover
+   or move between files.
+2. **Those `mib.roots` names**: the project's own list (in its
+   `.fenix/settings.toml`, folders relative to it) in place of yours. In
+   a project's list, an XTCE file relative to it is a MIB too
+   (`XTCE = "generated/xtce-OPS.xml"`). A setting that names a folder
+   the project holds makes it known once, by the setting's name.
+3. **A folder of the project picked by its path** with `SPC k o`, found
+   or not.
+
+A found MIB is named by its path in the project (`db/ops`); `mib/` and
+the top by the project's name, as before, so `mib.icd_per_mib` and
+`mib.default` by that name still apply.
+
+The MIBs **in use** -- the MIB page's, `K`, `gd`, completion, the
+checks of your scripts, the insert form, the pickers, the notebook's
+`mib:` links, agents' `mib_lookup` and the CCSDS extension's packets --
+are:
+
+1. the one you opened with `SPC k o` in this project, kept for it from
+   one session to the next (in the extension's own folder, by the
+   project's path: never in the project's settings, and `mib.default`
+   is left as it is);
+2. else every MIB the settings name, together, as before -- `mib.default`
+   says whose definition wins a name several define;
+3. else a found one when there's no doubt which: `mib/`, else the
+   project's top, else the only one found outside folders of tests,
+   fixtures, samples, examples, demos, mocks and vendored code;
+4. else none. When several were found, the MIB page, the doctor and a
+   word as the extension starts say so -- "2 MIBs found here -- `SPC k
+   o` picks one" -- and nothing is guessed.
+
+A project with one MIB in it just works: `SPC k k` shows it.
+
+`SPC k o` lists every known MIB -- found ones by their path in the
+project, then the project's settings', then yours -- each with how many
+tables it has and whether it has telecommands and TM, `●` on the one in
+use. With several in the settings, "all of them together" goes back to
+using them together. **Another folder…** opens a MIB by its full path
+(the folder selected in the explorer is filled in):
+
+- one of the project's is picked, found or not, if it holds tables;
+- one elsewhere is added to *your* `mib.roots` for you -- named after
+  its folder, made unique (`OPS`, `OPS-2`), never twice however it's
+  spelt -- and picked here. `~/…` is kept as such: Fenix makes it your
+  home folder's. Not a full path, the top of a disk, a drive's current
+  folder (`C:mibs`), a home folder, or a folder the extension can see
+  with no tables in it are refused, and it says why. Fenix gives the
+  extension the folders `mib.roots` names when it starts it -- at once
+  on a Fenix that starts it again when such a setting changes, else the
+  next time Fenix starts -- and the MIB's page opens then, by itself.
+- in a project with its own `mib.roots`, which takes the place of yours
+  there, a folder elsewhere goes in the project's list: `SPC k o` opens
+  its settings rather than writing them.
+
+What's generated (`SPC k g`) and compared (`SPC k D`) goes in the
+project's `generated/`, wherever the MIB is in it; the doctor counts the
+project's `recordings/`.
 
 They're read when first needed, and again when one of their files
-changes (`mib.watch`).
+changes (`mib.watch`). A MIB folder added to the project is found on
+`SPC k o` or `SPC k r`, or when the extension next starts.
 
 The mission profile they're read and packets built against is the
 CCSDS settings (`ccsds.pus`, `ccsds.tm_time`, ...). The CCSDS extension
@@ -90,6 +165,7 @@ keeps those; the MIB reads them.
 | Key | Command | What it does |
 | --- | --- | --- |
 | `SPC k k` | `mib.page` | The MIB page |
+| `SPC k o` | `mib.open` | Open a MIB: found here, named in the settings, or another folder |
 | `SPC k /` | `mib.search` | Every kind of definition, by name or description |
 | `SPC k t` `p` `m` `n` `c` | `mib.telecommand`, `mib.tc_parameter`, `mib.tm_packet`, `mib.tm_parameter`, `mib.calibration` | One kind, by name |
 | `SPC k i` | `mib.insert` | A telecommand, then its insert form |
@@ -97,7 +173,7 @@ keeps those; the MIB reads them.
 | `SPC k b` | `mib.copy_bytes` | The call on this line, as its packet's bytes |
 | `SPC k g` | `mib.generate` | Generate from the MIB |
 | `SPC k q` | `mib.insert_sequence` | A command sequence, as the telecommands it sends |
-| `SPC k D` | `mib.diff` | Two of the project's MIBs, compared |
+| `SPC k D` | `mib.diff` | Two MIBs known here, compared |
 | `SPC k r` | `mib.reload` | Read the MIBs again |
 | `SPC k ,` | `mib.settings` | This project's settings |
 
@@ -105,19 +181,21 @@ What it says when it names a key -- a card, the doctor, a missing MIB --
 gives the keys you have: `C-k k k` with standard keys where this table
 says `SPC k k`.
 
-In a Tcl file, `SPC m` has `i`, `e`, `q`, `t`, `k`, `p`, `c`, `m` and `r`,
+In a Tcl file, `SPC m` has `i`, `e`, `q`, `t`, `k`, `p`, `c`, `m`, `o` and `r`,
 beside the Tcl extension's keys.
 
 ## The project doctor
 
-In a project that's a MIB, the doctor lists:
+When the MIBs in use are the project's -- found in it, wherever, or
+named by its own settings -- the doctor lists:
 
-- its tables and rows, and their layout (ICD issue);
+- each one's tables and rows, where it is, and their layout (ICD issue);
 - the rows with problems;
 - tables the ICD doesn't know;
-- the mission profile, and whether the MIB agrees with it and the
+- the mission profile, and whether the MIBs agree with it and the
   standards;
-- its recordings.
+- the project's recordings;
+- the project's other MIBs, which `SPC k o` opens.
 
 ## For coding agents
 
@@ -138,6 +216,8 @@ several, the best is answered in full and the next twenty are listed.
 
 - Know where you are, and type into the file you're in (the insert form,
   `SPC k e`).
-- Read the project, and write what it generates into its `generated/`.
-- Read and change the MIB folders `mib.roots` names.
+- Read the project (to find its MIBs), and write what it generates into
+  its `generated/`.
+- Read and change the MIB folders `mib.roots` names, and add a folder to
+  your `mib.roots` when you open one with "another folder…".
 - Read the CCSDS settings.

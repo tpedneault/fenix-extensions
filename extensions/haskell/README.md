@@ -110,6 +110,10 @@ alone, so it builds without Hackage -- with `cabal run` as its run task.
 | `haskell.hlint` | on | hlint on a saved file |
 | `haskell.build_tool` | `auto` | `cabal` or `stack` |
 
+## Project kind
+
+Fenix 1.6 and later know a Haskell project (`HS`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `cabal.project`, `stack.yaml`, `package.yaml` or `<folder>.cabal` at its top, and opened on `app/Main.hs` or `src/Main.hs` when you've had none of its files open. `kind = "haskell"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "haskell"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a Haskell project or file (`C-k m` with standard keys):

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.zig"
 name = "Zig"
-version = "1.1.0"
+version = "1.2.0"
 description = "Zig: its grammar, ZLS, zig fmt, zig ast-check on save, zig build's steps as tasks, the project's checks with fixes that install Zig and ZLS, and snippets"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -40,6 +40,17 @@ events = ["saved"]
 name = "zig"
 markers = ["build.zig", "build.zig.zon"]
 languages = ["zig"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "zig"
+name = "Zig"
+tag = "ZIG"
+color = "number"
+markers = ["build.zig", "build.zig.zon"]
+main = ["src/main.zig"]
 
 [[contributes.commands]]
 id = "zig.doctor"

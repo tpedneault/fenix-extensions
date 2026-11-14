@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.php"
 name = "PHP"
-version = "1.1.0"
+version = "1.2.0"
 description = "PHP: tree-sitter-php's highlighting, Intelephense or Phpactor, the project's Pint or PHP CS Fixer as the formatter, PHPStan on save, Composer's scripts and the project's tools as tasks, the project's checks with their fixes, snippets, and a Composer package project"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -48,6 +48,17 @@ events = ["saved"]
 name = "php"
 markers = ["composer.json", "artisan"]
 languages = ["php"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "php"
+name = "PHP"
+tag = "PHP"
+color = "variable"
+markers = ["composer.json", "artisan"]
+main = ["public/index.php", "index.php"]
 
 [[contributes.commands]]
 id = "php.doctor"

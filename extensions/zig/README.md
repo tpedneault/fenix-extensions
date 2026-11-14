@@ -95,6 +95,10 @@ https://ziglang.org/download/ or `winget install zig.zig`.
 | `zig.ast_check` | on | `zig ast-check` on a saved file |
 | `zig.build_steps` | on | `zig build -l`'s steps as tasks |
 
+## Project kind
+
+Fenix 1.6 and later know a Zig project (`ZIG`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `build.zig` or `build.zig.zon` at its top, and opened on `src/main.zig` when you've had none of its files open. `kind = "zig"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "zig"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a Zig project or file (`C-k m` with standard keys): `d`

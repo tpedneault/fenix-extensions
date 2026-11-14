@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.ccsds"
 name = "CCSDS & ECSS"
-version = "1.3.0"
+version = "1.4.0"
 description = "Space packets, transfer frames and CLTUs decoded through the MIB, recordings and live telemetry with a parameter followed through them, on-board times, hex, and the CCSDS and ECSS standards"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -43,8 +43,9 @@ clipboard = true
 
 [contributes]
 # Fenix, for a binary file; the MIB's insert form (D) and a definition's
-# f; coding agents' ccsds_decode.
-services = ["ccsds.hex", "ccsds.decode", "ccsds.follow", "ccsds.decode_json"]
+# f; coding agents' ccsds_decode; the MIB extension, saying which MIBs are
+# in use (ccsds.mib).
+services = ["ccsds.hex", "ccsds.decode", "ccsds.follow", "ccsds.decode_json", "ccsds.mib"]
 
 # Agents see it as ccsds_decode.
 [[contributes.agent_tools]]

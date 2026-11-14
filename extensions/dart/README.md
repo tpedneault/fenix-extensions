@@ -228,6 +228,10 @@ In the new-project wizard (`SPC p n`), under *Dart*:
   mobile, web or desktop. The template has no files of its own:
   `flutter create` writes them, the counter app, and runs `pub get`.
 
+## Project kind
+
+Fenix 1.6 and later know a Dart project (`DART`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `pubspec.yaml` at its top, and opened on `lib/main.dart` or `bin/<folder>.dart` when you've had none of its files open. Fenix doesn't read `pubspec.yaml`, so it can't tell a Flutter app from a Dart package: `kind = "flutter"` in the project's `.fenix/settings.toml` makes it a Flutter one (`FLUT`). `kind = "dart"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "dart"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a Dart package or file (`C-k m` with standard keys):
