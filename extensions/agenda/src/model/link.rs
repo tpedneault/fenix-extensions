@@ -1,55 +1,76 @@
-//! A task's optional link to a Jira issue, and the pieces that keep the two
-//! in step -- still no network code: `fenix-gui` fetches issues, turns them
-//! into a `RemoteUpdate`, and sends what's in `AgendaStore::outbox`. What
-//! lives here is the part worth unit-testing on its own: which side wins
-//! when both changed.
+//! A task's optional link to an issue in a tracker, and the pieces that
+//! keep the two in step -- still no calls: `crate::sync` asks the tracker
+//! (`plans/tracker-seam.md`), turns its issues into a `RemoteUpdate`, and
+//! sends what's in `AgendaStore::outbox`. What lives here is the part
+//! worth unit-testing on its own: which side wins when both changed.
 //!
-//! Sync is field-by-field against `JiraLink::base`, the last Jira state
-//! this task agreed with. A field Jira changed and you didn't takes Jira's
-//! value; a field you changed (an op still in the outbox) and Jira didn't
-//! gets pushed; a field both changed becomes a `Conflict` you settle by
-//! hand, and its op is held until you do.
+//! Sync is field-by-field against `IssueLink::base`, the last state of
+//! the issue this task agreed with. A field the tracker changed and you
+//! didn't takes the tracker's value; a field you changed (an op still in
+//! the outbox) and the tracker didn't gets pushed; a field both changed
+//! becomes a `Conflict` you settle by hand, and its op is held until you
+//! do.
+//!
+//! `agenda.json` keeps the shape agenda 1.2 wrote, when every link was
+//! Jira's: a link is still under `"jira"`, its fields named as they were,
+//! so going back to 1.2 keeps them (`crate::legacy` reads the old one).
 
-use chrono::{DateTime};
+use chrono::DateTime;
 use crate::clock::Local;
 use serde::{Deserialize, Serialize};
 
 use crate::model::task::{Priority, Status, TaskId};
 
-/// One comment as Jira has it.
+/// One comment as the tracker has it.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RemoteComment {
     pub id: String,
     pub author: String,
     pub body: String,
-    /// Jira's own timestamp string, kept verbatim.
+    /// The tracker's own timestamp string, kept verbatim.
     pub created: String,
 }
 
-/// The Jira side of a linked task, as of one fetch.
+/// The tracker's side of a linked task, as of one fetch.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RemoteSnapshot {
+    /// Its title.
     pub summary: String,
+    /// Its body, as text.
     pub description: String,
     pub status_id: String,
     pub status_name: String,
-    /// `"new"`, `"indeterminate"` or `"done"`.
+    /// Its stage: `todo`, `doing` or `done` (Jira's `new`, `indeterminate`
+    /// and `done` in a file from agenda 1.2).
     pub status_category: String,
+    /// The column the tracker puts it in -- its stage, or `blocked`.
+    /// None until the first sync after agenda 1.2.
+    #[serde(default)]
+    pub column: Option<String>,
     pub priority: Option<String>,
     pub assignee: Option<String>,
     pub assignee_id: Option<String>,
+    /// Agenda 1.2's, for Jira's Flagged field: kept so 1.2 still reads
+    /// the file, never read here.
+    #[serde(default)]
     pub flagged: bool,
     pub updated: String,
     pub comments: Vec<RemoteComment>,
     /// `YYYY-MM-DD`, when the issue has a due date.
     #[serde(default)]
     pub due: Option<String>,
+    /// Its page.
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Its project, repository or team.
+    #[serde(default)]
+    pub project: Option<String>,
+    /// Its body was longer than the agenda keeps: never written back.
+    #[serde(default)]
+    pub description_cut: bool,
 }
 
-/// A fetched issue plus what it means for the agenda's own fields -- the
-/// caller does the mapping, since it depends on config (which status is
-/// "Blocked" in this project, how priority names map) this crate doesn't
-/// see.
+/// A fetched issue plus what it means for the agenda's own fields.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RemoteUpdate {
     pub snapshot: RemoteSnapshot,
@@ -84,7 +105,8 @@ impl SyncField {
 }
 
 impl crate::model::task::Task {
-    /// This task's own value for `field`, for display beside Jira's.
+    /// This task's own value for `field`, for display beside the
+    /// tracker's.
     pub fn sync_value(&self, field: SyncField) -> String {
         match field {
             SyncField::Title => self.title.clone(),
@@ -96,8 +118,8 @@ impl crate::model::task::Task {
     }
 }
 
-/// Both sides changed `field` since the last sync. `theirs` is what Jira
-/// had when that was noticed.
+/// Both sides changed `field` since the last sync. `theirs` is what the
+/// tracker had when that was noticed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Conflict {
     pub field: SyncField,
@@ -105,7 +127,7 @@ pub struct Conflict {
 }
 
 impl Conflict {
-    /// Jira's value for the conflicting field, for display.
+    /// The tracker's value for the conflicting field, for display.
     pub fn their_value(&self) -> String {
         let s = &self.theirs.snapshot;
         match self.field {
@@ -118,35 +140,58 @@ impl Conflict {
     }
 }
 
+/// A link without a tracker is from agenda 1.2: Jira's.
+fn legacy_tracker() -> String {
+    crate::legacy::ID.to_string()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JiraLink {
+pub struct IssueLink {
+    /// The tracker it's in: the name its services start with (`jira`).
+    #[serde(default = "legacy_tracker")]
+    pub tracker: String,
+    /// The issue's `ref` in its tracker.
     pub key: String,
-    /// The last Jira state this task agreed with -- what "changed" is
-    /// measured against on both sides.
+    /// The last state of the issue this task agreed with -- what
+    /// "changed" is measured against on both sides.
     pub base: RemoteSnapshot,
     pub last_synced: Option<DateTime<Local>>,
     /// Why the last push failed; cleared by the next success or a retry.
     #[serde(default)]
     pub error: Option<String>,
+    /// That failure is worth retrying by itself: offline, rate-limited.
+    #[serde(default)]
+    pub transient: bool,
     #[serde(default)]
     pub conflicts: Vec<Conflict>,
-    /// Jira reassigned the issue to someone else. The task stays; this
-    /// just says so.
+    /// The tracker reassigned the issue to someone else. The task stays;
+    /// this just says so.
     #[serde(default)]
     pub not_mine: bool,
-    /// A status change is waiting on its transitions fetch -- shown as
-    /// pending, never saved.
+    /// A status change is waiting on its moves -- shown as pending,
+    /// never saved.
     #[serde(skip)]
     pub resolving: bool,
 }
 
-impl JiraLink {
-    pub fn project(&self) -> &str {
-        self.key.rsplit_once('-').map_or(self.key.as_str(), |(project, _)| project)
+impl IssueLink {
+    /// Its project, as the tracker named it.
+    pub fn project(&self) -> Option<&str> {
+        self.base.project.as_deref()
+    }
+
+    /// Whether this is tracker `tracker`'s issue `key`.
+    pub fn is(&self, tracker: &str, key: &str) -> bool {
+        self.tracker == tracker && self.key == key
+    }
+
+    /// The column the tracker puts it in, as far as the agenda knows.
+    pub fn column(&self) -> Option<&str> {
+        self.base.column.as_deref()
     }
 }
 
-/// One change waiting to be sent to Jira.
+/// One change waiting to be sent to the tracker.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PendingOp {
     pub id: u64,
@@ -158,12 +203,25 @@ pub struct PendingOp {
 pub enum OpKind {
     SetSummary(String),
     SetDescription(String),
-    /// A Jira priority *name*.
+    /// The tracker's priority *name*.
     SetPriority(String),
     AddComment(String),
     SetAssignee { id: String, name: String },
-    /// A workflow transition, already chosen, with where it lands.
-    Transition { id: String, to_id: String, to_name: String, to_category: String },
+    /// A move, already chosen, with where it lands.
+    Transition {
+        id: String,
+        to_id: String,
+        to_name: String,
+        /// Its stage.
+        to_category: String,
+        #[serde(default)]
+        to_column: Option<String>,
+        /// What to say once it's done.
+        #[serde(default)]
+        said: Option<String>,
+    },
+    /// Agenda 1.2's, Jira's Flagged field: read from an old outbox and
+    /// sent as Jira's own move (`crate::legacy::flag_move`).
     SetFlag(bool),
     /// `YYYY-MM-DD`, or `None` to clear it.
     SetDue(Option<String>),
@@ -190,6 +248,7 @@ impl OpKind {
             OpKind::SetPriority(name) => format!("priority set to {name}"),
             OpKind::AddComment(_) => "comment posted".to_string(),
             OpKind::SetAssignee { name, .. } => format!("assigned to {name}"),
+            OpKind::Transition { said: Some(said), .. } => said.clone(),
             OpKind::Transition { to_name, .. } => format!("moved to {to_name}"),
             OpKind::SetFlag(true) => "flagged".to_string(),
             OpKind::SetFlag(false) => "unflagged".to_string(),
@@ -199,7 +258,7 @@ impl OpKind {
     }
 
     /// Folds a successful op into the base snapshot, so the next fetch
-    /// doesn't mistake our own change for Jira's.
+    /// doesn't mistake our own change for the tracker's.
     pub(crate) fn apply_to(&self, base: &mut RemoteSnapshot) {
         match self {
             OpKind::SetSummary(s) => base.summary = s.clone(),
@@ -210,52 +269,48 @@ impl OpKind {
                 base.assignee_id = Some(id.clone());
                 base.assignee = Some(name.clone());
             }
-            OpKind::Transition { to_id, to_name, to_category, .. } => {
+            OpKind::Transition { to_id, to_name, to_category, to_column, .. } => {
                 base.status_id = to_id.clone();
                 base.status_name = to_name.clone();
                 base.status_category = to_category.clone();
+                base.column = to_column.clone();
             }
-            OpKind::SetFlag(on) => base.flagged = *on,
+            OpKind::SetFlag(on) => {
+                base.flagged = *on;
+                base.column = None;
+            }
             OpKind::SetDue(due) => base.due = due.clone(),
         }
     }
 }
 
-/// Todo/In Progress/Done from Jira's status category -- Blocked is never
-/// a category, the caller decides that one from project config.
-pub fn status_for_category(category: &str) -> Status {
-    match category {
-        "done" => Status::Done,
-        "indeterminate" => Status::InProgress,
+/// The agenda column a tracker's column is.
+pub fn status_for_column(column: &str) -> Status {
+    match column {
+        fenix_tracker::column::DONE => Status::Done,
+        fenix_tracker::column::DOING => Status::InProgress,
+        fenix_tracker::column::BLOCKED => Status::Blocked,
         _ => Status::Todo,
     }
 }
 
-/// The category a board column moves an issue into -- `None` for
-/// Blocked, which every project spells differently.
-pub fn category_for_status(status: Status) -> Option<&'static str> {
+/// The seam's name for an agenda column.
+pub fn column_for_status(status: Status) -> &'static str {
     match status {
-        Status::Todo => Some("new"),
-        Status::InProgress => Some("indeterminate"),
-        Status::Done => Some("done"),
-        Status::Blocked => None,
+        Status::Todo => fenix_tracker::column::TODO,
+        Status::InProgress => fenix_tracker::column::DOING,
+        Status::Blocked => fenix_tracker::column::BLOCKED,
+        Status::Done => fenix_tracker::column::DONE,
     }
 }
 
-/// A best guess at which agenda level a Jira priority name means, for
-/// instances that don't configure one -- the usual Blocker/Critical/Major/
-/// Minor/Trivial and Highest/High/Medium/Low/Lowest schemes both land
-/// where you'd expect.
-pub fn guess_priority(name: &str) -> Priority {
-    let lower = name.to_lowercase();
-    if ["highest", "blocker", "critical", "urgent"].iter().any(|w| lower.contains(w)) {
-        Priority::Urgent
-    } else if lower.contains("high") || lower.contains("major") {
-        Priority::High
-    } else if ["low", "minor", "trivial"].iter().any(|w| lower.contains(w)) {
-        Priority::Low
-    } else {
-        Priority::Medium
+/// The agenda's priority a tracker's level is; none is Medium.
+pub fn priority_for_level(level: Option<&str>) -> Priority {
+    match level {
+        Some(fenix_tracker::level::URGENT) => Priority::Urgent,
+        Some(fenix_tracker::level::HIGH) => Priority::High,
+        Some(fenix_tracker::level::LOW) => Priority::Low,
+        _ => Priority::Medium,
     }
 }
 
@@ -274,15 +329,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn guess_priority_covers_both_common_schemes() {
-        assert_eq!(guess_priority("Highest"), Priority::Urgent);
-        assert_eq!(guess_priority("Blocker"), Priority::Urgent);
-        assert_eq!(guess_priority("High"), Priority::High);
-        assert_eq!(guess_priority("Major"), Priority::High);
-        assert_eq!(guess_priority("Medium"), Priority::Medium);
-        assert_eq!(guess_priority("Lowest"), Priority::Low);
-        assert_eq!(guess_priority("Trivial"), Priority::Low);
-        assert_eq!(guess_priority("P3 - whatever"), Priority::Medium);
+    fn levels_land_on_the_agendas_priorities() {
+        assert_eq!(priority_for_level(Some("urgent")), Priority::Urgent);
+        assert_eq!(priority_for_level(Some("high")), Priority::High);
+        assert_eq!(priority_for_level(Some("low")), Priority::Low);
+        assert_eq!(priority_for_level(Some("medium")), Priority::Medium);
+        assert_eq!(priority_for_level(None), Priority::Medium);
     }
 
     #[test]
@@ -297,10 +349,19 @@ mod tests {
     }
 
     #[test]
-    fn categories_map_to_columns_and_back() {
-        for status in [Status::Todo, Status::InProgress, Status::Done] {
-            assert_eq!(status_for_category(category_for_status(status).unwrap()), status);
+    fn columns_map_to_statuses_and_back() {
+        for status in Status::ALL {
+            assert_eq!(status_for_column(column_for_status(status)), status);
         }
-        assert_eq!(category_for_status(Status::Blocked), None);
+    }
+
+    #[test]
+    fn a_said_move_says_so() {
+        let mut op = OpKind::Transition { id: "1".into(), to_id: "2".into(), to_name: "Done".into(), to_category: "done".into(), to_column: Some("done".into()), said: None };
+        assert_eq!(op.describe(), "moved to Done");
+        if let OpKind::Transition { said, .. } = &mut op {
+            *said = Some("flagged".into());
+        }
+        assert_eq!(op.describe(), "flagged");
     }
 }

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.3.0
+
+Nothing changes for you if you use Jira: your linked tasks, their
+moves, what Blocked means in each project, comments, worklogs and the
+new-issue form work as they did, with the Jira extension 1.2 or 1.3.
+
+- The agenda now talks to Jira the way it will talk to every tracker,
+  so GitHub Issues, GitLab Issues and Linear can link your tasks too
+  once their extensions are out, several at once. Where issues from two
+  trackers are listed together, each says whose it is.
+- `agenda.trackers` names trackers built elsewhere, for the agenda to
+  ask too.
+- What a tracker sends is shown as text, cleaned of control characters
+  and capped in size; a description too long to keep isn't written back
+  over the tracker's.
+- A linked task whose only issue was deleted is marked "not found"
+  instead of failing the sync.
+- Command names say "your tracker" where they said Jira.
+
 ## 1.2.0
 
 For Fenix 1.5 (extension API 1.5):

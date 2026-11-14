@@ -19,11 +19,11 @@ pub struct AgendaStore {
     pub tasks: Vec<Task>,
     next_id: u32,
     pub active_timer: Option<ActiveTimer>,
-    /// Changes to linked tasks not yet confirmed by Jira, oldest first --
+    /// Changes to linked tasks not yet confirmed by their tracker, oldest first --
     /// saved with everything else so a restart or a dropped VPN never
     /// loses an edit. See `crate::model::sync`.
     #[serde(default)]
-    pub outbox: Vec<crate::model::jira::PendingOp>,
+    pub outbox: Vec<crate::model::link::PendingOp>,
     #[serde(default)]
     pub(crate) next_op_id: u64,
 }
@@ -39,7 +39,7 @@ impl AgendaStore {
 
     /// `title`/`description` are taken as typed -- no validation beyond
     /// "not stored blank" (the caller's prompt flow already refuses an
-    /// empty title before this is called, same as `fenix-jira`'s create
+    /// empty title before this is called, same as the Jira page's create
     /// prompt). Starts at `Status::Todo`, ordered after every other task
     /// already in that column.
     pub fn create_task(&mut self, title: String, description: String, priority: Priority, category: Option<String>) -> TaskId {
@@ -63,7 +63,7 @@ impl AgendaStore {
             done_at: None,
             archived: false,
             order,
-            jira: None,
+            link: None,
             due: None,
             code: None,
         });
@@ -158,7 +158,7 @@ impl AgendaStore {
 
     /// Corrects a logged time entry's start and end. Refused (false) when
     /// the end isn't after the start. A corrected entry that had been sent
-    /// to Jira stays sent: Jira keeps what it was sent.
+    /// to a tracker stays sent: the tracker keeps what it was sent.
     pub fn edit_time_entry(&mut self, id: TaskId, index: usize, start: DateTime<Local>, end: DateTime<Local>) -> bool {
         if end <= start {
             return false;
@@ -458,14 +458,17 @@ mod tests {
     #[test]
     fn a_task_is_in_a_project_by_its_category_or_its_issue() {
         let (mut store, id) = store_with_task();
-        assert!(!store.task(id).unwrap().in_project("fenix", Some("FEN")));
+        let fen = [("jira".to_string(), "FEN".to_string())];
+        assert!(!store.task(id).unwrap().in_project("fenix", &fen));
         store.set_category(id, Some("Fenix".to_string()));
-        assert!(store.task(id).unwrap().in_project("fenix", None), "a category named like the project");
+        assert!(store.task(id).unwrap().in_project("fenix", &[]), "a category named like the project");
         let other = store.create_task("x".to_string(), String::new(), Priority::Low, None);
-        let update = crate::model::RemoteUpdate { snapshot: Default::default(), status: Status::Todo, priority: Priority::Low, mine: None };
-        store.link(other, "FEN-12".to_string(), update);
-        assert!(store.task(other).unwrap().in_project("fenix", Some("FEN")));
-        assert!(!store.task(other).unwrap().in_project("fenix", Some("OPS")));
+        let snapshot = crate::model::RemoteSnapshot { project: Some("FEN".into()), ..Default::default() };
+        let update = crate::model::RemoteUpdate { snapshot, status: Status::Todo, priority: Priority::Low, mine: None };
+        store.link(other, "jira", "FEN-12".to_string(), update);
+        assert!(store.task(other).unwrap().in_project("fenix", &fen));
+        assert!(!store.task(other).unwrap().in_project("fenix", &[("jira".to_string(), "OPS".to_string())]));
+        assert!(!store.task(other).unwrap().in_project("fenix", &[("linear".to_string(), "FEN".to_string())]), "another tracker's FEN");
     }
 
     #[test]

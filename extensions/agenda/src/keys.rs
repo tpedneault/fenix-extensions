@@ -27,11 +27,6 @@ fn in_scheme(vim: &str, standard: bool) -> String {
     }
 }
 
-/// The Jira extension's page (`jira.open`).
-pub fn jira() -> String {
-    keys_for("jira.open", "SPC j j")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
