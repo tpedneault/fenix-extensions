@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Winter is Coming themes · Fenix extensions</title>
+<meta name="description" content="John Papa&#39;s Winter is Coming colour themes from VS Code, light and dark, imported for Fenix">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Winter is Coming themes</h1>
+<p class="id"><code>fenix.winter-is-coming-themes</code></p>
+<p class="lead">John Papa&#39;s Winter is Coming colour themes from VS Code, light and dark, imported for Fenix</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=themes">Themes</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>What it is</dt><dd>Data: no code of its own</dd>
+<dt>Download</dt><dd>6 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/winter-is-coming-themes">extensions/winter-is-coming-themes</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Winter is Coming themes</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/winter-is-coming-themes-v1.0.0/fenix.winter-is-coming-themes-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.winter-is-coming-themes-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Nothing: it's data (themes, snippets, keymaps, templates) and runs no code.</p>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>John Papa&#39;s Winter is Coming, the cool blue colour themes for VS Code,
+in Fenix: Dark Blue, Dark Black and Light. Pick one with <code>SPC t p</code>.</p>
+<h3 id="readme-coming-from-vs-code">Coming from VS Code</h3>
+<p>Each theme has the name VS Code gives it, so Fenix&#39;s settings import
+(<code>SPC h i</code>, in Fenix&#39;s nightlies and its next release) brings
+<code>&quot;workbench.colorTheme&quot;: &quot;Winter is Coming (Dark Blue)&quot;</code> over as that
+theme once this is installed, rather than the nearest theme Fenix ships.
+VS Code&#39;s &quot;No Italics&quot; versions differ from these only in italics, which
+Fenix&#39;s themes don&#39;t have; the import takes each to the theme its name
+begins with (&quot;the nearest Fenix has&quot;).</p>
+<h3 id="readme-where-the-colours-come-from">Where the colours come from</h3>
+<p>From <a href="https://github.com/johnpapa/vscode-winteriscoming">johnpapa/vscode-winteriscoming</a>
+at commit <code>260547834cb6ac37dd5b8bb5842cc1c8d3164946</code> (its <code>package.json</code>
+says 1.5.0): <code>themes/WinterIsComing-dark-blue-color-theme.json</code>,
+<code>WinterIsComing-dark-color-theme.json</code> and
+<code>WinterIsComing-light-color-theme.json</code>, each converted by
+<code>cargo xtask theme-import</code> with the name its <code>package.json</code> gives it,
+and not edited after. Each theme file&#39;s header says which file it was
+made from.</p>
+<p>The themes are under the MIT licence, Copyright (c) 2015-2017
+JohnPapa.net, LLC: <a href="https://github.com/tpedneault/fenix-extensions/blob/main/extensions/winter-is-coming-themes/LICENSE-winter-is-coming"><code>LICENSE-winter-is-coming</code></a>,
+the repository&#39;s <code>LICENSE.md</code> at that commit (its <code>package.json</code> says
+&quot;SEE LICENSE IN LICENSE.md&quot;). This pack is under the same licence.</p>
+<p>To make them again, from the repository&#39;s root, for each theme:</p>
+<pre><code class="language-text">cargo xtask theme-import WinterIsComing-dark-blue-color-theme.json --out extensions/winter-is-coming-themes/themes --name &quot;Winter is Coming (Dark Blue)&quot; --source &quot;&lt;its URL at the commit&gt;&quot;
+</code></pre>
+<h3 id="readme-what-the-import-kept-and-what-it-couldnt">What the import kept, and what it couldn&#39;t</h3>
+<p>As published: the colours are Winter is Coming&#39;s own. Its light theme&#39;s
+line numbers are 3.9:1 on white, a little under the 4.5:1 Fenix&#39;s own
+themes keep; the rest reads at that or better.</p>
+<p><strong>From the theme</strong>: the editor&#39;s page and text, the colour of its popups
+(the dark themes) or its tab strip (the light one) for Fenix&#39;s popups and
+status line, the side bar and its text, borders, the caret, current
+line, selection, bracket match and search matches, line numbers, every
+syntax colour, from its TextMate rules, matched the way VS Code matches
+them, and the Git colours it sets (modified and untracked). It colours
+no punctuation: that&#39;s body text, as VS Code draws it. The dark themes&#39;
+active tab has the accent along its top they draw there.</p>
+<p><strong>Worked out</strong>, since VS Code has no colour for them:</p>
+<ul class="tight">
+<li><p>the mode badges, from the theme&#39;s colours by hue: Normal blue, Insert
+green, Visual purple, Replace amber, Command cyan -- from its syntax,
+terminal and Git colours. The lettering is the page colour, or black
+where that reads better;</p></li>
+<li><p>the Git colours it doesn&#39;t set: added (Fenix&#39;s staged) its green,
+conflicted its red, ignored the line numbers&#39; colour;</p></li>
+<li><p>the folder icons: Normal&#39;s blue (in VS Code they come with an icon
+theme, not a colour theme).</p></li>
+</ul>
+<p><strong>Left out, for this pack&#39;s Fenix 1.0 floor</strong>: its 16 terminal colours
+(Fenix reads a theme&#39;s own from 1.4; until then it makes them from the
+theme&#39;s Git and syntax colours), and its TextMate colours for
+interfaces, parameters and macros (1.5.2).</p>
+<p><strong>Not mapped</strong>: about 150 workbench colours Fenix&#39;s themes have no
+place for (buttons, lists, inputs, notifications, peek views, the
+status bar&#39;s bright blue -- Fenix&#39;s status line is drawn on the popups&#39;
+colour, with the text on it -- ...); 59 TextMate rules no Fenix role
+takes its colour from (most for Markdown, JSON, TypeScript and
+JavaScript); and its font styles (16 italic rules, bold, underline,
+strikethrough -- Fenix&#39;s themes have none).</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<p>Nothing. It&#39;s data alone: three theme files and a licence, no code, and
+it asks for no permissions.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>--</td><td>6 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/winter-is-coming-themes-v1.0.0/fenix.winter-is-coming-themes-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 4c09ebd95e615cc4977add9c9acef6aa58206082c6b5465faf4968837ecce7d3">4c09ebd95e…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: John Papa&#39;s Winter is Coming themes from VS Code -- Dark Blue, Dark Black and Light -- converted from the theme files at commit 2605478 of johnpapa/vscode-winteriscoming, under their MIT licence.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
