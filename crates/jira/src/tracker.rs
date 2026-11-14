@@ -1,11 +1,19 @@
 //! The tracker seam (`plans/tracker-seam.md`) served for Jira Server and
-//! Data Center over a [`JiraClient`]: what the agenda did with Jira
+//! Data Center, and for Jira Cloud, over a [`JiraClient`]: what the agenda did with Jira
 //! itself before -- which requests, how an issue maps onto its columns
 //! and priorities, what Blocked means in a project -- moved here, so the
 //! Jira extension serves it (`fenix.jira.tracker.*`, its own HTTP) and the
 //! agenda serves it to itself when the Jira extension is older than the
 //! seam (over `jira.request`). The same code either way, so the same
 //! answers.
+//!
+//! On Cloud the same calls, asked Cloud's way (the client's), with these
+//! differences: an issue's description and comments are rich text read
+//! as plain text, so `about.can` leaves out `edit.body` (a description
+//! written back from text would lose what's in it); assignees are account
+//! ids, unassigning is `accountId: null`, and `people` is who Jira says
+//! can be assigned the issue; `assigned` pages by the enhanced search's
+//! token, passed through as it came.
 //!
 //! `about`, `create` and `remember` need the extension (its settings,
 //! its form): [`about`] and [`parse_remember`] are for the caller, and
@@ -16,7 +24,7 @@ use std::rc::Rc;
 
 use fenix_tracker::{self as seam, can, code, column, level, Change, SeamError};
 
-use crate::{build_ids_and_keys_jql, build_my_open_issues_jql, project_of, IssueDetail, JiraClient, Transition};
+use crate::{build_ids_and_keys_jql, build_my_open_issues_jql, project_of, Deployment, IssueDetail, JiraClient, Transition};
 
 /// The Jira extension's id, and so the start of its seam's names.
 pub const ID: &str = "fenix.jira";
@@ -190,6 +198,16 @@ impl Learned {
 /// `about`: Jira, ready when it has a server (and, for the extension, a
 /// token).
 pub fn about(settings: &Settings, ready: bool) -> seam::About {
+    about_for(settings, ready, Deployment::Server)
+}
+
+/// `about` for `deployment`. Cloud needs your email too, and doesn't
+/// take `edit.body`: see the module's words.
+pub fn about_for(settings: &Settings, ready: bool, deployment: Deployment) -> seam::About {
+    let not_ready = match deployment {
+        Deployment::Server => format!("Jira isn't set up yet -- set its server and token in {} (Jira)", settings.keys.settings),
+        Deployment::Cloud => format!("Jira Cloud isn't set up yet -- set its site, your email and an API token in {} (Jira)", settings.keys.settings),
+    };
     seam::About {
         seam: seam::SEAM,
         seams: seam::SEAMS.to_vec(),
@@ -197,8 +215,8 @@ pub fn about(settings: &Settings, ready: bool) -> seam::About {
         id: ID.into(),
         name: "Jira".into(),
         ready,
-        not_ready: (!ready).then(|| format!("Jira isn't set up yet -- set its server and token in {} (Jira)", settings.keys.settings)),
-        can: can::ALL.iter().map(|c| c.to_string()).collect(),
+        not_ready: (!ready).then_some(not_ready),
+        can: can::ALL.iter().filter(|c| !(deployment.is_cloud() && **c == can::EDIT_BODY)).map(|c| c.to_string()).collect(),
         sync_minutes: settings.sync_minutes,
         project_meta: Some("jira".into()),
         browse: settings.base().map(|b| format!("{b}/browse/{{ref}}")),
@@ -241,8 +259,14 @@ pub fn classify(message: String) -> SeamError {
     SeamError::new(code, message)
 }
 
-/// `PROJ-12` from `PROJ-12` or `https://jira.example.com/browse/PROJ-12`.
+/// `PROJ-12` from `PROJ-12`, `https://jira.example.com/browse/PROJ-12`,
+/// or a Cloud board's `...?selectedIssue=PROJ-12`.
 fn key_of(r: &str) -> String {
+    if r.starts_with("http") {
+        if let Some((_, rest)) = r.split_once("selectedIssue=") {
+            return rest.split(['&', '#']).next().unwrap_or(rest).to_uppercase();
+        }
+    }
     match r.split_once("/browse/") {
         Some((_, rest)) if r.starts_with("http") => rest.split(['?', '#', '/']).next().unwrap_or(rest).to_uppercase(),
         _ => r.trim().to_uppercase(),
@@ -322,6 +346,20 @@ fn bad(e: serde_json::Error) -> SeamError {
 impl Seam {
     pub fn new(client: JiraClient, settings: Settings, learned: Rc<RefCell<Learned>>) -> Self {
         Seam { client, settings, learned }
+    }
+
+    /// A failed request as the seam's error, with what a `429` said to
+    /// wait when the transport saw it.
+    fn fail(&self, message: String) -> SeamError {
+        let mut err = classify(message);
+        if err.code == code::RATE_LIMITED {
+            err.retry_after = self.client.retry_after().map(u64::from);
+        }
+        err
+    }
+
+    fn deployment(&self) -> Deployment {
+        self.client.deployment()
     }
 
     /// One issue, as the seam has it.
@@ -405,31 +443,46 @@ impl Seam {
             return Err(SeamError::new(code::UNSUPPORTED, format!("Jira speaks the tracker seam {}, not {}", seam::SEAM, hello.seam)));
         }
         if self.settings.base().is_none() {
-            return Err(SeamError::new(code::NOT_SET_UP, about(&self.settings, false).not_ready.unwrap_or_default()));
+            return Err(SeamError::new(code::NOT_SET_UP, about_for(&self.settings, false, self.deployment()).not_ready.unwrap_or_default()));
         }
         match call {
             seam::call::ASSIGNED => self.assigned(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::ISSUES => self.issues(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::TRANSITIONS => self.transitions(serde_json::from_str(payload).map_err(bad)?).await,
-            seam::call::TRANSITION => self.transition(serde_json::from_str(payload).map_err(bad)?).await,
-            seam::call::UPDATE => self.update(serde_json::from_str(payload).map_err(bad)?).await,
+            seam::call::TRANSITION | seam::call::UPDATE | seam::call::COMMENT | seam::call::WORKLOG => self.write(call, payload).await,
             seam::call::PRIORITIES => {
-                let ps = self.client.list_priorities().await.map_err(classify)?;
+                let ps = self.client.list_priorities().await.map_err(|e| self.fail(e))?;
                 json(&seam::Priorities { priorities: ps.into_iter().map(|p| seam::Priority { level: Some(self.settings.level(&p.name).into()), name: p.name }).collect() }.cleaned())
+            }
+            seam::call::PEOPLE if self.deployment().is_cloud() => {
+                let one: seam::One = serde_json::from_str(payload).map_err(bad)?;
+                let key = checked(&one.key)?;
+                let found = self.client.assignable(&key).await.map_err(|e| self.fail(e))?;
+                let people = found.into_iter().map(|(id, name)| seam::Person { id, name }).collect();
+                json(&seam::People { people, none: Some(format!("no one can be assigned {key} in Jira -- the project's Assignable User permission says who")) }.cleaned())
             }
             seam::call::PEOPLE => {
                 let people = self.settings.users.iter().map(|(id, name)| seam::Person { id: id.clone(), name: name.clone() }).collect();
                 json(&seam::People { people, none: Some(format!("no people to assign to -- a on the Jira page ({}) adds one", self.settings.keys.page)) }.cleaned())
             }
+            other => Err(SeamError::new(code::UNSUPPORTED, format!("no service jira.tracker.{other}"))),
+        }
+    }
+
+    /// Every call that changes something in Jira, in one place.
+    async fn write(&self, call: &str, payload: &str) -> Answer {
+        match call {
+            seam::call::TRANSITION => self.transition(serde_json::from_str(payload).map_err(bad)?).await,
+            seam::call::UPDATE => self.update(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::COMMENT => {
                 let c: seam::NewComment = serde_json::from_str(payload).map_err(bad)?;
-                self.client.add_comment(&checked(&c.key)?, &c.body).await.map_err(classify)?;
+                self.client.add_comment(&checked(&c.key)?, &c.body).await.map_err(|e| self.fail(e))?;
                 json(&seam::Said::default())
             }
             seam::call::WORKLOG => {
                 let w: seam::Worklog = serde_json::from_str(payload).map_err(bad)?;
                 let started = jira_time(&w.started).map_err(|e| SeamError::new(code::BAD_REQUEST, e))?;
-                self.client.add_worklog_at(&checked(&w.key)?, w.seconds, &started).await.map_err(classify)?;
+                self.client.add_worklog_at(&checked(&w.key)?, w.seconds, &started).await.map_err(|e| self.fail(e))?;
                 json(&seam::Said::default())
             }
             other => Err(SeamError::new(code::UNSUPPORTED, format!("no service jira.tracker.{other}"))),
@@ -442,7 +495,12 @@ impl Seam {
         let start: u32 = req.cursor.as_deref().and_then(|c| c.parse().ok()).unwrap_or(0);
         let me = self.me().await;
         let flag = self.flag(false).await;
-        let (found, total) = self.client.search_details_page(&jql, start, req.limit(), flag.as_deref()).await.map_err(classify)?;
+        if self.deployment().is_cloud() {
+            // Cloud's token, passed back as it came (an opaque value).
+            let (found, next) = self.client.search_details_after(&jql, req.cursor.as_deref(), req.limit(), flag.as_deref()).await.map_err(|e| self.fail(e))?;
+            return json(&seam::Page { issues: found.iter().filter_map(|d| self.issue(d, me.as_deref())).collect(), next }.cleaned()?);
+        }
+        let (found, total) = self.client.search_details_page(&jql, start, req.limit(), flag.as_deref()).await.map_err(|e| self.fail(e))?;
         let end = start + found.len() as u32;
         let next = (!found.is_empty() && end < total).then(|| end.to_string());
         json(&seam::Page { issues: found.iter().filter_map(|d| self.issue(d, me.as_deref())).collect(), next }.cleaned()?)
@@ -468,7 +526,7 @@ impl Seam {
             // One alone: fetched directly, so a moved issue answers under
             // its new key -- and is still what was asked.
             [(r, Some(n))] => {
-                let d = self.client.get_issue_with(n.path(), flag.as_deref()).await.map_err(classify)?;
+                let d = self.client.get_issue_with(n.path(), flag.as_deref()).await.map_err(|e| self.fail(e))?;
                 found.extend(issue(&d, r));
             }
             many => {
@@ -500,14 +558,14 @@ impl Seam {
                     Err(why) if why.starts_with("HTTP 400") => {
                         for (r, n) in many {
                             let Some(n) = n else { continue };
-                            match self.client.get_issue_with(n.path(), flag.as_deref()).await.map_err(classify) {
+                            match self.client.get_issue_with(n.path(), flag.as_deref()).await.map_err(|e| self.fail(e)) {
                                 Ok(d) => found.extend(issue(&d, r)),
                                 Err(e) if e.is(code::NOT_FOUND) => missing.push(r.clone()),
                                 Err(e) => return Err(e),
                             }
                         }
                     }
-                    Err(why) => return Err(classify(why)),
+                    Err(why) => return Err(self.fail(why)),
                 }
             }
         }
@@ -519,7 +577,7 @@ impl Seam {
     async fn project(&self, key: &str) -> Result<String, SeamError> {
         match named(key)? {
             Named::Key(k) => Ok(project_of(&k).to_string()),
-            Named::Id(i) => self.client.get_issue(&i).await.map(|d| project_of(&d.key).to_string()).map_err(classify),
+            Named::Id(i) => self.client.get_issue(&i).await.map(|d| project_of(&d.key).to_string()).map_err(|e| self.fail(e)),
         }
     }
 
@@ -549,7 +607,7 @@ impl Seam {
                 Some(Blocked::Local) => json(&answer(vec![seam::Move { id: "local".into(), name: "Keep Blocked local".into(), local: true, to: here(column::BLOCKED), ..Default::default() }]).cleaned()),
                 Some(Blocked::Flag) => json(&answer(vec![seam::Move { id: "flag".into(), name: "Flag".into(), to: here(column::BLOCKED), said: Some("flagged".into()), ..Default::default() }]).cleaned()),
                 Some(Blocked::Status { id, name }) => {
-                    let ts = self.client.list_transitions(&req.key).await.map_err(classify)?;
+                    let ts = self.client.list_transitions(&req.key).await.map_err(|e| self.fail(e))?;
                     let moves: Vec<seam::Move> = ts.iter().map(|t| self.moved(t, &project, flagged)).collect();
                     match moves.iter().find(|m| m.to.id == id) {
                         Some(m) => json(&answer(vec![m.clone()]).cleaned()),
@@ -557,7 +615,7 @@ impl Seam {
                     }
                 }
                 None => {
-                    let ts = self.client.list_transitions(&req.key).await.map_err(classify)?;
+                    let ts = self.client.list_transitions(&req.key).await.map_err(|e| self.fail(e))?;
                     let mut moves: Vec<seam::Move> = ts
                         .iter()
                         .filter(|t| !t.to_id.is_empty())
@@ -601,7 +659,7 @@ impl Seam {
                 if from.stage == toward {
                     return json(&answer(vec![seam::Move { id: "unflag".into(), name: "Unflag".into(), to: here(toward), said: Some("unflagged".into()), ..Default::default() }]).cleaned());
                 }
-                let ts = self.client.list_transitions(&req.key).await.map_err(classify)?;
+                let ts = self.client.list_transitions(&req.key).await.map_err(|e| self.fail(e))?;
                 let moves = ts
                     .iter()
                     .map(|t| {
@@ -614,7 +672,7 @@ impl Seam {
                 json(&answer(moves).cleaned())
             }
             _ => {
-                let ts = self.client.list_transitions(&req.key).await.map_err(classify)?;
+                let ts = self.client.list_transitions(&req.key).await.map_err(|e| self.fail(e))?;
                 json(&answer(ts.iter().map(|t| self.moved(t, &project, flagged)).collect()).cleaned())
             }
         }
@@ -625,13 +683,13 @@ impl Seam {
         let field = match known {
             Some(field) => field,
             None => {
-                let found = self.client.find_flagged_field().await.map_err(classify)?;
+                let found = self.client.find_flagged_field().await.map_err(|e| self.fail(e))?;
                 self.learned.borrow_mut().flag_field = Some(found.clone());
                 found
             }
         };
         match field {
-            Some(field) => self.client.set_flagged(key, &field, on).await.map_err(classify),
+            Some(field) => self.client.set_flagged(key, &field, on).await.map_err(|e| self.fail(e)),
             None => Err(SeamError::new(
                 code::REFUSED,
                 format!("this Jira has no Flagged field -- press b on the project's search on the Jira page ({}) to pick another meaning for Blocked", self.settings.keys.page),
@@ -660,7 +718,7 @@ impl Seam {
                     }
                     None => id,
                 };
-                self.client.apply_transition(&req.key, id).await.map_err(classify)?;
+                self.client.apply_transition(&req.key, id).await.map_err(|e| self.fail(e))?;
                 None
             }
         };
@@ -672,6 +730,7 @@ impl Seam {
         let c = &self.client;
         let done = match req.change()? {
             Change::Title(s) => c.update_summary(&key, &s).await,
+            Change::Body(_) if c.is_cloud() => return Err(SeamError::new(code::UNSUPPORTED, crate::CLOUD_DESCRIPTION)),
             Change::Body(s) => c.update_description(&key, &s).await,
             Change::Priority(p) => c.update_priority(&key, &p).await,
             Change::Due(d) => c.update_due(&key, d.as_deref()).await,
@@ -679,7 +738,7 @@ impl Seam {
             Change::Assignee(None) => c.unassign(&key).await,
             Change::Labels(l) => c.update_labels(&key, &l).await,
         };
-        done.map_err(classify)?;
+        done.map_err(|e| self.fail(e))?;
         json(&seam::Said::default())
     }
 }

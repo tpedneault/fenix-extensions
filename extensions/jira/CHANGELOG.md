@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.4.0
+
+Jira Cloud, in the same extension. Nothing changes for Server and Data
+Center.
+
+- Set the address of your `*.atlassian.net` site, your Atlassian
+  account's email (the new **Jira email** setting) and an API token, and
+  the page, the new-issue form and the agenda work with Jira Cloud. The
+  README says where to make the token, step by step.
+- Which Jira it is comes from the address, and the site itself says for
+  sure the first time it's reached; the page shows it beside the
+  address. **Which Jira** (`jira.kind`) says it yourself.
+- A scoped API token works too, through Atlassian's gateway: turn on
+  **Scoped API token**. So it may reach `api.atlassian.com` as well as
+  your site.
+- On Cloud, descriptions and comments are shown as plain text, and a
+  description isn't edited from Fenix -- its rich text would be lost.
+  Everything else the agenda sends goes to Jira Cloud as to Server:
+  moves, title, priority, due date, assignee (or nobody), labels,
+  comments and worklogs. Comments and new issues are sent as paragraphs
+  and line breaks.
+- The agenda's changes to a Cloud site are asked about once a session,
+  as for Server (`jira.seam_writes`), and a change sent twice is made
+  once.
+- When Jira says to slow down, the agenda is told how long to wait.
+
 ## 1.3.0
 
 Nothing changes for you: the agenda's linked tasks, their moves, what
