@@ -3510,6 +3510,43 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/php-v1.2.0/fenix.php-1.2.0.fenixext",
+          "sha256": "37c5daf6202db7d36e99dd5bceb600d9f3fdd3876dcc027fc059a480476893cb",
+          "size": 447083,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "php",
+              "composer",
+              "npm",
+              "intelephense",
+              "phpactor",
+              "phpunit",
+              "pest",
+              "phpstan",
+              "pint",
+              "php-cs-fixer",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "PHP",
