@@ -1,0 +1,1 @@
+{"self":"https://jira.example.com/rest/api/2/user?username=jo1","key":"JIRAUSER10100","name":"jo1","emailAddress":"jo@example.com","displayName":"Jo Bloggs","active":true,"timeZone":"Europe/Paris","locale":"en_GB","groups":{"size":2,"items":[]},"applicationRoles":{"size":1,"items":[]},"expand":"groups,applicationRoles"}

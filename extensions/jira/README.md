@@ -42,7 +42,36 @@ token is a personal access token, sent as a bearer token.
 | `jira.priorities` | How Jira's priorities map onto the agenda's |
 | `jira.sync_minutes` | How often the agenda's linked tasks are brought up to date |
 
+## What it may do
+
+- Reach your Jira, the server in `jira.base_url`, and nothing else.
+- Read and keep your token, `jira.token`, in the system's keychain.
+- Read where you are in the editor, for the project's Jira key in
+  `.fenix/project.toml`.
+
 ## For the agenda
 
-The agenda extension reaches Jira through this one's services:
-`jira.request`, `jira.config`, `jira.set_blocked` and `jira.new_issue`.
+The agenda reaches Jira through the tracker seam
+([`plans/tracker-seam.md`](../../plans/tracker-seam.md)) that this
+extension serves, `jira.tracker.*`: the issues assigned to you, the
+issues linked to tasks, their workflow's moves, and the agenda's edits,
+comments and worklogs. What Blocked means in a project (`jira.blocked`)
+and how priorities map (`jira.priorities`) are kept here, and the agenda
+holds neither your server nor your token.
+
+The agenda 1.2, from before the seam, uses `jira.request`,
+`jira.config`, `jira.set_blocked` and `jira.new_issue`, which this one
+still answers; they go at 2.0. `jira.request` sends what it's given to
+your Jira as you, so until then any extension may ask it to.
+
+## Building
+
+```text
+cargo xtask pack extensions/jira dist
+cargo test --manifest-path extensions/jira/Cargo.toml
+cargo test --manifest-path crates/jira/Cargo.toml
+```
+
+The seam's Jira side is tested in `crates/jira` on recorded Jira Server
+responses (`tests/fixtures`); here, the services the agenda 1.2 and 1.3
+call, on the test kit.

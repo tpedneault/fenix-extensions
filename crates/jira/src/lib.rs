@@ -3,11 +3,15 @@
 //! comments, transitions and worklogs (`actions`, `create`) -- as Fenix
 //! 1.x's `fenix-jira` was, but `async`, over a [`Transport`]: the Jira
 //! extension's own HTTP, or the agenda's calls to the Jira extension.
+//! And the tracker seam served over it (`tracker`), the agenda's view of
+//! any tracker, for Jira.
 
 mod actions;
 mod client;
 mod create;
 mod issue;
+pub mod recorded;
+pub mod tracker;
 
 pub use actions::{Priority, StatusInfo, Transition};
 pub use client::{JiraClient, Reply, Transport};

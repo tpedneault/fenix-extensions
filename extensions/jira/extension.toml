@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.jira"
 name = "Jira"
-version = "1.2.0"
+version = "1.3.0"
 description = "Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -25,7 +25,14 @@ secrets = ["jira.token"]
 editor = "read"
 
 [contributes]
-services = ["jira.request", "jira.config", "jira.set_blocked", "jira.new_issue"]
+# The tracker seam the agenda calls (`jira.tracker.*`); and, for the
+# agenda 1.2 from before it, the four it called then.
+services = [
+    "jira.tracker.about", "jira.tracker.assigned", "jira.tracker.issues", "jira.tracker.transitions",
+    "jira.tracker.transition", "jira.tracker.update", "jira.tracker.priorities", "jira.tracker.people",
+    "jira.tracker.comment", "jira.tracker.worklog", "jira.tracker.create", "jira.tracker.remember",
+    "jira.request", "jira.config", "jira.set_blocked", "jira.new_issue",
+]
 
 [[contributes.commands]]
 id = "jira.open"

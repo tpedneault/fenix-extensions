@@ -83,7 +83,7 @@ pub struct TimeEntry {
     pub start: DateTime<Local>,
     pub end: DateTime<Local>,
     pub source: TimeSource,
-    /// Already sent to Jira as (part of) a worklog -- or dismissed from
+    /// Already sent to its tracker as (part of) a worklog -- or dismissed from
     /// the worklog review without sending. Only meaningful on a linked
     /// task.
     #[serde(default)]
@@ -137,10 +137,11 @@ pub struct Task {
     /// Manual position within its status column; lower sorts first. Only
     /// meaningful relative to other tasks sharing the same `status`.
     pub order: i64,
-    /// The Jira issue this task tracks, if any -- see `crate::model::jira`.
-    #[serde(default)]
-    pub jira: Option<crate::model::jira::JiraLink>,
-    /// When it's due, if ever. On a linked task, Jira's own due date.
+    /// The issue this task tracks, if any -- see `crate::model::link`.
+    /// Kept under `"jira"`, as agenda 1.2 wrote it.
+    #[serde(default, rename = "jira")]
+    pub link: Option<crate::model::link::IssueLink>,
+    /// When it's due, if ever. On a linked task, the issue's own due date.
     #[serde(default)]
     pub due: Option<chrono::NaiveDate>,
     /// The code it's about, when it was made from a selection.
@@ -157,20 +158,21 @@ pub struct CodeRef {
 }
 
 impl Task {
-    pub fn jira_key(&self) -> Option<&str> {
-        self.jira.as_ref().map(|link| link.key.as_str())
+    /// Its issue's `ref`, when it's linked.
+    pub fn issue_key(&self) -> Option<&str> {
+        self.link.as_ref().map(|link| link.key.as_str())
     }
 
-    /// Whether the task belongs to a project called `name` whose Jira key
-    /// is `jira_key`. Categories double as projects: a task filed under a
-    /// category named like the project is in it, and so is a linked task
-    /// whose issue is in the project's Jira project.
-    pub fn in_project(&self, name: &str, jira_key: Option<&str>) -> bool {
+    /// Whether the task belongs to a project called `name` whose
+    /// trackers' projects are `issues` (tracker, project). Categories
+    /// double as projects: a task filed under a category named like the
+    /// project is in it, and so is a linked task whose issue is in one of
+    /// the project's trackers' projects.
+    pub fn in_project(&self, name: &str, issues: &[(String, String)]) -> bool {
         let by_category = self.category.as_deref().is_some_and(|c| c.eq_ignore_ascii_case(name));
-        let by_issue = match (jira_key, &self.jira) {
-            (Some(key), Some(link)) => link.project().eq_ignore_ascii_case(key),
-            _ => false,
-        };
+        let by_issue = self.link.as_ref().is_some_and(|link| {
+            issues.iter().any(|(tracker, project)| link.tracker == *tracker && link.project().is_some_and(|p| p.eq_ignore_ascii_case(project)))
+        });
         by_category || by_issue
     }
 

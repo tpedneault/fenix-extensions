@@ -54,6 +54,7 @@ pub struct IssueDetail {
     /// The due date, `YYYY-MM-DD`, when the issue has one.
     pub due: Option<String>,
     pub issue_type: Option<String>,
+    pub labels: Vec<String>,
 }
 
 /// The JQL for "every issue assigned to `user_id`, scoped to whichever
@@ -97,7 +98,7 @@ pub fn project_of(key: &str) -> &str {
     key.rsplit_once('-').map_or(key, |(project, _)| project)
 }
 
-const DETAIL_FIELDS: &str = "summary,description,status,priority,assignee,reporter,created,updated,comment,duedate,issuetype";
+const DETAIL_FIELDS: &str = "summary,description,status,priority,assignee,reporter,created,updated,comment,duedate,issuetype,labels";
 
 impl JiraClient {
     /// `GET /rest/api/2/search` -- runs `jql`, returns up to
@@ -137,6 +138,23 @@ impl JiraClient {
         let body = self.request("/rest/api/2/search", &[("jql", jql), ("maxResults", &max_results), ("fields", &fields)]).await?;
         let issues = body.get("issues").and_then(|v| v.as_array()).ok_or_else(|| "unexpected search response shape".to_string())?;
         Ok(issues.iter().filter_map(|v| parse_issue_detail(v, flag_field)).collect())
+    }
+
+    /// `search_details` from the `start_at`th match: the issues, and how
+    /// many match in all -- one page of a longer list.
+    pub async fn search_details_page(&self, jql: &str, start_at: u32, max_results: u32, flag_field: Option<&str>) -> Result<(Vec<IssueDetail>, u32), String> {
+        let (start, max) = (start_at.to_string(), max_results.to_string());
+        let fields = detail_fields(flag_field);
+        let mut query = vec![("jql", jql)];
+        if start_at > 0 {
+            query.push(("startAt", &start));
+        }
+        query.extend([("maxResults", max.as_str()), ("fields", fields.as_str())]);
+        let body = self.request("/rest/api/2/search", &query).await?;
+        let issues = body.get("issues").and_then(|v| v.as_array()).ok_or_else(|| "unexpected search response shape".to_string())?;
+        let found: Vec<IssueDetail> = issues.iter().filter_map(|v| parse_issue_detail(v, flag_field)).collect();
+        let total = body.get("total").and_then(|t| t.as_u64()).map_or(start_at + found.len() as u32, |t| t as u32);
+        Ok((found, total))
     }
 }
 
@@ -226,6 +244,7 @@ fn parse_issue_detail(v: &serde_json::Value, flag_field: Option<&str>) -> Option
         comments,
         due: text_field(fields, "duedate"),
         issue_type: fields.get("issuetype").and_then(|p| p.get("name")).and_then(|n| n.as_str()).map(str::to_string),
+        labels: fields.get("labels").and_then(|l| l.as_array()).map(|l| l.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default(),
     })
 }
 
