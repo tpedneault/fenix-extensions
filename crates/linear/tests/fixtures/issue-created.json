@@ -1,0 +1,12 @@
+{
+  "data": {
+    "issueCreate": {
+      "success": true,
+      "issue": {
+        "id": "1550e000-0000-4000-8000-000000000021",
+        "identifier": "ENG-21",
+        "url": "https://linear.app/acme/issue/ENG-21/new-thing"
+      }
+    }
+  }
+}

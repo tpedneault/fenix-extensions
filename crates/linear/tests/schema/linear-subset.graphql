@@ -1,0 +1,244 @@
+# The parts of Linear's GraphQL schema this extension's queries touch.
+# Written by `regenerate_the_subset` (see README.md); do not edit by hand.
+
+type ActorBot {
+  name: String
+}
+
+input BooleanComparator {
+  eq: Boolean
+}
+
+type Comment {
+  body: String!
+  botActor: ActorBot
+  createdAt: DateTime!
+  id: ID!
+  user: User
+}
+
+type CommentConnection {
+  nodes: [Comment!]!
+  pageInfo: PageInfo!
+}
+
+input CommentCreateInput {
+  body: String
+  issueId: String
+}
+
+type CommentPayload {
+  comment: Comment!
+  success: Boolean!
+}
+
+type Cycle {
+  id: ID!
+  name: String
+  number: Float!
+}
+
+input DateComparator {
+  gte: DateTimeOrDuration
+}
+
+type Issue {
+  assignee: User
+  branchName: String!
+  children(after: String, before: String, filter: IssueFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): IssueConnection!
+  comments(after: String, before: String, filter: CommentFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): CommentConnection!
+  createdAt: DateTime!
+  creator: User
+  cycle: Cycle
+  description: String
+  dueDate: TimelessDate
+  id: ID!
+  identifier: String!
+  labels(after: String, before: String, filter: IssueLabelFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): IssueLabelConnection!
+  parent: Issue
+  priority: Float!
+  project: Project
+  state: WorkflowState!
+  team: Team!
+  title: String!
+  updatedAt: DateTime!
+  url: String!
+}
+
+type IssueConnection {
+  nodes: [Issue!]!
+  pageInfo: PageInfo!
+}
+
+input IssueCreateInput {
+  assigneeId: String
+  description: String
+  labelIds: [String!]
+  priority: Int
+  stateId: String
+  teamId: String!
+  title: String
+}
+
+input IssueFilter {
+  and: [IssueFilter!]
+  assignee: NullableUserFilter
+  creator: NullableUserFilter
+  cycle: NullableCycleFilter
+  id: IssueIDComparator
+  labels: IssueLabelCollectionFilter
+  number: NumberComparator
+  or: [IssueFilter!]
+  priority: NullableNumberComparator
+  project: NullableProjectFilter
+  state: WorkflowStateFilter
+  team: TeamFilter
+  title: StringComparator
+  updatedAt: DateComparator
+}
+
+input IssueIDComparator {
+  in: [ID!]
+}
+
+type IssueLabel {
+  id: ID!
+  name: String!
+}
+
+input IssueLabelCollectionFilter {
+  some: IssueLabelFilter
+}
+
+type IssueLabelConnection {
+  nodes: [IssueLabel!]!
+}
+
+input IssueLabelFilter {
+  name: StringComparator
+}
+
+type IssuePayload {
+  issue: Issue
+  success: Boolean!
+}
+
+input IssueUpdateInput {
+  assigneeId: String
+  description: String
+  dueDate: TimelessDate
+  priority: Int
+  stateId: String
+  title: String
+}
+
+type Mutation {
+  commentCreate(input: CommentCreateInput!): CommentPayload!
+  issueCreate(input: IssueCreateInput!): IssuePayload!
+  issueUpdate(id: String!, input: IssueUpdateInput!): IssuePayload!
+}
+
+input NullableCycleFilter {
+  isActive: BooleanComparator
+}
+
+input NullableNumberComparator {
+  eq: Float
+}
+
+input NullableProjectFilter {
+  name: StringComparator
+}
+
+input NullableUserFilter {
+  isMe: BooleanComparator
+  name: StringComparator
+  null: Boolean
+}
+
+input NumberComparator {
+  eq: Float
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+enum PaginationOrderBy {
+  createdAt
+  updatedAt
+}
+
+type Project {
+  id: ID!
+  name: String!
+}
+
+type Query {
+  issue(id: String!): Issue!
+  issues(after: String, before: String, filter: IssueFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy, sort: [IssueSortInput!]): IssueConnection!
+  team(id: String!): Team!
+  teams(after: String, before: String, filter: TeamFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): TeamConnection!
+  viewer: User!
+}
+
+input StringComparator {
+  containsIgnoreCase: String
+  eq: String
+  eqIgnoreCase: String
+  in: [String!]
+  nin: [String!]
+}
+
+type Team {
+  id: ID!
+  key: String!
+  labels(after: String, before: String, filter: IssueLabelFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): IssueLabelConnection!
+  members(after: String, before: String, filter: UserFilter, first: Int, includeArchived: Boolean, includeDisabled: Boolean, last: Int, orderBy: PaginationOrderBy, sort: [UserSortInput!]): UserConnection!
+  name: String!
+  states(after: String, before: String, filter: WorkflowStateFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): WorkflowStateConnection!
+}
+
+type TeamConnection {
+  nodes: [Team!]!
+  pageInfo: PageInfo!
+}
+
+input TeamFilter {
+  key: StringComparator
+}
+
+type User {
+  active: Boolean!
+  assignedIssues(after: String, before: String, filter: IssueFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): IssueConnection!
+  createdIssues(after: String, before: String, filter: IssueFilter, first: Int, includeArchived: Boolean, last: Int, orderBy: PaginationOrderBy): IssueConnection!
+  displayName: String!
+  id: ID!
+  isMe: Boolean!
+  name: String!
+}
+
+type UserConnection {
+  nodes: [User!]!
+}
+
+type WorkflowState {
+  id: ID!
+  name: String!
+  position: Float!
+  type: String!
+}
+
+type WorkflowStateConnection {
+  nodes: [WorkflowState!]!
+}
+
+input WorkflowStateFilter {
+  name: StringComparator
+  type: StringComparator
+}
+
+scalar DateTime
+scalar DateTimeOrDuration
+scalar TimelessDate

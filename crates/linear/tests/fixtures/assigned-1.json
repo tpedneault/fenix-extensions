@@ -1,0 +1,64 @@
+{
+  "data": {
+    "viewer": {
+      "assignedIssues": {
+        "nodes": [
+          {
+            "id": "1550e000-0000-4000-8000-000000000007",
+            "identifier": "OPS-7",
+            "url": "https://linear.app/acme/issue/OPS-7/rotate-the-signing-keys",
+            "title": "Rotate the signing keys",
+            "description": "Quarterly.",
+            "priority": 1,
+            "branchName": "jo/ops-7-rotate-the-signing-keys",
+            "dueDate": "2026-11-15",
+            "createdAt": "2026-11-01T09:00:00.000Z",
+            "updatedAt": "2026-11-10T09:00:00.000Z",
+            "state": {
+              "id": "57000000-0000-4000-8000-000000000005",
+              "name": "In Review",
+              "type": "started"
+            },
+            "team": {
+              "id": "5e000000-0000-4000-8000-0000000000e2",
+              "key": "OPS",
+              "name": "Operations"
+            },
+            "assignee": {
+              "id": "7a1c2b3d-0000-4000-8000-0000000000a1",
+              "name": "Jo Bloggs",
+              "displayName": "jo",
+              "isMe": true
+            },
+            "creator": {
+              "id": "7a1c2b3d-0000-4000-8000-0000000000a2",
+              "name": "Amy Park",
+              "displayName": "amy"
+            },
+            "labels": {
+              "nodes": [
+                {
+                  "id": "1abe1000-0000-4000-8000-003315324353",
+                  "name": "security"
+                }
+              ]
+            },
+            "cycle": null,
+            "project": null,
+            "parent": null,
+            "comments": {
+              "nodes": [],
+              "pageInfo": {
+                "hasNextPage": false
+              }
+            }
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "cursor-3"
+        }
+      }
+    }
+  }
+}

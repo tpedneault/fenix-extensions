@@ -1,0 +1,68 @@
+{
+  "data": {
+    "issueUpdate": {
+      "success": true,
+      "issue": {
+        "id": "1550e000-0000-4000-8000-000000000012",
+        "identifier": "ENG-12",
+        "url": "https://linear.app/acme/issue/ENG-12/fix-the-login-timeout",
+        "title": "Fix the login timeout",
+        "description": "x",
+        "priority": 2,
+        "branchName": "jo/eng-12-fix-the-login-timeout",
+        "dueDate": "2026-11-20",
+        "createdAt": "2026-11-01T09:00:00.000Z",
+        "updatedAt": "2026-11-14T10:00:00.000Z",
+        "state": {
+          "id": "57000000-0000-4000-8000-000000000005",
+          "name": "In Review",
+          "type": "started"
+        },
+        "team": {
+          "id": "5e000000-0000-4000-8000-0000000000e1",
+          "key": "ENG",
+          "name": "Engineering"
+        },
+        "assignee": {
+          "id": "7a1c2b3d-0000-4000-8000-0000000000a1",
+          "name": "Jo Bloggs",
+          "displayName": "jo",
+          "isMe": true
+        },
+        "creator": {
+          "id": "7a1c2b3d-0000-4000-8000-0000000000a2",
+          "name": "Amy Park",
+          "displayName": "amy"
+        },
+        "labels": {
+          "nodes": [
+            {
+              "id": "1abe1000-0000-4000-8000-000898416404",
+              "name": "bug"
+            },
+            {
+              "id": "1abe1000-0000-4000-8000-004175343705",
+              "name": "auth"
+            }
+          ]
+        },
+        "cycle": {
+          "id": "c1c1e000-0000-4000-8000-000000000012",
+          "number": 12,
+          "name": "Hardening"
+        },
+        "project": {
+          "id": "90000000-0000-4000-8000-000000000001",
+          "name": "Auth revamp"
+        },
+        "parent": null,
+        "comments": {
+          "nodes": [],
+          "pageInfo": {
+            "hasNextPage": false
+          }
+        }
+      }
+    }
+  }
+}

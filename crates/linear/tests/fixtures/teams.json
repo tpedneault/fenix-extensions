@@ -1,0 +1,22 @@
+{
+  "data": {
+    "teams": {
+      "nodes": [
+        {
+          "id": "5e000000-0000-4000-8000-0000000000e1",
+          "key": "ENG",
+          "name": "Engineering"
+        },
+        {
+          "id": "5e000000-0000-4000-8000-0000000000e2",
+          "key": "OPS",
+          "name": "Operations"
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      }
+    }
+  }
+}
