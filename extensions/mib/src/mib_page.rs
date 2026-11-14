@@ -31,6 +31,8 @@ pub struct Ctx<'a> {
     pub apid_hex: bool,
     /// Where the MIBs come from: "mission-c's settings", "your settings".
     pub source: String,
+    /// None in use, several having been found: how many.
+    pub undecided: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1031,6 +1033,14 @@ fn form_popup(g: &mut Grid, page: &MibPage, left: usize) {
 fn empty(g: &mut Grid, ctx: &Ctx, left: usize, width: usize) {
     let lines: Vec<(String, Role)> = if ctx.loading {
         vec![("Reading the MIBs…".into(), Role::Muted)]
+    } else if ctx.undecided > 0 {
+        vec![
+            (if ctx.undecided == 1 { "1 MIB found here, among tests or samples.".to_string() } else { format!("{} MIBs found here.", ctx.undecided) }, Role::Title),
+            (String::new(), Role::Text),
+            ("None is opened without asking: the project's mib/ or its top would be, or one alone outside tests and samples.".into(), Role::Text),
+            (String::new(), Role::Text),
+            ("o  pick one -- it's kept for this project".into(), Role::Accent),
+        ]
     } else {
         vec![
             ("No MIB here.".into(), Role::Title),
@@ -1129,7 +1139,7 @@ pub(crate) mod tests {
     }
 
     fn ctx(set: &MibSet) -> Ctx<'_> {
-        Ctx { set: Some(set), loading: false, apid_hex: true, source: "your settings".into() }
+        Ctx { set: Some(set), loading: false, apid_hex: true, source: "your settings".into(), undecided: 0 }
     }
 
     #[test]
@@ -1340,7 +1350,7 @@ pub(crate) mod tests {
     #[test]
     fn with_no_mib_it_says_how_to_add_one() {
         let page = MibPage::new(MibKey::default());
-        let c = Ctx { set: None, loading: false, apid_hex: true, source: String::new() };
+        let c = Ctx { set: None, loading: false, apid_hex: true, source: String::new(), undecided: 0 };
         assert!(layout(&page, &c, 120).text.contains("No MIB here."));
         let mut page = page;
         assert_eq!(page.key(Key::Char('a'), &c), Action::Settings(true));

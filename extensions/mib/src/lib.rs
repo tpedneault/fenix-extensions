@@ -4,13 +4,15 @@
 //! scripts -- `K`, `gd`, completion and checks of telecommand calls,
 //! through a language server.
 //!
-//! Which MIBs (`which`): those found anywhere in the project and those
+//! Which MIBs (`fenix_mib::which`, shared with the CCSDS extension, which
+//! this one tells what's in use): those found in the project and those
 //! `mib.roots` names (the project's own first, as Fenix gives it
 //! settings, each folder at `/folders/mib/<name>`); in use, the one
-//! picked here with `SPC k o`, else every one the settings name, else the
-//! first found. They're read when first needed and again when their
-//! files change (`mib.watch`). How they're read against the mission
-//! comes from the CCSDS settings, `ccsds.*` (`permissions.settings`).
+//! picked here with `SPC k o`, else every one the settings name, else
+//! one found when there's no doubt which. They're read when first needed
+//! and again when their files change (`mib.watch`). How they're read
+//! against the mission comes from the CCSDS settings, `ccsds.*`
+//! (`permissions.settings`).
 //!
 //! Coding agents look definitions up with `mib_lookup` (`agent`).
 
@@ -22,12 +24,10 @@ mod mib_form;
 mod mib_page;
 mod page;
 mod server;
-mod which;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
 
 #[cfg(not(test))]
 use fenix_extension_api as api;
@@ -43,7 +43,7 @@ use keys::Hints;
 use mib_def::DefPage;
 use mib_form::InsertForm;
 use mib_page::{MibKey, MibPage};
-use which::{Choice, Known};
+use fenix_mib::which::{self, Choice, Known};
 
 /// The kinds of page it opens.
 const MIB_KIND: &str = "mib";
@@ -82,10 +82,6 @@ fn place(which: usize) -> Option<PathBuf> {
 
 /// How often the MIBs' files are looked at for a change.
 const WATCH_MILLIS: u32 = 3_000;
-
-/// How long what the project was found to hold is taken as it is: the
-/// walk is done again after, when the MIBs are next needed or watched.
-const FOUND_FOR: Duration = Duration::from_secs(30);
 
 /// What it says when there's no MIB to work with.
 fn no_mib_text(open_keys: &str) -> String {
@@ -172,14 +168,19 @@ pub(crate) struct Mib {
     /// Definitions `gd` asked for, opened once the language server's
     /// answer is sent.
     pub(crate) to_open: Vec<DefRef>,
-    /// The MIB folders the project holds, and when it was looked through.
-    found: Option<(Instant, which::Walk)>,
+    /// The MIB folders the project holds, as last looked through: at the
+    /// start, and on `SPC k o`, `SPC k r` and `SPC k D` -- never while
+    /// answering the language server or laying out a page.
+    found: Option<which::Walk>,
     /// What's picked in this project with `SPC k o` (read once from the
     /// extension's own folder).
     choice: Option<Option<Choice>>,
-    /// Your `mib.roots` as it last wrote it: Fenix doesn't tell an
-    /// extension's own settings back to it until it starts again.
-    written: Option<Vec<(String, String)>>,
+    /// It said several MIBs were found and none is sure; it said the
+    /// picks file was bad.
+    said_undecided: bool,
+    said_bad_picks: bool,
+    /// Whether a MIB page waiting to be opened was looked for.
+    waiting_seen: bool,
     /// The project's folder, as a full path, once Fenix has said it.
     project_path: Option<String>,
     /// Waits for the first look through the project and the doctor: not
@@ -262,20 +263,38 @@ fn project_lists_roots() -> bool {
     table.get("mib").and_then(|m| m.as_table()).and_then(|m| m.get("roots")).and_then(|r| r.as_table()).is_some_and(|r| !r.is_empty())
 }
 
-/// What's picked with `SPC k o`, by project: in the extension's own
-/// folder, never in a project's settings.
+/// What's picked with `SPC k o`, by project's full path: in the
+/// extension's own folder, never in a project's settings.
 const CHOICES: &str = "choices.json";
 
-fn read_choices() -> serde_json::Map<String, serde_json::Value> {
-    std::fs::read_to_string(data_dir().join(CHOICES)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+/// The picks file, and what to say of it: a file that isn't what it
+/// should be is put aside (`choices.json.bad`) rather than written over,
+/// so the other projects' picks can be had back from it.
+fn read_choices() -> (serde_json::Map<String, serde_json::Value>, Option<String>) {
+    let path = data_dir().join(CHOICES);
+    let text = match std::fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return (Default::default(), None),
+        Err(e) => return (Default::default(), Some(format!("couldn't read the MIBs picked in each project ({e})"))),
+    };
+    match serde_json::from_str::<serde_json::Value>(&text) {
+        Ok(serde_json::Value::Object(all)) => (all, None),
+        _ => {
+            let aside = data_dir().join(format!("{CHOICES}.bad"));
+            let kept = std::fs::rename(&path, &aside).is_ok();
+            let note = if kept { format!("the MIBs picked in each project couldn't be read -- the file is kept as {}, and they're picked afresh", aside.display()) } else { "the MIBs picked in each project couldn't be read".to_string() };
+            (Default::default(), Some(note))
+        }
+    }
 }
 
-fn write_choices(all: &serde_json::Map<String, serde_json::Value>) {
+/// The picks file written whole, or not at all: to a file beside it, then
+/// put in its place.
+fn write_choices(all: &serde_json::Map<String, serde_json::Value>) -> Result<(), String> {
     let dir = data_dir();
     let _ = std::fs::create_dir_all(&dir);
-    if let Err(e) = std::fs::write(dir.join(CHOICES), serde_json::Value::Object(all.clone()).to_string()) {
-        error(&format!("couldn't keep which MIB is open here: {e}"));
-    }
+    let new = dir.join(format!("{CHOICES}.new"));
+    std::fs::write(&new, serde_json::Value::Object(all.clone()).to_string()).and_then(|()| std::fs::rename(&new, dir.join(CHOICES))).map_err(|e| format!("couldn't keep which MIB is open here: {e}"))
 }
 
 /// Whether the file at `path` is one where MIB names mean something
@@ -339,7 +358,7 @@ fn mib_row(k: &Known, on: bool) -> PickerItem {
 /// extension yet: it gives it the folders `mib.roots` names as it starts
 /// it.
 fn not_reachable(label: &str) -> String {
-    format!("Fenix gives the extension {label}'s folder the next time it starts it -- restart Fenix and {label}'s MIB page opens")
+    format!("{label}'s MIB page opens as soon as Fenix gives the extension its folder: when it starts the extension again -- at once on a Fenix that does so for a folder setting, else the next time Fenix starts")
 }
 
 /// `bytes`, written the way a file with extension `ext` writes bytes,
@@ -379,11 +398,23 @@ impl Mib {
         self.project_path.clone()
     }
 
-    /// What's picked in this project with `SPC k o`, if anything.
+    /// The picks file, said of once when it was bad.
+    fn choices(&mut self) -> serde_json::Map<String, serde_json::Value> {
+        let (all, note) = read_choices();
+        if let Some(note) = note.filter(|_| !self.said_bad_picks) {
+            self.said_bad_picks = true;
+            error(&note);
+        }
+        all
+    }
+
+    /// What's picked in this project with `SPC k o`, if anything. Not
+    /// known -- and not remembered as nothing -- before Fenix has said
+    /// which project this is.
     fn choice(&mut self) -> Option<Choice> {
         if self.choice.is_none() {
-            let project = self.project_path().unwrap_or_default();
-            let picked = read_choices().get(&project).and_then(|c| c.get("choice")).and_then(|c| c.as_str()).map(Choice::parse);
+            let project = self.project_path()?;
+            let picked = self.choices().get(&project).and_then(|c| c.get("choice")).and_then(|c| c.as_str()).map(Choice::parse);
             self.choice = Some(picked);
         }
         self.choice.clone().flatten()
@@ -391,63 +422,65 @@ impl Mib {
 
     /// `choice` picked in this project, kept for the next time; `open`,
     /// its MIB page to open once it can be read, when it can't yet.
-    fn pick(&mut self, choice: Choice, open: bool) {
-        let project = self.project_path().unwrap_or_default();
-        let mut all = read_choices();
+    /// Whether it could be: not without a project.
+    fn pick(&mut self, choice: Choice, open: bool) -> bool {
+        let Some(project) = self.project_path() else {
+            error("open a file of the project first -- a MIB is picked for the project it's in");
+            return false;
+        };
+        let mut all = self.choices();
         all.insert(project, serde_json::json!({ "choice": choice.text(), "open": open }));
-        write_choices(&all);
+        if let Err(e) = write_choices(&all) {
+            error(&e);
+        }
         self.choice = Some(Some(choice));
+        self.tell_ccsds();
+        true
     }
 
     /// Whether a MIB page waits to be opened here, and no longer.
     fn take_waiting_page(&mut self) -> bool {
-        let project = self.project_path().unwrap_or_default();
-        let mut all = read_choices();
+        let Some(project) = self.project_path() else { return false };
+        let mut all = self.choices();
         let waiting = all.get(&project).and_then(|c| c.get("open")).and_then(|o| o.as_bool()).unwrap_or(false);
         if waiting {
             if let Some(c) = all.get_mut(&project).and_then(|c| c.as_object_mut()) {
                 c.insert("open".into(), false.into());
             }
-            write_choices(&all);
+            if let Err(e) = write_choices(&all) {
+                error(&e);
+            }
         }
         waiting
     }
 
-    /// The MIB folders the project holds: looked through again when what
-    /// was found is older than `FOUND_FOR`, or `again`.
-    fn found(&mut self, again: bool) -> which::Walk {
-        let stale = self.found.as_ref().is_none_or(|(at, _)| again || at.elapsed() > FOUND_FOR);
-        if stale {
-            let project = project_dir();
-            let walk = if project.is_dir() { which::walk(&project, which::BOUNDS) } else { which::Walk::default() };
-            self.found = Some((Instant::now(), walk));
-        }
-        self.found.as_ref().map(|(_, w)| w.clone()).unwrap_or_default()
+    /// The project looked through for MIB folders, now.
+    fn look(&mut self) -> which::Walk {
+        let project = project_dir();
+        let walk = if project.is_dir() { which::walk(&project, which::BOUNDS) } else { which::Walk::default() };
+        self.found = Some(walk.clone());
+        walk
     }
 
-    /// What the settings name: `mib.roots` as Fenix gives it -- or, when
-    /// it's yours and it wrote it since it started, as it wrote it.
+    /// What the settings name: `mib.roots` as Fenix gives it -- what the
+    /// extension set itself included -- and whether it's the project's.
     fn named(&self) -> (Vec<(String, String)>, bool) {
-        let project = project_lists_roots();
-        match &self.written {
-            Some(list) if !project => (list.clone(), false),
-            _ => (map("mib.roots"), project),
-        }
+        (map("mib.roots"), project_lists_roots())
     }
 
     /// The MIBs known here, from what was found (`walk`).
     fn known_from(&mut self, walk: &which::Walk) -> Vec<Known> {
         let (named, project) = self.named();
         let project_path = self.project_path();
+        let picked = self.choice();
         let (project_dir, folders_dir, name) = (project_dir(), folders_dir(), project_name());
         let places = which::Places { project: &project_dir, folders: &folders_dir, project_path: project_path.as_deref(), project_name: &name };
-        which::known(&walk.found, &named, project, &places)
+        which::known(&walk.found, &named, project, picked.as_ref().and_then(Choice::found), &places)
     }
 
-    /// The MIBs known here, the project looked through again if it's
-    /// been a while.
+    /// The MIBs known here, as the project was last looked through.
     pub(crate) fn known(&mut self) -> Vec<Known> {
-        let walk = self.found(false);
+        let walk = self.found.clone().unwrap_or_default();
         self.known_from(&walk)
     }
 
@@ -455,9 +488,9 @@ impl Mib {
     /// up by -- and where they come from, for the MIB page to say.
     fn key_with(&mut self, known: &[Known]) -> (MibKey, String) {
         let choice = self.choice();
-        let (used, _) = which::in_use(known, choice.as_ref());
-        let roots: Vec<MibRoot> = used.iter().filter_map(|k| k.root()).collect();
-        let source = which::source(&used, &project_name(), known.len());
+        let in_use = which::in_use(known, choice.as_ref());
+        let roots: Vec<MibRoot> = in_use.used.iter().filter_map(|k| k.root()).collect();
+        let source = which::source(&in_use, &project_name(), known.len());
         let project = project_dir().is_dir().then(project_dir);
         (MibKey { roots, default: text("mib.default"), project, options: read_options() }, source)
     }
@@ -468,12 +501,27 @@ impl Mib {
         self.key_with(&known)
     }
 
-    /// The same, from what was found last, without looking: for laying
-    /// out a page, which has a second.
-    fn key_now(&mut self) -> (MibKey, String) {
-        let walk = self.found.as_ref().map(|(_, w)| w.clone()).unwrap_or_default();
-        let known = self.known_from(&walk);
-        self.key_with(&known)
+    /// How many MIBs were found with none in use, none being sure.
+    fn undecided(&mut self) -> usize {
+        let known = self.known();
+        let choice = self.choice();
+        which::in_use(&known, choice.as_ref()).undecided
+    }
+
+    /// The MIBs in use as the CCSDS extension takes them (`mib.which`,
+    /// and `ccsds.mib` when they change): each one's name and where it
+    /// is -- the same in its sandbox, `/project/…`, `/folders/mib/…`.
+    fn which_answer(&mut self) -> serde_json::Value {
+        let (key, _) = self.key_here();
+        let roots: Vec<(String, String)> = key.roots.iter().map(|r| (r.label.clone(), r.path.to_string_lossy().into_owned())).collect();
+        serde_json::json!({ "roots": roots })
+    }
+
+    /// The CCSDS extension told what's in use now; nothing comes of it
+    /// when it isn't there.
+    fn tell_ccsds(&mut self) {
+        let payload = self.which_answer().to_string();
+        let _ = api::call_service("ccsds.mib", &payload);
     }
 }
 
@@ -501,12 +549,11 @@ impl Mib {
     /// For a page: the MIBs here if they're read; else what was read, and
     /// they're read in a call of their own, the page shown again then.
     fn set_for_page(&mut self) -> Option<Arc<MibSet>> {
-        let (key, _) = self.key_now();
-        let looked = self.found.is_some();
-        if key.roots.is_empty() && looked {
+        let (key, _) = self.key_here();
+        if key.roots.is_empty() {
             return None;
         }
-        if (!looked || !matches!(&self.set, Some((k, _)) if *k == key)) && self.reading.is_none() {
+        if !matches!(&self.set, Some((k, _)) if *k == key) && self.reading.is_none() {
             self.reading = Some(host::set_timer(1, false));
         }
         self.set_ready()
@@ -560,22 +607,6 @@ impl Mib {
     /// The watch timer: a set whose files changed is read again. A MIB
     /// on a volume that isn't answering keeps what was read.
     fn watched(&mut self) {
-        // A MIB folder added to the project, or gone: the MIBs in use may
-        // be others now.
-        if self.found.as_ref().is_some_and(|(at, _)| at.elapsed() > FOUND_FOR) {
-            let (key, _) = self.key_here();
-            if self.set.as_ref().is_some_and(|(k, _)| *k != key) {
-                if key.roots.is_empty() {
-                    self.set = None;
-                    self.watch();
-                    self.refresh_pages();
-                } else {
-                    self.load(key);
-                }
-                self.doctor();
-                return;
-            }
-        }
         let Some((key, set)) = &self.set else { return };
         if !key.roots.iter().all(|r| r.path.is_dir()) {
             return;
@@ -599,7 +630,10 @@ impl Mib {
     fn set_here(&mut self) -> Option<Arc<MibSet>> {
         let set = self.set();
         if set.is_none() {
-            error(&no_mib());
+            match self.undecided() {
+                0 => error(&no_mib()),
+                n => error(&which::undecided_text(n, &keys::keys("mib.open", "SPC k o"))),
+            }
         }
         set
     }
@@ -654,19 +688,18 @@ impl Mib {
     /// its settings or yours -- to open its page with; and another
     /// folder, added to your MIBs.
     fn cmd_open(&mut self) {
-        let walk = self.found(true);
+        let walk = self.look();
         let known = self.known_from(&walk);
         let choice = self.choice();
-        let (used, _) = which::in_use(&known, choice.as_ref());
-        let used: Vec<String> = used.iter().map(|k| k.id.clone()).collect();
+        let used: Vec<String> = which::in_use(&known, choice.as_ref()).used.iter().map(|k| k.id.clone()).collect();
         let mut items: Vec<PickerItem> = known.iter().map(|k| mib_row(k, used == [k.id.clone()])).collect();
-        let named: Vec<&str> = known.iter().filter(|k| !matches!(k.origin, which::Origin::Found(_)) && k.path.is_some()).map(|k| k.label.as_str()).collect();
+        let named: Vec<&str> = known.iter().filter(|k| k.named() && k.path.is_some()).map(|k| k.label.as_str()).collect();
         if named.len() > 1 {
             let label = format!("{} {:<28} {}", if used.len() > 1 { "●" } else { " " }, "all of them together", if project_lists_roots() { "this project's settings" } else { "your settings" });
             items.push(PickerItem::new(label, "settings").detail(named.join(", ")));
         }
-        let more = if walk.cut { format!(" -- the project was looked through as far as {} folders", walk.folders) } else { String::new() };
-        items.push(PickerItem::new(format!("  {:<28} {}", "another folder…", "added to your settings"), "folder").detail(format!("a MIB elsewhere on disk, by its full path{more}")));
+        let more = if walk.cut { format!(" -- the project was looked through as far as {} folders; one of its own further in, by its path", walk.folders) } else { String::new() };
+        items.push(PickerItem::new(format!("  {:<28} {}", "another folder…", "by its path"), "folder").detail(format!("a MIB elsewhere on disk, added to your settings{more}")));
         let id = api::pick("Open a MIB", &items);
         self.asked.insert(id, Asked::Mib);
     }
@@ -676,15 +709,22 @@ impl Mib {
     fn open_mib(&mut self, value: &str) {
         match value {
             "folder" => return self.ask_folder(),
-            "settings" => self.pick(Choice::Settings, false),
+            "settings" => {
+                if !self.pick(Choice::Settings, false) {
+                    return;
+                }
+            }
             id => {
                 let known = self.known();
                 let Some(k) = known.iter().find(|k| k.id == id) else { return };
-                if k.path.is_none() {
-                    self.pick(Choice::One(id.to_string()), true);
-                    return api::notify(&not_reachable(&k.label));
+                let reachable = k.path.is_some();
+                let label = k.label.clone();
+                if !self.pick(Choice::One(id.to_string()), !reachable) {
+                    return;
                 }
-                self.pick(Choice::One(id.to_string()), false);
+                if !reachable {
+                    return api::notify(&not_reachable(&label));
+                }
             }
         }
         self.cmd_page();
@@ -705,44 +745,63 @@ impl Mib {
                 Err(_) => Path::new(&p).parent().map(|d| d.to_string_lossy().into_owned()).unwrap_or(p),
             })
             .unwrap_or_default();
-        let id = api::prompt("MIB folder (a full path; added to your MIBs)", &initial);
+        let id = api::prompt("MIB folder (a full path)", &initial);
         self.asked.insert(id, Asked::Folder);
     }
 
-    /// A folder typed for "another folder…": added to your `mib.roots`
-    /// (once), picked here, its page open -- or, when Fenix hasn't given
-    /// it to the extension yet, open the next time it starts.
+    /// A folder typed for "another folder…". One of the project's is
+    /// picked here by its path, found or not. One elsewhere is added to
+    /// your `mib.roots` (once) and picked here, its page open -- or, when
+    /// Fenix hasn't given it to the extension yet, open when it next
+    /// starts the extension. Only ever from what you ran: Fenix may start
+    /// the extension again once a folder setting of its changes.
     fn add_folder(&mut self, typed: &str) {
-        let Some(path) = which::typed_folder(typed) else {
-            return error(&format!("{} isn't a full path -- a MIB folder elsewhere is /…, ~/… or C:\\…", typed.trim()));
+        let path = match which::typed_folder(typed) {
+            Ok(path) => path,
+            Err(why) => return error(&why),
         };
-        let known = self.known();
-        // In the project: one found there, nothing to add.
         let project_path = self.project_path();
-        if let Some(rel) = project_path.as_deref().and_then(|p| path.strip_prefix(p.trim_end_matches('/'))).filter(|r| r.is_empty() || r.starts_with('/')) {
-            let rel = rel.trim_start_matches('/').trim_end_matches('/').to_string();
-            return match known.iter().find(|k| k.origin == which::Origin::Found(rel.clone())) {
-                Some(k) => self.open_mib(&k.id.clone()),
-                None => error(&format!("no MIB tables in {} that the project's look-through found -- one deeper than {} folders is named in the project's settings", if rel.is_empty() { "the project's top".to_string() } else { format!("{rel}/") }, which::BOUNDS.depth)),
-            };
+        if let Some(rel) = project_path.as_deref().and_then(|p| which::in_project(&path, Some(p))) {
+            let shown = if rel.is_empty() { "the project's top".to_string() } else { format!("{rel}/") };
+            if which::probe(&project_dir().join(&rel), &rel).is_none() {
+                return error(&format!("no MIB tables in {shown} -- a MIB folder holds its .dat tables (ccf.dat, pid.dat, ...)"));
+            }
+            // Known once picked, found or not.
+            if self.pick(Choice::One(format!("found:{rel}")), false) {
+                self.cmd_page();
+                self.doctor();
+            }
+            return;
         }
+        // A folder Fenix let it see (the explorer's): one with no tables
+        // isn't a MIB. Others it can't look in before Fenix gives them.
+        if let Ok(entries) = host::folder_list(&path) {
+            if !entries.iter().any(|e| ["vdf.dat", "ccf.dat", "pcf.dat", "pid.dat", "tpcf.dat", "caf.dat", "txf.dat"].contains(&e.name.to_lowercase().as_str())) {
+                return error(&format!("no MIB tables in {path} -- a MIB folder holds its .dat tables (ccf.dat, pid.dat, ...)"));
+            }
+        }
+        if self.project_path().is_none() {
+            return error("open a file of the project first -- a MIB is picked for the project it's in");
+        }
+        let known = self.known();
         let (yours, _) = self.named();
-        let others: Vec<String> = known.iter().filter(|k| matches!(k.origin, which::Origin::Found(_))).map(|k| k.label.clone()).collect();
+        let others: Vec<String> = known.iter().filter(|k| !k.named()).map(|k| k.label.clone()).collect();
         let (list, label) = which::with_folder(&yours, &path, &others);
+        let id = format!("set:{label}");
+        let reachable = folders_dir().join(&label).is_dir();
+        // Picked before the setting: Fenix may start it again as soon as
+        // the setting is set.
+        self.pick(Choice::One(id), !reachable);
         if let Some(list) = list {
             let json = serde_json::to_string(&list).unwrap_or_default();
             if let Err(e) = api::set_setting("mib.roots", Some(&json)) {
                 return error(&format!("couldn't add {path} to your MIBs: {e}"));
             }
-            self.written = Some(list);
         }
-        let id = format!("set:{label}");
-        if folders_dir().join(&label).is_dir() {
-            self.pick(Choice::One(id), false);
+        if reachable {
             self.cmd_page();
             self.doctor();
         } else {
-            self.pick(Choice::One(id), true);
             api::notify(&format!("added {path} to your MIBs as {label}. {}", not_reachable(&label)));
         }
     }
@@ -762,7 +821,7 @@ impl Mib {
 
     /// `SPC k r`: the MIBs read again now.
     fn cmd_reload(&mut self) {
-        let walk = self.found(true);
+        let walk = self.look();
         let known = self.known_from(&walk);
         let (key, _) = self.key_with(&known);
         if key.roots.is_empty() {
@@ -873,7 +932,7 @@ impl Mib {
     /// named by the settings -- compared, definition by definition, into
     /// generated/.
     fn cmd_diff(&mut self) {
-        let walk = self.found(true);
+        let walk = self.look();
         let known: Vec<Known> = self.known_from(&walk).into_iter().filter(|k| k.path.is_some()).collect();
         if known.len() < 2 {
             return error("comparing needs two MIBs -- found in the project, or named in mib.roots: add the other version as a second MIB");
@@ -995,11 +1054,12 @@ impl Mib {
         };
         let loading = self.reading.is_some();
         let hex = apid_hex();
-        let (here, source) = if matches!(self.pages.get(&id), Some(Open::Mib(_))) { self.key_now() } else { Default::default() };
+        let (here, source) = if matches!(self.pages.get(&id), Some(Open::Mib(_))) { self.key_here() } else { Default::default() };
+        let undecided = if matches!(self.pages.get(&id), Some(Open::Mib(_))) { self.undecided() } else { 0 };
         match self.pages.get(&id) {
             Some(Open::Mib(p)) => {
                 let source = if here == p.key { source } else { String::new() };
-                let ctx = mib_page::Ctx { set: set.as_deref(), loading, apid_hex: hex, source };
+                let ctx = mib_page::Ctx { set: set.as_deref(), loading, apid_hex: hex, source, undecided };
                 Page::canvas(mib_page::layout(p, &ctx, width)).typing(p.typing()).space(p.claims_space())
             }
             Some(Open::Def(p)) => Page::canvas(mib_def::layout(p, set.as_deref(), hex, width, &Hints::current())).typing(p.typing()),
@@ -1014,11 +1074,11 @@ impl Mib {
     fn key(&mut self, id: u64, key: page::Key) {
         let set = self.set_ready();
         let hex = apid_hex();
-        let source = if matches!(self.pages.get(&id), Some(Open::Mib(_))) { self.key_now().1 } else { String::new() };
+        let source = if matches!(self.pages.get(&id), Some(Open::Mib(_))) { self.key_here().1 } else { String::new() };
         let Some(open) = self.pages.get_mut(&id) else { return };
         match open {
             Open::Mib(p) => {
-                let ctx = mib_page::Ctx { set: set.as_deref(), loading: false, apid_hex: hex, source };
+                let ctx = mib_page::Ctx { set: set.as_deref(), loading: false, apid_hex: hex, source, undecided: 0 };
                 let action = p.key(key, &ctx);
                 api::page::refresh(id);
                 self.page_action(id, action);
@@ -1162,12 +1222,34 @@ impl Mib {
     /// extension opened, now it can be read.
     fn started(&mut self) {
         self.starting = None;
-        let _ = self.found(true);
+        // What the settings name is used unless something's picked: the
+        // project isn't looked through for nothing.
+        let (named, _) = self.named();
+        if named.is_empty() || self.choice().is_some_and(|c| c.found().is_some()) {
+            self.look();
+        }
         self.doctor();
+        self.tell_ccsds();
+        let n = self.undecided();
+        if n > 0 && !self.said_undecided {
+            self.said_undecided = true;
+            api::notify(&which::undecided_text(n, &keys::keys("mib.open", "SPC k o")));
+        }
+        self.open_waiting_page();
+    }
+
+    /// The page of a MIB picked before Fenix gave the extension its folder,
+    /// opened once it can be read -- once Fenix has said which project
+    /// this is (`waiting_seen`).
+    fn open_waiting_page(&mut self) {
+        if self.waiting_seen || self.project_path().is_none() {
+            return;
+        }
+        self.waiting_seen = true;
         let known = self.known();
         let choice = self.choice();
-        let (used, now) = which::in_use(&known, choice.as_ref());
-        if choice.is_some() && now == choice && !used.is_empty() && self.take_waiting_page() {
+        let in_use = which::in_use(&known, choice.as_ref());
+        if choice.is_some() && in_use.choice == choice && !in_use.used.is_empty() && self.take_waiting_page() {
             self.cmd_page();
         }
     }
@@ -1182,14 +1264,18 @@ impl Mib {
     fn doctor(&mut self) {
         let known = self.known();
         let choice = self.choice();
-        let (used, _) = which::in_use(&known, choice.as_ref());
-        let used: Vec<Known> = used.into_iter().filter(|k| k.of_project()).cloned().collect();
+        let in_use = which::in_use(&known, choice.as_ref());
+        let undecided = in_use.undecided;
+        let used: Vec<Known> = in_use.used.into_iter().filter(|k| k.of_project()).cloned().collect();
         let keys = Hints::current();
         let check = |label: &str, health: Health, detail: String| Check { section: Section::Database, label: label.to_string(), health, detail, fix: None };
         let mut checks = Vec::new();
         let others: Vec<&str> = known.iter().filter(|k| k.of_project() && k.path.is_some() && !used.iter().any(|u| u.id == k.id)).map(|k| k.label.as_str()).collect();
         let others = (!others.is_empty()).then(|| check("other MIBs", Health::Info, format!("{} -- {} opens one", others.join(", "), keys.open)));
-        let cut = self.found.as_ref().filter(|(_, w)| w.cut).map(|(_, w)| check("looked through", Health::Info, format!("the first {} folders of the project -- a MIB further in is named in its settings (mib.roots)", w.folders)));
+        if undecided > 0 {
+            checks.push(check("MIBs found", Health::Info, which::undecided_text(undecided, &keys.open)));
+        }
+        let cut = self.found.as_ref().filter(|w| w.cut).map(|w| check("looked through", Health::Info, format!("the first {} folders of the project -- a MIB further in is named in its settings (mib.roots)", w.folders)));
         let set = if used.is_empty() { None } else { self.set() };
         let Some(set) = set else {
             checks.extend(others);
@@ -1376,7 +1462,15 @@ impl Extension for MibExtension {
             // Read before they're asked for, so K, gd and completion have
             // them.
             Event::FocusChanged(_) => {
+                // What's picked is known once Fenix has said which project
+                // this is: the doctor and CCSDS go by it then.
+                let unknown = self.mib.choice.is_none();
                 let _ = self.mib.set();
+                if unknown && self.mib.choice.is_some() {
+                    self.mib.doctor();
+                    self.mib.tell_ccsds();
+                }
+                self.mib.open_waiting_page();
             }
             Event::ServiceReply((id, answer)) => {
                 if let (Some(why), Err(e)) = (self.mib.calls.remove(&id), answer) {
@@ -1387,8 +1481,8 @@ impl Extension for MibExtension {
                 // What the pages show (APIDs) changes them; how the MIBs
                 // are read is in their key, so they're read again when
                 // next asked for. Your MIBs as Fenix has them now.
-                if key == "mib.roots" {
-                    self.mib.written = None;
+                if key == "mib.roots" && self.mib.found.is_none() {
+                    self.mib.look();
                 }
                 let (here, _) = self.mib.key_here();
                 for page in self.mib.pages.values_mut() {
@@ -1402,6 +1496,7 @@ impl Extension for MibExtension {
                 self.mib.watch();
                 self.mib.refresh_pages();
                 self.mib.doctor();
+                self.mib.tell_ccsds();
             }
             _ => {}
         }
@@ -1476,6 +1571,7 @@ impl Extension for MibExtension {
         let answer = match name {
             "mib.open" => self.open_by_name(payload),
             "mib.lookup" => self.lookup(payload),
+            "mib.which" => Ok(self.mib.which_answer().to_string()),
             other => Err(format!("no service {other}")),
         };
         self.apply();
@@ -1667,8 +1763,16 @@ mod tests {
         w.project_settings_untouched();
     }
 
+    fn said(h: &Harness<MibExtension>) -> Vec<String> {
+        h.fake.state().notifications.iter().map(|(_, m)| m.clone()).collect()
+    }
+
+    fn writes(h: &Harness<MibExtension>) -> Vec<String> {
+        h.fake.calls().into_iter().filter(|c| c.starts_with("setting-set")).collect()
+    }
+
     #[test]
-    fn a_mib_at_the_top_or_in_mib_is_found_as_before() {
+    fn a_mib_at_the_top_or_in_mib_is_found_as_before_by_the_projects_name() {
         let w = World::new();
         w.ops(&w.project());
         let mut h = w.start(&[]);
@@ -1676,40 +1780,90 @@ mod tests {
         let w = World::new();
         w.ops(&w.project());
         w.ops(&w.project().join("mib"));
+        w.ops(&w.project().join("db/old"));
         let mut h = w.start(&[]);
-        assert_eq!(in_use(&mut h), ["mib"], "mib/ first, as before");
+        assert_eq!(h.ext.mib.key_here().0.roots[0].path, w.project().join("mib"), "mib/ first, as before");
+        assert_eq!(in_use(&mut h), ["mission"], "by the project's name, as before: mib.icd_per_mib by it still applies");
     }
 
     #[test]
-    fn several_found_are_offered_and_the_one_picked_is_used_and_kept() {
+    fn several_found_and_none_sure_is_none_until_one_is_picked() {
         let w = World::new();
-        w.ops(&w.project().join("mib"));
         w.ops(&w.project().join("db/ops-2.0"));
         w.ops(&w.project().join("tools/sim"));
         let mut h = w.start(&[]);
-        assert_eq!(in_use(&mut h), ["mib"]);
+        assert!(in_use(&mut h).is_empty(), "not guessed");
+        // Said once, on the page and by the doctor.
+        assert_eq!(said(&h).iter().filter(|m| m.as_str() == "2 MIBs found here -- SPC k o picks one").count(), 1, "{:?}", said(&h));
+        assert!(h.fake.state().checks.iter().any(|c| c.label == "MIBs found" && c.detail == "2 MIBs found here -- SPC k o picks one"));
+        h.command("mib.page").unwrap();
+        let page = h.page("mib");
+        assert!(h.screen(page).contains("2 MIBs found here"), "{}", h.screen(page));
         h.fake.on_pick("Open a MIB", "found:db/ops-2.0");
         h.command("mib.open").unwrap();
         let rows = &pickers(&h, "Open a MIB")[0];
-        assert!(rows[0].starts_with("● mib found in the project"), "{rows:?}");
-        assert!(rows[1].starts_with("db/ops-2.0 found in the project"), "{rows:?}");
-        assert!(rows[2].starts_with("tools/sim found in the project"), "{rows:?}");
-        assert!(rows[3].starts_with("another folder…"), "{rows:?}");
-        assert_eq!(rows.len(), 4);
-        let detail = h.fake.state().pickers[0].items[1].detail.clone();
+        assert!(rows[0].starts_with("db/ops-2.0 found in the project"), "{rows:?}");
+        assert!(rows[1].starts_with("tools/sim found in the project"), "{rows:?}");
+        assert!(rows[2].starts_with("another folder…"), "{rows:?}");
+        assert_eq!(rows.len(), 3);
+        let detail = h.fake.state().pickers[0].items[0].detail.clone();
         assert!(detail.contains("tables · TC and TM"), "{detail:?}");
         // K, gd, completion and the pages use it now; its page is open.
         assert_eq!(in_use(&mut h), ["db/ops-2.0"]);
-        let page = h.page("mib");
-        assert!(h.screen(page).contains("found in db/ops-2.0/ · M: 3 MIBs"));
+        assert!(h.screen(page).contains("found in db/ops-2.0/ · M: 2 MIBs"), "{}", h.screen(page));
         // M on the page switches.
         h.fake.on_pick("Open a MIB", "found:tools/sim");
         h.key(page, Key::Char('M'));
         assert_eq!(in_use(&mut h), ["tools/sim"]);
-        // Kept for the project, not in its settings.
+        // Kept for the project, not in its settings; nothing said then.
         let mut again = w.start(&[]);
         assert_eq!(in_use(&mut again), ["tools/sim"]);
+        assert!(!said(&again).iter().any(|m| m.contains("found here")));
         w.project_settings_untouched();
+    }
+
+    #[test]
+    fn mib_is_used_beside_others_and_one_alone_outside_tests_too() {
+        let w = World::new();
+        w.ops(&w.project().join("mib"));
+        w.ops(&w.project().join("db/old"));
+        let mut h = w.start(&[]);
+        assert_eq!(h.ext.mib.key_here().0.roots[0].path, w.project().join("mib"));
+        let w = World::new();
+        w.ops(&w.project().join("db/ops"));
+        w.ops(&w.project().join("tests/fixtures/ops"));
+        let mut h = w.start(&[]);
+        assert_eq!(in_use(&mut h), ["db/ops"]);
+    }
+
+    #[test]
+    fn a_fixture_is_never_the_mib_unpicked() {
+        // As this repository has one.
+        let w = World::new();
+        w.ops(&w.project().join("crates/mib/tests/fixtures/ops"));
+        let mut h = w.start(&[]);
+        assert!(in_use(&mut h).is_empty());
+        assert!(h.fake.state().checks.iter().any(|c| c.label == "MIBs found"), "{:?}", h.fake.state().checks);
+        assert!(!h.fake.state().checks.iter().any(|c| c.label == "tables"));
+        h.command("mib.search").unwrap();
+        assert!(said(&h).last().unwrap().starts_with("1 MIB found here, among tests or samples"), "{:?}", said(&h));
+    }
+
+    #[test]
+    fn the_language_server_and_focus_never_look_through_the_project() {
+        let w = World::new();
+        w.ops(&w.project().join("db/ops"));
+        let mut h = w.start(&[]);
+        w.ops(&w.project().join("db/new"));
+        // What K, gd and completion ask, and moving between files.
+        let _ = h.ext.mib.set();
+        h.event(Event::FocusChanged(None));
+        assert_eq!(in_use(&mut h), ["db/ops"]);
+        assert!(h.ext.mib.known().iter().all(|k| k.id != "found:db/new"));
+        // Looked through on SPC k o.
+        h.fake.on_pick_nothing("Open a MIB");
+        h.command("mib.open").unwrap();
+        assert!(h.ext.mib.known().iter().any(|k| k.id == "found:db/new"));
     }
 
     #[test]
@@ -1745,12 +1899,27 @@ mod tests {
         h.fake.on_pick("Open a MIB", "set:SIM");
         h.command("mib.open").unwrap();
         let rows = &pickers(&h, "Open a MIB")[0];
-        assert!(rows[0].starts_with("mib found in the project") && rows[1].starts_with("OPS your settings") && rows[2].starts_with("SIM your settings"), "{rows:?}");
+        assert!(rows[0].starts_with("mission found in the project") && rows[1].starts_with("OPS your settings") && rows[2].starts_with("SIM your settings"), "{rows:?}");
         assert!(rows[3].starts_with("● all of them together your settings"), "{rows:?}");
         assert_eq!(in_use(&mut h), ["SIM"]);
         h.fake.on_pick("Open a MIB", "settings");
         h.command("mib.open").unwrap();
         assert_eq!(in_use(&mut h), ["OPS", "SIM"]);
+    }
+
+    #[test]
+    fn the_ccsds_extension_is_told_what_is_in_use() {
+        let w = World::new();
+        w.ops(&w.project().join("db/ops"));
+        w.ops(&w.project().join("db/sim"));
+        let mut h = w.start(&[]);
+        let told = |h: &Harness<MibExtension>| h.fake.state().services.iter().filter(|c| c.name == "ccsds.mib").map(|c| c.payload.clone()).collect::<Vec<_>>();
+        assert_eq!(told(&h), [r#"{"roots":[]}"#], "none is sure");
+        h.fake.on_pick("Open a MIB", "found:db/sim");
+        h.command("mib.open").unwrap();
+        let sim = w.project().join("db/sim").to_string_lossy().into_owned();
+        assert_eq!(told(&h).last().unwrap(), &serde_json::json!({ "roots": [["db/sim", sim]] }).to_string());
+        assert_eq!(h.serve("mib.which", "{}").unwrap().unwrap(), serde_json::json!({ "roots": [["db/sim", sim]] }).to_string());
     }
 
     #[test]
@@ -1764,25 +1933,24 @@ mod tests {
         h.fake.on_prompt("MIB folder", "/srv/mibs/OPS2/");
         h.command("mib.open").unwrap();
         assert_eq!(h.fake.state().prompts[0].initial, "/srv/mibs/OPS2");
-        let writes = |h: &Harness<MibExtension>| h.fake.calls().into_iter().filter(|c| c.starts_with("setting-set")).collect::<Vec<_>>();
         assert_eq!(writes(&h), [r#"setting-set mib.roots [["OPS2","/srv/mibs/OPS2"]]"#]);
-        let said = h.fake.state().notifications.last().map(|(_, m)| m.clone()).unwrap_or_default();
-        assert!(said.contains("added /srv/mibs/OPS2 to your MIBs as OPS2") && said.contains("restart Fenix"), "{said}");
-        // Fenix doesn't tell the extension its own setting back: another
-        // folder goes beside it all the same, and the same one isn't added
-        // twice.
-        h.fake.state_mut().settings.remove("mib.roots");
+        let notice = said(&h).last().cloned().unwrap_or_default();
+        assert!(notice.contains("added /srv/mibs/OPS2 to your MIBs as OPS2") && notice.contains("as soon as Fenix gives the extension its folder"), "{notice}");
+        // Another goes beside it -- Fenix gives the extension back what it
+        // set -- and the same one, however spelt, isn't added twice.
         h.fake.on_prompt("MIB folder", "/home/me/old/OPS2");
         h.command("mib.open").unwrap();
-        h.fake.on_prompt("MIB folder", "/srv/mibs/OPS2");
+        h.fake.on_prompt("MIB folder", "/srv//mibs/./OPS2");
         h.command("mib.open").unwrap();
         assert_eq!(writes(&h), [r#"setting-set mib.roots [["OPS2","/srv/mibs/OPS2"]]"#, r#"setting-set mib.roots [["OPS2","/srv/mibs/OPS2"],["OPS2-2","/home/me/old/OPS2"]]"#]);
-        // Started again, Fenix gives it the folder: its page opens.
+        // Started again, Fenix gives it the folder: its page opens, with
+        // nothing said again.
         w.ops(&w.folders().join("OPS2"));
         let mut again = w.start(&[("mib.roots", r#"[["OPS2","/srv/mibs/OPS2"],["OPS2-2","/home/me/old/OPS2"]]"#)]);
         assert_eq!(in_use(&mut again), ["OPS2"]);
         let page = again.page("mib");
         assert!(again.screen(page).contains("OPS2"));
+        assert!(said(&again).is_empty(), "{:?}", said(&again));
         // Once.
         let mut third = w.start(&[("mib.roots", r#"[["OPS2","/srv/mibs/OPS2"]]"#)]);
         assert!(third.fake.state().pages.is_empty());
@@ -1791,16 +1959,88 @@ mod tests {
     }
 
     #[test]
-    fn a_folder_in_the_project_is_opened_not_added() {
+    fn what_cannot_be_a_mib_folder_is_refused() {
         let w = World::new();
-        w.ops(&w.project().join("db/ops"));
-        w.ops(&w.project().join("db/new"));
         let mut h = w.start(&[]);
         h.fake.on_pick("Open a MIB", "folder");
-        h.fake.on_prompt("MIB folder", "/home/me/mission/db/new");
+        for (typed, why) in [("~", "home folder"), ("/", "top of a disk"), ("/home/me/", "home folder"), ("C:", "drive's current folder"), ("mibs", "isn't a full path")] {
+            h.fake.on_prompt("MIB folder", typed);
+            h.command("mib.open").unwrap();
+            assert!(said(&h).last().unwrap().contains(why), "{typed}: {:?}", said(&h));
+        }
+        // One it can look in, with no tables.
+        h.fake.state_mut().folders.insert("/srv/docs".into(), vec![api::FolderEntry { name: "notes.md".into(), size: 1 }]);
+        h.fake.on_prompt("MIB folder", "/srv/docs");
         h.command("mib.open").unwrap();
-        assert!(!h.fake.calls().iter().any(|c| c.starts_with("setting-set")));
-        assert_eq!(in_use(&mut h), ["db/new"]);
+        assert!(said(&h).last().unwrap().starts_with("no MIB tables in /srv/docs"), "{:?}", said(&h));
+        // Of the project, with no tables.
+        std::fs::create_dir_all(w.project().join("docs")).unwrap();
+        h.fake.on_prompt("MIB folder", "/home/me/mission/docs");
+        h.command("mib.open").unwrap();
+        assert!(said(&h).last().unwrap().starts_with("no MIB tables in docs/"), "{:?}", said(&h));
+        assert!(writes(&h).is_empty());
+    }
+
+    #[test]
+    fn a_folder_of_the_project_the_walk_missed_is_picked_by_its_path() {
+        let w = World::new();
+        w.ops(&w.project().join("db/ops"));
+        w.ops(&w.project().join("a/b/c/d/e/f/g/ops"));
+        let mut h = w.start(&[]);
+        assert_eq!(in_use(&mut h), ["db/ops"]);
+        h.fake.on_pick("Open a MIB", "folder");
+        h.fake.on_prompt("MIB folder", "/home/me/mission/a/b/c/d/e/f/g/ops/");
+        h.command("mib.open").unwrap();
+        assert!(writes(&h).is_empty(), "kept by the extension, not in settings");
+        assert_eq!(in_use(&mut h), ["a/b/c/d/e/f/g/ops"]);
+        let mut again = w.start(&[]);
+        assert_eq!(in_use(&mut again), ["a/b/c/d/e/f/g/ops"]);
+        w.project_settings_untouched();
+    }
+
+    #[test]
+    fn nothing_is_picked_or_read_without_a_project() {
+        let w = World::new();
+        w.ops(&w.project().join("db/ops"));
+        w.ops(&w.project().join("db/sim"));
+        let mut h = w.start(&[]);
+        h.fake.on_pick("Open a MIB", "found:db/sim");
+        h.command("mib.open").unwrap();
+        // Started again, before Fenix says which project it's in.
+        let fake = Fake::new();
+        let mut early = Harness::<MibExtension>::with_fake(fake);
+        early.activate().unwrap();
+        early.fire_timers();
+        assert!(early.ext.mib.choice.is_none(), "not taken as nothing");
+        early.fake.on_pick("Open a MIB", "found:db/ops");
+        early.command("mib.open").unwrap();
+        assert!(said(&early).last().unwrap().starts_with("open a file of the project first"));
+        let picks = std::fs::read_to_string(w.dir.path().join("data").join(CHOICES)).unwrap();
+        assert!(!picks.contains(r#""":"#), "{picks}");
+        // Then it says: the pick is the project's.
+        let project = api::ProjectInfo { name: "mission".into(), root: "/home/me/mission".into(), meta: Vec::new() };
+        early.fake.state_mut().here = Some(api::Here { path: Some("/home/me/mission/a.tcl".into()), line: 1, text: String::new(), language: "tcl".into(), project: Some(project) });
+        early.event(Event::FocusChanged(None));
+        assert_eq!(in_use(&mut early), ["db/sim"]);
+    }
+
+    #[test]
+    fn a_bad_picks_file_is_kept_aside_and_said_of_once() {
+        let w = World::new();
+        w.ops(&w.project().join("db/ops"));
+        w.ops(&w.project().join("db/sim"));
+        let data = w.dir.path().join("data");
+        std::fs::write(data.join(CHOICES), "{\"/home/me/other\": {\"choice\": \"found:x\"").unwrap();
+        let mut h = w.start(&[]);
+        h.fake.on_pick("Open a MIB", "found:db/sim");
+        h.command("mib.open").unwrap();
+        h.fake.on_pick("Open a MIB", "found:db/ops");
+        h.command("mib.open").unwrap();
+        assert_eq!(said(&h).iter().filter(|m| m.contains("couldn't be read")).count(), 1, "{:?}", said(&h));
+        assert!(std::fs::read_to_string(data.join("choices.json.bad")).unwrap().contains("/home/me/other"));
+        let picks: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(data.join(CHOICES)).unwrap()).unwrap();
+        assert_eq!(picks["/home/me/mission"]["choice"], "found:db/ops");
+        assert!(!data.join("choices.json.new").exists());
     }
 
     #[test]
@@ -1813,7 +2053,7 @@ mod tests {
         h.fake.on_pick("Open a MIB", "folder");
         h.command("mib.open").unwrap();
         assert!(h.fake.state().prompts.is_empty());
-        assert!(!h.fake.calls().iter().any(|c| c.starts_with("setting-set")));
+        assert!(writes(&h).is_empty());
         assert!(h.fake.calls().iter().any(|c| c.contains("settings.this_project")), "{:?}", h.fake.calls());
     }
 
@@ -1827,7 +2067,6 @@ mod tests {
         h.fire_timers();
         assert!(h.screen(page).contains("No MIB here."));
         h.command("mib.search").unwrap();
-        let said = h.fake.state().notifications.last().map(|(_, m)| m.clone()).unwrap_or_default();
-        assert!(said.starts_with("no MIB here"), "{said}");
+        assert!(said(&h).last().unwrap().starts_with("no MIB here"), "{:?}", said(&h));
     }
 }

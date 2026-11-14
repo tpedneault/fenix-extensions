@@ -40,8 +40,9 @@ folders = { mib = "${setting:mib.roots}" }
 settings = ["ccsds"]
 
 [contributes]
-# The notebook's mib: links; coding agents' mib_lookup.
-services = ["mib.open", "mib.lookup"]
+# The notebook's mib: links; coding agents' mib_lookup; the CCSDS
+# extension asks which MIBs are in use (mib.which).
+services = ["mib.open", "mib.lookup", "mib.which"]
 
 # Agents see it as mib_lookup.
 [[contributes.agent_tools]]

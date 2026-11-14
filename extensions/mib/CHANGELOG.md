@@ -8,27 +8,36 @@ How MIBs are found and opened.
   in the project -- `db/ops/`, `mission/mib/`, not only its top or `mib/`
   -- is found with nothing to set: a project with one MIB in it just
   works, `SPC k k` shows it. Hidden folders, build output, dependencies,
-  `generated/` and what `.gitignore` names are left out.
+  `generated/` and what `.gitignore` names are left out; `mib/` and the
+  top are always looked at, links followed, as before.
+- **Nothing is guessed.** When several MIBs are found and none of them is
+  the project's `mib/` or its top, none is used until you pick one: the
+  MIB page, the doctor and a word as it starts say how many were found.
+  One found among tests, fixtures, samples or vendored code is never
+  used unpicked.
 - **`SPC k o` opens a MIB**: every one known here -- found in the
   project, named in its settings or yours -- with what's in it. Picking
   one opens its page, and `K`, `gd`, completion, the checks, the insert
-  form, the pickers and agents' `mib_lookup` use it in this project from
-  then on, the next session too. It's kept by the extension, not written
-  in the project's settings. `M` on the MIB page does the same, and its
-  header says where the MIB is from and how many there are.
-- **Another folder…** in `SPC k o` opens a MIB elsewhere on disk: type or
-  paste its path (the explorer's selection is filled in) and it's added
-  to your `mib.roots` for you, named after its folder. Fenix hands the
-  extension that folder when it next starts, and its page opens then.
+  form, the pickers, agents' `mib_lookup` and the CCSDS extension's
+  packets use it in this project from then on, the next session too.
+  It's kept by the extension, not written in the project's settings. `M`
+  on the MIB page does the same, and its header says where the MIB is
+  from and how many there are.
+- **Another folder…** in `SPC k o` opens a MIB by its path: one of the
+  project's is picked, found or not; one elsewhere is added to your
+  `mib.roots` for you, named after its folder, and its page opens as
+  soon as Fenix gives the extension the folder. A home folder, the top
+  of a disk, or a folder with no MIB tables is refused.
 - **A MIB is no longer a project.** What the MIB extension did as if
   the project were a MIB is now done for the MIBs found in it: the
   project doctor checks the MIB in use wherever it is in the project,
-  and names the project's other MIBs. Use this with a Fenix that no
-  longer makes a MIB folder its own project: the repository is the
-  project, and its MIB folders are found in it.
+  and names the project's other MIBs. It works the same on a Fenix that
+  still makes a MIB folder its own project and on one where the
+  repository is the project.
 - Unchanged when your settings name MIBs: those are still used together
   until you pick one with `SPC k o`, and "all of them together" there
-  goes back. `SPC k D` compares any two MIBs known here, found ones too.
+  goes back. `mib/` and the project's top are still called by the
+  project's name. `SPC k D` compares any two MIBs known here.
 
 ## 1.4.0
 

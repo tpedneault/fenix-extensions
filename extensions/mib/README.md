@@ -79,55 +79,82 @@ As the SCOS-2000 Database Import ICD lays them out:
 ## Which MIBs
 
 A MIB is a folder of `.dat` tables -- any of `vdf`, `ccf`, `pcf`, `pid`,
-`tpcf`, `caf` or `txf` -- or an XTCE file. The MIBs **known** in a
-project are:
+`tpcf`, `caf` or `txf` -- or an XTCE file. The rule is the shared
+crate's (`fenix_mib::which`), and the CCSDS extension decodes against
+the same MIBs: the MIB extension tells it which.
 
-1. **Those found in it**, wherever they are: `mib/`, its top, `db/ops/`.
-   Nothing to set. The project is looked through as far as 6 folders
-   down and 3,000 folders in all, leaving out hidden folders (`.git`),
-   `target`, `node_modules`, `generated`, `dist`, `vendor`, virtual
-   environments, and the folders its `.gitignore` names. It's looked
-   through again when it's been half a minute and the MIBs are needed,
-   and every time `SPC k o` or `SPC k r` is used.
+The MIBs **known** in a project are:
+
+1. **Those found in it**, nothing to set. Its `mib/` and its top are
+   looked at directly, as ever, links followed. Anywhere else in it,
+   it's looked through as far as 6 folders down and 3,000 folders in
+   all, leaving out hidden folders (`.git`), `target`, `node_modules`,
+   `generated`, `dist`, `vendor`, virtual environments, and the folders
+   its `.gitignore` names (a `.gitignore` that takes anything back with
+   `!` isn't used). It's looked through as the extension starts --
+   unless the settings name MIBs and none of the project's is picked --
+   and on `SPC k o`, `SPC k r` and `SPC k D`: never while you type, hover
+   or move between files.
 2. **Those `mib.roots` names**: the project's own list (in its
    `.fenix/settings.toml`, folders relative to it) in place of yours. In
    a project's list, an XTCE file relative to it is a MIB too
    (`XTCE = "generated/xtce-OPS.xml"`). A setting that names a folder
    the project holds makes it known once, by the setting's name.
+3. **A folder of the project picked by its path** with `SPC k o`, found
+   or not.
+
+A found MIB is named by its path in the project (`db/ops`); `mib/` and
+the top by the project's name, as before, so `mib.icd_per_mib` and
+`mib.default` by that name still apply.
 
 The MIBs **in use** -- the MIB page's, `K`, `gd`, completion, the
 checks of your scripts, the insert form, the pickers, the notebook's
-`mib:` links and agents' `mib_lookup` -- are:
+`mib:` links, agents' `mib_lookup` and the CCSDS extension's packets --
+are:
 
 1. the one you opened with `SPC k o` in this project, kept for it from
-   one session to the next (in the extension's own folder: never in the
-   project's settings, and `mib.default` is left as it is);
+   one session to the next (in the extension's own folder, by the
+   project's path: never in the project's settings, and `mib.default`
+   is left as it is);
 2. else every MIB the settings name, together, as before -- `mib.default`
    says whose definition wins a name several define;
-3. else the first found: `mib/`, the project's top, then the shallowest.
+3. else a found one when there's no doubt which: `mib/`, else the
+   project's top, else the only one found outside folders of tests,
+   fixtures, samples, examples, demos, mocks and vendored code;
+4. else none. When several were found, the MIB page, the doctor and a
+   word as the extension starts say so -- "2 MIBs found here -- `SPC k
+   o` picks one" -- and nothing is guessed.
 
-A project with one MIB anywhere in it just works: `SPC k k` shows it.
+A project with one MIB in it just works: `SPC k k` shows it.
 
 `SPC k o` lists every known MIB -- found ones by their path in the
 project, then the project's settings', then yours -- each with how many
 tables it has and whether it has telecommands and TM, `●` on the one in
 use. With several in the settings, "all of them together" goes back to
-using them together. **Another folder…** opens a MIB elsewhere: type or
-paste its full path (the folder selected in the explorer is filled in).
-It's added to *your* `mib.roots` for you -- named after its folder, made
-unique (`OPS`, `OPS-2`), never twice -- and picked here. Fenix gives the
-extension the folders `mib.roots` names as it starts it, so a folder
-just added opens the next time Fenix starts, by itself. In a project
-with its own `mib.roots`, which takes the place of yours there, a folder
-elsewhere goes in the project's list: `SPC k o` opens its settings
-rather than writing them.
+using them together. **Another folder…** opens a MIB by its full path
+(the folder selected in the explorer is filled in):
+
+- one of the project's is picked, found or not, if it holds tables;
+- one elsewhere is added to *your* `mib.roots` for you -- named after
+  its folder, made unique (`OPS`, `OPS-2`), never twice however it's
+  spelt -- and picked here. `~/…` is kept as such: Fenix makes it your
+  home folder's. Not a full path, the top of a disk, a drive's current
+  folder (`C:mibs`), a home folder, or a folder the extension can see
+  with no tables in it are refused, and it says why. Fenix gives the
+  extension the folders `mib.roots` names when it starts it -- at once
+  on a Fenix that starts it again when such a setting changes, else the
+  next time Fenix starts -- and the MIB's page opens then, by itself.
+- in a project with its own `mib.roots`, which takes the place of yours
+  there, a folder elsewhere goes in the project's list: `SPC k o` opens
+  its settings rather than writing them.
 
 What's generated (`SPC k g`) and compared (`SPC k D`) goes in the
 project's `generated/`, wherever the MIB is in it; the doctor counts the
 project's `recordings/`.
 
 They're read when first needed, and again when one of their files
-changes (`mib.watch`) or a MIB folder appears in the project or goes.
+changes (`mib.watch`). A MIB folder added to the project is found on
+`SPC k o` or `SPC k r`, or when the extension next starts.
 
 The mission profile they're read and packets built against is the
 CCSDS settings (`ccsds.pus`, `ccsds.tm_time`, ...). The CCSDS extension
