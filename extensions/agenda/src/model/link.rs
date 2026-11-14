@@ -150,8 +150,13 @@ pub struct IssueLink {
     /// The tracker it's in: the name its services start with (`jira`).
     #[serde(default = "legacy_tracker")]
     pub tracker: String,
-    /// The issue's `ref` in its tracker.
+    /// The issue's `ref` in its tracker, as last seen: refreshed when the
+    /// issue moves.
     pub key: String,
+    /// The tracker's immutable id for the issue: what the link is kept
+    /// by. None until the first sync of a link from before ids.
+    #[serde(default)]
+    pub id: Option<String>,
     /// The last state of the issue this task agreed with -- what
     /// "changed" is measured against on both sides.
     pub base: RemoteSnapshot,
@@ -162,6 +167,10 @@ pub struct IssueLink {
     /// That failure is worth retrying by itself: offline, rate-limited.
     #[serde(default)]
     pub transient: bool,
+    /// No answer came for the change sent: it may have been made. Never
+    /// sent again by itself; `r` asks.
+    #[serde(default)]
+    pub unknown: bool,
     #[serde(default)]
     pub conflicts: Vec<Conflict>,
     /// The tracker reassigned the issue to someone else. The task stays;
@@ -180,9 +189,24 @@ impl IssueLink {
         self.base.project.as_deref()
     }
 
-    /// Whether this is tracker `tracker`'s issue `key`.
+    /// Whether this is tracker `tracker`'s issue `key` (a ref or an id).
     pub fn is(&self, tracker: &str, key: &str) -> bool {
-        self.tracker == tracker && self.key == key
+        self.tracker == tracker && (self.key == key || self.id.as_deref() == Some(key))
+    }
+
+    /// Whether this is `tracker`'s issue with id `id`, or -- for a link
+    /// that doesn't know its id yet -- ref `key`.
+    pub fn is_issue(&self, tracker: &str, id: &str, key: &str) -> bool {
+        self.tracker == tracker
+            && match &self.id {
+                Some(mine) => mine == id,
+                None => self.key == key,
+            }
+    }
+
+    /// What to ask the tracker for it by: its id once known.
+    pub fn asked(&self) -> &str {
+        self.id.as_deref().unwrap_or(&self.key)
     }
 
     /// The column the tracker puts it in, as far as the agenda knows.
@@ -197,6 +221,10 @@ pub struct PendingOp {
     pub id: u64,
     pub task: TaskId,
     pub kind: OpKind,
+    /// Its `op` for the tracker: the same each time it's sent, so a
+    /// tracker can do it once (`plans/tracker-seam.md` §3.7).
+    #[serde(default)]
+    pub uid: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

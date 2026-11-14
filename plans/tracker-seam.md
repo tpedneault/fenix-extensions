@@ -64,7 +64,12 @@ first version, this is what moved:
       `create` and `remember` included (§3.6);
     - the agenda's test world is a public, documented helper,
       `fenix_agenda::testing`, so a tracker runs the agenda against
-      itself from its own crate (§8).
+      itself from its own crate (§8);
+    - from GitHub and GitLab: `browse` is only for trackers whose
+      address is a simple template -- a forge leaves it out and every
+      issue carries its `url`; `assignee` stays one person, the first,
+      with `mine` true if you're any of them; the gate is on writes that
+      arrive through the seam only, never on the tracker's own page.
 11. **Smaller**: `sync_minutes` is per tracker with a floor of 5;
     `retry_after` is honoured; `about` must be cheap, and the agenda
     asks lazily; a whole-call `not_found` is forbidden for more than one
@@ -389,6 +394,11 @@ code and the words are the same everywhere:
   the task asks again") and asks again at the next write.
 - Its setting `<name>.seam_writes` (`ask`, the default; `always`;
   `never`) says for good. `never` refuses every write.
+- **Only writes that arrive through the seam.** The tracker's own page
+  -- your own keys, its own forms -- writes as before, ungated: those
+  are your acts, made where you are. A tracker routes its page's writes
+  around the gate, and the seam's through it, even when both end in the
+  same client call.
 - **It's a speed bump, not authentication.** In practice the first
   write follows your own move in the agenda, so the question makes
   sense; but an extension that waits for you to allow it gets through.
@@ -446,7 +456,7 @@ asking is what starts it. Answer:
 | `can` | optional, `[]` | its capabilities (§4.6); unknown ones are ignored |
 | `sync_minutes` | optional, 10 | how often its linked tasks should be brought up to date; 0 never on a timer; at least 5. Each tracker is synced on its own schedule |
 | `project_meta` | optional | the key of Fenix's project metadata (`Here.project.meta`) naming this tracker's project for the project you're in. Fenix 1.5's metadata has only `kind` and the Jira key (`jira`), so only Jira can use it; any other tracker serves `project` instead (§4.7) |
-| `browse` | optional | a URL with `{ref}` in it: an issue's address before the first sync has brought its `url` |
+| `browse` | optional | a URL with `{ref}` in it: an issue's address before the first sync has brought its `url`. Only for a tracker whose address is its ref dropped into a template (Jira's `/browse/PROJ-12`); a forge, whose `owner/repo#12` is `/owner/repo/issues/12`, leaves it out -- every issue carries its own `url`, and the agenda uses that first |
 | `ref_hint` | optional | an example of a `ref`, for "Link to issue (e.g. PROJ-123)" |
 | `blocked` | optional, true | false: it has no Blocked state of its own (GitHub). The agenda then keeps Blocked to itself: a card moved there or out of it sends nothing, and no `local` move needs faking |
 
@@ -487,7 +497,7 @@ asking is what starts it. Answer:
 | `state` | required | `id` the tracker's own (opaque); `name` as people see it; `stage` exactly one of `todo`, `doing`, `done` (anything else is read as `todo`); `column` one of `todo`, `doing`, `blocked`, `done` -- the agenda column the tracker puts it in, which is `stage` unless the tracker knows it's blocked |
 | `type` | optional | a name |
 | `priority` | optional | `name` the tracker's; `level` one of `urgent`, `high`, `medium`, `low`, or `null` for a priority that means none (Linear's "No priority"). No priority, or a `null` level, is the agenda's Medium |
-| `assignee` | optional | `id` what `update`'s `assignee` takes back, `name` shown. A tracker with several assignees gives the first, and `mine` says whether you're among them |
+| `assignee` | optional | `id` what `update`'s `assignee` takes back, `name` shown. **One person**: a tracker with several assignees (GitHub, GitLab) gives the first, and `mine` is true if you're any of them. Setting it replaces them all with that one; `null` clears them |
 | `mine` | optional | assigned to the signed-in person; absent when the tracker can't tell |
 | `labels` | optional, `[]` | names |
 | `due` | optional | `YYYY-MM-DD` |
@@ -918,8 +928,13 @@ Recorded after building, and after the review, on 14 November 2026.
 - `crates/jira` 1.1.0: `tracker`, the seam served over a `JiraClient`;
   paged and id searches; labels; refs checked; recorded responses in
   `tests/fixtures`.
-- `fenix.jira` 1.3.0 serves it; `fenix.agenda` 1.3.0 calls it, with the
-  Jira 1.2 fallback in `legacy.rs`. The Jira bundle is unchanged.
+- `fenix.jira` 1.3.0 serves it, gated; `fenix.agenda` 1.3.0 calls it,
+  with the Jira 1.2 fallback in `legacy.rs`. The Jira bundle is
+  unchanged.
+- `fenix_agenda::testing` (feature `testing`): checked from a crate of
+  its own that links another extension (`fenix-jira`) beside the agenda
+  and drives the agenda with a `FakeTracker` -- the two extensions'
+  exports don't clash.
 - The agenda's service calls wait in `calls.rs`, its own small executor
   over `call_service` and `ServiceReply`, so the test kit answers them.
 
@@ -949,7 +964,9 @@ Recorded after building, and after the review, on 14 November 2026.
   kept; such a description isn't edited from the agenda. Invisible
   characters in titles and names are removed.
 - Jira's sync runs on `jira.sync_minutes` but never more often than
-  every 5 minutes.
+  every 5 minutes; its first timed sync is shortly after Fenix starts,
+  where 1.2's was `jira.sync_minutes` after.
+- `A` on a linked task also offers "Nobody (unassign)".
 - Words: with no tracker installed, "that needs a tracker extension,
   such as Jira"; the commands' titles say "your tracker".
 - Requests: the search asks for `labels` too, with `validateQuery=false`,
