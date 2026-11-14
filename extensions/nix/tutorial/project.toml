@@ -1,0 +1,77 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor and a fix from it, tasks, formatting and checking on save --
+# filled in for Nix. Nix has no packages page or debugger here, and what
+# stands in for them is a flake's outputs, picked from `nix flake show`: so it
+# has the pairs of steps that apply. See "Tutorial lessons" in the
+# repository's CONTRIBUTING.md.
+id = "nix.project"
+track = "Nix"
+order = 1
+title = "A Nix project: doctor, tasks, flake outputs, formatting"
+about = "In a Nix project of yours (a folder with a flake.nix; the Nix · flake with a dev shell template makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install Nix."
+text = """
+A Nix project in Fenix: what it needs, its tasks, the outputs of its flake,
+and a formatter and statix as you save. Nothing here installs anything:
+Nix's tools come from Nix (your profile, the dev shell).
+
+SPC p h   the project doctor: Nix, flakes, the language server, the
+          formatter and the linters, each checked (f runs a fix on the
+          row, r checks again, q closes it)
+SPC p t   the tasks: check, build, run, fmt, flake show, and last, flake
+          update (rewrites flake.lock) -- there's no switch
+SPC m b   build one of the flake's outputs, picked from nix flake show
+SPC m r   run one; SPC m s opens the dev shell in a terminal
+SPC ,     the settings: editor.format_on_save, nix.formatter
+SPC c F   format the file
+
+A flake to try it on, if you have none; put it in flake.nix of a folder of
+its own (git init and git add it: flakes only see what Git tracks), and
+open that folder as a project:
+
+{
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  outputs = { self, nixpkgs }: {
+    packages.x86_64-linux.default = nixpkgs.legacyPackages.x86_64-linux.hello;
+  };
+}
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- Nix, flakes, the language server, the formatter and the linters, each checked."
+hint = "SPC p, then h. In a project with a flake.nix: the checks are for the project you're in. Without Nix the doctor says how to install it, and that the rest still works."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green says why. The language server's has a fix when Nix is there: f on it runs nixd through the project's dev shell as a task you can watch (it builds the shell first), and keeps that if it works. Nothing runs through Nix until you do. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page. Without Nix, s on the tutorial page skips this."
+closed = "doctor"
+
+[[step]]
+say = "SPC p t: the project's tasks -- check, build, run, fmt, flake show and, last, flake update (rewrites flake.lock)."
+hint = "SPC p, then t. Without Nix, or in a folder with no flake.nix, default.nix or shell.nix, there are none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick flake show and Enter: nix flake show runs in Task Output (q there closes it). flake update rewrites flake.lock: leave it unless you mean it. Or Esc."
+hint = "Type show to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "SPC m b: a picker of the flake's outputs, read from nix flake show -- it can take a while, and it may fetch the flake's inputs. A package, a check, a configuration."
+hint = "SPC m, then b. It needs a flake.nix and Nix; the picker opens when nix flake show ends. s on the tutorial page skips this."
+picker = "any"
+
+[[step]]
+say = "Enter builds the one under the cursor (nix build, as a task; it leaves ./result), Esc builds nothing."
+hint = "Enter or Esc."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Nix file then runs the flake's formatter (nixfmt, alejandra or nixpkgs-fmt)."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a .nix file now: it's formatted by the tool the flake's formatter output names -- not nix fmt, which is too slow to start on every save, but the same one -- and statix and deadnix show their lints (SPC c a applies statix's fixes)."
+hint = "q, on the settings page."
+closed = "settings"

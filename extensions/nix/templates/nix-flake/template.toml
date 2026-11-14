@@ -1,0 +1,13 @@
+[template]
+name = "Nix · flake with a dev shell"
+kind = "other"
+group = "Nix"
+description = "A flake for a small program: a package and an app built from a shell script, a dev shell with the Nix tools Fenix uses (nixd, statix, deadnix and a formatter), the formatter as the flake's own `formatter` output so nix fmt and Fenix agree, a check, and a .gitignore. It runs nothing when it's made."
+open = ["flake.nix", "README.md"]
+
+[[ask]]
+key = "formatter"
+label = "Formatter"
+choices = ["nixfmt", "alejandra", "nixpkgs-fmt"]
+default = "nixfmt"
+hint = "the flake's formatter output, and in the dev shell; Fenix formats with the one the flake names"

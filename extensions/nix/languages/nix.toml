@@ -1,0 +1,7 @@
+# Nix, which Fenix doesn't highlight itself: tree-sitter-nix's grammar,
+# compiled to WebAssembly, and its queries from queries/nix. The server and
+# the formatter are the extension's to set, once it has found them.
+language = "nix"
+grammar = "grammars/tree-sitter-nix.wasm"
+extensions = ["nix"]
+comment = "#"

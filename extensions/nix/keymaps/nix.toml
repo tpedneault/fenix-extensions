@@ -1,0 +1,29 @@
+# Nix's keys, after SPC m in a project or file of its context. Your own
+# keybindings.toml wins. There's no key for flake update, which rewrites
+# flake.lock, nor for anything that changes the running system: those are
+# tasks you pick (SPC p t), named for what they do.
+
+[[local.nix]]
+keys = "d"
+label = "check the project again"
+command = "nix.doctor"
+
+[[local.nix]]
+keys = "b"
+label = "build a flake output"
+command = "nix.flake.build"
+
+[[local.nix]]
+keys = "r"
+label = "run a flake output"
+command = "nix.flake.run"
+
+[[local.nix]]
+keys = "s"
+label = "dev shell in a terminal"
+command = "nix.develop"
+
+[[local.nix]]
+keys = "S"
+label = "pick a flake's dev shell"
+command = "nix.flake.develop"

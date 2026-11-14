@@ -1,0 +1,7 @@
+# name: mkIf
+# key: mkif
+# scope: nix
+# --
+lib.mkIf ${1:cfg.enable} {
+  $0
+}

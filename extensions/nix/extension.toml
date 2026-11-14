@@ -1,0 +1,143 @@
+[extension]
+id = "fenix.nix"
+name = "Nix"
+version = "1.0.0"
+description = "Nix: its grammar, nixd or nil, nixfmt, alejandra or nixpkgs-fmt, statix and deadnix on save, flake and NixOS tasks with a picker of a flake's outputs, the project's checks, snippets, and flake and NixOS module projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# The API the shared kits are built on.
+api = "1.5"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Nix and its tools, each by name, found on PATH or in a Nix profile: nix
+# (flake and build tasks, nix flake show for the pickers, a dev shell in a
+# terminal, the language server through the dev shell or nixpkgs when you
+# ask), nix-build and nix-shell, nixos-rebuild and home-manager (build and
+# dry-build only), the servers nixd and nil, the formatters nixfmt,
+# alejandra and nixpkgs-fmt, and the linters statix and deadnix. Nothing is
+# installed: no /tools.
+process = ["nix", "nix-build", "nix-shell", "nixos-rebuild", "home-manager", "nixd", "nil", "nixfmt", "alejandra", "nixpkgs-fmt", "statix", "deadnix"]
+# The flake.nix and its neighbours at the top (default.nix, shell.nix,
+# configuration.nix, home.nix), read to see what kind of project it is and
+# which formatter the flake names. It writes nothing.
+filesystem = "project-read"
+# The file saved, for statix and deadnix.
+editor = "read"
+
+[contributes]
+# A file saved: linted; a flake.nix or default.nix saved, read again.
+events = ["saved"]
+
+# Any .nix file loads the pack; so does a project with one of these at its
+# top. Many projects of other languages carry a flake.nix or shell.nix just
+# for a dev shell, so they stay in the context (which only says when the pack
+# applies) and the project kind below takes the flake alone.
+[[contributes.contexts]]
+name = "nix"
+markers = ["flake.nix", "shell.nix", "default.nix"]
+languages = ["nix"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there). Only flake.nix: a flake is
+# a Nix project's own manifest. shell.nix and default.nix are what other
+# languages' projects have for a dev shell or a package, and a kind's markers
+# win over every other pack's kind, by the packs' ids, so they'd make a Ruby
+# or Terraform project a Nix one. Fenix's own kinds come first anyway: a Rust
+# project with a flake stays Rust.
+[[contributes.project_kinds]]
+id = "nix"
+name = "Nix"
+tag = "NIX"
+color = "variable"
+markers = ["flake.nix"]
+main = ["flake.nix", "default.nix"]
+
+[[contributes.commands]]
+id = "nix.doctor"
+title = "Nix: check the project again (Nix, flakes, the server, the formatter, the linters)"
+
+[[contributes.commands]]
+id = "nix.install-help"
+title = "Nix: how to install Nix (shown beside the editor; nothing is downloaded)"
+
+[[contributes.commands]]
+id = "nix.server.dev-shell"
+title = "Nix: try the language server in the project's dev shell (nix develop -c nixd, a task that builds the shell)"
+
+[[contributes.commands]]
+id = "nix.server.nixpkgs"
+title = "Nix: fetch the language server with nix shell nixpkgs#nixd (a task that downloads it)"
+
+[[contributes.commands]]
+id = "nix.flake.build"
+title = "Nix: build a flake output (picked from nix flake show)"
+
+[[contributes.commands]]
+id = "nix.flake.run"
+title = "Nix: run a flake output (picked from nix flake show)"
+
+[[contributes.commands]]
+id = "nix.flake.develop"
+title = "Nix: enter a flake's dev shell in a terminal (picked from nix flake show)"
+
+[[contributes.commands]]
+id = "nix.develop"
+title = "Nix: enter the project's dev shell in a terminal (nix develop, or nix-shell)"
+
+[[contributes.settings]]
+key = "nix.server"
+kind = "choice"
+choices = ["auto", "nixd", "nil"]
+label = "Language server"
+description = "auto: nixd when it's found, else nil. Neither is installed by the pack: they come from Nix (a profile, the dev shell, nixpkgs)."
+default = "auto"
+
+[[contributes.settings]]
+key = "nix.server_runner"
+kind = "choice"
+choices = ["path", "dev-shell", "nixpkgs"]
+label = "Where the language server comes from"
+description = "path: only a server on PATH or in your profile. dev-shell: through the project's dev shell (nix develop -c nixd) when it isn't on PATH. nixpkgs: nix shell nixpkgs#nixd -c nixd, which downloads it the first time. The doctor's fix rows try each as a task and set this when it works; nothing is ever started through Nix until it's set."
+default = "path"
+project = true
+
+[[contributes.settings]]
+key = "nix.formatter"
+kind = "choice"
+choices = ["auto", "nixfmt", "alejandra", "nixpkgs-fmt", "off"]
+label = "Formatter"
+description = "auto: the one the flake's formatter output names, else the first of nixfmt, alejandra and nixpkgs-fmt that's installed. Saving never runs nix fmt, which is too slow to start; the fmt task does."
+default = "auto"
+project = true
+
+[[contributes.settings]]
+key = "nix.statix"
+kind = "bool"
+label = "statix on save"
+description = "Run statix on a saved .nix file and show its lints, with the fixes it offers (SPC c a). Needs statix on PATH, built with its json feature (as nixpkgs builds it)."
+default = "true"
+
+[[contributes.settings]]
+key = "nix.deadnix"
+kind = "bool"
+label = "deadnix on save"
+description = "Run deadnix on a saved .nix file and show the unused bindings and arguments it finds. Needs deadnix on PATH."
+default = "true"
+
+[[contributes.settings]]
+key = "nix.deadnix_arguments"
+kind = "bool"
+label = "deadnix: unused function arguments"
+description = "Report unused arguments of functions (`{ pkgs, lib, ... }:` that never uses lib). Off passes deadnix -L, as nixpkgs' callPackage style wants."
+default = "true"

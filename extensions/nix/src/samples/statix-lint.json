@@ -1,0 +1,104 @@
+{
+  "file": "lint.nix",
+  "report": [
+    {
+      "note": "Unnecessary comparison with boolean",
+      "code": 1,
+      "severity": "Warn",
+      "diagnostics": [
+        {
+          "at": {
+            "from": {
+              "line": 10,
+              "column": 7
+            },
+            "to": {
+              "line": 10,
+              "column": 16
+            }
+          },
+          "message": "Comparing `x` with boolean literal `true`",
+          "suggestion": {
+            "at": {
+              "from": {
+                "line": 10,
+                "column": 7
+              },
+              "to": {
+                "line": 10,
+                "column": 16
+              }
+            },
+            "fix": "x"
+          }
+        }
+      ]
+    },
+    {
+      "note": "Assignment instead of inherit",
+      "code": 3,
+      "severity": "Warn",
+      "diagnostics": [
+        {
+          "at": {
+            "from": {
+              "line": 11,
+              "column": 20
+            },
+            "to": {
+              "line": 11,
+              "column": 26
+            }
+          },
+          "message": "This assignment is better written with `inherit`",
+          "suggestion": {
+            "at": {
+              "from": {
+                "line": 11,
+                "column": 20
+              },
+              "to": {
+                "line": 11,
+                "column": 26
+              }
+            },
+            "fix": "inherit y;"
+          }
+        }
+      ]
+    },
+    {
+      "note": "Assignment instead of inherit",
+      "code": 3,
+      "severity": "Warn",
+      "diagnostics": [
+        {
+          "at": {
+            "from": {
+              "line": 18,
+              "column": 5
+            },
+            "to": {
+              "line": 18,
+              "column": 11
+            }
+          },
+          "message": "This assignment is better written with `inherit`",
+          "suggestion": {
+            "at": {
+              "from": {
+                "line": 18,
+                "column": 5
+              },
+              "to": {
+                "line": 18,
+                "column": 11
+              }
+            },
+            "fix": "inherit z;"
+          }
+        }
+      ]
+    }
+  ]
+}

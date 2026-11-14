@@ -1,0 +1,10 @@
+# name: fetchFromGitHub
+# key: fetch
+# scope: nix
+# --
+pkgs.fetchFromGitHub {
+  owner = "${1:owner}";
+  repo = "${2:repo}";
+  rev = "${3:v1.0.0}";
+  hash = ${4:lib.fakeHash};
+}

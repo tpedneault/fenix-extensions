@@ -1,0 +1,80 @@
+{
+  "apps": {
+    "x86_64-linux": {
+      "serve": {
+        "type": "app"
+      }
+    }
+  },
+  "checks": {
+    "x86_64-linux": {
+      "fmt": {
+        "name": "fmt",
+        "type": "derivation"
+      }
+    }
+  },
+  "devShells": {
+    "x86_64-linux": {
+      "ci": {
+        "name": "nix-shell",
+        "type": "derivation"
+      },
+      "default": {
+        "name": "nix-shell",
+        "type": "derivation"
+      }
+    }
+  },
+  "formatter": {
+    "x86_64-linux": {
+      "name": "nixfmt-rfc-style-unstable-2024-11-01",
+      "type": "derivation"
+    }
+  },
+  "homeConfigurations": {
+    "me@station": {
+      "type": "unknown"
+    }
+  },
+  "nixosConfigurations": {
+    "station": {
+      "type": "nixos-configuration"
+    }
+  },
+  "nixosModules": {
+    "default": {
+      "type": "nixos-module"
+    }
+  },
+  "overlays": {
+    "default": {
+      "type": "nixos-overlay"
+    }
+  },
+  "packages": {
+    "aarch64-linux": {
+      "arm-only": {
+        "name": "arm-only-1.0",
+        "type": "derivation"
+      }
+    },
+    "x86_64-linux": {
+      "default": {
+        "description": "Ground station tools",
+        "name": "orbit-1.0",
+        "type": "derivation"
+      },
+      "docs": {
+        "name": "orbit-docs-1.0",
+        "type": "derivation"
+      }
+    }
+  },
+  "templates": {
+    "default": {
+      "description": "A station",
+      "type": "template"
+    }
+  }
+}
