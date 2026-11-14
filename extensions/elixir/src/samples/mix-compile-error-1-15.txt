@@ -1,0 +1,5 @@
+Compiling 1 file (.ex)
+
+== Compilation error in file lib/broken.ex ==
+** (CompileError) lib/broken.ex:3: undefined function undefined_thing/0 (expected Orbit.Broken to define such a function or for it to be imported, but none are available)
+    (elixir 1.15.7) src/elixir_locals.erl:117: anonymous fn/3 in :elixir_locals.ensure_no_undefined_local/3

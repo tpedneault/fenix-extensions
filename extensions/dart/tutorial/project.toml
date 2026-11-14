@@ -1,0 +1,87 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor, the packages page, a task, a debug session, formatting
+# and the server's problems on save -- filled in for Dart. See "Tutorial
+# lessons" in the repository's CONTRIBUTING.md.
+id = "dart.project"
+track = "Dart"
+order = 1
+title = "A Dart project: doctor, packages, tasks, debugging"
+about = "In a Dart or Flutter project of yours (a pubspec.yaml at its top; dart create makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Dart project in Fenix: what it needs, its packages, its tasks, its
+program under the debugger, and dart format and the analysis server as
+you save.
+
+SPC p h   the project doctor: the Dart SDK in use and its version, Flutter
+          in a Flutter app, and whether pub get has run (f runs the fix
+          on the row, r checks again, q closes it)
+SPC m p   the pub packages: vulnerable and outdated first; u upgrade, a
+          add, d remove (SPC m d checks the project again, SPC m g pub get)
+SPC p t   the tasks: pub get, run, test, analyze, format, fix preview,
+          fix apply -- and in a Flutter app run, builds, doctor, devices
+SPC u b   a breakpoint on the cursor's line; SPC u U a launch to start,
+          then n step over, c continue, SPC u q end
+SPC ,     the settings: editor.format_on_save, dart.sdk, dart.flutter
+
+The practice program, for a package that has no bin/ of its own: put it
+in bin/main.dart, and the breakpoint on the total += line.
+
+void main() {
+  final names = ['Ada', 'Grace', 'Rob'];
+  var total = 0;
+  for (final name in names) {
+    total += name.length;
+  }
+  print('$total letters');
+}
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- the Dart SDK (and which one: Flutter's or a standalone one), its version held to the pubspec, and whether the packages are resolved."
+hint = "SPC p, then h. In a Dart project: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix: f on Packages runs pub get; on the SDK it opens the page that says how to install it. Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC m p: the pub packages -- the vulnerable first, then the outdated."
+hint = "SPC m, then p, in the Dart project (or SPC : and Dart: pub packages). Without Dart, s on the tutorial page skips this."
+page = "fenix.dart/packages"
+
+[[step]]
+say = "u upgrades the package under the cursor (past its constraint), a adds one, d removes one -- each as a task. q closes the page for now."
+hint = "q, on the packages page."
+closed = "fenix.dart/packages"
+
+[[step]]
+say = "SPC p t: the project's tasks."
+hint = "SPC p, then t. Without Dart there are none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick test and Enter: dart test (flutter test in a Flutter app) runs in Task Output (q there closes it). Or Esc. dart fix --apply is in this list too, last: it rewrites files, so pick it on purpose."
+hint = "Type test to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "In a .dart file with a main, SPC u b puts a breakpoint on the cursor's line. Then SPC u U: the launches Dart offers."
+hint = "In a .dart file, not the practice text: SPC u U needs a Dart file in front. The SDK has the debug adapter -- the doctor's Dart row says if it's missing; without, s on the tutorial page skips this."
+picker = "any"
+
+[[step]]
+say = "Dart: run this file, Enter: dart debug_adapter starts it and it stops at your breakpoint. n steps over, c continues, SPC u q ends it."
+hint = "Enter on the launch; Esc puts the list away."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Dart file then runs dart format on it."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a Dart file now: it's formatted by dart format, and the analysis server's problems are on it as you type -- the pack has no linter of its own beside it."
+hint = "q, on the settings page."
+closed = "settings"

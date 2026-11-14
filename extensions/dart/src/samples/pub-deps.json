@@ -1,0 +1,1314 @@
+{
+  "root": "orbit",
+  "packages": [
+    {
+      "name": "orbit",
+      "version": "1.0.0",
+      "kind": "root",
+      "source": "root",
+      "dependencies": [
+        "http",
+        "path",
+        "lints",
+        "mockito",
+        "test"
+      ],
+      "directDependencies": [
+        "http",
+        "path"
+      ],
+      "devDependencies": [
+        "lints",
+        "mockito",
+        "test"
+      ],
+      "dependencyConstraints": {
+        "http": "^0.13.6",
+        "path": "^1.9.0",
+        "lints": "^6.0.0",
+        "mockito": "^5.8.1",
+        "test": "^1.25.6"
+      }
+    },
+    {
+      "name": "test",
+      "version": "1.33.0",
+      "kind": "dev",
+      "source": "hosted",
+      "dependencies": [
+        "analyzer",
+        "async",
+        "boolean_selector",
+        "collection",
+        "coverage",
+        "http_multi_server",
+        "io",
+        "matcher",
+        "node_preamble",
+        "package_config",
+        "path",
+        "pool",
+        "shelf",
+        "shelf_packages_handler",
+        "shelf_static",
+        "shelf_web_socket",
+        "source_span",
+        "stack_trace",
+        "stream_channel",
+        "test_api",
+        "test_core",
+        "typed_data",
+        "web_socket_channel",
+        "webkit_inspection_protocol",
+        "yaml"
+      ],
+      "directDependencies": [
+        "analyzer",
+        "async",
+        "boolean_selector",
+        "collection",
+        "coverage",
+        "http_multi_server",
+        "io",
+        "matcher",
+        "node_preamble",
+        "package_config",
+        "path",
+        "pool",
+        "shelf",
+        "shelf_packages_handler",
+        "shelf_static",
+        "shelf_web_socket",
+        "source_span",
+        "stack_trace",
+        "stream_channel",
+        "test_api",
+        "test_core",
+        "typed_data",
+        "web_socket_channel",
+        "webkit_inspection_protocol",
+        "yaml"
+      ],
+      "dependencyConstraints": {
+        "analyzer": ">=13.0.0 <15.0.0",
+        "async": "^2.5.0",
+        "boolean_selector": "^2.1.0",
+        "collection": "^1.15.0",
+        "coverage": "^1.15.0",
+        "http_multi_server": "^3.0.0",
+        "io": "^1.0.0",
+        "matcher": ">=0.12.16 <0.12.22",
+        "node_preamble": "^2.0.0",
+        "package_config": ">=2.0.0 <4.0.0",
+        "path": "^1.8.0",
+        "pool": "^1.5.0",
+        "shelf": "^1.0.0",
+        "shelf_packages_handler": "^3.0.0",
+        "shelf_static": "^1.0.0",
+        "shelf_web_socket": ">=1.0.0 <4.0.0",
+        "source_span": "^1.8.0",
+        "stack_trace": "^1.10.0",
+        "stream_channel": "^2.1.0",
+        "test_api": "0.7.15",
+        "test_core": "0.6.21",
+        "typed_data": "^1.3.0",
+        "web_socket_channel": ">=2.0.0 <4.0.0",
+        "webkit_inspection_protocol": "^1.0.0",
+        "yaml": "^3.0.0"
+      }
+    },
+    {
+      "name": "yaml",
+      "version": "3.1.4",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "collection",
+        "source_span",
+        "string_scanner"
+      ],
+      "directDependencies": [
+        "collection",
+        "source_span",
+        "string_scanner"
+      ],
+      "dependencyConstraints": {
+        "collection": "^1.15.0",
+        "source_span": "^1.8.0",
+        "string_scanner": "^1.2.0"
+      }
+    },
+    {
+      "name": "string_scanner",
+      "version": "1.4.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "source_span"
+      ],
+      "directDependencies": [
+        "source_span"
+      ],
+      "dependencyConstraints": {
+        "source_span": "^1.8.0"
+      }
+    },
+    {
+      "name": "source_span",
+      "version": "1.10.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "collection",
+        "path",
+        "term_glyph"
+      ],
+      "directDependencies": [
+        "collection",
+        "path",
+        "term_glyph"
+      ],
+      "dependencyConstraints": {
+        "collection": "^1.15.0",
+        "path": "^1.8.0",
+        "term_glyph": "^1.2.0"
+      }
+    },
+    {
+      "name": "term_glyph",
+      "version": "1.2.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "path",
+      "version": "1.9.1",
+      "kind": "direct",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "collection",
+      "version": "1.19.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "webkit_inspection_protocol",
+      "version": "1.2.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "logging"
+      ],
+      "directDependencies": [
+        "logging"
+      ],
+      "dependencyConstraints": {
+        "logging": "^1.0.0"
+      }
+    },
+    {
+      "name": "logging",
+      "version": "1.3.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "web_socket_channel",
+      "version": "3.0.3",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "crypto",
+        "stream_channel",
+        "web",
+        "web_socket"
+      ],
+      "directDependencies": [
+        "async",
+        "crypto",
+        "stream_channel",
+        "web",
+        "web_socket"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "crypto": "^3.0.0",
+        "stream_channel": "^2.1.0",
+        "web": ">=0.5.0 <2.0.0",
+        "web_socket": ">=0.1.5 <2.0.0"
+      }
+    },
+    {
+      "name": "web_socket",
+      "version": "1.0.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "web"
+      ],
+      "directDependencies": [
+        "web"
+      ],
+      "dependencyConstraints": {
+        "web": ">=0.5.0 <2.0.0"
+      }
+    },
+    {
+      "name": "web",
+      "version": "1.1.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "stream_channel",
+      "version": "2.1.4",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async"
+      ],
+      "directDependencies": [
+        "async"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0"
+      }
+    },
+    {
+      "name": "async",
+      "version": "2.13.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "collection",
+        "meta"
+      ],
+      "directDependencies": [
+        "collection",
+        "meta"
+      ],
+      "dependencyConstraints": {
+        "collection": "^1.15.0",
+        "meta": "^1.3.0"
+      }
+    },
+    {
+      "name": "meta",
+      "version": "1.19.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "crypto",
+      "version": "3.0.8",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "typed_data",
+      "version": "1.4.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "collection"
+      ],
+      "directDependencies": [
+        "collection"
+      ],
+      "dependencyConstraints": {
+        "collection": "^1.15.0"
+      }
+    },
+    {
+      "name": "test_core",
+      "version": "0.6.21",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "analyzer",
+        "args",
+        "async",
+        "boolean_selector",
+        "collection",
+        "coverage",
+        "frontend_server_client",
+        "glob",
+        "io",
+        "meta",
+        "package_config",
+        "path",
+        "pool",
+        "source_map_stack_trace",
+        "source_maps",
+        "source_span",
+        "stack_trace",
+        "stream_channel",
+        "test_api",
+        "vm_service",
+        "yaml"
+      ],
+      "directDependencies": [
+        "analyzer",
+        "args",
+        "async",
+        "boolean_selector",
+        "collection",
+        "coverage",
+        "frontend_server_client",
+        "glob",
+        "io",
+        "meta",
+        "package_config",
+        "path",
+        "pool",
+        "source_map_stack_trace",
+        "source_maps",
+        "source_span",
+        "stack_trace",
+        "stream_channel",
+        "test_api",
+        "vm_service",
+        "yaml"
+      ],
+      "dependencyConstraints": {
+        "analyzer": ">=13.0.0 <15.0.0",
+        "args": "^2.0.0",
+        "async": "^2.5.0",
+        "boolean_selector": "^2.1.0",
+        "collection": "^1.15.0",
+        "coverage": "^1.15.0",
+        "frontend_server_client": ">=3.2.0 <5.0.0",
+        "glob": "^2.0.0",
+        "io": "^1.0.0",
+        "meta": "^1.16.0",
+        "package_config": ">=2.0.0 <4.0.0",
+        "path": "^1.8.0",
+        "pool": "^1.5.0",
+        "source_map_stack_trace": "^2.1.0",
+        "source_maps": "^0.10.10",
+        "source_span": "^1.8.0",
+        "stack_trace": "^1.10.0",
+        "stream_channel": "^2.1.0",
+        "test_api": "0.7.15",
+        "vm_service": ">=6.0.0 <16.0.0",
+        "yaml": "^3.0.0"
+      }
+    },
+    {
+      "name": "vm_service",
+      "version": "15.4.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "test_api",
+      "version": "0.7.15",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "boolean_selector",
+        "collection",
+        "meta",
+        "source_span",
+        "stack_trace",
+        "stream_channel",
+        "string_scanner",
+        "term_glyph"
+      ],
+      "directDependencies": [
+        "async",
+        "boolean_selector",
+        "collection",
+        "meta",
+        "source_span",
+        "stack_trace",
+        "stream_channel",
+        "string_scanner",
+        "term_glyph"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "boolean_selector": "^2.1.0",
+        "collection": "^1.15.0",
+        "meta": "^1.16.0",
+        "source_span": "^1.8.0",
+        "stack_trace": "^1.10.0",
+        "stream_channel": "^2.1.0",
+        "string_scanner": "^1.1.0",
+        "term_glyph": "^1.2.0"
+      }
+    },
+    {
+      "name": "stack_trace",
+      "version": "1.12.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "path"
+      ],
+      "directDependencies": [
+        "path"
+      ],
+      "dependencyConstraints": {
+        "path": "^1.8.0"
+      }
+    },
+    {
+      "name": "boolean_selector",
+      "version": "2.1.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "source_span",
+        "string_scanner"
+      ],
+      "directDependencies": [
+        "source_span",
+        "string_scanner"
+      ],
+      "dependencyConstraints": {
+        "source_span": "^1.8.0",
+        "string_scanner": "^1.1.0"
+      }
+    },
+    {
+      "name": "source_maps",
+      "version": "0.10.14",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "source_span"
+      ],
+      "directDependencies": [
+        "source_span"
+      ],
+      "dependencyConstraints": {
+        "source_span": "^1.8.0"
+      }
+    },
+    {
+      "name": "source_map_stack_trace",
+      "version": "2.1.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "path",
+        "source_maps",
+        "stack_trace"
+      ],
+      "directDependencies": [
+        "path",
+        "source_maps",
+        "stack_trace"
+      ],
+      "dependencyConstraints": {
+        "path": "^1.8.0",
+        "source_maps": "^0.10.10",
+        "stack_trace": "^1.10.0"
+      }
+    },
+    {
+      "name": "pool",
+      "version": "1.5.3",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "stack_trace"
+      ],
+      "directDependencies": [
+        "async",
+        "stack_trace"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "stack_trace": "^1.10.0"
+      }
+    },
+    {
+      "name": "package_config",
+      "version": "3.0.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "meta"
+      ],
+      "directDependencies": [
+        "meta"
+      ],
+      "dependencyConstraints": {
+        "meta": "^1.15.0"
+      }
+    },
+    {
+      "name": "io",
+      "version": "1.1.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "meta",
+        "path",
+        "string_scanner"
+      ],
+      "directDependencies": [
+        "meta",
+        "path",
+        "string_scanner"
+      ],
+      "dependencyConstraints": {
+        "meta": "^1.3.0",
+        "path": "^1.8.0",
+        "string_scanner": "^1.1.0"
+      }
+    },
+    {
+      "name": "glob",
+      "version": "2.2.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "collection",
+        "file",
+        "path",
+        "string_scanner"
+      ],
+      "directDependencies": [
+        "async",
+        "collection",
+        "file",
+        "path",
+        "string_scanner"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "collection": "^1.15.0",
+        "file": ">=6.1.3 <8.0.0",
+        "path": "^1.8.0",
+        "string_scanner": "^1.1.0"
+      }
+    },
+    {
+      "name": "file",
+      "version": "7.0.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "meta",
+        "path"
+      ],
+      "directDependencies": [
+        "meta",
+        "path"
+      ],
+      "dependencyConstraints": {
+        "meta": "^1.9.1",
+        "path": "^1.8.3"
+      }
+    },
+    {
+      "name": "frontend_server_client",
+      "version": "4.2.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "package_config",
+        "path"
+      ],
+      "directDependencies": [
+        "async",
+        "package_config",
+        "path"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "package_config": ">=2.1.0 <4.0.0",
+        "path": "^1.8.0"
+      }
+    },
+    {
+      "name": "coverage",
+      "version": "1.16.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "args",
+        "cli_config",
+        "cli_util",
+        "glob",
+        "logging",
+        "meta",
+        "package_config",
+        "path",
+        "source_maps",
+        "stack_trace",
+        "vm_service",
+        "yaml"
+      ],
+      "directDependencies": [
+        "args",
+        "cli_config",
+        "cli_util",
+        "glob",
+        "logging",
+        "meta",
+        "package_config",
+        "path",
+        "source_maps",
+        "stack_trace",
+        "vm_service",
+        "yaml"
+      ],
+      "dependencyConstraints": {
+        "args": "^2.5.0",
+        "cli_config": "^0.2.0",
+        "cli_util": "^0.6.0",
+        "glob": "^2.1.2",
+        "logging": "^1.0.0",
+        "meta": "^1.0.2",
+        "package_config": ">=2.0.0 <4.0.0",
+        "path": "^1.8.0",
+        "source_maps": "^0.10.10",
+        "stack_trace": "^1.10.0",
+        "vm_service": ">=12.0.0 <16.0.0",
+        "yaml": "^3.1.3"
+      }
+    },
+    {
+      "name": "cli_util",
+      "version": "0.6.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "ffi",
+        "meta",
+        "path"
+      ],
+      "directDependencies": [
+        "ffi",
+        "meta",
+        "path"
+      ],
+      "dependencyConstraints": {
+        "ffi": "^2.2.0",
+        "meta": "^1.16.0",
+        "path": "^1.8.0"
+      }
+    },
+    {
+      "name": "ffi",
+      "version": "2.2.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "cli_config",
+      "version": "0.2.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "args",
+        "yaml"
+      ],
+      "directDependencies": [
+        "args",
+        "yaml"
+      ],
+      "dependencyConstraints": {
+        "args": "^2.4.0",
+        "yaml": "^3.1.1"
+      }
+    },
+    {
+      "name": "args",
+      "version": "2.7.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "analyzer",
+      "version": "14.7.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "_fe_analyzer_shared",
+        "collection",
+        "convert",
+        "crypto",
+        "glob",
+        "meta",
+        "package_config",
+        "path",
+        "pub_semver",
+        "source_span",
+        "watcher",
+        "yaml"
+      ],
+      "directDependencies": [
+        "_fe_analyzer_shared",
+        "collection",
+        "convert",
+        "crypto",
+        "glob",
+        "meta",
+        "package_config",
+        "path",
+        "pub_semver",
+        "source_span",
+        "watcher",
+        "yaml"
+      ],
+      "dependencyConstraints": {
+        "_fe_analyzer_shared": "^111.0.0",
+        "collection": "^1.19.0",
+        "convert": "^3.0.0",
+        "crypto": "^3.0.0",
+        "glob": "^2.0.0",
+        "meta": "^1.18.3",
+        "package_config": ">=2.0.0 <4.0.0",
+        "path": "^1.9.0",
+        "pub_semver": "^2.1.4",
+        "source_span": "^1.8.0",
+        "watcher": "^1.1.0",
+        "yaml": "^3.0.0"
+      }
+    },
+    {
+      "name": "watcher",
+      "version": "1.2.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "path"
+      ],
+      "directDependencies": [
+        "async",
+        "path"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "path": "^1.8.0"
+      }
+    },
+    {
+      "name": "pub_semver",
+      "version": "2.2.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "collection"
+      ],
+      "directDependencies": [
+        "collection"
+      ],
+      "dependencyConstraints": {
+        "collection": "^1.15.0"
+      }
+    },
+    {
+      "name": "convert",
+      "version": "3.1.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "typed_data"
+      ],
+      "directDependencies": [
+        "typed_data"
+      ],
+      "dependencyConstraints": {
+        "typed_data": "^1.3.0"
+      }
+    },
+    {
+      "name": "_fe_analyzer_shared",
+      "version": "111.0.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "meta"
+      ],
+      "directDependencies": [
+        "meta"
+      ],
+      "dependencyConstraints": {
+        "meta": "^1.9.0"
+      }
+    },
+    {
+      "name": "shelf_web_socket",
+      "version": "3.0.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "shelf",
+        "stream_channel",
+        "web_socket_channel"
+      ],
+      "directDependencies": [
+        "shelf",
+        "stream_channel",
+        "web_socket_channel"
+      ],
+      "dependencyConstraints": {
+        "shelf": "^1.1.0",
+        "stream_channel": "^2.1.0",
+        "web_socket_channel": ">=2.0.0 <4.0.0"
+      }
+    },
+    {
+      "name": "shelf",
+      "version": "1.4.3",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "collection",
+        "http_parser",
+        "path",
+        "stack_trace",
+        "stream_channel"
+      ],
+      "directDependencies": [
+        "async",
+        "collection",
+        "http_parser",
+        "path",
+        "stack_trace",
+        "stream_channel"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "collection": "^1.15.0",
+        "http_parser": "^4.1.0",
+        "path": "^1.8.0",
+        "stack_trace": "^1.10.0",
+        "stream_channel": "^2.1.0"
+      }
+    },
+    {
+      "name": "http_parser",
+      "version": "4.1.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "collection",
+        "source_span",
+        "string_scanner",
+        "typed_data"
+      ],
+      "directDependencies": [
+        "collection",
+        "source_span",
+        "string_scanner",
+        "typed_data"
+      ],
+      "dependencyConstraints": {
+        "collection": "^1.19.0",
+        "source_span": "^1.8.0",
+        "string_scanner": "^1.1.0",
+        "typed_data": "^1.3.0"
+      }
+    },
+    {
+      "name": "shelf_static",
+      "version": "1.2.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "convert",
+        "http_parser",
+        "mime",
+        "path",
+        "shelf"
+      ],
+      "directDependencies": [
+        "convert",
+        "http_parser",
+        "mime",
+        "path",
+        "shelf"
+      ],
+      "dependencyConstraints": {
+        "convert": "^3.0.0",
+        "http_parser": "^4.0.0",
+        "mime": ">=1.0.0 <3.0.0",
+        "path": "^1.8.0",
+        "shelf": "^1.1.2"
+      }
+    },
+    {
+      "name": "mime",
+      "version": "2.1.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "shelf_packages_handler",
+      "version": "3.0.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "path",
+        "shelf",
+        "shelf_static"
+      ],
+      "directDependencies": [
+        "path",
+        "shelf",
+        "shelf_static"
+      ],
+      "dependencyConstraints": {
+        "path": "^1.8.0",
+        "shelf": "^1.0.0",
+        "shelf_static": "^1.0.0"
+      }
+    },
+    {
+      "name": "node_preamble",
+      "version": "2.0.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "matcher",
+      "version": "0.12.20",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "meta",
+        "stack_trace",
+        "term_glyph",
+        "test_api"
+      ],
+      "directDependencies": [
+        "async",
+        "meta",
+        "stack_trace",
+        "term_glyph",
+        "test_api"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.10.0",
+        "meta": "^1.8.0",
+        "stack_trace": "^1.10.0",
+        "term_glyph": "^1.2.0",
+        "test_api": ">=0.5.0 <0.8.0"
+      }
+    },
+    {
+      "name": "http_multi_server",
+      "version": "3.2.3",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "async"
+      ],
+      "directDependencies": [
+        "async"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0"
+      }
+    },
+    {
+      "name": "mockito",
+      "version": "5.8.1",
+      "kind": "dev",
+      "source": "hosted",
+      "dependencies": [
+        "analyzer",
+        "build",
+        "code_builder",
+        "collection",
+        "dart_style",
+        "matcher",
+        "meta",
+        "path",
+        "source_gen",
+        "test_api"
+      ],
+      "directDependencies": [
+        "analyzer",
+        "build",
+        "code_builder",
+        "collection",
+        "dart_style",
+        "matcher",
+        "meta",
+        "path",
+        "source_gen",
+        "test_api"
+      ],
+      "dependencyConstraints": {
+        "analyzer": ">=13.3.0 <15.0.0",
+        "build": ">=3.0.0 <5.0.0",
+        "code_builder": "^4.5.0",
+        "collection": "^1.19.0",
+        "dart_style": ">=2.3.7 <4.0.0",
+        "matcher": "^0.12.16",
+        "meta": "^1.15.0",
+        "path": "^1.9.0",
+        "source_gen": ">=3.0.0 <5.0.0",
+        "test_api": ">=0.6.1 <0.8.0"
+      }
+    },
+    {
+      "name": "source_gen",
+      "version": "4.3.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "analyzer",
+        "async",
+        "build",
+        "dart_style",
+        "glob",
+        "path",
+        "pub_semver",
+        "source_span",
+        "yaml"
+      ],
+      "directDependencies": [
+        "analyzer",
+        "async",
+        "build",
+        "dart_style",
+        "glob",
+        "path",
+        "pub_semver",
+        "source_span",
+        "yaml"
+      ],
+      "dependencyConstraints": {
+        "analyzer": ">=14.0.0 <15.0.0",
+        "async": "^2.10.0",
+        "build": ">=3.0.2 <6.0.0",
+        "dart_style": "^3.1.2",
+        "glob": "^2.0.0",
+        "path": "^1.9.0",
+        "pub_semver": "^2.1.4",
+        "source_span": "^1.8.0",
+        "yaml": "^3.1.2"
+      }
+    },
+    {
+      "name": "dart_style",
+      "version": "3.1.14",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "analyzer",
+        "args",
+        "collection",
+        "package_config",
+        "path",
+        "pub_semver",
+        "source_span",
+        "yaml"
+      ],
+      "directDependencies": [
+        "analyzer",
+        "args",
+        "collection",
+        "package_config",
+        "path",
+        "pub_semver",
+        "source_span",
+        "yaml"
+      ],
+      "dependencyConstraints": {
+        "analyzer": ">=13.1.0 <15.0.0",
+        "args": "^2.5.0",
+        "collection": "^1.19.0",
+        "package_config": ">=2.1.0 <4.0.0",
+        "path": "^1.9.0",
+        "pub_semver": "^2.1.4",
+        "source_span": "^1.8.0",
+        "yaml": "^3.1.2"
+      }
+    },
+    {
+      "name": "build",
+      "version": "4.0.11",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "analyzer",
+        "crypto",
+        "glob",
+        "logging",
+        "package_config",
+        "path"
+      ],
+      "directDependencies": [
+        "analyzer",
+        "crypto",
+        "glob",
+        "logging",
+        "package_config",
+        "path"
+      ],
+      "dependencyConstraints": {
+        "analyzer": ">=13.3.0 <15.0.0",
+        "crypto": "^3.0.0",
+        "glob": "^2.0.0",
+        "logging": "^1.0.0",
+        "package_config": ">=2.1.0 <4.0.0",
+        "path": "^1.8.0"
+      }
+    },
+    {
+      "name": "code_builder",
+      "version": "4.13.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "built_collection",
+        "built_value",
+        "collection",
+        "matcher",
+        "meta"
+      ],
+      "directDependencies": [
+        "built_collection",
+        "built_value",
+        "collection",
+        "matcher",
+        "meta"
+      ],
+      "dependencyConstraints": {
+        "built_collection": ">=5.1.1 <7.0.0",
+        "built_value": "^8.10.1",
+        "collection": "^1.19.0",
+        "matcher": "^0.12.16+1",
+        "meta": "^1.16.0"
+      }
+    },
+    {
+      "name": "built_value",
+      "version": "8.13.0",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [
+        "built_collection",
+        "collection",
+        "fixnum",
+        "meta"
+      ],
+      "directDependencies": [
+        "built_collection",
+        "collection",
+        "fixnum",
+        "meta"
+      ],
+      "dependencyConstraints": {
+        "built_collection": "^5.0.0",
+        "collection": "^1.15.0",
+        "fixnum": "^1.0.0",
+        "meta": "^1.3.0"
+      }
+    },
+    {
+      "name": "fixnum",
+      "version": "1.1.1",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "built_collection",
+      "version": "5.1.2",
+      "kind": "transitive",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "lints",
+      "version": "6.1.0",
+      "kind": "dev",
+      "source": "hosted",
+      "dependencies": [],
+      "directDependencies": [],
+      "dependencyConstraints": {}
+    },
+    {
+      "name": "http",
+      "version": "0.13.6",
+      "kind": "direct",
+      "source": "hosted",
+      "dependencies": [
+        "async",
+        "http_parser",
+        "meta"
+      ],
+      "directDependencies": [
+        "async",
+        "http_parser",
+        "meta"
+      ],
+      "dependencyConstraints": {
+        "async": "^2.5.0",
+        "http_parser": "^4.0.0",
+        "meta": "^1.3.0"
+      }
+    }
+  ],
+  "sdks": [
+    {
+      "name": "Dart",
+      "version": "3.14.0"
+    }
+  ],
+  "executables": [
+    ":orbit",
+    "mockito:codegen",
+    "test"
+  ]
+}

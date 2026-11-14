@@ -1,0 +1,11 @@
+# name: try, on, catch, finally
+# key: trycatch
+# scope: dart
+# --
+try {
+  $0
+} on ${1:Exception} catch (e, stack) {
+  ${2:rethrow;}
+} finally {
+  ${3:// cleanup}
+}

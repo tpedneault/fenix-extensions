@@ -1,0 +1,9 @@
+# name: Output
+# key: out
+# scope: terraform
+# --
+output "${1:name}" {
+  description = "${2:What it holds}"
+  value       = ${3:resource_type.name.attribute}
+}
+$0

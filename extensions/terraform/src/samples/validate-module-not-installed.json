@@ -1,0 +1,34 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 1,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Module not installed",
+      "detail": "This module is not yet installed. Run \"terraform init\" to install all modules required by this configuration.",
+      "range": {
+        "filename": "main.tf",
+        "start": {
+          "line": 1,
+          "column": 1,
+          "byte": 0
+        },
+        "end": {
+          "line": 1,
+          "column": 13,
+          "byte": 12
+        }
+      },
+      "snippet": {
+        "context": null,
+        "code": "module \"net\" {",
+        "start_line": 1,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 12,
+        "values": []
+      }
+    }
+  ]
+}

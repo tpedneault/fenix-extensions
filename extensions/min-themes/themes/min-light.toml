@@ -1,0 +1,56 @@
+# Min Light: imported from a VS Code colour theme by `cargo xtask theme-import`.
+# From: https://github.com/miguelsolorio/min-theme/blob/dd796c3f294daecfb7f10ed277ffdc30517d59cf/themes/min-light.json
+# For Fenix 1.0.0 and later. What VS Code has no colour for is worked out
+# from the theme's own (the importer's report says how).
+name = "Min Light"
+tabs = "underline"
+
+[surfaces]
+bg = "#ffffff"
+sidebar_bg = "#f6f6f6"
+bg_modeline = "#f6f6f6"
+divider = "#f6f6f6"
+caret = "#212121"
+hl_line = "#f2f2f2"
+selection = "#21212140"
+bracket_match = "#e7f3ff"
+search_match = "#f297184d"
+
+[text]
+fg = "#212121"
+fg_modeline = "#424242"
+gutter_fg = "#cccccc"
+
+[modes]
+normal = "#1976d2"
+insert = "#22863a"
+visual = "#9966cc"
+replace = "#f29718"
+command = "#4dbf99"
+explorer = "#1976d2"
+picker = "#9966cc"
+text_dark = "#000000"
+
+[syntax]
+keyword = "#d32f2f"
+string = "#22863a"
+comment = "#c2c3c5"
+function = "#6f42c1"
+type = "#6f42c1"
+number = "#1976d2"
+constant = "#1976d2"
+variable = "#212121"
+operator = "#d32f2f"
+punctuation = "#212121"
+attribute = "#6f42c1"
+
+[explorer]
+folder = "#1976d2"
+file = "#212121"
+
+[git]
+modified = "#f29718"
+staged = "#22863a"
+untracked = "#4dbf99"
+ignored = "#aaaaaa"
+conflicted = "#d32f2f"

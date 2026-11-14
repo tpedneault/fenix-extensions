@@ -1,0 +1,14 @@
+# Built
+/_build/
+/cover/
+/deps/
+/doc/
+*.ez
+/{{name_snake}}-*.tar
+/tmp/
+
+# Fetched by mix
+erl_crash.dump
+
+# Your own
+.env

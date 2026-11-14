@@ -1,0 +1,6 @@
+# HEEx, Phoenix's HTML-aware templates: tree-sitter-heex's grammar,
+# compiled to WebAssembly (0.8.1). EEx and LEEx files read as it too: its
+# `<% %>` is theirs, and the HTML around it is what they hold.
+language = "heex"
+grammar = "grammars/tree-sitter-heex.wasm"
+extensions = ["heex", "eex", "leex"]

@@ -1,0 +1,11 @@
+[template]
+name = "Dart · command-line program"
+kind = "other"
+group = "Dart"
+description = "A Dart package with a program in bin/ that parses its arguments with package:args, a library in lib/ that does the work, and package:test tests for it. dart run, dart test and dart analyze."
+needs = ["dart"]
+open = ["lib/{{name_snake}}.dart", "bin/{{name_snake}}.dart"]
+
+[[run]]
+exec = "dart"
+args = ["pub", "get"]

@@ -1,0 +1,12 @@
+# name: FutureBuilder
+# key: futurebuilder
+# scope: dart
+# --
+FutureBuilder<${1:String}>(
+  future: ${2:future},
+  builder: (context, snapshot) {
+    if (snapshot.hasError) return Text('\${snapshot.error}');
+    if (!snapshot.hasData) return const CircularProgressIndicator();
+    return Text(snapshot.data!);
+  },
+)

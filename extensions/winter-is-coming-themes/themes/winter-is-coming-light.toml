@@ -1,0 +1,57 @@
+# Winter is Coming (Light): imported from a VS Code colour theme by `cargo xtask theme-import`.
+# From: https://github.com/johnpapa/vscode-winteriscoming/blob/260547834cb6ac37dd5b8bb5842cc1c8d3164946/themes/WinterIsComing-light-color-theme.json
+# For Fenix 1.0.0 and later. What VS Code has no colour for is worked out
+# from the theme's own (the importer's report says how).
+name = "Winter is Coming (Light)"
+tabs = "underline"
+
+[surfaces]
+bg = "#ffffff"
+sidebar_bg = "#f3f3f3"
+bg_modeline = "#ffffff"
+divider = "#219fd544"
+caret = "#4fb4d8"
+hl_line = "#eff2ef"
+selection = "#cee1f0"
+bracket_match = "#219fd54d"
+search_match = "#cee1f0"
+
+[text]
+fg = "#236ebf"
+caret_text = "#236ebf"
+gutter_fg = "#2f86d2"
+
+[modes]
+normal = "#4e8cdf"
+insert = "#189b2c"
+visual = "#b1108e"
+replace = "#c5a332"
+command = "#0097a7"
+explorer = "#4e8cdf"
+picker = "#b1108e"
+text_dark = "#000000"
+text_light = "#ffffff"
+
+[syntax]
+keyword = "#0991b6"
+string = "#a44185"
+comment = "#357b42"
+function = "#b1108e"
+type = "#0444ac"
+number = "#174781"
+constant = "#2970c7"
+variable = "#2f86d2"
+operator = "#7b30d0"
+punctuation = "#236ebf"
+attribute = "#b1108e"
+
+[explorer]
+folder = "#4e8cdf"
+file = "#3b5a81"
+
+[git]
+modified = "#1857a4"
+staged = "#08916a"
+untracked = "#189b2c"
+ignored = "#2f86d2"
+conflicted = "#f76c6c"

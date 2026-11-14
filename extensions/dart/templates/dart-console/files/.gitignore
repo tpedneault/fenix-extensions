@@ -1,0 +1,9 @@
+# Files and directories created by pub.
+.dart_tool/
+.packages
+
+# Compiled programs.
+build/
+*.exe
+
+# Conventionally, a program commits pubspec.lock; a library doesn't.

@@ -1,0 +1,9 @@
+# name: Protocol
+# key: defproto
+# scope: elixir
+# --
+defprotocol ${1:Name} do
+  @spec ${2:call}(t()) :: ${3:term()}
+  def $2(value)
+end
+$0

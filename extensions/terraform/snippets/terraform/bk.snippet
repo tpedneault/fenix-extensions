@@ -1,0 +1,10 @@
+# name: Backend
+# key: bk
+# scope: terraform
+# --
+terraform {
+  backend "${1:s3}" {
+    ${2:bucket} = "${3:state-bucket}"
+    $0
+  }
+}

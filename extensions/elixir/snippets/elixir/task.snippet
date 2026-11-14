@@ -1,0 +1,9 @@
+# name: Task.async_stream
+# key: task
+# scope: elixir
+# --
+${1:items}
+|> Task.async_stream(fn ${2:item} ->
+  $0
+end)
+|> Enum.map(fn {:ok, result} -> result end)

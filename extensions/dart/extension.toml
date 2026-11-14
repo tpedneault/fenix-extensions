@@ -1,0 +1,100 @@
+[extension]
+id = "fenix.dart"
+name = "Dart"
+version = "1.0.0"
+description = "Dart and Flutter: the analysis server, Dart's highlighting, dart format, debugging with the SDK's adapters, tasks for both, flutter run on a device you pick with hot reload, the project's checks, pub packages, snippets, and Dart and Flutter projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# lang-kit, the kit it's built on, is on 1.5.
+api = "1.5"
+
+# With Fenix: the server and the project doctor's checks are there from
+# the start.
+[activation]
+on_startup = true
+
+[permissions]
+# dart is the SDK's one program: the analysis server, the formatter, the
+# debug adapter, pub and the tests; flutter runs Flutter projects and
+# lists their devices; kill sends hot reload and hot restart to the
+# flutter run this pack started (SIGUSR1, SIGUSR2). The two settings are
+# where to find them when they aren't on PATH. Neither SDK is installed
+# by the pack.
+process = ["dart", "flutter", "kill", "${setting:dart.sdk}", "${setting:dart.flutter}"]
+# pubspec.yaml and the folders around it, read; the pid file flutter run
+# writes under .dart_tool, read.
+filesystem = "project-read"
+
+[contributes]
+# pubspec.yaml saved: read again.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "dart"
+markers = ["pubspec.yaml"]
+languages = ["dart"]
+
+[[contributes.commands]]
+id = "dart.packages"
+title = "Dart: pub packages -- outdated, upgrade, add, remove"
+external = true
+
+[[contributes.commands]]
+id = "dart.doctor"
+title = "Dart: check the project again (Dart SDK, Flutter, packages)"
+
+[[contributes.commands]]
+id = "dart.pub-get"
+title = "Dart: resolve the packages (pub get)"
+
+[[contributes.commands]]
+id = "dart.get-dart"
+title = "Dart: how to get the Dart SDK (dart.dev)"
+
+[[contributes.commands]]
+id = "dart.get-flutter"
+title = "Dart: how to get Flutter (flutter.dev)"
+
+[[contributes.commands]]
+id = "dart.devices"
+title = "Dart: list Flutter's devices"
+
+[[contributes.commands]]
+id = "dart.run-on-device"
+title = "Dart: run Flutter on a device (a task, which hot reload reaches)"
+
+[[contributes.commands]]
+id = "dart.run-in-terminal"
+title = "Dart: run Flutter on a device, in a terminal (r reloads, R restarts)"
+
+[[contributes.commands]]
+id = "dart.stop"
+title = "Dart: stop the flutter run started here"
+
+[[contributes.commands]]
+id = "dart.hot-reload"
+title = "Dart: hot reload the flutter run (SIGUSR1; not on Windows)"
+
+[[contributes.commands]]
+id = "dart.hot-restart"
+title = "Dart: hot restart the flutter run (SIGUSR2; not on Windows)"
+
+[[contributes.settings]]
+key = "dart.sdk"
+kind = "path"
+label = "Dart SDK"
+description = "The dart to use -- its program, or its bin folder -- when it isn't the one on PATH. In a Flutter project it should be Flutter's own: flutter/bin/dart. Empty: the project's .fvm/flutter_sdk, then PATH, then Flutter's folder."
+default = ""
+
+[[contributes.settings]]
+key = "dart.flutter"
+kind = "path"
+label = "Flutter SDK"
+description = "The flutter to use -- its program, or its bin folder -- when it isn't the one on PATH. Empty: the project's .fvm/flutter_sdk, then PATH, then where Flutter's install guide puts it."
+default = ""

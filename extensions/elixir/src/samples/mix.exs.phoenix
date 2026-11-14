@@ -1,0 +1,32 @@
+defmodule Dock.MixProject do
+  use Mix.Project
+
+  def project do
+    [
+      app: :dock,
+      version: "0.3.1",
+      elixir: "~> 1.15",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
+      deps: deps()
+    ]
+  end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  defp deps do
+    [
+      {:phoenix, "~> 1.7.14"},
+      {:phoenix_live_view, "~> 1.0"},
+      {:ecto_sql, "~> 3.10"},
+      {:jason, "~> 1.2"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [setup: ["deps.get", "ecto.setup"]]
+  end
+end

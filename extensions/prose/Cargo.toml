@@ -1,0 +1,30 @@
+[package]
+name = "fenix-prose"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Prose in Fenix: Harper, an offline grammar and spelling server, added beside the language servers for the languages you name, with a project word list."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
+fenix-lang-kit = { path = "../../crates/lang-kit" }
+
+[dev-dependencies]
+# A fake host for its tests, which its kit talks to as well, and the API
+# with that fake for its host.
+fenix-test-kit = { path = "../../crates/test-kit", default-features = false, features = ["lang-kit"] }
+# The manifest, keymap and lesson, read as Fenix reads them.
+serde = { version = "1", features = ["derive"] }
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+
+# Built on its own, for wasm32-wasip2.
+[workspace]

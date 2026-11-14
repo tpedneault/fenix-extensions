@@ -1,0 +1,12 @@
+# name: ExUnit test module
+# key: exunit
+# scope: elixir
+# --
+defmodule ${1:MyApp.NameTest} do
+  use ExUnit.Case, async: ${2:true}
+  doctest ${3:MyApp.Name}
+
+  test "${4:does something}" do
+    $0
+  end
+end

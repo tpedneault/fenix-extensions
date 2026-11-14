@@ -1,0 +1,15 @@
+# name: group of tests, with setUp
+# key: group
+# scope: dart
+# --
+group('${1:Thing}', () {
+  late ${2:Thing} ${3:thing};
+
+  setUp(() {
+    $3 = $2();
+  });
+
+  test('${4:does something}', () {
+    $0
+  });
+});

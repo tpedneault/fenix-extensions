@@ -1,0 +1,20 @@
+# name: Sealed class with two cases and an exhaustive switch
+# key: sealed
+# scope: dart
+# --
+sealed class ${1:Shape} {}
+
+final class ${2:Circle} extends $1 {
+  const $2(this.radius);
+  final double radius;
+}
+
+final class ${3:Square} extends $1 {
+  const $3(this.side);
+  final double side;
+}
+
+double area($1 shape) => switch (shape) {
+      $2(:final radius) => 3.14159 * radius * radius,
+      $3(:final side) => side * side,
+    };

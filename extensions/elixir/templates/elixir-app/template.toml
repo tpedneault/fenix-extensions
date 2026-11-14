@@ -1,0 +1,7 @@
+[template]
+name = "Elixir · OTP application"
+kind = "other"
+group = "Elixir"
+description = "A supervised OTP application: a GenServer under a supervisor, ExUnit tests that start it, and the formatter's settings."
+needs = ["mix"]
+open = ["lib/{{name_snake}}/counter.ex", "README.md"]

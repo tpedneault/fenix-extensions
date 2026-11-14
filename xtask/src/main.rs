@@ -13,15 +13,21 @@
 //! cargo xtask site <index.json> <out>        the catalogue, for GitHub Pages
 //! cargo xtask new <kind> <name | publisher.name> [--name "Display name"]   a new extension from a template (theme, keymap, snippets, language-pack, tool)
 //! cargo xtask install <extension-dir> [--fenix <path>] [--watch]   pack it and install it into Fenix; --watch, again whenever a file changes
+//! cargo xtask theme-import <theme.json> [--out <dir>] [--name "..."] [--fenix <version>] [--source "..."]   a VS Code colour theme as a Fenix theme file, and what it couldn't map
+//! cargo xtask snippets-import <snippets.json> --language <id> [--into <extension-dir>] [--approximate] [--indent <n>]   VS Code snippets as Fenix's, and what its format can't say
 //! ```
 //!
 //! The manifest is read the way Fenix reads it (`fenix-extensions`'
 //! `manifest.rs`): what's refused here would be refused there.
 
 mod external;
+mod fenix_theme;
 mod install;
+mod jsonc;
 mod lessons;
 mod new;
+mod snippets_import;
+mod theme_import;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -287,13 +293,11 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
         if let Some(other) = ids.insert(m.extension.id.clone(), dir.clone()) {
             return Err(format!("{} and {} have the same id {}", other.display(), dir.display(), m.extension.id));
         }
-        // A theme is at least a TOML file with a name.
+        // A theme is one Fenix reads -- every Fenix the extension is for.
+        let floor = fenix_theme::floor(&semver::VersionReq::parse(&m.engine.fenix).map_err(|e| e.to_string())?);
         for rel in files(&dir).into_iter().filter(|f| f.starts_with("themes") && f.extension().is_some_and(|x| x == "toml")) {
             let text = std::fs::read_to_string(dir.join(&rel)).map_err(|e| e.to_string())?;
-            let value: toml::Table = toml::from_str(&text).map_err(|e| format!("{}: {}", dir.join(&rel).display(), e.message()))?;
-            if !value.get("name").is_some_and(|n| n.is_str()) {
-                return Err(format!("{}: a theme needs a name", dir.join(&rel).display()));
-            }
+            fenix_theme::check(&text, Some(&floor)).map_err(|e| format!("{}: {e}", dir.join(&rel).display()))?;
         }
         // A snippet has its header -- a key, then `# --` -- and a body.
         for rel in files(&dir).into_iter().filter(|f| f.starts_with("snippets") && f.extension().is_some_and(|x| x == "snippet")) {
@@ -580,8 +584,10 @@ fn main() {
         Some("site") => site::site(&root, Path::new(&arg(1)), Path::new(&arg(2))),
         Some("new") => new::run(&root, &args[1..]),
         Some("install") => install::run(&args[1..]),
+        Some("theme-import") => theme_import::run(&args[1..]),
+        Some("snippets-import") => snippets_import::run(&args[1..]),
         Some("index-add") => arg(5).parse::<u64>().map_err(|e| format!("size: {e}")).and_then(|size| index_add(Path::new(&arg(1)), Path::new(&arg(2)), &arg(3), &arg(4), size)),
-        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>] | screenshots [name] [--fenix <path>] [--theme <name>] [--size WxH] [--dry-run] | site <index.json> <out> | new <kind> <name | publisher.name> [--name \"Display name\"] | install <extension-dir> [--fenix <path>] [--watch]".into()),
+        _ => Err("cargo xtask validate [index.json] | build <dir> | pack <dir> [dist] | for-tag <tag> | index-add <index.json> <dir> <url> <sha256> <size> | external-check [--offline] [--index <index.json>] | index-add-external <index.json> [--only <id>@<version>] | screenshots [name] [--fenix <path>] [--theme <name>] [--size WxH] [--dry-run] | site <index.json> <out> | new <kind> <name | publisher.name> [--name \"Display name\"] | install <extension-dir> [--fenix <path>] [--watch] | theme-import <theme.json> [--out <dir>] [--name \"...\"] [--fenix <version>] [--source \"...\"] | snippets-import <snippets.json> --language <id> [--into <extension-dir>] [--approximate] [--indent <n>]".into()),
     };
     if let Err(e) = result {
         eprintln!("xtask: {e}");
@@ -743,6 +749,45 @@ mod tests {
         assert_eq!(known["acme.a"].versions.len(), 2);
         assert_eq!(known["acme.a"].dependencies["acme.b"], "^1", "the newest's");
         assert!(known.contains_key("acme.old"));
+    }
+
+    /// Every theme in the store has a name of its own -- none of Fenix's
+    /// (it would take that one's place), none another extension's -- and
+    /// the theme packs made from VS Code answer to the names VS Code gives
+    /// them (their `package.json`), as Fenix's settings import matches
+    /// `workbench.colorTheme` (`fenix_theme::import_match`).
+    #[test]
+    fn the_store_s_themes_answer_to_their_vs_code_names() {
+        const VS_CODE: &[(&str, &str)] = &[
+            ("Vitesse Light", "Vitesse Light"),
+            ("Vitesse Light Soft", "Vitesse Light Soft"),
+            ("Vitesse Dark", "Vitesse Dark"),
+            ("Vitesse Dark Soft", "Vitesse Dark Soft"),
+            ("Vitesse Black", "Vitesse Black"),
+            ("Min Light", "Min Light"),
+            ("Min Dark", "Min Dark"),
+            ("Winter is Coming (Dark Blue)", "Winter is Coming (Dark Blue)"),
+            ("Winter is Coming (Dark Black)", "Winter is Coming (Dark Black)"),
+            ("Winter is Coming (Light)", "Winter is Coming (Light)"),
+        ];
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let mut names: Vec<String> = Vec::new();
+        for dir in std::fs::read_dir(root.join("extensions")).unwrap().flatten().map(|e| e.path()) {
+            for rel in files(&dir).into_iter().filter(|f| f.starts_with("themes") && f.extension().is_some_and(|x| x == "toml")) {
+                let table: toml::Table = toml::from_str(&std::fs::read_to_string(dir.join(&rel)).unwrap()).unwrap();
+                names.push(table["name"].as_str().unwrap().to_string());
+            }
+        }
+        for name in &names {
+            assert!(!fenix_theme::BUILT_IN_NAMES.iter().any(|b| fenix_theme::norm(b) == fenix_theme::norm(name)), "{name} is one of Fenix's own");
+            assert_eq!(names.iter().filter(|n| fenix_theme::norm(n) == fenix_theme::norm(name)).count(), 1, "{name} is there twice");
+        }
+        let catalog: Vec<&str> = fenix_theme::BUILT_IN_NAMES.iter().copied().chain(names.iter().map(String::as_str)).collect();
+        for (vs_code, ours) in VS_CODE {
+            assert_eq!(fenix_theme::import_match(vs_code, &catalog), Some((ours.to_string(), true)), "workbench.colorTheme {vs_code:?}");
+        }
+        // VS Code's italic-free twins come to the theme their name begins with.
+        assert_eq!(fenix_theme::import_match("Winter is Coming (Dark Blue - No Italics)", &catalog), Some(("Winter is Coming (Dark Blue)".into(), false)));
     }
 
     #[test]

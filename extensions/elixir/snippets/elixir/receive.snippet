@@ -1,0 +1,11 @@
+# name: receive
+# key: receive
+# scope: elixir
+# --
+receive do
+  ${1:{:message, payload}} ->
+    ${2:payload}
+after
+  ${3:5_000} ->
+    ${4::timeout}
+end$0

@@ -1,0 +1,8 @@
+# name: Provider configuration
+# key: prov
+# scope: terraform
+# --
+provider "${1:aws}" {
+  ${2:region} = ${3:"eu-west-1"}
+  $0
+}

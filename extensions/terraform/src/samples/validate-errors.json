@@ -1,0 +1,60 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 2,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Reference to undeclared local value",
+      "detail": "A local value with the name \"nme\" has not been declared. Did you mean \"name\"?",
+      "range": {
+        "filename": "main.tf",
+        "start": {
+          "line": 18,
+          "column": 11,
+          "byte": 220
+        },
+        "end": {
+          "line": 18,
+          "column": 20,
+          "byte": 229
+        }
+      },
+      "snippet": {
+        "context": "output \"name\"",
+        "code": "  value = local.nme",
+        "start_line": 18,
+        "highlight_start_offset": 10,
+        "highlight_end_offset": 19,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Reference to undeclared input variable",
+      "detail": "An input variable with the name \"regoin\" has not been declared. Did you mean \"region\"?",
+      "range": {
+        "filename": "main.tf",
+        "start": {
+          "line": 22,
+          "column": 11,
+          "byte": 280
+        },
+        "end": {
+          "line": 22,
+          "column": 21,
+          "byte": 290
+        }
+      },
+      "snippet": {
+        "context": "resource \"terraform_data\" \"marker\"",
+        "code": "  input = var.regoin",
+        "start_line": 22,
+        "highlight_start_offset": 10,
+        "highlight_end_offset": 20,
+        "values": []
+      }
+    }
+  ]
+}

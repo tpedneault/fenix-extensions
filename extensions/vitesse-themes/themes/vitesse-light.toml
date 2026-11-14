@@ -1,0 +1,56 @@
+# Vitesse Light: imported from a VS Code colour theme by `cargo xtask theme-import`.
+# From: https://github.com/antfu/vscode-theme-vitesse/blob/2862595c3d5d05fabfd5aeb50bcbb79ea2f8d85f/themes/vitesse-light.json
+# For Fenix 1.0.0 and later. What VS Code has no colour for is worked out
+# from the theme's own (the importer's report says how).
+name = "Vitesse Light"
+tabs = "block"
+
+[surfaces]
+bg = "#ffffff"
+sidebar_bg = "#ffffff"
+bg_modeline = "#ffffff"
+divider = "#f0f0f0"
+caret = "#393a34"
+hl_line = "#f7f7f7"
+selection = "#22222218"
+bracket_match = "#1c6b4820"
+search_match = "#e6cc7766"
+
+[text]
+fg = "#393a34"
+gutter_fg = "#c1c1bf"
+
+[modes]
+normal = "#296aa3"
+insert = "#1c6b48"
+visual = "#8529a3"
+replace = "#bda437"
+command = "#2993a3"
+explorer = "#296aa3"
+picker = "#8529a3"
+text_dark = "#000000"
+text_light = "#ffffff"
+
+[syntax]
+keyword = "#1e754f"
+string = "#b56959"
+comment = "#a0ada0"
+function = "#59873a"
+type = "#2e8f82"
+number = "#2f798a"
+constant = "#1e754f"
+variable = "#b07d48"
+operator = "#ab5959"
+punctuation = "#999999"
+attribute = "#59873a"
+
+[explorer]
+folder = "#296aa3"
+file = "#4e4f47"
+
+[git]
+modified = "#296aa3"
+staged = "#1e754f"
+untracked = "#2993a3"
+ignored = "#c1c1bf"
+conflicted = "#a65e2b"

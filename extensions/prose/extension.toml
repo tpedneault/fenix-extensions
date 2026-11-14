@@ -1,0 +1,94 @@
+[extension]
+id = "fenix.prose"
+name = "Prose"
+version = "1.0.0"
+description = "Spelling and grammar in the languages you name, offline: Harper added beside their language servers, installed with a checksum, with a project word list and a command that adds the word under the cursor"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "tools"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
+
+# With Fenix: the doctor's checks and the server are there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# Harper's server, where the pack installs it (the tools folder) or where
+# it's found. Nothing else runs.
+process = ["harper-ls", "/tools/*"]
+# Harper's release, and where GitHub sends its downloads.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# The project's word list (.fenix/words.txt): written when you add a word.
+filesystem = "project-write"
+# The word under the cursor, for prose.add-word.
+editor = "read"
+
+[[contributes.contexts]]
+name = "prose"
+markers = [".fenix/words.txt"]
+languages = ["markdown"]
+
+[[contributes.commands]]
+id = "prose.doctor"
+title = "Prose: check again (Harper, and what it reads)"
+
+[[contributes.commands]]
+id = "prose.install.harper"
+title = "Prose: install Harper 3.2.0, the grammar and spelling server"
+
+[[contributes.commands]]
+id = "prose.add-word"
+title = "Prose: add the word under the cursor to the project's word list"
+
+[[contributes.commands]]
+id = "prose.words"
+title = "Prose: open the project's word list"
+
+[[contributes.settings]]
+key = "prose.enabled"
+kind = "bool"
+label = "Check spelling and grammar"
+description = "Off, nothing is added for the project: Harper isn't started. Set in a project's .fenix/settings.toml to switch it off there alone."
+default = "true"
+project = true
+
+[[contributes.settings]]
+key = "prose.languages"
+kind = "list"
+label = "Languages it reads"
+description = "Fenix's names for them, separated by commas: markdown, html, or code languages (rust, python, go, ...) to check their comments. Harper reads Markdown and HTML as text, code languages' comments only. Plain text and commit messages aren't Fenix languages yet: see the README."
+default = "markdown"
+project = true
+
+[[contributes.settings]]
+key = "prose.severity"
+kind = "choice"
+choices = ["error", "warning", "information", "hint"]
+label = "Severity"
+description = "How its findings show in the problems list and the margin."
+default = "information"
+project = true
+
+[[contributes.settings]]
+key = "prose.dialect"
+kind = "choice"
+choices = ["American", "British", "Canadian", "Australian", "Indian"]
+label = "English"
+description = "The spelling it holds you to: color or colour."
+default = "American"
+project = true
+
+[[contributes.settings]]
+key = "prose.words"
+kind = "path"
+label = "Project word list"
+description = "The words the project uses and Harper should accept, one a line, under the project. prose.add-word writes it; Harper reads it."
+default = ".fenix/words.txt"
+project = true

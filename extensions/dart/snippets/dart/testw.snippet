@@ -1,0 +1,9 @@
+# name: testWidgets (flutter_test)
+# key: testw
+# scope: dart
+# --
+testWidgets('${1:shows its title}', (WidgetTester tester) async {
+  await tester.pumpWidget(const MaterialApp(home: ${2:MyWidget}()));
+  expect(find.text('${3:Title}'), findsOneWidget);
+  $0
+});

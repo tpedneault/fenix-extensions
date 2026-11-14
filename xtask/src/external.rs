@@ -339,6 +339,15 @@ fn unpack(bytes: &[u8], dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// The oldest Fenix the folder's manifest admits, which its themes must
+/// be readable by; none when the manifest doesn't say.
+fn theme_floor(dir: &Path) -> Option<semver::Version> {
+    let text = std::fs::read_to_string(dir.join("extension.toml")).ok()?;
+    let manifest: toml::Table = toml::from_str(&text).ok()?;
+    let range = manifest.get("engine")?.get("fenix")?.as_str()?;
+    Some(crate::fenix_theme::floor(&semver::VersionReq::parse(range).ok()?))
+}
+
 /// What `validate` checks of a folder's files besides its manifest,
 /// keymaps and agent tools: themes, snippets, screenshots.
 fn check_contents(dir: &Path) -> Result<(), String> {
@@ -347,10 +356,7 @@ fn check_contents(dir: &Path) -> Result<(), String> {
         let kind = rel.extension().map(|x| x.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
         if rel.starts_with("themes") && kind == "toml" {
             let text = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", rel.display()))?;
-            let value: toml::Table = toml::from_str(&text).map_err(|e| format!("{}: {}", rel.display(), e.message()))?;
-            if !value.get("name").is_some_and(|n| n.is_str()) {
-                return Err(format!("{}: a theme needs a name", rel.display()));
-            }
+            crate::fenix_theme::check(&text, theme_floor(dir).as_ref()).map_err(|e| format!("{}: {e}", rel.display()))?;
         }
         if rel.starts_with("snippets") && kind == "snippet" {
             let text = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", rel.display()))?;
@@ -623,9 +629,16 @@ mod tests {
         (entry, Fake(HashMap::from([(OWNER_URL.to_string(), package)])))
     }
 
+    /// A theme a Fenix 1.5.0 reads: the sample without the three keys
+    /// 1.5.2 added.
+    fn dusk_theme() -> String {
+        let newer = ["interface", "parameter", "macro"];
+        crate::fenix_theme::tests::FULL.lines().filter(|l| !newer.iter().any(|k| l.trim_start().starts_with(&format!("{k} ")))).collect::<Vec<_>>().join("\n")
+    }
+
     fn theme_package() -> Vec<u8> {
         let m = manifest_text("acme.dusk", "1.0.0", "none", "\n[permissions]\nnetwork = [\"example.com\"]\n");
-        zip_of(&[("extension.toml", m.as_bytes()), ("themes/dusk.toml", b"name = \"Dusk\""), ("README.md", b"# Dusk"), ("screenshots/hero.png", b"png")])
+        zip_of(&[("extension.toml", m.as_bytes()), ("themes/dusk.toml", dusk_theme().as_bytes()), ("README.md", b"# Dusk"), ("screenshots/hero.png", b"png")])
     }
 
     #[test]
@@ -784,7 +797,7 @@ mod tests {
         refused(zip_of(&[("themes/dusk.toml", b"name = \"Dusk\"")]), "extension.toml");
         refused(b"not a zip".to_vec(), "isn't a zip");
         refused(zip_of(&[("extension.toml", m.as_bytes()), ("screenshots/hero.bmp", b"bmp")]), "a screenshot is one of");
-        refused(zip_of(&[("extension.toml", m.as_bytes()), ("themes/x.toml", b"colour = 1")]), "a theme needs a name");
+        refused(zip_of(&[("extension.toml", m.as_bytes()), ("themes/x.toml", b"colour = 1")]), "themes/x.toml");
 
         // A link.
         let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));

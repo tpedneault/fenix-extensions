@@ -1,0 +1,10 @@
+# Terraform's variable files (`terraform.tfvars`, `prod.auto.tfvars`):
+# the same grammar and queries as `.tf`, a language of their own because
+# terraform-ls is told a file's language and knows these as
+# `terraform-vars`.
+language = "terraform-vars"
+grammar = "grammars/tree-sitter-terraform.wasm"
+symbol = "terraform"
+queries = "queries/terraform"
+extensions = ["tfvars"]
+comment = "#"

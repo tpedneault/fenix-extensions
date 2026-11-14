@@ -1,0 +1,34 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 1,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Unsupported argument",
+      "detail": "An argument named \"bogus\" is not expected here.",
+      "range": {
+        "filename": "main.tf",
+        "start": {
+          "line": 7,
+          "column": 3,
+          "byte": 74
+        },
+        "end": {
+          "line": 7,
+          "column": 8,
+          "byte": 79
+        }
+      },
+      "snippet": {
+        "context": "output \"cidr\"",
+        "code": "  bogus = true",
+        "start_line": 7,
+        "highlight_start_offset": 2,
+        "highlight_end_offset": 7,
+        "values": []
+      }
+    }
+  ]
+}
