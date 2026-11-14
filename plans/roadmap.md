@@ -632,6 +632,10 @@ on", which any tracker extension can serve. Jira Server and Data Center
 move onto it with no change in behaviour. The Jira bundle keeps working
 as it is.
 
+Built: the contract is [`plans/tracker-seam.md`](tracker-seam.md),
+`crates/tracker` its shapes, Jira 1.3 serves it and the agenda 1.3 calls
+it. 6.3 and 6.4 are written against it.
+
 ### 6.3 Jira Cloud (M)
 
 The Jira extension is for Server and Data Center. Cloud differs in
