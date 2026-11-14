@@ -34,6 +34,58 @@ const FENIX_TAGS: &[&str] = &["PY", "INO", "RS", "TCL", "C++", "JS", "GO", "MONO
 /// The theme roles a kind may be coloured by.
 const COLORS: &[&str] = &["keyword", "string", "function", "type", "number", "constant", "attribute", "variable"];
 
+/// Fenix's own markers (§6.2 rule 9): no pack's, except the built-in id
+/// that owns one. `{folder}` stands for the folder's name.
+const OWN_MARKERS: &[(&str, &[&str])] = &[
+    ("arduino", &["library.properties", "sketch.yaml", "{folder}.ino", "{folder}.pde"]),
+    ("rust", &["Cargo.toml"]),
+    ("python", &["pyproject.toml", "setup.py", "requirements.txt", "uv.lock"]),
+    ("go", &["go.mod"]),
+    ("node", &["package.json"]),
+    ("cpp", &["CMakeLists.txt"]),
+    ("tcl", &["pkgIndex.tcl"]),
+    ("", &[".git", ".projectile"]),
+];
+
+/// The names Fenix's own kinds go by (rule 11).
+const FENIX_NAMES: &[&str] = &["python", "arduino", "rust", "tcl", "c/c++", "javascript", "go", "monorepo", "project"];
+
+/// Windows device names (rule 10).
+fn is_device(part: &str) -> bool {
+    let stem = part.split('.').next().unwrap_or("").trim_end_matches(' ');
+    let up = stem.to_ascii_uppercase();
+    matches!(up.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (up.len() == 4 && (up.starts_with("COM") || up.starts_with("LPT")) && matches!(up.as_bytes()[3], b'1'..=b'9'))
+}
+
+/// A marker, or one part of a main path, against rule 10.
+fn check_part(part: &str) -> Result<(), String> {
+    if part.contains(':') {
+        return Err(format!("{part:?} has ':' (on Windows it names another drive's file)"));
+    }
+    if is_device(part) {
+        return Err(format!("{part:?} is a Windows device name"));
+    }
+    if part.ends_with('.') || part.ends_with(' ') {
+        return Err(format!("{part:?} ends in '.' or a space"));
+    }
+    Ok(())
+}
+
+/// Unicode `Cf` (Unicode 16) and the line and paragraph separators:
+/// characters a name may not hold (rule 12).
+fn is_invisible(c: char) -> bool {
+    let u = c as u32;
+    c.is_control()
+        || matches!(u, 0xAD | 0x61C | 0x6DD | 0x70F | 0x8E2 | 0x180E | 0xFEFF | 0x110BD | 0x110CD | 0xE0001 | 0x2028 | 0x2029)
+        || [
+            (0x600, 0x605), (0x890, 0x891), (0x200B, 0x200F), (0x202A, 0x202E), (0x2060, 0x2064), (0x2066, 0x206F), (0xFFF9, 0xFFFB),
+            (0x13430, 0x1343F), (0x1BCA0, 0x1BCA3), (0x1D173, 0x1D17A), (0xE0020, 0xE007F),
+        ]
+        .iter()
+        .any(|&(a, b)| (a..=b).contains(&u))
+}
+
 const MAX_KINDS: usize = 8;
 const MAX_ID: usize = 24;
 const MAX_NAME: usize = 32;
@@ -91,7 +143,7 @@ fn fenix_id(id: &str) -> bool {
     BUILT_IN_IDS.contains(&id) || RESERVED_IDS.contains(&id)
 }
 
-fn check_marker(marker: &str) -> Result<(), String> {
+fn check_marker(marker: &str, owner: &str) -> Result<(), String> {
     if marker.chars().any(char::is_control) {
         return Err(format!("marker {marker:?} has a control character"));
     }
@@ -111,12 +163,20 @@ fn check_marker(marker: &str) -> Result<(), String> {
     if bare.contains('{') || bare.contains('}') {
         return Err(format!("marker {marker:?}: {{folder}} at most once, and no other braces"));
     }
+    check_part(marker).map_err(|e| format!("marker {e}"))?;
+    if let Some((whose, _)) = OWN_MARKERS.iter().find(|(whose, names)| (whose.is_empty() || *whose != owner) && names.iter().any(|n| n.eq_ignore_ascii_case(marker))) {
+        let of = if whose.is_empty() { "a project's top, whatever its kind".to_string() } else { format!("Fenix's {whose}") };
+        return Err(format!("marker {marker:?} is Fenix's own ({of}): no pack's kind may take it"));
+    }
     Ok(())
 }
 
 fn check_main(path: &str) -> Result<(), String> {
     if path.is_empty() || path.len() > MAX_MAIN_PATH {
         return Err(format!("main {path:?} is {} bytes: 1 to {MAX_MAIN_PATH}", path.len()));
+    }
+    for part in path.split('/') {
+        check_part(part).map_err(|e| format!("main {e}"))?;
     }
     if path.contains('\\') || path.starts_with('/') {
         return Err(format!("main {path:?}: a path below the project, with / between its parts"));
@@ -142,7 +202,7 @@ fn check_kind(kind: &Declared) -> Result<(), String> {
         return Err(format!("{} markers -- at most {MAX_MARKERS}", kind.markers.len()));
     }
     for (i, marker) in kind.markers.iter().enumerate() {
-        check_marker(marker)?;
+        check_marker(marker, if kind.is_built_in() { id } else { "" })?;
         // Fenix looks for a marker given twice once; here it's a mistake.
         if kind.markers[..i].contains(marker) {
             return Err(format!("marker {marker:?} is there twice"));
@@ -165,12 +225,18 @@ fn check_kind(kind: &Declared) -> Result<(), String> {
         return Ok(());
     }
     let name = kind.name.as_deref().ok_or("it needs a name")?;
-    if name.is_empty() || name.chars().count() > MAX_NAME || name.chars().any(char::is_control) || name.chars().all(char::is_whitespace) {
-        return Err(format!("name {name:?} -- 1 to {MAX_NAME} characters, no control characters, one that isn't whitespace"));
+    if name.is_empty() || name.chars().count() > MAX_NAME || name.chars().any(is_invisible) || name.chars().all(|c| c.is_whitespace() || is_invisible(c)) {
+        return Err(format!("name {name:?} -- 1 to {MAX_NAME} characters, no control or invisible characters, one that isn't whitespace"));
+    }
+    if FENIX_NAMES.contains(&name.trim().to_lowercase().as_str()) {
+        return Err(format!("name {name:?} is one of Fenix's own kinds' names"));
     }
     let tag = kind.tag.as_deref().ok_or("it needs a tag")?;
     if tag.is_empty() || tag.len() > MAX_TAG || !tag.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || matches!(c, '+' | '#' | '.')) || !tag.chars().any(|c| c.is_ascii_uppercase()) {
         return Err(format!("tag {tag:?} -- 1 to {MAX_TAG} of A-Z 0-9 + # . with at least one letter"));
+    }
+    if FENIX_TAGS.contains(&tag) {
+        return Err(format!("tag {tag} is one of Fenix's own ({})", FENIX_TAGS.join(", ")));
     }
     if let Some(color) = kind.color.as_deref().filter(|c| !COLORS.contains(c)) {
         return Err(format!("color {color:?} -- one of {}", COLORS.join(", ")));
@@ -221,6 +287,7 @@ pub fn check_pack(dir: &Path) -> Result<Pack, String> {
         let text = std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
         let parsed: toml::Table = toml::from_str(&text).map_err(|e| format!("{}: {}", file.display(), e.message()))?;
         let Some(kind) = parsed.get("template").and_then(|t| t.get("kind")).and_then(|k| k.as_str()) else { continue };
+        let kind = kind.trim_matches(' ');
         let lower = kind.to_ascii_lowercase();
         if !fenix_id(&lower) {
             if !well_formed(kind) {
@@ -398,7 +465,7 @@ mod tests {
         refused(&kind("id = \"java\"\nname = \"Java\""), "needs a tag");
         refused(&kind("id = \"java\"\nname = \"\"\ntag = \"J\""), "name");
         refused(&kind(&format!("id = \"java\"\nname = \"{}\"\ntag = \"J\"", "n".repeat(33))), "1 to 32 characters");
-        refused(&kind("id = \"java\"\nname = \"Ja\\nva\"\ntag = \"J\""), "no control characters");
+        refused(&kind("id = \"java\"\nname = \"Ja\\nva\"\ntag = \"J\""), "no control or invisible characters");
         check_pack(&pack_dir(&Temp::new("n32"), "x", ">=1.5, <2", &kind(&format!("id = \"java\"\nname = \"{}\"\ntag = \"J\"", "n".repeat(32))))).unwrap();
         for bad in ["", "JAVAX", "java", "Java", "J-A", "J A", "123", "++", "É", "J\\u0301"] {
             refused(&kind(&format!("id = \"java\"\nname = \"Java\"\ntag = \"{bad}\"")), "tag");
@@ -425,12 +492,57 @@ mod tests {
         refused(&kind("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmarkers = [\"a\", \"b\", \"a\"]"), "there twice");
         refused(&with(&"m".repeat(65)), "65 bytes");
         refused(&with(&"é".repeat(33)), "66 bytes");
-        for fine in ["pom.xml", "{folder}.sln", "x{folder}y", &"m".repeat(64), ".terraform.lock.hcl", ".fenixignore", "a.b."] {
+        for fine in ["pom.xml", "{folder}.sln", "x{folder}y", &"m".repeat(64), ".terraform.lock.hcl", ".fenixignore"] {
             check_pack(&pack_dir(&Temp::new("m"), "x", ">=1.5, <2", &with(fine))).unwrap_or_else(|e| panic!("{fine}: {e}"));
         }
         let many = |n: usize| kind(&format!("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmarkers = [{}]", (0..n).map(|i| format!("\"m{i}\"")).collect::<Vec<_>>().join(", ")));
         check_pack(&pack_dir(&Temp::new("m16"), "x", ">=1.5, <2", &many(16))).unwrap();
         refused(&many(17), "17 markers -- at most 16");
+    }
+
+    #[test]
+    fn fenix_s_own_markers_are_no_packs() {
+        let with = |id: &str, marker: &str| {
+            let tail = if matches!(id, "node" | "rust" | "python" | "go" | "cpp" | "tcl" | "arduino") { String::new() } else { "\nname = \"X\"\ntag = \"X\"".to_string() };
+            kind(&format!("id = \"{id}\"{tail}\nmarkers = [\"{marker}\"]"))
+        };
+        for (id, bad) in [("java", "package.json"), ("java", "CARGO.TOML"), ("node", "Cargo.toml"), ("java", "{folder}.ino"), ("java", ".git"), ("node", ".projectile"), ("cpp", "pkgIndex.tcl"), ("go", "go.mod.")] {
+            refused(&with(id, bad), "marker");
+        }
+        for (id, fine) in [("node", "package.json"), ("rust", "Cargo.toml"), ("arduino", "{folder}.ino"), ("tcl", "pkgIndex.tcl"), ("node", "deno.json"), ("java", "pom.xml")] {
+            check_pack(&pack_dir(&Temp::new("own"), "x", ">=1.5, <2", &with(id, fine))).unwrap_or_else(|e| panic!("{id} {fine}: {e}"));
+        }
+    }
+
+    #[test]
+    fn no_colon_device_or_trailing_dot_in_a_marker_or_a_main_part() {
+        let marker = |m: &str| kind(&format!("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmarkers = [\"{m}\"]"));
+        let main = |m: &str| kind(&format!("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmain = [\"{m}\"]"));
+        for bad in ["C:x", "nul.txt", "Aux.json", "com1.json", "LPT9", "con ", "a.", "a ", "PRN.x.y"] {
+            refused(&marker(bad), "marker");
+        }
+        for bad in ["C:x", "src/nul.txt", "Aux.json", "a/com1.json", "a/b.", "a /b", "src/LPT1"] {
+            refused(&main(bad), "main");
+        }
+        for fine in ["CONFIG", "console.toml", "com10", "lpt0", ".luarc.json", "COM"] {
+            check_pack(&pack_dir(&Temp::new("dev"), "x", ">=1.5, <2", &marker(fine))).unwrap_or_else(|e| panic!("{fine}: {e}"));
+            check_pack(&pack_dir(&Temp::new("devm"), "x", ">=1.5, <2", &main(fine))).unwrap_or_else(|e| panic!("{fine}: {e}"));
+        }
+    }
+
+    #[test]
+    fn fenix_s_tags_and_names_are_taken_and_names_hold_nothing_invisible() {
+        for tag in ["PY", "INO", "RS", "TCL", "C++", "JS", "GO", "MONO", "DIR"] {
+            refused(&kind(&format!("id = \"java\"\nname = \"Java\"\ntag = \"{tag}\"")), "Fenix's own");
+        }
+        for name in ["Python", "arduino", " RUST ", "Tcl", "c/c++", "JavaScript", "GO", "Monorepo", "project"] {
+            refused(&kind(&format!("id = \"java\"\nname = \"{name}\"\ntag = \"J\"")), "Fenix's own");
+        }
+        for bad in ["\\u00ad", "a\\u200bb", "a\\u2028", "a\\u2029", "\\ufeff", "a\\U000E0001", "a\\u202e", "a\\u0600"] {
+            refused(&kind(&format!("id = \"java\"\nname = \"{bad}\"\ntag = \"J\"")), "invisible");
+        }
+        refused(&kind("id = \"java\"\nname = \" \\u200b \"\ntag = \"J\""), "name");
+        check_pack(&pack_dir(&Temp::new("n"), "x", ">=1.5, <2", &kind("id = \"java\"\nname = \"Javascript Plus\"\ntag = \"J\""))).unwrap();
     }
 
     #[test]
@@ -585,6 +697,8 @@ mod tests {
             assert_eq!(check_pack(&dir).unwrap().templates[0].1, "java", "{floor}");
         }
         let dir = pack_dir(&t, "new", ">=1.6, <2", &java());
+        template(&dir, "  java ");
+        assert_eq!(check_pack(&dir).unwrap().templates[0].1, "java");
         for bad in ["Java", "j a", "cobol/x", &"a".repeat(25)] {
             template(&dir, bad);
             assert!(check_pack(&dir).unwrap_err().contains("isn't a kind id"), "{bad}");

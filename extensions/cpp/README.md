@@ -156,7 +156,7 @@ shared library, with GoogleTest, Catch2 or CTest); this adds:
 
 ## Project kind
 
-Fenix 1.6 and later also know a project as a C/C++ one (`C++`, Fenix's own kind) when it has a `CMakePresets.json`, `compile_commands.json`, `vcpkg.json`, `conanfile.txt`, `conanfile.py` or `.clangd` at its top, as it does for a `CMakeLists.txt`. The pack adds those files to the kind and nothing else (`[[contributes.project_kinds]]` in `extension.toml`). Earlier Fenix ignores this and the pack works there as before.
+Fenix 1.6 and later also know a project as a C/C++ one (`C++`, Fenix's own kind) when it has a `CMakePresets.json`, `compile_commands.json`, `vcpkg.json`, `conanfile.txt`, `conanfile.py` or `.clangd` at its top, as it does for a `CMakeLists.txt`. The pack adds those files to the kind and nothing else (`[[contributes.project_kinds]]` in `extension.toml`). Fenix's own markers come first, so a folder with a `Cargo.toml`, `package.json` or `pyproject.toml` stays Rust, JS or Python. Your home folder is never a project, whatever dotfiles it holds (`.clangd` among them). Earlier Fenix ignores this and the pack works there as before.
 
 ## Keys
 

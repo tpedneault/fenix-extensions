@@ -2,7 +2,7 @@
 
 ## 1.3.0
 
-- Fenix 1.6 and later show a project with a `pom.xml`, `build.gradle`, `build.gradle.kts`, `settings.gradle` or `settings.gradle.kts` at its top as a Java project (`JAVA`), in the project hub, on Home, in the modeline and in the doctor; `kind = "java"` in a project's `.fenix/settings.toml` says it by hand. A Kotlin project is also a Gradle project, so Fenix finds it as Java; `kind = "kotlin"` in its `.fenix/settings.toml` makes it a Kotlin one (`KT`). Fenix 1.5 ignores all this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
+- Fenix 1.6 and later show a project with a `pom.xml`, `build.gradle`, `build.gradle.kts`, `settings.gradle` or `settings.gradle.kts` at its top as a Java project (`JAVA`), in the project hub, on Home, in the modeline and in the doctor; `kind = "java"` in a project's `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "java"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. A Kotlin project is also a Gradle project, so Fenix finds it as Java; `kind = "kotlin"` in its `.fenix/settings.toml` makes it a Kotlin one (`KT`). Fenix 1.5 ignores all this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
 
 ## 1.2.0
 

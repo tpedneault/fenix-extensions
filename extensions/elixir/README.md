@@ -172,7 +172,7 @@ run):
 
 ## Project kind
 
-Fenix 1.6 and later know an Elixir project (`EX`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `mix.exs` at its top, and opened on `lib/<folder>.ex` when you've had none of its files open. `kind = "elixir"` in `.fenix/settings.toml` says it by hand. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+Fenix 1.6 and later know an Elixir project (`EX`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `mix.exs` at its top, and opened on `lib/<folder>.ex` when you've had none of its files open. `kind = "elixir"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "elixir"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
 
 ## Keys
 

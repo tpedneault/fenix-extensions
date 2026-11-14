@@ -222,6 +222,18 @@ main = ["config.ru"]         # what it opens on when you've had none of its file
 - **`main`**: at most 8 paths below the project, `/` between the parts,
   `{folder}` allowed, at most 128 bytes each, no empty part, no `..`, no
   `\`, not starting with `/`. A `name` needs a visible character.
+- **Fenix's own come first.** A pack's kind only names a project Fenix
+  would otherwise call a plain folder, and Fenix never makes the home
+  folder a project from a marker. So no marker may be one of Fenix's
+  (`Cargo.toml`, `package.json`, `pyproject.toml`, `setup.py`,
+  `requirements.txt`, `uv.lock`, `go.mod`, `CMakeLists.txt`,
+  `pkgIndex.tcl`, `library.properties`, `sketch.yaml`, `{folder}.ino`,
+  `{folder}.pde`, `.git`, `.projectile`; case ignored) except in the
+  declaration of the built-in id that owns it. No `:` in a marker or a
+  `main` part, no Windows device name (`CON`, `PRN`, `AUX`, `NUL`,
+  `COM1`-`COM9`, `LPT1`-`LPT9`, before the first `.`), nothing ending in
+  `.` or a space. A name or tag may not be one of Fenix's (`PY`, `Python`,
+  `C/C++`, ...) and a name holds no control or invisible character.
 - **At most 8 kinds** to a pack, each id once. Not `other`, `monorepo`
   or an alias Fenix reads (`py`, `uv`, `ino`, `sketch`, `rs`, `c++`, `c`,
   `cmake`, `js`, `ts`, `javascript`, `typescript`, `mib`).

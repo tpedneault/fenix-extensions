@@ -2,7 +2,7 @@
 
 ## 1.2.0
 
-- Fenix 1.6 and later show a project with a `.luarc.json`, `.luarc.jsonc`, `selene.toml`, `stylua.toml`, `.stylua.toml`, `.luacheckrc`, `.busted` or `conf.lua` at its top as a Lua project (`LUA`), in the project hub, on Home, in the modeline and in the doctor, and open it on `main.lua` or `init.lua` when you've had none of its files open; `kind = "lua"` in a project's `.fenix/settings.toml` says it by hand. Fenix 1.5 ignores all this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
+- Fenix 1.6 and later show a project with a `.luarc.json`, `.luarc.jsonc`, `selene.toml`, `stylua.toml`, `.stylua.toml`, `.luacheckrc`, `.busted` or `conf.lua` at its top as a Lua project (`LUA`), in the project hub, on Home, in the modeline and in the doctor, and open it on `main.lua` or `init.lua` when you've had none of its files open; `kind = "lua"` in a project's `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "lua"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Your home folder is never a project, whatever dotfiles it holds (`.luarc.json`, `.luarc.jsonc`, `.stylua.toml`, `.luacheckrc` and `.busted` among them). Fenix 1.5 ignores all this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
 
 ## 1.1.0
 

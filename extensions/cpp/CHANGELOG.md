@@ -2,7 +2,7 @@
 
 ## 1.3.0
 
-- Fenix 1.6 and later also take a project with a `CMakePresets.json`, `compile_commands.json`, `vcpkg.json`, `conanfile.txt`, `conanfile.py` or `.clangd` at its top for a C/C++ project (`C++`), as one with a `CMakeLists.txt` already is, in the project hub, on Home, in the modeline and in the doctor. Nothing else about the kind changes. Fenix 1.5 ignores this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
+- Fenix 1.6 and later also take a project with a `CMakePresets.json`, `compile_commands.json`, `vcpkg.json`, `conanfile.txt`, `conanfile.py` or `.clangd` at its top for a C/C++ project (`C++`), as one with a `CMakeLists.txt` already is, in the project hub, on Home, in the modeline and in the doctor. Nothing else about the kind changes. Fenix's own markers come first, so a folder with a `Cargo.toml`, `package.json` or `pyproject.toml` stays Rust, JS or Python. Your home folder is never a project, whatever dotfiles it holds (`.clangd` among them). Fenix 1.5 ignores this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
 
 ## 1.2.0
 
