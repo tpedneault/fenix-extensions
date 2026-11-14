@@ -160,6 +160,8 @@ alone, so it builds without Hackage -- with <code>cabal run</code> as its run ta
 <tr><td><code>haskell.build_tool</code></td><td><code>auto</code></td><td><code>cabal</code> or <code>stack</code></td></tr>
 </tbody>
 </table></div>
+<h3 id="readme-project-kind">Project kind</h3>
+<p>Fenix 1.6 and later know a Haskell project (<code>HS</code>): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a <code>cabal.project</code>, <code>stack.yaml</code>, <code>package.yaml</code> or <code>&lt;folder&gt;.cabal</code> at its top, and opened on <code>app/Main.hs</code> or <code>src/Main.hs</code> when you&#39;ve had none of its files open. <code>kind = &quot;haskell&quot;</code> in <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;haskell&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in <code>extension.toml</code> (<code>[[contributes.project_kinds]]</code>); the pack&#39;s context markers say when the pack applies, and are not the same list.</p>
 <h3 id="readme-keys">Keys</h3>
 <p>After <code>SPC m</code> in a Haskell project or file (<code>C-k m</code> with standard keys):
 <code>d</code> checks the project again, <code>r</code> reads it again, <code>g</code> opens ghcup&#39;s page.</p>
@@ -186,6 +188,10 @@ redundant. Its own <code>--refactor</code> takes them off.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>Fenix 1.6 and later show a project with a <code>cabal.project</code>, <code>stack.yaml</code>, <code>package.yaml</code> or <code>&lt;folder&gt;.cabal</code> at its top as a Haskell project (<code>HS</code>), in the project hub, on Home, in the modeline and in the doctor, and open it on <code>app/Main.hs</code> or <code>src/Main.hs</code> when you&#39;ve had none of its files open; <code>kind = &quot;haskell&quot;</code> in a project&#39;s <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;haskell&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Fenix 1.5 ignores all this and the pack works there as before: it&#39;s only data in the manifest, so it needs no newer Fenix and no newer API.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p>For Fenix 1.5 (extension API 1.5): built against API 1.5, as the

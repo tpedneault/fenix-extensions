@@ -178,6 +178,8 @@ a solution with the project in <code>src/</code> and, if you like, xUnit tests i
 <p><code>*.cake</code> is read as C#.</p>
 <p>It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, .NET
 1.1.0 is the one you get.</p>
+<h3 id="readme-project-kind">Project kind</h3>
+<p>Fenix 1.6 and later know a C# and .NET project (<code>C#</code>): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a solution or project file named for its folder (<code>&lt;folder&gt;.sln</code>, <code>.slnx</code>, <code>.csproj</code>), a <code>global.json</code> or a <code>Directory.Build.props</code> at its top, and opened on <code>Program.cs</code> when you&#39;ve had none of its files open. <code>kind = &quot;dotnet&quot;</code> in <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;dotnet&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in <code>extension.toml</code> (<code>[[contributes.project_kinds]]</code>); the pack&#39;s context markers say when the pack applies, and are not the same list.</p>
 <h3 id="readme-keys">Keys</h3>
 <p>After <code>SPC m</code> in a .NET project (<code>C-k m</code> with standard keys): <code>p</code>
 packages, <code>d</code> check again, <code>t</code> debug the tests.</p>
@@ -195,6 +197,10 @@ packages, <code>d</code> check again, <code>t</code> debug the tests.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<ul class="tight">
+<li><p>Fenix 1.6 and later show a project with a solution or project file named for its folder (<code>&lt;folder&gt;.sln</code>, <code>.slnx</code>, <code>.csproj</code>), a <code>global.json</code> or a <code>Directory.Build.props</code> at its top as a C# and .NET project (<code>C#</code>), in the project hub, on Home, in the modeline and in the doctor, and open it on <code>Program.cs</code> when you&#39;ve had none of its files open; <code>kind = &quot;dotnet&quot;</code> in a project&#39;s <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;dotnet&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Fenix 1.5 ignores all this and the pack works there as before: it&#39;s only data in the manifest, so it needs no newer Fenix and no newer API.</p></li>
+</ul>
 <h3 id="changelog-120">1.2.0</h3>
 <ul class="tight">
 <li><p>For Fenix 1.5 (extension API 1.5): how installing netcoredbg ended is

@@ -249,6 +249,8 @@ the work, <code>package:test</code> tests and <code>analysis_options.yaml</code>
 mobile, web or desktop. The template has no files of its own:
 <code>flutter create</code> writes them, the counter app, and runs <code>pub get</code>.</p></li>
 </ul>
+<h3 id="readme-project-kind">Project kind</h3>
+<p>Fenix 1.6 and later know a Dart project (<code>DART</code>): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a <code>pubspec.yaml</code> at its top, and opened on <code>lib/main.dart</code> or <code>bin/&lt;folder&gt;.dart</code> when you&#39;ve had none of its files open. Fenix doesn&#39;t read <code>pubspec.yaml</code>, so it can&#39;t tell a Flutter app from a Dart package: <code>kind = &quot;flutter&quot;</code> in the project&#39;s <code>.fenix/settings.toml</code> makes it a Flutter one (<code>FLUT</code>). <code>kind = &quot;dart&quot;</code> in <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;dart&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in <code>extension.toml</code> (<code>[[contributes.project_kinds]]</code>); the pack&#39;s context markers say when the pack applies, and are not the same list.</p>
 <h3 id="readme-keys">Keys</h3>
 <p>After <code>SPC m</code> in a Dart package or file (<code>C-k m</code> with standard keys):</p>
 <div class="table"><table>
@@ -326,6 +328,10 @@ outdated list with a field changed, since no SDK package has one.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<ul class="tight">
+<li><p>Fenix 1.6 and later show a project with a <code>pubspec.yaml</code> at its top as a Dart project (<code>DART</code>), in the project hub, on Home, in the modeline and in the doctor, and open it on <code>lib/main.dart</code> or <code>bin/&lt;folder&gt;.dart</code> when you&#39;ve had none of its files open; <code>kind = &quot;dart&quot;</code> in a project&#39;s <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;dart&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Fenix doesn&#39;t read <code>pubspec.yaml</code>, so it can&#39;t tell a Flutter app from a Dart package: <code>kind = &quot;flutter&quot;</code> in the project&#39;s <code>.fenix/settings.toml</code> makes it a Flutter one (<code>FLUT</code>). Fenix 1.5 ignores all this and the pack works there as before: it&#39;s only data in the manifest, so it needs no newer Fenix and no newer API.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.5: Dart and Flutter. Highlighting,

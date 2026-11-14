@@ -161,6 +161,8 @@ project&#39;s <code>.env</code> goes to each; a task of the same name in
 <h3 id="readme-project-template">Project template</h3>
 <p><strong>Swift · command-line tool</strong>: a package with a library target that does
 the work, an executable over it, Swift Testing tests, and a <code>.gitignore</code>.</p>
+<h3 id="readme-project-kind">Project kind</h3>
+<p>Fenix 1.6 and later know a Swift project (<code>SW</code>): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a <code>Package.swift</code> at its top, and opened on <code>Sources/&lt;folder&gt;/main.swift</code> when you&#39;ve had none of its files open. <code>kind = &quot;swift&quot;</code> in <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;swift&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in <code>extension.toml</code> (<code>[[contributes.project_kinds]]</code>); the pack&#39;s context markers say when the pack applies, and are not the same list.</p>
 <h3 id="readme-keys">Keys</h3>
 <p>After <code>SPC m</code> in a package or a Swift file (<code>C-k m</code> with standard keys):
 <code>d</code> checks the project again, <code>g</code> says how to get Swift.</p>
@@ -186,6 +188,10 @@ or installed it.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>Fenix 1.6 and later show a project with a <code>Package.swift</code> at its top as a Swift project (<code>SW</code>), in the project hub, on Home, in the modeline and in the doctor, and open it on <code>Sources/&lt;folder&gt;/main.swift</code> when you&#39;ve had none of its files open; <code>kind = &quot;swift&quot;</code> in a project&#39;s <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;swift&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Fenix 1.5 ignores all this and the pack works there as before: it&#39;s only data in the manifest, so it needs no newer Fenix and no newer API.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p>For Fenix 1.5 (extension API 1.5): how installing SwiftLint ended is a

@@ -169,6 +169,16 @@ folder and the MIB settings.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-140">1.4.0</h3>
+<ul class="tight">
+<li><p><strong>Packets are named through the MIB you have open.</strong> The MIBs the CCSDS
+extension decodes against are the ones the MIB extension (1.5) has in
+use: the one picked with <code>SPC k o</code> in the project, the MIBs your
+settings name, or the one found anywhere in the project -- where 1.3
+looked only at <code>mib.roots</code>, then the project&#39;s <code>mib/</code> or its top. When
+the pick changes, the CCSDS extension follows. Without the MIB
+extension it follows the same rule, without a pick.</p></li>
+</ul>
 <h3 id="changelog-130">1.3.0</h3>
 <ul class="tight">
 <li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SCOS-2000 MIB · Fenix extensions</title>
-<meta name="description" content="SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them">
+<meta name="description" content="SCOS-2000 MIBs, found in the project or opened from anywhere: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/style.css">
@@ -22,18 +22,18 @@
 <div class="head">
 <h1>SCOS-2000 MIB</h1>
 <p class="id"><code>fenix.mib</code></p>
-<p class="lead">SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them</p>
+<p class="lead">SCOS-2000 MIBs, found in the project or opened from anywhere: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them</p>
 <ul class="tags" aria-label="Categories"><li><a href="../index.html?category=mission">Mission</a></li></ul>
 </div>
 <div class="layout">
 <aside class="facts" aria-labelledby="facts-h">
 <h2 id="facts-h">At a glance</h2>
 <dl>
-<dt>Latest version</dt><dd>1.4.0</dd>
+<dt>Latest version</dt><dd>1.5.0</dd>
 <dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
 <dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
 <dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
-<dt>Download</dt><dd>615 KB</dd>
+<dt>Download</dt><dd>645 KB</dd>
 <dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
 <dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/mib">extensions/mib</a></dd>
 <dt>In the bundles</dt><dd><a href="../fenix.mission-bundle/index.html">Mission</a></dd>
@@ -46,7 +46,7 @@
 <li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
 <li>Search for <strong>SCOS-2000 MIB</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
 </ol>
-<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.4.0/fenix.mib-1.4.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.mib-1.4.0.fenixext</code>.</p>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.5.0/fenix.mib-1.5.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.mib-1.5.0.fenixext</code>.</p>
 </section>
 <section aria-labelledby="permissions">
 <h2 id="permissions">What it may do</h2>
@@ -60,11 +60,16 @@
 </section>
 <section class="doc" aria-labelledby="readme">
 <h2 id="readme">About</h2>
-<p>SCOS-2000 MIBs in Fenix. Browse
-a MIB, look a definition up by kind, write telecommand calls into your
+<p>SCOS-2000 MIBs in Fenix. Open
+a MIB -- one in your project is found, nothing to set -- browse it, look a
+definition up by kind, write telecommand calls into your
 scripts with a form for their arguments, have the MIB check the calls
 you wrote, and generate code from it.</p>
 <ul class="tight">
+<li><p><strong>Open a MIB</strong> (<code>SPC k o</code>): every MIB known here -- found in the
+project, named in its settings or yours -- and another folder on disk.
+Picking one opens its page, and it&#39;s the MIB <code>K</code>, <code>gd</code> and the rest use
+in this project from then on.</p></li>
 <li><p><strong>The MIB page</strong> (<code>SPC k k</code>). A tab for each kind of definition:</p>
 <ul class="tight">
 <li><p><code>1</code> telecommands, <code>2</code> TC parameters, <code>3</code> TM packets, <code>4</code> TM
@@ -75,6 +80,8 @@ opens the filters as a form.</p></li>
 by PUS service.</p></li>
 <li><p><code>Enter</code> opens a definition&#39;s own page, <code>i</code> a telecommand&#39;s insert
 form.</p></li>
+<li><p><code>M</code> switches to another MIB; the header says where this one is from,
+and how many there are.</p></li>
 </ul></li>
 <li><p><strong>A definition&#39;s page.</strong> Every name on it is a link: <code>Enter</code> follows
 it, and <code>H</code>/<code>L</code> (or Backspace) go back and forward.</p></li>
@@ -111,7 +118,7 @@ file.</p></li>
 telecommands it sends, with its formal parameters&#39; defaults, its
 timing and comments as comments.</p></li>
 <li><p><strong>Two MIBs compared</strong> (<code>SPC k D</code>): what was added, removed and changed
-between two of the project&#39;s MIBs, as Markdown in <code>generated/</code>.</p></li>
+between two of the MIBs known here, as Markdown in <code>generated/</code>.</p></li>
 <li><p><strong>Generated from the MIB</strong> (<code>SPC k g</code>): XTCE, a Wireshark dissector, C,
 Python, an ICD, or TC test vectors, written to the project&#39;s
 <code>generated/</code> -- repeated groups included.</p></li>
@@ -135,16 +142,78 @@ value. A deduced parameter (<code>PTC 11</code>) takes the type of the TM
 parameter an earlier argument (<code>CPC_CATEG</code> <code>P</code>) names.</p></li>
 </ul>
 <h3 id="readme-which-mibs">Which MIBs</h3>
+<p>A MIB is a folder of <code>.dat</code> tables -- any of <code>vdf</code>, <code>ccf</code>, <code>pcf</code>, <code>pid</code>,
+<code>tpcf</code>, <code>caf</code> or <code>txf</code> -- or an XTCE file. The rule is the shared
+crate&#39;s (<code>fenix_mib::which</code>), and the CCSDS extension decodes against
+the same MIBs: the MIB extension tells it which.</p>
+<p>The MIBs <strong>known</strong> in a project are:</p>
 <ol class="tight">
-<li><p>The folders <code>mib.roots</code> names: the project&#39;s own list (in its
-<code>.fenix/settings.toml</code>, folders relative to it) in place of yours.
-In a project&#39;s list, an XTCE file relative to it is a MIB too
-(<code>XTCE = &quot;generated/xtce-OPS.xml&quot;</code>).</p></li>
-<li><p>Else the project itself, when it&#39;s a MIB (<code>.dat</code> tables in it or in
-its <code>mib/</code>).</p></li>
+<li><p><strong>Those found in it</strong>, nothing to set. Its <code>mib/</code> and its top are
+looked at directly, as ever, links followed. Anywhere else in it,
+it&#39;s looked through as far as 6 folders down and 3,000 folders in
+all, leaving out hidden folders (<code>.git</code>), <code>target</code>, <code>node_modules</code>,
+<code>generated</code>, <code>dist</code>, <code>vendor</code>, virtual environments, and the folders
+its <code>.gitignore</code> names (a <code>.gitignore</code> that takes anything back with
+<code>!</code> isn&#39;t used). It&#39;s looked through as the extension starts --
+unless the settings name MIBs and none of the project&#39;s is picked --
+and on <code>SPC k o</code>, <code>SPC k r</code> and <code>SPC k D</code>: never while you type, hover
+or move between files.</p></li>
+<li><p><strong>Those <code>mib.roots</code> names</strong>: the project&#39;s own list (in its
+<code>.fenix/settings.toml</code>, folders relative to it) in place of yours. In
+a project&#39;s list, an XTCE file relative to it is a MIB too
+(<code>XTCE = &quot;generated/xtce-OPS.xml&quot;</code>). A setting that names a folder
+the project holds makes it known once, by the setting&#39;s name.</p></li>
+<li><p><strong>A folder of the project picked by its path</strong> with <code>SPC k o</code>, found
+or not.</p></li>
 </ol>
+<p>A found MIB is named by its path in the project (<code>db/ops</code>); <code>mib/</code> and
+the top by the project&#39;s name, as before, so <code>mib.icd_per_mib</code> and
+<code>mib.default</code> by that name still apply.</p>
+<p>The MIBs <strong>in use</strong> -- the MIB page&#39;s, <code>K</code>, <code>gd</code>, completion, the
+checks of your scripts, the insert form, the pickers, the notebook&#39;s
+<code>mib:</code> links, agents&#39; <code>mib_lookup</code> and the CCSDS extension&#39;s packets --
+are:</p>
+<ol class="tight">
+<li><p>the one you opened with <code>SPC k o</code> in this project, kept for it from
+one session to the next (in the extension&#39;s own folder, by the
+project&#39;s path: never in the project&#39;s settings, and <code>mib.default</code>
+is left as it is);</p></li>
+<li><p>else every MIB the settings name, together, as before -- <code>mib.default</code>
+says whose definition wins a name several define;</p></li>
+<li><p>else a found one when there&#39;s no doubt which: <code>mib/</code>, else the
+project&#39;s top, else the only one found outside folders of tests,
+fixtures, samples, examples, demos, mocks and vendored code;</p></li>
+<li><p>else none. When several were found, the MIB page, the doctor and a
+word as the extension starts say so -- &quot;2 MIBs found here -- <code>SPC k o</code> picks one&quot; -- and nothing is guessed.</p></li>
+</ol>
+<p>A project with one MIB in it just works: <code>SPC k k</code> shows it.</p>
+<p><code>SPC k o</code> lists every known MIB -- found ones by their path in the
+project, then the project&#39;s settings&#39;, then yours -- each with how many
+tables it has and whether it has telecommands and TM, <code>●</code> on the one in
+use. With several in the settings, &quot;all of them together&quot; goes back to
+using them together. <strong>Another folder…</strong> opens a MIB by its full path
+(the folder selected in the explorer is filled in):</p>
+<ul class="tight">
+<li><p>one of the project&#39;s is picked, found or not, if it holds tables;</p></li>
+<li><p>one elsewhere is added to <em>your</em> <code>mib.roots</code> for you -- named after
+its folder, made unique (<code>OPS</code>, <code>OPS-2</code>), never twice however it&#39;s
+spelt -- and picked here. <code>~/…</code> is kept as such: Fenix makes it your
+home folder&#39;s. Not a full path, the top of a disk, a drive&#39;s current
+folder (<code>C:mibs</code>), a home folder, or a folder the extension can see
+with no tables in it are refused, and it says why. Fenix gives the
+extension the folders <code>mib.roots</code> names when it starts it -- at once
+on a Fenix that starts it again when such a setting changes, else the
+next time Fenix starts -- and the MIB&#39;s page opens then, by itself.</p></li>
+<li><p>in a project with its own <code>mib.roots</code>, which takes the place of yours
+there, a folder elsewhere goes in the project&#39;s list: <code>SPC k o</code> opens
+its settings rather than writing them.</p></li>
+</ul>
+<p>What&#39;s generated (<code>SPC k g</code>) and compared (<code>SPC k D</code>) goes in the
+project&#39;s <code>generated/</code>, wherever the MIB is in it; the doctor counts the
+project&#39;s <code>recordings/</code>.</p>
 <p>They&#39;re read when first needed, and again when one of their files
-changes (<code>mib.watch</code>).</p>
+changes (<code>mib.watch</code>). A MIB folder added to the project is found on
+<code>SPC k o</code> or <code>SPC k r</code>, or when the extension next starts.</p>
 <p>The mission profile they&#39;re read and packets built against is the
 CCSDS settings (<code>ccsds.pus</code>, <code>ccsds.tm_time</code>, ...). The CCSDS extension
 keeps those; the MIB reads them.</p>
@@ -153,6 +222,7 @@ keeps those; the MIB reads them.</p>
 <thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
 <tbody>
 <tr><td><code>SPC k k</code></td><td><code>mib.page</code></td><td>The MIB page</td></tr>
+<tr><td><code>SPC k o</code></td><td><code>mib.open</code></td><td>Open a MIB: found here, named in the settings, or another folder</td></tr>
 <tr><td><code>SPC k /</code></td><td><code>mib.search</code></td><td>Every kind of definition, by name or description</td></tr>
 <tr><td><code>SPC k t</code> <code>p</code> <code>m</code> <code>n</code> <code>c</code></td><td><code>mib.telecommand</code>, <code>mib.tc_parameter</code>, <code>mib.tm_packet</code>, <code>mib.tm_parameter</code>, <code>mib.calibration</code></td><td>One kind, by name</td></tr>
 <tr><td><code>SPC k i</code></td><td><code>mib.insert</code></td><td>A telecommand, then its insert form</td></tr>
@@ -160,7 +230,7 @@ keeps those; the MIB reads them.</p>
 <tr><td><code>SPC k b</code></td><td><code>mib.copy_bytes</code></td><td>The call on this line, as its packet&#39;s bytes</td></tr>
 <tr><td><code>SPC k g</code></td><td><code>mib.generate</code></td><td>Generate from the MIB</td></tr>
 <tr><td><code>SPC k q</code></td><td><code>mib.insert_sequence</code></td><td>A command sequence, as the telecommands it sends</td></tr>
-<tr><td><code>SPC k D</code></td><td><code>mib.diff</code></td><td>Two of the project&#39;s MIBs, compared</td></tr>
+<tr><td><code>SPC k D</code></td><td><code>mib.diff</code></td><td>Two MIBs known here, compared</td></tr>
 <tr><td><code>SPC k r</code></td><td><code>mib.reload</code></td><td>Read the MIBs again</td></tr>
 <tr><td><code>SPC k ,</code></td><td><code>mib.settings</code></td><td>This project&#39;s settings</td></tr>
 </tbody>
@@ -168,17 +238,19 @@ keeps those; the MIB reads them.</p>
 <p>What it says when it names a key -- a card, the doctor, a missing MIB --
 gives the keys you have: <code>C-k k k</code> with standard keys where this table
 says <code>SPC k k</code>.</p>
-<p>In a Tcl file, <code>SPC m</code> has <code>i</code>, <code>e</code>, <code>q</code>, <code>t</code>, <code>k</code>, <code>p</code>, <code>c</code>, <code>m</code> and <code>r</code>,
+<p>In a Tcl file, <code>SPC m</code> has <code>i</code>, <code>e</code>, <code>q</code>, <code>t</code>, <code>k</code>, <code>p</code>, <code>c</code>, <code>m</code>, <code>o</code> and <code>r</code>,
 beside the Tcl extension&#39;s keys.</p>
 <h3 id="readme-the-project-doctor">The project doctor</h3>
-<p>In a project that&#39;s a MIB, the doctor lists:</p>
+<p>When the MIBs in use are the project&#39;s -- found in it, wherever, or
+named by its own settings -- the doctor lists:</p>
 <ul class="tight">
-<li><p>its tables and rows, and their layout (ICD issue);</p></li>
+<li><p>each one&#39;s tables and rows, where it is, and their layout (ICD issue);</p></li>
 <li><p>the rows with problems;</p></li>
 <li><p>tables the ICD doesn&#39;t know;</p></li>
-<li><p>the mission profile, and whether the MIB agrees with it and the
+<li><p>the mission profile, and whether the MIBs agree with it and the
 standards;</p></li>
-<li><p>its recordings.</p></li>
+<li><p>the project&#39;s recordings;</p></li>
+<li><p>the project&#39;s other MIBs, which <code>SPC k o</code> opens.</p></li>
 </ul>
 <h3 id="readme-for-coding-agents">For coding agents</h3>
 <p><code>mib_lookup</code> (read, Fenix 1.1) gives your coding agents the MIBs here:
@@ -197,8 +269,10 @@ several, the best is answered in full and the next twenty are listed.</p>
 <ul class="tight">
 <li><p>Know where you are, and type into the file you&#39;re in (the insert form,
 <code>SPC k e</code>).</p></li>
-<li><p>Read the project, and write what it generates into its <code>generated/</code>.</p></li>
-<li><p>Read and change the MIB folders <code>mib.roots</code> names.</p></li>
+<li><p>Read the project (to find its MIBs), and write what it generates into
+its <code>generated/</code>.</p></li>
+<li><p>Read and change the MIB folders <code>mib.roots</code> names, and add a folder to
+your <code>mib.roots</code> when you open one with &quot;another folder…&quot;.</p></li>
 <li><p>Read the CCSDS settings.</p></li>
 </ul>
 </section>
@@ -207,6 +281,7 @@ several, the best is answered in full and the next twenty are listed.</p>
 <div class="table"><table>
 <thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
 <tbody>
+<tr><th scope="row">1.5.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>645 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.5.0/fenix.mib-1.5.0.fenixext">Download<span class="visually-hidden"> 1.5.0</span></a><code class="sha" title="SHA-256 7c279b6388bb301622287e46ed21c724a5d2ce804f776905ce6e18b71baa91a4">7c279b6388…</code></td></tr>
 <tr><th scope="row">1.4.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>615 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.4.0/fenix.mib-1.4.0.fenixext">Download<span class="visually-hidden"> 1.4.0</span></a><code class="sha" title="SHA-256 9a6d9364bed739a52adb77f70738e4dcc0ff2c7715d0deb49bfb1900d4d94468">9a6d9364be…</code></td></tr>
 <tr><th scope="row">1.3.0</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.5</td><td>612 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.3.0/fenix.mib-1.3.0.fenixext">Download<span class="visually-hidden"> 1.3.0</span></a><code class="sha" title="SHA-256 6fd32ef379efabe957053c57c2704fbf429221f332493a9b3e21c37488866e6a">6fd32ef379…</code></td></tr>
 <tr><th scope="row">1.2.2</th><td><code>&gt;=1.1, &lt;2</code></td><td>1.0</td><td>612 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/mib-v1.2.2/fenix.mib-1.2.2.fenixext">Download<span class="visually-hidden"> 1.2.2</span></a><code class="sha" title="SHA-256 bb250653e2c0a58d83d2d3042b69feef8b17cb416cd4dd71690419b32404def1">bb250653e2…</code></td></tr>
@@ -219,6 +294,44 @@ several, the best is answered in full and the next twenty are listed.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-150">1.5.0</h3>
+<p>How MIBs are found and opened.</p>
+<ul class="tight">
+<li><p><strong>A MIB in your project is found.</strong> A folder of <code>.dat</code> tables anywhere
+in the project -- <code>db/ops/</code>, <code>mission/mib/</code>, not only its top or <code>mib/</code>
+-- is found with nothing to set: a project with one MIB in it just
+works, <code>SPC k k</code> shows it. Hidden folders, build output, dependencies,
+<code>generated/</code> and what <code>.gitignore</code> names are left out; <code>mib/</code> and the
+top are always looked at, links followed, as before.</p></li>
+<li><p><strong>Nothing is guessed.</strong> When several MIBs are found and none of them is
+the project&#39;s <code>mib/</code> or its top, none is used until you pick one: the
+MIB page, the doctor and a word as it starts say how many were found.
+One found among tests, fixtures, samples or vendored code is never
+used unpicked.</p></li>
+<li><p><strong><code>SPC k o</code> opens a MIB</strong>: every one known here -- found in the
+project, named in its settings or yours -- with what&#39;s in it. Picking
+one opens its page, and <code>K</code>, <code>gd</code>, completion, the checks, the insert
+form, the pickers, agents&#39; <code>mib_lookup</code> and the CCSDS extension&#39;s
+packets use it in this project from then on, the next session too.
+It&#39;s kept by the extension, not written in the project&#39;s settings. <code>M</code>
+on the MIB page does the same, and its header says where the MIB is
+from and how many there are.</p></li>
+<li><p><strong>Another folder…</strong> in <code>SPC k o</code> opens a MIB by its path: one of the
+project&#39;s is picked, found or not; one elsewhere is added to your
+<code>mib.roots</code> for you, named after its folder, and its page opens as
+soon as Fenix gives the extension the folder. A home folder, the top
+of a disk, or a folder with no MIB tables is refused.</p></li>
+<li><p><strong>A MIB is no longer a project.</strong> What the MIB extension did as if
+the project were a MIB is now done for the MIBs found in it: the
+project doctor checks the MIB in use wherever it is in the project,
+and names the project&#39;s other MIBs. It works the same on a Fenix that
+still makes a MIB folder its own project and on one where the
+repository is the project.</p></li>
+<li><p>Unchanged when your settings name MIBs: those are still used together
+until you pick one with <code>SPC k o</code>, and &quot;all of them together&quot; there
+goes back. <code>mib/</code> and the project&#39;s top are still called by the
+project&#39;s name. <code>SPC k D</code> compares any two MIBs known here.</p></li>
+</ul>
 <h3 id="changelog-140">1.4.0</h3>
 <ul class="tight">
 <li><p>The hints that named a leader sequence (<code>SPC k k</code>, <code>SPC k e</code>, <code>SPC k ,</code>,

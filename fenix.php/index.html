@@ -152,6 +152,8 @@ namespace you give, strict types, PHPUnit with a data provider, and
 <tr><td><code>php.phpstan</code></td><td>on</td><td>PHPStan on a saved file</td></tr>
 </tbody>
 </table></div>
+<h3 id="readme-project-kind">Project kind</h3>
+<p>Fenix 1.6 and later know a PHP project (<code>PHP</code>): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a <code>composer.json</code> or an <code>artisan</code> at its top, and opened on <code>public/index.php</code> or <code>index.php</code> when you&#39;ve had none of its files open. <code>kind = &quot;php&quot;</code> in <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino (a Laravel app with a <code>package.json</code> stays <code>JS</code>) stays that one until <code>kind = &quot;php&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in <code>extension.toml</code> (<code>[[contributes.project_kinds]]</code>); the pack&#39;s context markers say when the pack applies, and are not the same list.</p>
 <h3 id="readme-keys">Keys</h3>
 <p>After <code>SPC m</code> in a PHP project or file (<code>C-k m</code> with standard keys): <code>d</code>
 checks the project again, <code>i</code> runs <code>composer install</code>.</p>
@@ -175,6 +177,10 @@ directives.</p></li>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-120">1.2.0</h3>
+<ul class="tight">
+<li><p>Fenix 1.6 and later show a project with a <code>composer.json</code> or an <code>artisan</code> at its top as a PHP project (<code>PHP</code>), in the project hub, on Home, in the modeline and in the doctor, and open it on <code>public/index.php</code> or <code>index.php</code> when you&#39;ve had none of its files open; <code>kind = &quot;php&quot;</code> in a project&#39;s <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino (a Laravel app with a <code>package.json</code> stays <code>JS</code>) stays that one until <code>kind = &quot;php&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Fenix 1.5 ignores all this and the pack works there as before: it&#39;s only data in the manifest, so it needs no newer Fenix and no newer API.</p></li>
+</ul>
 <h3 id="changelog-110">1.1.0</h3>
 <ul class="tight">
 <li><p>For Fenix 1.5 (extension API 1.5): how installing Phpactor ended is a
