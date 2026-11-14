@@ -30,7 +30,7 @@ editor = "read"
 # `agenda.open_task`, `agenda.sync_quietly`). It asks trackers for their
 # issues through the tracker seam (plans/tracker-seam.md):
 # `<tracker>.tracker.*`, which they serve.
-services = ["agenda.tasks", "agenda.clock_in", "agenda.clock_out", "agenda.timer", "agenda.add_issue", "agenda.linked", "agenda.open_task", "agenda.sync_quietly", "agenda.due", "agenda.add_task"]
+services = ["agenda.tasks", "agenda.clock_in", "agenda.clock_out", "agenda.timer", "agenda.add_issue", "agenda.linked", "agenda.open_task", "agenda.sync_quietly", "agenda.due", "agenda.add_task", "agenda.tracker_changed"]
 events = ["active"]
 
 [[contributes.commands]]

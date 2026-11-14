@@ -31,6 +31,8 @@ pub struct Comment {
 /// A single issue's full detail (`GET /rest/api/2/issue/{key}`).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct IssueDetail {
+    /// Jira's numeric id: unlike the key, it stays when the issue moves.
+    pub id: String,
     pub key: String,
     pub summary: String,
     pub description: Option<String>,
@@ -93,6 +95,14 @@ pub fn build_keys_jql(keys: &[String]) -> String {
     format!("key IN ({})", quoted.join(","))
 }
 
+/// Exactly these issues, by numeric id and by key: `id IN (...) OR key IN
+/// (...)`, either left out when it has none.
+pub fn build_ids_and_keys_jql(ids: &[String], keys: &[String]) -> String {
+    let ids = (!ids.is_empty()).then(|| format!("id IN ({})", ids.join(",")));
+    let keys = (!keys.is_empty()).then(|| build_keys_jql(keys));
+    ids.into_iter().chain(keys).collect::<Vec<_>>().join(" OR ")
+}
+
 /// The project a key belongs to (`PROJ-12` -> `PROJ`).
 pub fn project_of(key: &str) -> &str {
     key.rsplit_once('-').map_or(key, |(project, _)| project)
@@ -136,6 +146,17 @@ impl JiraClient {
         let max_results = max_results.to_string();
         let fields = detail_fields(flag_field);
         let body = self.request("/rest/api/2/search", &[("jql", jql), ("maxResults", &max_results), ("fields", &fields)]).await?;
+        let issues = body.get("issues").and_then(|v| v.as_array()).ok_or_else(|| "unexpected search response shape".to_string())?;
+        Ok(issues.iter().filter_map(|v| parse_issue_detail(v, flag_field)).collect())
+    }
+
+    /// `search_details` without Jira validating the query: a key that
+    /// doesn't exist (any more) is left out rather than failing the
+    /// search (`validateQuery=false`).
+    pub async fn search_details_lenient(&self, jql: &str, max_results: u32, flag_field: Option<&str>) -> Result<Vec<IssueDetail>, String> {
+        let max_results = max_results.to_string();
+        let fields = detail_fields(flag_field);
+        let body = self.request("/rest/api/2/search", &[("jql", jql), ("maxResults", &max_results), ("fields", &fields), ("validateQuery", "false")]).await?;
         let issues = body.get("issues").and_then(|v| v.as_array()).ok_or_else(|| "unexpected search response shape".to_string())?;
         Ok(issues.iter().filter_map(|v| parse_issue_detail(v, flag_field)).collect())
     }
@@ -219,6 +240,7 @@ fn parse_comment(v: &serde_json::Value) -> Option<Comment> {
 }
 
 fn parse_issue_detail(v: &serde_json::Value, flag_field: Option<&str>) -> Option<IssueDetail> {
+    let id = v.get("id").and_then(|i| i.as_str()).unwrap_or_default().to_string();
     let key = v.get("key")?.as_str()?.to_string();
     let fields = v.get("fields")?;
     let comments = fields
@@ -228,6 +250,7 @@ fn parse_issue_detail(v: &serde_json::Value, flag_field: Option<&str>) -> Option
         .map(|arr| arr.iter().filter_map(parse_comment).collect())
         .unwrap_or_default();
     Some(IssueDetail {
+        id,
         key,
         summary: text_field(fields, "summary").unwrap_or_default(),
         description: text_field(fields, "description"),

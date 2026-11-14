@@ -2,9 +2,10 @@
 
 ## 1.3.0
 
-Nothing changes for you if you use Jira: your linked tasks, their
-moves, what Blocked means in each project, comments, worklogs and the
-new-issue form work as they did, with the Jira extension 1.2 or 1.3.
+If you use Jira, your linked tasks, their moves, what Blocked means in
+each project, comments, worklogs and the new-issue form work as they
+did, with the Jira extension 1.2 or 1.3 -- except that, with Jira 1.3,
+the first change of a session asks you to allow it (below).
 
 - The agenda now talks to Jira the way it will talk to every tracker,
   so GitHub Issues, GitLab Issues and Linear can link your tasks too
@@ -15,8 +16,19 @@ new-issue form work as they did, with the Jira extension 1.2 or 1.3.
 - What a tracker sends is shown as text, cleaned of control characters
   and capped in size; a description too long to keep isn't written back
   over the tracker's.
-- A linked task whose only issue was deleted is marked "not found"
-  instead of failing the sync.
+- A linked task whose issue was deleted is marked "not found" instead of
+  failing the sync; one whose issue moved follows it to its new key.
+- A change whose answer never came (a slow tracker) isn't sent again by
+  itself, so a comment or a worklog can't go twice: the task says it may
+  have been made, and `r` asks whether to send it again.
+- A change the tracker doesn't take is dropped with a message, and the
+  task's other changes still go.
+- The first change it sends Jira in a session, Jira asks you to allow
+  (Fenix doesn't tell Jira who's asking); `jira.seam_writes = always`
+  stops it asking.
+- A tracker you've just set up is ready at once; the agenda only wakes
+  the trackers your tasks are linked to when Fenix starts.
+- `A` on a linked task offers "Nobody (unassign)".
 - Command names say "your tracker" where they said Jira.
 
 ## 1.2.0

@@ -32,9 +32,23 @@ pub struct WorklogRow {
 }
 
 impl AgendaStore {
-    /// The task linked to tracker `tracker`'s issue `key`.
+    /// The task linked to tracker `tracker`'s issue `key` (a ref or an id).
     pub fn find_by_key(&self, tracker: &str, key: &str) -> Option<TaskId> {
         self.tasks.iter().find(|t| t.link.as_ref().is_some_and(|l| l.is(tracker, key))).map(|t| t.id)
+    }
+
+    /// The task linked to `tracker`'s issue with id `id` and ref `key`:
+    /// by id, or by ref for a link that doesn't know its id yet.
+    pub fn find_issue(&self, tracker: &str, id: &str, key: &str) -> Option<TaskId> {
+        self.tasks.iter().find(|t| t.link.as_ref().is_some_and(|l| l.is_issue(tracker, id, key))).map(|t| t.id)
+    }
+
+    /// The issue's id and current ref, as an answer gave them.
+    pub fn rekey(&mut self, task: TaskId, id: &str, key: &str) {
+        if let Some(link) = self.task_mut(task).and_then(|t| t.link.as_mut()) {
+            link.id = Some(id.to_string());
+            link.key = key.to_string();
+        }
     }
 
     /// The task linked to issue `key` in any tracker, the first found --
@@ -48,6 +62,11 @@ impl AgendaStore {
     /// priority replace the task's own. A local description that would be
     /// lost is kept as a note, so linking never throws anything away.
     pub fn link(&mut self, id: TaskId, tracker: &str, key: String, update: RemoteUpdate) {
+        self.link_with_id(id, tracker, None, key, update);
+    }
+
+    /// `link`, knowing the issue's id.
+    pub fn link_with_id(&mut self, id: TaskId, tracker: &str, issue: Option<String>, key: String, update: RemoteUpdate) {
         let Some(task) = self.task(id) else { return };
         let old_description = task.description.trim().to_string();
         if !old_description.is_empty() && old_description != update.snapshot.description.trim() {
@@ -69,6 +88,8 @@ impl AgendaStore {
             task.link = Some(IssueLink {
                 tracker: tracker.to_string(),
                 key,
+                id: issue,
+                unknown: false,
                 base: update.snapshot,
                 last_synced: Some(now),
                 error: None,
@@ -81,9 +102,9 @@ impl AgendaStore {
     }
 
     /// A new task tracking `tracker`'s issue `key`, filed under `category`.
-    pub fn create_linked(&mut self, tracker: &str, key: String, update: RemoteUpdate, category: Option<String>) -> TaskId {
+    pub fn create_linked(&mut self, tracker: &str, issue: Option<String>, key: String, update: RemoteUpdate, category: Option<String>) -> TaskId {
         let id = self.create_task(update.snapshot.summary.clone(), String::new(), update.priority, category);
-        self.link(id, tracker, key, update);
+        self.link_with_id(id, tracker, issue, key, update);
         id
     }
 
@@ -105,7 +126,8 @@ impl AgendaStore {
         }
         let op_id = self.next_op_id;
         self.next_op_id += 1;
-        self.outbox.push(PendingOp { id: op_id, task: id, kind });
+        let uid = format!("agenda:{}:{op_id}", crate::clock::now().timestamp_millis());
+        self.outbox.push(PendingOp { id: op_id, task: id, kind, uid });
     }
 
     pub fn pending_for(&self, id: TaskId) -> impl Iterator<Item = &PendingOp> {
@@ -142,13 +164,21 @@ impl AgendaStore {
 
     /// The tracker refused op `op_id`, or never heard it: keep it, and
     /// say why on its task. A `transient` failure is tried again by the
-    /// next timed sync.
-    pub fn op_failed(&mut self, op_id: u64, error: String, transient: bool) {
+    /// next timed sync; an `unknown` one -- no answer came, it may have
+    /// been made -- never by itself.
+    pub fn op_failed(&mut self, op_id: u64, error: String, transient: bool, unknown: bool) {
         let Some(task) = self.outbox.iter().find(|op| op.id == op_id).map(|op| op.task) else { return };
         if let Some(link) = self.task_mut(task).and_then(|t| t.link.as_mut()) {
             link.error = Some(error);
-            link.transient = transient;
+            link.transient = transient && !unknown;
+            link.unknown = unknown;
         }
+    }
+
+    /// The op holding task `id` back: its first, when its last send
+    /// failed.
+    pub fn held_op(&self, id: TaskId) -> Option<&PendingOp> {
+        self.outbox.iter().find(|op| op.task == id)
     }
 
     /// Drops op `op_id` without sending it -- a status change whose
@@ -162,6 +192,7 @@ impl AgendaStore {
         if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
             link.error = None;
             link.transient = false;
+            link.unknown = false;
         }
     }
 
@@ -169,6 +200,7 @@ impl AgendaStore {
         if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
             link.error = error;
             link.transient = false;
+            link.unknown = false;
         }
     }
 
@@ -528,7 +560,7 @@ mod tests {
         let (mut store, id) = linked();
         store.enqueue(id, OpKind::AddComment("hi".to_string()));
         let op = store.next_op(|_| true).unwrap().id;
-        store.op_failed(op, "HTTP 403".to_string(), false);
+        store.op_failed(op, "HTTP 403".to_string(), false, false);
         assert!(store.next_op(|_| true).is_none());
         assert_eq!(store.task(id).unwrap().link.as_ref().unwrap().error.as_deref(), Some("HTTP 403"));
 
