@@ -4489,6 +4489,40 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/swift-v1.2.0/fenix.swift-1.2.0.fenixext",
+          "sha256": "14fe092b522a3286a8538025a20756de0947a1780cfde6f0151868f68f1280f8",
+          "size": 642674,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "swift",
+              "sourcekit-lsp",
+              "swift-format",
+              "swiftformat",
+              "swiftlint",
+              "xcrun",
+              "brew",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Swift",
