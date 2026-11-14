@@ -49,18 +49,17 @@ markers = ["flake.nix", "shell.nix", "default.nix"]
 languages = ["nix"]
 
 # The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
-# ignores it, and the pack still installs there). Only flake.nix: a flake is
-# a Nix project's own manifest. shell.nix and default.nix are what other
-# languages' projects have for a dev shell or a package, and a kind's markers
-# win over every other pack's kind, by the packs' ids, so they'd make a Ruby
-# or Terraform project a Nix one. Fenix's own kinds come first anyway: a Rust
-# project with a flake stays Rust.
+# ignores it, and the pack still installs there). Declared only: a flake.nix,
+# shell.nix or default.nix is far more often an accessory of another project (a
+# dev shell, a package) than the project itself, and a kind's markers win over
+# other packs' kinds, so any of them would relabel a Ruby, PHP or Terraform
+# project that merely carries one. `kind = "nix"` in .fenix/settings.toml says
+# a project is Nix.
 [[contributes.project_kinds]]
 id = "nix"
 name = "Nix"
 tag = "NIX"
 color = "variable"
-markers = ["flake.nix"]
 main = ["flake.nix", "default.nix"]
 
 [[contributes.commands]]

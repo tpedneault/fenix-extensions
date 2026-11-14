@@ -394,15 +394,20 @@ fn strings_of(a: &[toml::Value]) -> Vec<String> {
 }
 
 #[test]
-fn the_project_kind_is_the_flake_alone() {
+fn the_project_kind_is_declared_only() {
     let m = manifest();
     let kinds = m["contributes"]["project_kinds"].as_array().unwrap();
     assert_eq!(kinds.len(), 1);
     let k = &kinds[0];
     assert_eq!((k["id"].as_str(), k["tag"].as_str(), k["name"].as_str()), (Some("nix"), Some("NIX"), Some("Nix")));
-    // shell.nix and default.nix are what other languages' projects have too: their kinds
-    // would be overruled by this one (packs' kinds are ordered by id), so they're
-    // the context's, which only says when the pack loads.
-    assert_eq!(strings_of(k["markers"].as_array().unwrap()), ["flake.nix"]);
+    // A flake.nix, shell.nix or default.nix is usually another project's dev shell or
+    // package, and a kind's markers win over other packs' kinds (ordered by id): none
+    // is one, so `kind = "nix"` says it. They're the context's, which only loads the pack.
+    assert!(k.get("markers").is_none(), "declared only");
     assert_eq!(strings_of(k["main"].as_array().unwrap()), ["flake.nix", "default.nix"]);
+    // Templates stay `other`: a kind of the pack's own would need Fenix 1.6.
+    for t in ["nix-flake", "nixos-module"] {
+        let text = std::fs::read_to_string(dir("templates").join(t).join("template.toml")).unwrap();
+        assert!(text.contains("kind = \"other\""), "{t}");
+    }
 }
