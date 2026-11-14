@@ -25,12 +25,14 @@ secrets = ["jira.token"]
 editor = "read"
 
 [contributes]
-# The tracker seam the agenda calls (`jira.tracker.*`); and, for the
-# agenda 1.2 from before it, the four it called then.
+# The tracker seam the agenda calls (`fenix.jira.tracker.*`, named by
+# its full id); and, for the agenda 1.2 from before it, the four it
+# called then -- jira.request deprecated, gone at 2.0.
 services = [
-    "jira.tracker.about", "jira.tracker.assigned", "jira.tracker.issues", "jira.tracker.transitions",
-    "jira.tracker.transition", "jira.tracker.update", "jira.tracker.priorities", "jira.tracker.people",
-    "jira.tracker.comment", "jira.tracker.worklog", "jira.tracker.create", "jira.tracker.remember",
+    "fenix.jira.tracker.about", "fenix.jira.tracker.assigned", "fenix.jira.tracker.issues",
+    "fenix.jira.tracker.transitions", "fenix.jira.tracker.transition", "fenix.jira.tracker.update",
+    "fenix.jira.tracker.priorities", "fenix.jira.tracker.people", "fenix.jira.tracker.comment",
+    "fenix.jira.tracker.worklog", "fenix.jira.tracker.create", "fenix.jira.tracker.remember",
     "jira.request", "jira.config", "jira.set_blocked", "jira.new_issue",
 ]
 
@@ -98,3 +100,11 @@ kind = "map"
 columns = ["Jira priority", "Agenda priority"]
 label = "Priority names"
 description = "How a Jira priority maps onto the agenda's."
+
+[[contributes.settings]]
+key = "jira.seam_writes"
+kind = "choice"
+choices = ["ask", "always", "never"]
+label = "Changes from the agenda"
+description = "Whether the agenda (or any extension using the tracker seam) may change your issues: ask once a session, always, or never."
+default = "ask"
