@@ -1,0 +1,3 @@
+{"kind":"DaemonSetList","apiVersion":"apps/v1","metadata":{"resourceVersion":"48211"},"items":[
+{"metadata":{"name":"node-exporter","namespace":"shop","uid":"6b6b6b6b-0000-4000-8000-000000000004","creationTimestamp":"2026-09-20T00:00:00Z"},"spec":{"selector":{"matchLabels":{"app":"node-exporter"}},"template":{"metadata":{"labels":{"app":"node-exporter"}},"spec":{"containers":[{"name":"exporter","image":"prom/node-exporter:v1.8.2"}]}}},"status":{"currentNumberScheduled":2,"desiredNumberScheduled":2,"numberReady":2,"numberAvailable":2}}
+]}

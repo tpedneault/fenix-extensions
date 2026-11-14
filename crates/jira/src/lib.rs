@@ -16,4 +16,4 @@ pub mod tracker;
 pub use actions::{Priority, StatusInfo, Transition};
 pub use client::{JiraClient, Reply, Transport};
 pub use create::{CreateField, IssueType, NewIssue};
-pub use issue::{build_keys_jql, build_my_open_issues_jql, project_of, Comment, IssueDetail, IssueSummary};
+pub use issue::{build_ids_and_keys_jql, build_keys_jql, build_my_open_issues_jql, project_of, Comment, IssueDetail, IssueSummary};

@@ -1,0 +1,20 @@
+//| mill-version: 1.0.4
+package build
+
+import mill._, scalalib._
+
+object core extends ScalaModule {
+  def scalaVersion = "3.7.3"
+  def ivyDeps = Agg(ivy"org.typelevel::cats-core:2.13.0")
+
+  object test extends ScalaTests with TestModule.Munit {
+    def ivyDeps = Agg(ivy"org.scalameta::munit:1.0.2")
+  }
+}
+
+object app extends SbtModule {
+  def scalaVersion = "3.7.3"
+  def moduleDeps = Seq(core)
+}
+
+trait Shared extends Module

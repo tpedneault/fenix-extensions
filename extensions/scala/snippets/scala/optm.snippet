@@ -1,0 +1,8 @@
+# name: match on an Option
+# key: optm
+# scope: scala
+# --
+${1:opt} match
+  case Some(${2:value}) => ${3:value}
+  case None => ${4:default}
+$0

@@ -1,0 +1,9 @@
+# name: sbt: a project
+# key: sbtproj
+# scope: scala
+# --
+lazy val ${1:core} = (project in file("${2:core}"))
+  .settings(
+    name := "${3:core}"
+  )
+$0

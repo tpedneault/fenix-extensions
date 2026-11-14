@@ -1,8 +1,8 @@
 [extension]
 id = "fenix.lab-bundle"
 name = "Lab"
-version = "1.0.0"
-description = "Arduino, containers, VNC"
+version = "1.1.0"
+description = "Arduino, containers, Kubernetes, VNC"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tpedneault/fenix-extensions"
@@ -12,9 +12,12 @@ categories = ["tools"]
 runtime = "bundle"
 
 [engine]
-fenix = ">=1.0, <2"
+# Kubernetes has no release for an older Fenix, and Fenix installs a
+# bundle's members or none: an older Fenix keeps 1.0.0, without it.
+fenix = ">=1.5, <2"
 
 [dependencies]
 "fenix.containers" = "^1"
+"fenix.kubernetes" = "^1"
 "fenix.arduino" = "^1"
 "fenix.vnc" = "^1"

@@ -1,0 +1,24 @@
+Kubernetes   context kind-dev (kubeconfig's current, read 12:00)   namespace shop       kubectl v1.37.2 · server v1.30.4
+1 Workloads 6   2 Pods 7   3 Network 3   4 Secrets 0   5 Forwards 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+service/web 8080:80   localhost:8080 → 80  in kind-dev/shop
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+s stop  o open  Enter output  r reload  c context  n namespace  1-5 tabs

@@ -1,0 +1,7 @@
+# name: given instance (Scala 3)
+# key: given
+# scope: scala
+# --
+given ${1:Show}[${2:Int}] with
+  def ${3:show}(a: $2): String = ${4:a.toString}
+$0

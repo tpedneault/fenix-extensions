@@ -1,0 +1,3 @@
+{"kind":"JobList","apiVersion":"batch/v1","metadata":{"resourceVersion":"48211"},"items":[
+{"metadata":{"name":"migrate-29384520","namespace":"shop","uid":"7c7c7c7c-0000-4000-8000-000000000005","creationTimestamp":"2026-11-14T11:00:00Z","ownerReferences":[{"apiVersion":"batch/v1","kind":"CronJob","name":"migrate","uid":"8d8d8d8d-0000-4000-8000-000000000006","controller":true}]},"spec":{"completions":1,"parallelism":1,"selector":{"matchLabels":{"batch.kubernetes.io/controller-uid":"7c7c7c7c-0000-4000-8000-000000000005"}}},"status":{"succeeded":1,"conditions":[{"type":"Complete","status":"True"}],"startTime":"2026-11-14T11:00:00Z","completionTime":"2026-11-14T11:00:42Z"}}
+]}
