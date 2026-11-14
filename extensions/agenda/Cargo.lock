@@ -87,6 +87,7 @@ version = "1.3.0"
 dependencies = [
  "chrono",
  "fenix-extension-api",
+ "fenix-forge",
  "fenix-jira-client",
  "fenix-test-kit",
  "fenix-tracker",
@@ -105,6 +106,15 @@ dependencies = [
  "serde",
  "serde_json",
  "wit-bindgen",
+]
+
+[[package]]
+name = "fenix-forge"
+version = "1.1.0"
+dependencies = [
+ "fenix-tracker",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

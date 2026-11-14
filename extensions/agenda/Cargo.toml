@@ -25,6 +25,8 @@ serde_json = "1"
 fenix-test-kit = { path = "../../crates/test-kit" }
 # The Jira seam run on recorded responses, beside the old path.
 futures-executor = "0.3"
+# GitHub's and GitLab's seams, run on written responses.
+fenix-forge = { path = "../../crates/forge", features = ["tracker"] }
 
 [profile.release]
 opt-level = "s"

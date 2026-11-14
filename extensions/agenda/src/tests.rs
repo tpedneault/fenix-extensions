@@ -21,6 +21,9 @@ use crate::page::Action as A;
 use crate::trackers::{Tracker, KNOWN};
 use crate::Agenda;
 
+/// GitHub Issues and GitLab Issues, their seams on written responses.
+mod forges;
+
 /// What no payload the agenda sends may hold.
 const TOKEN: &str = "NjQ1MzIxOTg3NjU0OlRPS0VO-secret";
 
