@@ -7,9 +7,9 @@ buffer -- and the changes you make, each one asked about first.
 
 `SPC o k k` opens it (with standard keys, `Ctrl+K o k k`). It drives
 `kubectl`, which has to be installed: the extension never talks to the
-API server itself and never reads kubeconfig's credentials -- kubectl
-does both, as it does in your terminal, with your kubeconfig, your
-`KUBECONFIG` and your login plugins.
+API server itself, never reads kubeconfig's credentials, and **never
+changes kubeconfig** -- kubectl does the talking, as it does in your
+terminal, with your kubeconfig, your `KUBECONFIG` and your login plugins.
 
 The tutorial (`SPC h T`) has a lesson on it, under **Kubernetes**: the
 page, choosing a context, a pod's log, and how a change is asked. Without
@@ -17,26 +17,38 @@ a cluster, `s` on the tutorial page skips the steps that need one.
 
 ## Contexts and namespaces
 
-The page's top line says where you are: the context, the namespace, and
-whether that context is protected (below).
+The page's top line says where you are: the context, where it comes from,
+whether it's protected (below), and the namespace.
+
+**Every kubectl call names its context** (`--context=<it>`) and
+namespace. Until you choose, the context is kubeconfig's current one as
+read when the page last asked (`kubeconfig's current, read 12:04`; `r`
+reads kubeconfig again). With no current context -- or a kubeconfig
+kubectl can't read -- **nothing runs**: no list, log, shell, forward,
+describe or agent tool; the page says so and `c` chooses one. If
+kubeconfig, or `kubernetes.kubectl`, changes which cluster that is,
+everything listed goes and any question with it, so nothing of the old
+cluster is shown under the new name.
 
 **Choosing a context here changes nothing anywhere else.** `c` (or
 `Kubernetes: choose the context`) picks one of kubeconfig's contexts for
-this project: from then on every kubectl the extension runs says
-`--context=<it>` and `--namespace=<it>`. kubeconfig isn't written, so
-your terminal, your other projects and every other tool stay where they
-were. It's kept with the page's state for the project's session, and
-`kubernetes.context` and `kubernetes.namespace` -- settings a project may
-set in its `.fenix/settings.toml` -- pin them for a project for good.
-Until you choose, it's kubeconfig's current context, said as
-`(kubeconfig's)`, and named explicitly on every call all the same, so a
-change asked about in one context can't land in another if kubeconfig
-changes under it.
+this project; kubeconfig isn't written, so your terminal, your other
+projects and every other tool stay where they were. The choice is kept
+with the page's state for the project's session. Names are read from
+`kubectl config view -o json` and used exactly as written: `"prod "` and
+`"prod"` are two contexts. One whose name holds a tab or a newline is left
+out, and said.
 
-**Switching kubeconfig itself** -- `kubectl config use-context`, which
-every tool that reads kubeconfig follows -- is a command of its own:
-`Kubernetes: switch kubeconfig's current context, for every tool`
-(`SPC o k u`). It says so when it's done.
+There's no command to switch kubeconfig's own current context: `kubectl
+config use-context` in a terminal does that.
+
+**Suggested contexts.** `kubernetes.context` and `kubernetes.namespace`
+suggest a context and namespace for a project, and a project may set them
+in its `.fenix/settings.toml`. Fenix doesn't tell an extension whether a
+value is yours or the project's, nor whether the project is trusted, so a
+suggestion is only shown -- *u uses the suggested context …* -- and
+nothing uses it, agents included, until you press `u`. A repository you
+clone can't point the page, or your agents, at one of your clusters.
 
 `n` picks a namespace, or **All namespaces**; if your account may not
 list namespaces, it asks you to type one.
@@ -53,16 +65,15 @@ list namespaces, it asks you to type one.
 | `!` | A shell in the pod: `kubectl exec -it`, in a terminal; which container, when it has several |
 | `f` | A port-forward to the pod or the service (`local:remote`) |
 | `i` | Its YAML, read-only, in a buffer |
-| `e` | Its YAML in a buffer to edit and apply (below) |
 | `D` | `kubectl describe`, in a buffer |
 | `y` | Copy its name |
 | `x` | Delete the pod -- asked first |
 | `R` | Restart a deployment, statefulset or daemonset (`rollout restart`) -- asked first |
 | `S` | Scale a deployment or statefulset -- how many, then asked |
-| `c`, `n` | The context, the namespace |
+| `c`, `n`, `u` | The context, the namespace; take the suggested ones |
 | `/` | Filter by name |
 | `+` | List more of a kind cut at its cap |
-| `r` | Ask again (and whether the cluster answers) |
+| `r` | Ask again: kubeconfig, whether the cluster answers, the tab |
 
 On the Forwards tab: `s` stops the one under the cursor, `o` opens
 `http://localhost:<port>/`, `Enter` shows its output.
@@ -78,14 +89,20 @@ again every `kubernetes.refresh_seconds` (10); when it's hidden or
 closed, nothing is asked. A failure -- an expired login, a cluster that
 doesn't answer -- is shown with kubectl's own words (and a hint when they
 make one plain), and **nothing is asked again until you press `r`**: no
-retry storm, no login plugin started every ten seconds. Every kubectl
-call that reads or changes something gives up after 20 seconds (a log,
-a shell and a port-forward run until stopped).
+retry storm, no login plugin started every ten seconds.
+
+**A watchdog** stops any kubectl call that isn't a stream after 20 to 30
+seconds without an answer -- most often a login plugin waiting for you
+in a browser or on a device code, which kubectl's own
+`--request-timeout` doesn't bound -- and says what was waiting. `r`
+always works: it gives up whatever is still being waited for and asks
+again.
 
 ## Logs
 
 `l` opens a log page, following the pod's log as it's written (the last
-200 lines, then what comes; the last 5,000 kept). On it:
+200 lines, then what comes; the last 5,000 kept, each cut at 16 KiB). On
+it:
 
 | Key | What it does |
 | --- | --- |
@@ -98,8 +115,10 @@ a shell and a port-forward run until stopped).
 | `o` | Open what's shown in a buffer |
 | `j` `k` `g` `G` | Scroll; `G` (or `F`) follows the end again |
 
-Closing the page stops kubectl. A stream that ends by itself (the pod
-went) says why and isn't started again.
+Changing how it's read starts a new stream; the old one is stopped and
+whatever it still says goes nowhere. Closing the page stops kubectl. A
+stream that ends by itself (the pod went) says why and isn't started
+again.
 
 ## Changes
 
@@ -108,49 +127,42 @@ a question that names **the context and the namespace**: `x` on a pod
 shows *Delete pod web-1? context kind-dev, namespace shop*, and only
 `y` does it -- any other key is no. `S` asks how many replicas, then asks;
 the scale goes with `--current-replicas`, so if someone changed it in
-between, it fails rather than overwrites.
+between, it fails rather than overwrites. A question goes when the
+context changes, and `y` is refused if the context became protected
+since it was asked.
 
-**Protected contexts.** `kubernetes.protected` names contexts where a
-change needs more: the object's name **typed**, in place of `y`
-(`kubernetes.protected_mode = "type-name"`), or no change at all
-(`"refuse"`; kubectl in a terminal still can). Its default is `*prod*`
--- any context with `prod` in its name, `PROD` or `production` too. It
-isn't empty because the costs aren't even: a context protected by
-mistake costs typing a name; a production context left unprotected
-costs an outage from a stray `y`. Empty it to protect none, or name your
-own (`eks-*-live, *@main`). A protected context is red on the page and
-says `protected`.
+**Every context is protected by default, except clearly local ones.** A
+change in a protected context needs the object's name **typed** in place
+of `y` (`kubernetes.protected_mode = "type-name"`), or isn't made at all
+(`"refuse"`; kubectl in a terminal still can). A context is unprotected
+only when its name, or its cluster's name in kubeconfig, is a local
+cluster's -- `kind-*`, `minikube`, `docker-desktop`, `rancher-desktop`,
+`k3d-*`, `colima`, `orbstack` -- or its cluster's server is this machine
+(`localhost`, `127.x.x.x`, `::1`). Why: production contexts often say
+nothing about it -- EKS names them by ARN, GKE as
+`gke_<project>_<zone>_<cluster>` -- so a pattern like `*prod*` misses
+them, and the costs aren't even: typing a name on a cluster that didn't
+need it costs seconds, a stray `y` on production costs an outage.
 
-### Applying an edited YAML
+- `kubernetes.unprotected` exempts your own dev clusters by name
+  (context or cluster: `dev-*`).
+- `kubernetes.protected` protects by name whatever else matches -- a
+  tunnel to production on `localhost`, for one, which would otherwise
+  look local.
 
-`e` opens the object's YAML (as `kubectl get -o yaml` gives it) in a
-buffer to edit. `Kubernetes: apply the YAML buffer` (`SPC o k a`) then:
-
-1. reads the buffer once -- that text is what's checked and what's
-   applied; an edit after needs `r` on the apply page;
-2. runs `kubectl apply --dry-run=server`: the API server checks it and
-   says what it would make. It must be the one object the buffer was
-   opened from, its kind, name and namespace -- not another, not several;
-3. runs `kubectl diff` and shows it;
-4. `a` asks (naming the context and the namespace, or wanting the name
-   typed in a protected context), and `y` applies.
-
-The YAML keeps the `resourceVersion` it was read with, so if the object
-changed since, the API server refuses the apply instead of losing the
-other change. A buffer opened in one context isn't applied in another.
-`kubectl diff` runs `diff` itself (or `KUBECTL_EXTERNAL_DIFF`): on a
-machine without one, it says so and nothing is applied.
+A protected context is red on the page and says `protected`; the context
+picker says which are.
 
 ## Secrets
 
 The Secrets tab lists them from kubectl's own table -- name, type, how
 many keys, age -- so their data is never fetched to be listed. `i` shows
-one's YAML with **its keys and not their values**: each value is replaced
-by its length, and the `last-applied-configuration` annotation, which
-copies them, is hidden too. There's no reveal key: `kubectl get secret`
-in a terminal is where you see a value, deliberately. A Secret's YAML is
-never offered for editing, no agent tool reads Secrets, and nothing of
-theirs is written to the extension's log.
+one's YAML with **its keys and not their values**: each value under
+`data` and `stringData`, and **every annotation's and label's value**
+(any of them can copy the data, as `last-applied-configuration` does),
+replaced by its length. There's no reveal key: `kubectl get secret` in a
+terminal is where you see a value, deliberately. No agent tool reads
+Secrets, and nothing of theirs is written to the extension's log.
 
 ## Large clusters
 
@@ -162,48 +174,61 @@ how many more there are, and the page says *… 4500 more pods not listed
 better way into a big cluster. Secrets, listed as kubectl's table, are
 cut at the cap as they come.
 
-Measured natively (`cargo test --release -- --ignored measure`, on the
-machine this was written on), reading pods with their status, specs and
-managed fields as the API returns them: 500 pods, 1.5 MB, in 3 ms; 2,000,
-6 MB, in 13-17 ms; 5,000, 15 MB, in 32-33 ms. In Fenix's WebAssembly
-it's slower (two to three times is usual) and an extension has 128 MiB
-and should answer each event in a few milliseconds, so 500 is the
-default and 5,000 the most.
+Parsing pods as the API returns them, natively (`cargo test --release --
+--ignored measure`): 500 pods (0.9 MB) in about 2 ms, 5,000 (9 MB) in
+about 25 ms; pods with fuller specs, 15 MB for 5,000, took about 33 ms.
+An unoptimised build takes several times as long (one review measured
+205 ms for 5,000). In Fenix's WebAssembly it's slower
+again, and an extension has 128 MiB and should answer each event in a
+few milliseconds, so 500 is the default and 5,000 the most.
 
 ## For coding agents
 
-Six tools in the `kubernetes` toolset, all class `read`, in the context
-and namespace you chose (an agent may name another namespace, never
-another context). Each runs one kubectl read; none deletes, scales,
-restarts, applies, execs or forwards, and none reads a Secret.
+Six tools in the `kubernetes` toolset, all class `read`. **They work in
+the context and the one namespace you chose on the page**: an agent can
+name neither, and with **All namespaces** chosen, or no context, they
+refuse. None deletes, scales, restarts, execs or forwards; none reads a
+Secret; none ever returns an environment value, a command or its
+arguments.
 
 | Tool | What it answers |
 | --- | --- |
-| `kubernetes_workloads` | Deployments, statefulsets, daemonsets, jobs and cronjobs: readiness or state, replicas, age; at most 500 of each |
+| `kubernetes_workloads` | Deployments, statefulsets, daemonsets, jobs and cronjobs: readiness or state, replicas, age; at most 500 of each, from one kubectl call cut at 2,500 objects |
 | `kubernetes_pods` | Pods: status as kubectl shows it, ready containers, restarts, age, node; at most 500 |
-| `kubernetes_pod` | One pod: phase, conditions, owners, and each container's image, readiness, restarts, state and last state -- never its environment, command or arguments |
-| `kubernetes_events` | A namespace's events, or one object's, newest first, at most 200, each message at most 1 KiB |
-| `kubernetes_logs` | A pod's last lines (200, up to 2000; one container or all; or the previous run's), at most 64 KiB, a line at most 2 KiB; never followed |
-| `kubernetes_describe` | `kubectl describe` of a pod, workload, service, ingress, node, namespace, PVC or HPA -- never a Secret or ConfigMap -- at most 64 KiB |
+| `kubernetes_pod` | One pod: phase, conditions, owners, and each container's image, readiness, restarts, state and last state |
+| `kubernetes_events` | The namespace's events, or one object's, newest first, at most 200, each message at most 1 KiB |
+| `kubernetes_logs` | **Off unless `kubernetes.agent_logs` is on.** A pod's last lines (200, up to 2000; one container or all; or the previous run's), at most 64 KiB, a line at most 2 KiB; never followed |
+| `kubernetes_describe` | **Off unless `kubernetes.agent_logs` is on.** One object in the namespace -- pod, deployment, statefulset, daemonset, replicaset, job, cronjob, service, ingress, PVC, HPA; never a Secret or ConfigMap -- as the API has it (not `kubectl describe`'s text), with every `env` value, every `command` and `args` (probes and hooks too), annotations' values and managed fields taken out; at most 64 KiB |
 
-Each says when it was cut. **What comes back was written by whatever
-runs in the cluster** -- a log, an event's message, `describe` -- so it's
-returned as data in a field of the answer, with a note saying so, its
-terminal escapes and control characters taken out. A log can hold
-secrets a program printed: give `agents.mcp.allow` a rule
-(`kubernetes_logs = "ask"`, or `"toolset:kubernetes" = "ask"`) to be
-asked first. Names an agent gives are held to what Kubernetes allows a
-name to be, so one can't become an option, a path or a second argument.
+- **Logs and descriptions are off by default** because a log can hold
+  whatever a program printed -- tokens, passwords -- and both are written
+  by whatever runs in the cluster. Fenix offers an extension's tools from
+  its manifest and can't hide one behind a setting, so with the setting
+  off the two are listed but answer that they're turned off, and run
+  nothing.
+- **What comes back from the cluster** -- a log, an event's message, a
+  reason -- is returned as data in a field of the answer, with a note
+  saying so, its terminal escapes, control characters and bidi and
+  zero-width characters taken out.
+- **Rate limits**: one call at a time per tool, three at once in all,
+  thirty a minute; past them an agent is told it's busy.
+- Names an agent gives are held to what Kubernetes allows a name to be,
+  so one can't become an option, a path or a second argument.
+- Agents' tools can start kubectl -- and so a login plugin -- without the
+  page ever opened. To be asked first, give `agents.mcp.allow` a rule
+  (`"toolset:kubernetes" = "ask"`).
 
 ## Settings
 
 | Setting | Default | |
 | --- | --- | --- |
 | `kubernetes.kubectl` | | Where kubectl is, when it isn't on the PATH |
-| `kubernetes.context` | | The project's context (a project may set it); empty: kubeconfig's current |
-| `kubernetes.namespace` | | The project's namespace, `*` for all; empty: the context's own, else `default` |
-| `kubernetes.protected` | `*prod*` | Contexts where a change needs the name typed, or is refused |
+| `kubernetes.context` | | A context to suggest (a project may set it); used once you press `u` |
+| `kubernetes.namespace` | | A namespace to suggest, `*` for all |
+| `kubernetes.protected` | | Contexts or clusters always protected, even if they look local |
+| `kubernetes.unprotected` | | Contexts or clusters where a change needs only `y` |
 | `kubernetes.protected_mode` | `type-name` | `type-name`, or `refuse` |
+| `kubernetes.agent_logs` | `false` | Whether agents may read logs and descriptions |
 | `kubernetes.refresh_seconds` | 10 | Between refreshes while the page is in view; 0: only `r` |
 | `kubernetes.max_items` | 500 | How many of each kind are listed at first (50 to 5,000) |
 
@@ -214,9 +239,7 @@ name to be, so one can't become an option, a path or a second argument.
 | `SPC o k k` | `kubernetes.open` | The page |
 | `SPC o k c` | `kubernetes.context` | The context, for this project |
 | `SPC o k n` | `kubernetes.namespace` | The namespace |
-| `SPC o k a` | `kubernetes.apply` | Apply the YAML buffer (a dry run and a diff first) |
 | `SPC o k f` | `kubernetes.forwards` | Stop a port-forward |
-| `SPC o k u` | `kubernetes.use_context` | kubeconfig's current context, for every tool |
 
 With standard keys, `SPC` is `Ctrl+K`.
 
@@ -231,23 +254,40 @@ With standard keys, `SPC` is `Ctrl+K`.
 Every argument goes to kubectl as an argument of its own -- no shell
 reads any of them -- and a context, namespace or container is given as
 `--flag=value`, so a context called `x; rm -rf ~` or `--as=admin` is
-still just a context's name. Port-forwards listen on 127.0.0.1 only.
-Fenix runs at most four background tasks of an extension's at once, so
-at most four port-forwards.
+still just a context's name; path segments of `get --raw` are
+percent-encoded. Port-forwards listen on 127.0.0.1 only. Fenix runs at
+most four background tasks of an extension's at once, so at most four
+port-forwards.
 
 It reads no files, writes none, and keeps nothing between sessions but
 the page's context, namespace and tab.
 
+## Limits
+
+- **No editing and applying YAML.** YAML buffers are read-only views.
+  Applying an edited buffer back was left out of 1.0.0: `kubectl apply`
+  of `get -o yaml`'s text writes the whole live object into
+  `last-applied-configuration`, which a later `apply` from git then prunes
+  against. Bringing it back needs `kubectl replace` (a strict
+  `resourceVersion` conflict, no annotation rewrite) or server-side apply
+  with its own field manager and the server's fields stripped, one
+  checked generation from the dry run to the apply, the API group checked
+  as well as kind and name -- and a run against a real cluster first.
+- **No reveal for a Secret's values**, by design.
+- On Windows, `!` needs `sh` in the container; distroless images and
+  Windows containers have none, and kubectl says so.
+
 ## Not tried against a cluster yet
 
-It was written where there was no cluster and no kubectl. Its tests run
-on kubectl's output written by hand from the API's documented objects
-(`tests/fixtures/`, which says so): the command lines it builds, what it
-reads back, its pages and keys. What only a real kubectl and cluster
-show -- kubectl's exact error texts, `--raw`'s `remainingItemCount` on
-your server, how `kubectl exec` behaves in Fenix's terminal, a login
-plugin that wants a browser -- hasn't been seen. There's no screenshot
-yet for the same reason.
+Its tests run on the test kit's fake host. kubectl's own output -- `config
+view -o json`, the versions, the one-call workload columns, its error
+texts -- was recorded from kubectl 1.37.2 against a fake API server; the
+lists, a pod and a Secret are hand-written from the API's documented
+objects (`tests/fixtures/README.md` says which is which). What only a real
+cluster shows -- `remainingItemCount` on your server, the Secrets table
+as a server prints it, `kubectl exec` in Fenix's terminal, a login plugin
+that wants a browser -- hasn't been seen. There's no screenshot yet for
+the same reason.
 
 ## Building
 
@@ -256,11 +296,8 @@ cargo xtask pack extensions/kubernetes dist
 cargo test --manifest-path extensions/kubernetes/Cargo.toml
 ```
 
-It needs Rust's `wasm32-wasip2` target. The tests need no cluster: they
-drive the extension on the test kit's fake host with kubectl's answers
-from `tests/fixtures/`, and cover the contexts and namespaces, each list,
-a list at its cap, logs streamed and stopped, a port-forward's life, the
-shell's command line (an odd context stays one argument; nothing runs
-but kubectl), every question and the protected contexts, applying, a
-Secret without its values, the agents' tools and their caps, and an
-expired login, no kubectl and no kubeconfig.
+It needs Rust's `wasm32-wasip2` target. The tests need no cluster. Most
+fakes answer at once; those for what waits on a process (kubeconfig, the
+server's version, lists, namespaces, YAML, logs, agents' calls) answer
+late and out of order, to show that an answer to an earlier request is
+never taken for a newer one's.

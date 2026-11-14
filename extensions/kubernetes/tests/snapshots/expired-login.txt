@@ -1,7 +1,7 @@
-Kubernetes   context kind-dev (kubeconfig's)   namespace shop                                  kubectl v1.31.2
+Kubernetes   context kind-dev (kubeconfig's current, read 12:00)   namespace shop                        kubectl v1.37.2
 1 Workloads 0   2 Pods 0   3 Network 0   4 Secrets 0   5 Forwards 0
-──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-You must be logged in to the server (the server has asked for the client to provide credentials)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+You must be logged in to the server (Unauthorized)
 log in again as your cluster's provider has you do (aws sso login, gcloud auth login, kubelogin), then r
 
 r tries again;  c chooses a context;  n a namespace
@@ -21,4 +21,4 @@ r tries again;  c chooses a context;  n a namespace
 
 
 
-m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  e edit  x…
+m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  x delete  R restart…

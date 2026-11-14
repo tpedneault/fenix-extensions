@@ -6,13 +6,14 @@
   through kubectl. A page of workloads with their pods, pods, services
   and ingresses, and Secrets by name, capped by the API server with how
   many more there are; the context and namespace chosen for the project,
-  nothing global changed (kubeconfig's own current context by a command
-  of its own); live logs (a container or all, the previous run, since a
-  while ago, stopped and started again); a shell in a pod; port-forwards
-  as background tasks, listed and stopped; YAML and `describe` in a
-  buffer, a Secret's without its values; deleting a pod, restarting,
-  scaling and applying an edited YAML (after a server-side dry run and a
-  diff), each asked about naming the context and the namespace, and
-  protected contexts (`*prod*` by default) needing the name typed.
-  Read-only tools for coding agents. A doctor row for kubectl, and a
+  every call naming its context and nothing run without one -- kubeconfig
+  is never changed; live logs (a container or all, the previous run,
+  since a while ago, stopped and started again); a shell in a pod;
+  port-forwards as background tasks, listed and stopped; YAML and
+  `describe` in a read-only buffer, a Secret's without its values;
+  deleting a pod, restarting and scaling, each asked about naming the
+  context and the namespace, and every context but a local cluster's
+  protected, a change there needing the object's name typed. Read-only
+  tools for coding agents in the namespace you chose, logs and
+  descriptions only when you allow them. A doctor row for kubectl, and a
   lesson in the tutorial.

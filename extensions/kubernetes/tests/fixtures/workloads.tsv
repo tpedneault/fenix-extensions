@@ -1,0 +1,6 @@
+Deployment	shop	web	2026-11-12T09:00:00Z	3	2	3								
+Deployment	shop	api	2026-11-14T08:00:00Z	2	0	1								
+StatefulSet	shop	db	2026-10-01T00:00:00Z	1	1	1								
+DaemonSet	shop	node-exporter	2026-09-20T00:00:00Z				2	2						
+Job	shop	migrate-29384520	2026-11-14T11:00:00Z						1	1				
+CronJob	shop	migrate	2026-10-01T00:00:00Z									0 * * * *	false	

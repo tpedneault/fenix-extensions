@@ -11,10 +11,12 @@
 //!   a deployment, a namespace is what Kubernetes allows (lower-case
 //!   letters, digits, `-` and `.`), so it can't start with `-` and be read
 //!   as an option, or hold `/`, `?` or `&` and change a path.
-//! - **The selection is the extension's**: `--context` and `--namespace`
-//!   on every call, from what you chose for this project. kubeconfig's
-//!   current context changes only through `use_context`, a command of its
-//!   own.
+//! - **Every call names its context**: `--context=<it>` is never left out
+//!   (there's no builder here that takes none), so kubectl never falls back
+//!   on whatever kubeconfig's current context has become since. The
+//!   extension never changes kubeconfig.
+//! - **Path segments are percent-encoded** in `get --raw` paths, whatever
+//!   was checked before.
 
 use std::fmt;
 
@@ -284,16 +286,14 @@ fn words(w: &[&str]) -> Vec<String> {
     w.iter().map(|s| s.to_string()).collect()
 }
 
-/// `--context=<it>`, when there's one.
-fn on(context: Option<&str>) -> Vec<String> {
-    context.map(|c| vec![format!("--context={c}")]).unwrap_or_default()
+/// `--context=<it>`: every call has one.
+fn on(context: &str) -> String {
+    format!("--context={context}")
 }
 
 /// `--context` and `--namespace`.
-fn scope(context: Option<&str>, namespace: &str) -> Vec<String> {
-    let mut out = on(context);
-    out.push(format!("--namespace={namespace}"));
-    out
+fn scope(context: &str, namespace: &str) -> Vec<String> {
+    vec![on(context), format!("--namespace={namespace}")]
 }
 
 /// kubectl's own version, asking nothing of a cluster.
@@ -301,17 +301,18 @@ pub fn client_version() -> Vec<String> {
     words(&["version", "--client", "-o", "json"])
 }
 
-/// What kubeconfig says, without its credentials: the current context on
-/// the first line, then each context's name, cluster and namespace, a tab
-/// between. kubectl merges `KUBECONFIG` itself.
+/// kubeconfig as kubectl merges it (`KUBECONFIG`), as JSON: without
+/// `--raw`, kubectl prints its credentials as `REDACTED` and
+/// `DATA+OMITTED`, and the extension reads only names, namespaces and
+/// servers from it.
 pub fn config_view() -> Vec<String> {
-    words(&["config", "view", "-o", r#"jsonpath={.current-context}{"\n"}{range .contexts[*]}{.name}{"\t"}{.context.cluster}{"\t"}{.context.namespace}{"\n"}{end}"#])
+    words(&["config", "view", "-o", "json"])
 }
 
 /// The cluster's version: whether it's reachable, as `context`.
-pub fn server_version(context: Option<&str>) -> Vec<String> {
+pub fn server_version(context: &str) -> Vec<String> {
     let mut out = words(&["version", "-o", "json", "--request-timeout=10s"]);
-    out.extend(on(context));
+    out.push(on(context));
     out
 }
 
@@ -319,7 +320,7 @@ pub fn server_version(context: Option<&str>) -> Vec<String> {
 /// most `limit`, from `from` (a `continue` the last answer gave).
 pub fn list_path(kind: Kind, namespace: Option<&str>, limit: usize, from: Option<&str>) -> String {
     let mut path = match namespace {
-        Some(ns) => format!("{}/namespaces/{ns}/{}", kind.api(), kind.resource()),
+        Some(ns) => format!("{}/namespaces/{}/{}", kind.api(), encode(ns), kind.resource()),
         None => format!("{}/{}", kind.api(), kind.resource()),
     };
     path.push_str(&format!("?limit={limit}"));
@@ -330,23 +331,24 @@ pub fn list_path(kind: Kind, namespace: Option<&str>, limit: usize, from: Option
     path
 }
 
+fn raw(path: String, context: &str) -> Vec<String> {
+    vec!["get".to_string(), "--raw".to_string(), path, on(context), REQUEST_TIMEOUT.to_string()]
+}
+
 /// `kind`, at most `limit`, from the API server itself: `get --raw` with
 /// `limit` stops it there, and says how many more there are
 /// (`remainingItemCount`) -- not every pod fetched and parsed to show
 /// 500. Not for Secrets: `secrets` lists those.
-pub fn list(kind: Kind, context: Option<&str>, namespace: Option<&str>, limit: usize) -> Vec<String> {
+pub fn list(kind: Kind, context: &str, namespace: Option<&str>, limit: usize) -> Vec<String> {
     debug_assert!(kind != Kind::Secret, "a Secret's data is never fetched to be listed");
-    let mut out = vec!["get".to_string(), "--raw".to_string(), list_path(kind, namespace, limit, None)];
-    out.extend(on(context));
-    out.push(REQUEST_TIMEOUT.into());
-    out
+    raw(list_path(kind, namespace, limit, None), context)
 }
 
 /// The Secrets: kubectl's own table (name, type, how many keys, age),
 /// never their data, which stays in kubectl.
-pub fn secrets(context: Option<&str>, namespace: Option<&str>) -> Vec<String> {
+pub fn secrets(context: &str, namespace: Option<&str>) -> Vec<String> {
     let mut out = words(&["get", "secrets", "--no-headers"]);
-    out.extend(on(context));
+    out.push(on(context));
     match namespace {
         Some(ns) => out.push(format!("--namespace={ns}")),
         None => out.push("--all-namespaces".into()),
@@ -356,37 +358,67 @@ pub fn secrets(context: Option<&str>, namespace: Option<&str>) -> Vec<String> {
 }
 
 /// The namespaces, for the picker.
-pub fn namespaces(context: Option<&str>) -> Vec<String> {
-    let mut out = words(&["get", "--raw", "/api/v1/namespaces?limit=1000"]);
-    out.extend(on(context));
-    out.push(REQUEST_TIMEOUT.into());
-    out
+pub fn namespaces(context: &str) -> Vec<String> {
+    raw("/api/v1/namespaces?limit=1000".into(), context)
 }
 
 /// Events in `namespace`, about one object when `about` says, at most
 /// `limit`.
-pub fn events(context: Option<&str>, namespace: &str, about: Option<(&str, &str)>, limit: usize) -> Vec<String> {
-    let mut path = format!("/api/v1/namespaces/{namespace}/events?limit={limit}");
+pub fn events(context: &str, namespace: &str, about: Option<(&str, &str)>, limit: usize) -> Vec<String> {
+    let mut path = format!("/api/v1/namespaces/{}/events?limit={limit}", encode(namespace));
     if let Some((kind, name)) = about {
-        path.push_str(&format!("&fieldSelector=involvedObject.kind%3D{kind},involvedObject.name%3D{name}"));
+        path.push_str(&format!("&fieldSelector={}", encode(&format!("involvedObject.kind={kind},involvedObject.name={name}"))));
     }
-    let mut out = vec!["get".to_string(), "--raw".to_string(), path];
-    out.extend(on(context));
-    out.push(REQUEST_TIMEOUT.into());
-    out
+    raw(path, context)
+}
+
+/// What `kubernetes_describe` may read, by kubectl's name for the kind:
+/// its API path in a namespace. Namespaced kinds only: agents stay in the
+/// namespace you chose.
+pub fn object_api(kind: &str) -> Option<(&'static str, &'static str)> {
+    Some(match kind {
+        "pod" => ("/api/v1", "pods"),
+        "service" => ("/api/v1", "services"),
+        "persistentvolumeclaim" => ("/api/v1", "persistentvolumeclaims"),
+        "deployment" => ("/apis/apps/v1", "deployments"),
+        "statefulset" => ("/apis/apps/v1", "statefulsets"),
+        "daemonset" => ("/apis/apps/v1", "daemonsets"),
+        "replicaset" => ("/apis/apps/v1", "replicasets"),
+        "job" => ("/apis/batch/v1", "jobs"),
+        "cronjob" => ("/apis/batch/v1", "cronjobs"),
+        "ingress" => ("/apis/networking.k8s.io/v1", "ingresses"),
+        "horizontalpodautoscaler" => ("/apis/autoscaling/v2", "horizontalpodautoscalers"),
+        _ => return None,
+    })
+}
+
+/// One object, as the API's JSON.
+pub fn object(context: &str, kind: &str, namespace: &str, name: &str) -> Option<Vec<String>> {
+    let (api, resource) = object_api(kind)?;
+    Some(raw(format!("{api}/namespaces/{}/{resource}/{}", encode(namespace), encode(name)), context))
 }
 
 /// One pod, as JSON: its containers and their state.
-pub fn pod(context: Option<&str>, namespace: &str, pod: &str) -> Vec<String> {
-    let mut out = vec!["get".to_string(), "--raw".to_string(), format!("/api/v1/namespaces/{namespace}/pods/{pod}")];
-    out.extend(on(context));
-    out.push(REQUEST_TIMEOUT.into());
+pub fn pod(context: &str, namespace: &str, pod: &str) -> Vec<String> {
+    raw(format!("/api/v1/namespaces/{}/pods/{}", encode(namespace), encode(pod)), context)
+}
+
+/// The columns `workloads` prints, a line an object.
+pub const WORKLOAD_COLUMNS: &str = r#"{range .items[*]}{.kind}{"\t"}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.metadata.creationTimestamp}{"\t"}{.spec.replicas}{"\t"}{.status.readyReplicas}{"\t"}{.status.updatedReplicas}{"\t"}{.status.desiredNumberScheduled}{"\t"}{.status.numberReady}{"\t"}{.spec.completions}{"\t"}{.status.succeeded}{"\t"}{.status.failed}{"\t"}{.spec.schedule}{"\t"}{.spec.suspend}{"\t"}{.status.active}{"\n"}{end}"#;
+
+/// Every kind of workload in `namespace`, in one kubectl call: a line an
+/// object, of the few fields an agent is given (`WORKLOAD_COLUMNS`). Read
+/// as it comes and cut by the extension past its cap.
+pub fn workloads(context: &str, namespace: &str) -> Vec<String> {
+    let mut out = words(&["get", "deployments,statefulsets,daemonsets,jobs,cronjobs"]);
+    out.extend(scope(context, namespace));
+    out.extend(["--chunk-size=500".to_string(), REQUEST_TIMEOUT.to_string(), "-o".to_string(), format!("jsonpath={WORKLOAD_COLUMNS}")]);
     out
 }
 
 /// An object as YAML -- a Secret as JSON, so its values can be taken out
 /// before anything shows it.
-pub fn get(target: &Target, context: Option<&str>) -> Vec<String> {
+pub fn get(target: &Target, context: &str) -> Vec<String> {
     let output = if target.kind == Kind::Secret { "json" } else { "yaml" };
     let mut out = vec!["get".to_string(), target.kind.singular().to_string(), target.name.clone(), "-o".to_string(), output.to_string()];
     out.extend(scope(context, &target.namespace));
@@ -394,8 +426,8 @@ pub fn get(target: &Target, context: Option<&str>) -> Vec<String> {
     out
 }
 
-/// `kubectl describe`.
-pub fn describe(target: &Target, context: Option<&str>) -> Vec<String> {
+/// `kubectl describe`, for your buffer (never an agent's).
+pub fn describe(target: &Target, context: &str) -> Vec<String> {
     let mut out = vec!["describe".to_string(), target.kind.singular().to_string(), target.name.clone()];
     out.extend(scope(context, &target.namespace));
     out.push(REQUEST_TIMEOUT.into());
@@ -420,7 +452,7 @@ pub struct LogOptions {
 }
 
 /// A log: a pod's, or what kubectl picks of a workload's pods.
-pub fn logs(target: &Target, context: Option<&str>, o: &LogOptions) -> Vec<String> {
+pub fn logs(target: &Target, context: &str, o: &LogOptions) -> Vec<String> {
     let mut out = vec!["logs".to_string()];
     out.extend(scope(context, &target.namespace));
     match &o.container {
@@ -445,7 +477,7 @@ pub fn logs(target: &Target, context: Option<&str>, o: &LogOptions) -> Vec<Strin
 
 /// A shell in a pod's container, in a terminal: `exec -i -t`, the pod
 /// alone before `--`, then the constant script.
-pub fn exec(target: &Target, context: Option<&str>, container: &str) -> Vec<String> {
+pub fn exec(target: &Target, context: &str, container: &str) -> Vec<String> {
     let mut out = words(&["exec", "-i", "-t"]);
     out.extend(scope(context, &target.namespace));
     out.push(format!("--container={container}"));
@@ -455,7 +487,7 @@ pub fn exec(target: &Target, context: Option<&str>, container: &str) -> Vec<Stri
 }
 
 /// A port-forward, on this machine's loopback only.
-pub fn port_forward(target: &Target, context: Option<&str>, local: u16, remote: u16) -> Vec<String> {
+pub fn port_forward(target: &Target, context: &str, local: u16, remote: u16) -> Vec<String> {
     let mut out = vec!["port-forward".to_string()];
     out.extend(scope(context, &target.namespace));
     out.push("--address=127.0.0.1".into());
@@ -465,14 +497,14 @@ pub fn port_forward(target: &Target, context: Option<&str>, local: u16, remote: 
 }
 
 /// A pod deleted, without waiting for it to go.
-pub fn delete(target: &Target, context: Option<&str>) -> Vec<String> {
+pub fn delete(target: &Target, context: &str) -> Vec<String> {
     let mut out = vec!["delete".to_string(), target.kind.singular().to_string(), target.name.clone(), "--wait=false".to_string()];
     out.extend(scope(context, &target.namespace));
     out.push(REQUEST_TIMEOUT.into());
     out
 }
 
-pub fn rollout_restart(target: &Target, context: Option<&str>) -> Vec<String> {
+pub fn rollout_restart(target: &Target, context: &str) -> Vec<String> {
     let mut out = vec!["rollout".to_string(), "restart".to_string(), target.reference()];
     out.extend(scope(context, &target.namespace));
     out.push(REQUEST_TIMEOUT.into());
@@ -481,7 +513,7 @@ pub fn rollout_restart(target: &Target, context: Option<&str>) -> Vec<String> {
 
 /// Scaled to `to`, only if it's still at `from` (`--current-replicas`):
 /// someone else's change in between makes it fail, not lose.
-pub fn scale(target: &Target, context: Option<&str>, from: Option<u32>, to: u32) -> Vec<String> {
+pub fn scale(target: &Target, context: &str, from: Option<u32>, to: u32) -> Vec<String> {
     let mut out = vec!["scale".to_string(), target.reference(), format!("--replicas={to}")];
     if let Some(from) = from {
         out.push(format!("--current-replicas={from}"));
@@ -491,41 +523,8 @@ pub fn scale(target: &Target, context: Option<&str>, from: Option<u32>, to: u32)
     out
 }
 
-/// What applying the YAML on stdin would do, done by the API server
-/// without keeping it: the object it would be, as JSON.
-pub fn apply_dry_run(namespace: &str, context: Option<&str>) -> Vec<String> {
-    let mut out = words(&["apply", "--dry-run=server", "-o", "json", "-f", "-"]);
-    out.extend(scope(context, namespace));
-    out.push(REQUEST_TIMEOUT.into());
-    out
-}
-
-/// What applying the YAML on stdin would change, as a diff (the server's
-/// dry run). kubectl runs `diff` itself, or `KUBECTL_EXTERNAL_DIFF`.
-pub fn diff(namespace: &str, context: Option<&str>) -> Vec<String> {
-    let mut out = words(&["diff", "-f", "-"]);
-    out.extend(scope(context, namespace));
-    out.push(REQUEST_TIMEOUT.into());
-    out
-}
-
-/// The YAML on stdin applied.
-pub fn apply(namespace: &str, context: Option<&str>) -> Vec<String> {
-    let mut out = words(&["apply", "-f", "-"]);
-    out.extend(scope(context, namespace));
-    out.push(REQUEST_TIMEOUT.into());
-    out
-}
-
-/// kubeconfig's current context changed -- for every tool that reads it,
-/// not only this extension. The name after `--`, so one that starts with
-/// `-` is still a name.
-pub fn use_context(name: &str) -> Vec<String> {
-    vec!["config".into(), "use-context".into(), "--".into(), name.into()]
-}
-
-/// `text` percent-encoded for a URL's query: what isn't a letter, a digit
-/// or `-._~` becomes `%XX`.
+/// `text` percent-encoded for a URL's path or query: what isn't a letter,
+/// a digit or `-._~` becomes `%XX`.
 pub fn encode(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for b in text.bytes() {
@@ -538,10 +537,46 @@ pub fn encode(text: &str) -> String {
     out
 }
 
-/// Whether `context` matches one of the `patterns` (`*prod*`, `eks-*`):
-/// `*` any characters, `?` one, letters' case ignored.
-pub fn protected(context: &str, patterns: &[String]) -> bool {
-    patterns.iter().any(|p| glob(&p.to_lowercase(), &context.to_lowercase()))
+/// Contexts and clusters that are clearly on this machine, by name.
+pub const LOCAL_NAMES: [&str; 9] = ["kind-*", "minikube", "docker-desktop", "docker-for-desktop", "rancher-desktop", "k3d-*", "colima", "colima-*", "orbstack"];
+
+/// Whether `server` (`https://127.0.0.1:6443`) is this machine's own:
+/// localhost, 127.0.0.1 (any 127.x) or ::1.
+pub fn local_server(server: &str) -> bool {
+    let rest = server.split_once("://").map_or(server, |(_, r)| r);
+    let host = if let Some(v6) = rest.strip_prefix('[') {
+        v6.split(']').next().unwrap_or_default()
+    } else {
+        rest.split(['/', ':', '?', '#']).next().unwrap_or_default()
+    };
+    let host = host.to_ascii_lowercase();
+    host == "localhost" || host == "::1" || host.starts_with("127.") && host.split('.').count() == 4 && host.split('.').all(|p| p.parse::<u8>().is_ok())
+}
+
+/// What decides whether a context is protected.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Protection {
+    /// `kubernetes.protected`: protected whatever else matches.
+    pub extra: Vec<String>,
+    /// `kubernetes.unprotected`: exempt, as a local one is.
+    pub exempt: Vec<String>,
+}
+
+impl Protection {
+    /// Whether a change in `context` (on `cluster`, at `server`, when
+    /// kubeconfig says) needs its object's name typed. Every context is,
+    /// unless it's clearly local -- its name or its cluster's named as a
+    /// local cluster is, or its server this machine -- or exempted by
+    /// name. `kubernetes.protected` wins over both.
+    pub fn protects(&self, context: &str, cluster: Option<&str>, server: Option<&str>) -> bool {
+        let names: Vec<&str> = std::iter::once(context).chain(cluster).collect();
+        let any = |patterns: &[String]| names.iter().any(|n| patterns.iter().any(|p| glob(&p.to_lowercase(), &n.to_lowercase())));
+        if any(&self.extra) {
+            return true;
+        }
+        let local = LOCAL_NAMES.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        !(any(&self.exempt) || any(&local) || server.is_some_and(local_server))
+    }
 }
 
 fn glob(pattern: &str, text: &str) -> bool {
@@ -585,7 +620,7 @@ mod tests {
         }
         assert!(name(&"a".repeat(253)).is_ok() && name(&"a".repeat(254)).is_err());
         assert!(label("shop").is_ok() && label("kube-system").is_ok());
-        for bad in ["a.b", "-n", "--namespace=x", "Shop", "", "a/b", "a?b"] {
+        for bad in ["a.b", "-n", "--namespace=x", "Shop", "", "a/b", "a?b", "x/secrets?"] {
             assert!(label(bad).is_err(), "{bad:?}");
         }
         assert!(label(&"a".repeat(63)).is_ok() && label(&"a".repeat(64)).is_err());
@@ -597,46 +632,50 @@ mod tests {
     fn a_context_can_be_anything_printable_and_stays_one_argument() {
         let odd = "arn:aws:eks:eu-west-1:123:cluster/prod; rm -rf ~ $(id) --as=admin";
         assert_eq!(context(odd).as_deref(), Ok(odd));
-        assert!(context("a\nb").is_err() && context("").is_err());
-        let args = list(Kind::Pod, Some(odd), Some("shop"), 500);
+        assert_eq!(context("prod ").as_deref(), Ok("prod "), "kept exactly: never trimmed into another context");
+        assert!(context("a\nb").is_err() && context("tab\there").is_err() && context("").is_err());
+        let args = list(Kind::Pod, odd, Some("shop"), 500);
         assert_eq!(args, ["get", "--raw", "/api/v1/namespaces/shop/pods?limit=500", &format!("--context={odd}"), REQUEST_TIMEOUT]);
-        // A context named like a flag is still the context's value.
-        assert_eq!(on(Some("--as=system:admin")), ["--context=--as=system:admin"]);
+        assert_eq!(on("--as=system:admin"), "--context=--as=system:admin");
     }
 
     #[test]
-    fn lists_are_capped_by_the_api_server() {
+    fn lists_are_capped_by_the_api_server_and_paths_encoded() {
         assert_eq!(list_path(Kind::Deployment, Some("shop"), 500, None), "/apis/apps/v1/namespaces/shop/deployments?limit=500");
         assert_eq!(list_path(Kind::Pod, None, 50, None), "/api/v1/pods?limit=50");
         assert_eq!(list_path(Kind::Ingress, Some("web"), 10, Some("eyJ2Ijoi+/=")), "/apis/networking.k8s.io/v1/namespaces/web/ingresses?limit=10&continue=eyJ2Ijoi%2B%2F%3D");
-        assert_eq!(list_path(Kind::CronJob, Some("ops"), 5, None), "/apis/batch/v1/namespaces/ops/cronjobs?limit=5");
-        assert_eq!(secrets(Some("dev"), None), ["get", "secrets", "--no-headers", "--context=dev", "--all-namespaces", REQUEST_TIMEOUT]);
-        assert_eq!(secrets(None, Some("shop")), ["get", "secrets", "--no-headers", "--namespace=shop", REQUEST_TIMEOUT]);
-        assert_eq!(events(Some("dev"), "shop", Some(("Pod", "web-1")), 500), ["get", "--raw", "/api/v1/namespaces/shop/events?limit=500&fieldSelector=involvedObject.kind%3DPod,involvedObject.name%3Dweb-1", "--context=dev", REQUEST_TIMEOUT]);
+        // Even a namespace no check let through can't leave its segment.
+        assert_eq!(list_path(Kind::Pod, Some("x/secrets?a=b"), 5, None), "/api/v1/namespaces/x%2Fsecrets%3Fa%3Db/pods?limit=5");
+        assert_eq!(secrets("dev", None), ["get", "secrets", "--no-headers", "--context=dev", "--all-namespaces", REQUEST_TIMEOUT]);
+        assert_eq!(events("dev", "shop", Some(("Pod", "web-1")), 500), ["get", "--raw", "/api/v1/namespaces/shop/events?limit=500&fieldSelector=involvedObject.kind%3DPod%2CinvolvedObject.name%3Dweb-1", "--context=dev", REQUEST_TIMEOUT]);
+        assert_eq!(object("dev", "horizontalpodautoscaler", "shop", "web").unwrap()[2], "/apis/autoscaling/v2/namespaces/shop/horizontalpodautoscalers/web");
+        assert_eq!(object("dev", "secret", "shop", "db"), None, "never a Secret");
+        assert_eq!(object("dev", "node", "shop", "n1"), None, "nothing outside the namespace");
     }
 
     #[test]
     fn each_command_line_is_an_argv_with_values_in_their_flags() {
         let web = t(Kind::Pod, "shop", "web-1");
         assert_eq!(
-            logs(&web, Some("kind-dev"), &LogOptions { container: Some("nginx".into()), tail: 200, follow: true, ..LogOptions::default() }),
+            logs(&web, "kind-dev", &LogOptions { container: Some("nginx".into()), tail: 200, follow: true, ..LogOptions::default() }),
             ["logs", "--context=kind-dev", "--namespace=shop", "--container=nginx", "--timestamps=true", "--tail=200", "--follow=true", "web-1"]
         );
         let deploy = t(Kind::Deployment, "shop", "web");
         assert_eq!(
-            logs(&deploy, None, &LogOptions { previous: true, since: Some("10m".into()), follow: true, ..LogOptions::default() }),
-            ["logs", "--namespace=shop", "--all-containers=true", "--prefix=true", "--timestamps=true", "--previous=true", "--since=10m", "deployment/web"],
+            logs(&deploy, "c", &LogOptions { previous: true, since: Some("10m".into()), follow: true, ..LogOptions::default() }),
+            ["logs", "--context=c", "--namespace=shop", "--all-containers=true", "--prefix=true", "--timestamps=true", "--previous=true", "--since=10m", "deployment/web"],
             "previous is read once, never followed"
         );
-        assert_eq!(exec(&web, Some("kind-dev"), "nginx"), ["exec", "-i", "-t", "--context=kind-dev", "--namespace=shop", "--container=nginx", "web-1", "--", "sh", "-c", SHELL_SCRIPT]);
-        assert_eq!(port_forward(&t(Kind::Service, "shop", "web"), Some("kind-dev"), 8080, 80), ["port-forward", "--context=kind-dev", "--namespace=shop", "--address=127.0.0.1", "service/web", "8080:80"]);
-        assert_eq!(delete(&web, Some("kind-dev")), ["delete", "pod", "web-1", "--wait=false", "--context=kind-dev", "--namespace=shop", REQUEST_TIMEOUT]);
-        assert_eq!(rollout_restart(&deploy, Some("kind-dev")), ["rollout", "restart", "deployment/web", "--context=kind-dev", "--namespace=shop", REQUEST_TIMEOUT]);
-        assert_eq!(scale(&deploy, Some("kind-dev"), Some(3), 5), ["scale", "deployment/web", "--replicas=5", "--current-replicas=3", "--context=kind-dev", "--namespace=shop", REQUEST_TIMEOUT]);
-        assert_eq!(apply_dry_run("shop", Some("kind-dev")), ["apply", "--dry-run=server", "-o", "json", "-f", "-", "--context=kind-dev", "--namespace=shop", REQUEST_TIMEOUT]);
-        assert_eq!(use_context("-weird"), ["config", "use-context", "--", "-weird"]);
-        assert_eq!(get(&t(Kind::Secret, "shop", "db"), None)[3..5], ["-o", "json"], "a Secret comes as JSON, to be redacted");
-        assert_eq!(get(&deploy, None)[3..5], ["-o", "yaml"]);
+        assert_eq!(exec(&web, "kind-dev", "nginx"), ["exec", "-i", "-t", "--context=kind-dev", "--namespace=shop", "--container=nginx", "web-1", "--", "sh", "-c", SHELL_SCRIPT]);
+        assert_eq!(port_forward(&t(Kind::Service, "shop", "web"), "kind-dev", 8080, 80), ["port-forward", "--context=kind-dev", "--namespace=shop", "--address=127.0.0.1", "service/web", "8080:80"]);
+        assert_eq!(delete(&web, "kind-dev"), ["delete", "pod", "web-1", "--wait=false", "--context=kind-dev", "--namespace=shop", REQUEST_TIMEOUT]);
+        assert_eq!(rollout_restart(&deploy, "kind-dev"), ["rollout", "restart", "deployment/web", "--context=kind-dev", "--namespace=shop", REQUEST_TIMEOUT]);
+        assert_eq!(scale(&deploy, "kind-dev", Some(3), 5), ["scale", "deployment/web", "--replicas=5", "--current-replicas=3", "--context=kind-dev", "--namespace=shop", REQUEST_TIMEOUT]);
+        assert_eq!(get(&t(Kind::Secret, "shop", "db"), "c")[3..5], ["-o", "json"], "a Secret comes as JSON, to be redacted");
+        assert_eq!(get(&deploy, "c")[3..5], ["-o", "yaml"]);
+        let w = workloads("kind-dev", "shop");
+        assert_eq!(w[..6], ["get", "deployments,statefulsets,daemonsets,jobs,cronjobs", "--context=kind-dev", "--namespace=shop", "--chunk-size=500", REQUEST_TIMEOUT]);
+        assert_eq!(w.last().unwrap(), &format!("jsonpath={WORKLOAD_COLUMNS}"));
     }
 
     #[test]
@@ -656,12 +695,24 @@ mod tests {
     }
 
     #[test]
-    fn protected_contexts_match_their_patterns() {
-        let p = vec!["*prod*".to_string()];
-        assert!(protected("prod", &p) && protected("eks-PROD-eu", &p) && protected("gke_acme_europe-west1_production", &p));
-        assert!(!protected("kind-dev", &p) && !protected("staging", &p));
-        assert!(!protected("prod", &[]));
-        let p = vec!["eks-?-live".to_string(), "*@main".to_string()];
-        assert!(protected("eks-a-live", &p) && protected("me@main", &p) && !protected("eks-ab-live", &p));
+    fn every_context_is_protected_but_the_clearly_local_ones() {
+        let p = Protection::default();
+        // Protected: production's names, and names that say nothing.
+        assert!(p.protects("arn:aws:eks:eu-west-1:123:cluster/shop", Some("arn:aws:eks:eu-west-1:123:cluster/shop"), Some("https://ABC.gr7.eu-west-1.eks.amazonaws.com")));
+        assert!(p.protects("gke_acme_europe-west1_main", Some("gke_acme_europe-west1_main"), Some("https://34.1.2.3")));
+        assert!(p.protects("staging", None, None), "unknown to kubeconfig: protected");
+        // Local: by context name, cluster name or server.
+        assert!(!p.protects("kind-dev", Some("kind-dev"), Some("https://127.0.0.1:6443")));
+        assert!(!p.protects("minikube", None, None));
+        assert!(!p.protects("dev", Some("k3d-dev"), None));
+        assert!(!p.protects("lab", Some("lab"), Some("https://localhost:6443")));
+        assert!(!p.protects("lab", Some("lab"), Some("https://[::1]:6443")));
+        assert!(p.protects("lab", Some("lab"), Some("https://127.example.com:6443")));
+        assert!(p.protects("lab", Some("lab"), Some("https://localhost.example.com")));
+        // Exempt by name; protected by name over everything.
+        let p = Protection { extra: vec!["*prod*".into()], exempt: vec!["dev-*".into()] };
+        assert!(!p.protects("dev-eu", Some("dev-eu"), Some("https://10.0.0.1")));
+        assert!(p.protects("kind-prod", Some("kind-prod"), Some("https://127.0.0.1:6443")), "kubernetes.protected wins");
+        assert!(p.protects("tunnel", Some("prod-eu"), Some("https://127.0.0.1:16443")), "the cluster's name counts too");
     }
 }

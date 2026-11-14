@@ -1,9 +1,0 @@
-diff -u -N /tmp/LIVE-2245/apps.v1.Deployment.shop.web /tmp/MERGED-1937/apps.v1.Deployment.shop.web
---- /tmp/LIVE-2245/apps.v1.Deployment.shop.web	2026-11-14 12:00:00.000000000 +0000
-+++ /tmp/MERGED-1937/apps.v1.Deployment.shop.web	2026-11-14 12:00:00.000000000 +0000
-@@ -6,7 +6,7 @@
-   generation: 4
- spec:
--  replicas: 3
-+  replicas: 5
-   selector:

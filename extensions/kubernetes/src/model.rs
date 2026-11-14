@@ -17,34 +17,77 @@ use crate::kubectl::Kind;
 /// A context kubeconfig has.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Context {
+    /// Exactly as kubeconfig has it: never trimmed.
     pub name: String,
     pub cluster: String,
-    /// Its own namespace, if it sets one.
+    /// Its cluster's server, when kubeconfig has the cluster.
+    pub server: Option<String>,
+    /// Its own namespace, if it sets one Kubernetes allows.
     pub namespace: Option<String>,
 }
 
-/// kubeconfig, as `kubectl::config_view` prints it.
+/// kubeconfig, as `kubectl config view -o json` prints it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Kubeconfig {
     pub current: Option<String>,
     pub contexts: Vec<Context>,
+    /// Names it holds that can't be passed as one: a tab, a newline.
+    pub refused: Vec<String>,
 }
 
 impl Kubeconfig {
-    pub fn read(out: &str) -> Kubeconfig {
-        let mut lines = out.lines();
-        let current = lines.next().map(str::trim).filter(|c| !c.is_empty()).map(String::from);
-        let contexts = lines
-            .filter(|l| !l.trim().is_empty())
-            .map(|l| {
-                let mut parts = l.split('\t');
-                let name = parts.next().unwrap_or_default().to_string();
-                let cluster = parts.next().unwrap_or_default().to_string();
-                let namespace = parts.next().map(str::trim).filter(|n| !n.is_empty()).map(String::from);
-                Context { name, cluster, namespace }
-            })
-            .collect();
-        Kubeconfig { current, contexts }
+    pub fn read(json: &str) -> Result<Kubeconfig, String> {
+        #[derive(Deserialize)]
+        struct View {
+            #[serde(rename = "current-context", default)]
+            current: String,
+            #[serde(default, deserialize_with = "nullable")]
+            contexts: Vec<Named<Ctx>>,
+            #[serde(default, deserialize_with = "nullable")]
+            clusters: Vec<Named<Cluster>>,
+        }
+        #[derive(Deserialize)]
+        struct Named<T> {
+            #[serde(default)]
+            name: String,
+            #[serde(alias = "context", alias = "cluster")]
+            body: Option<T>,
+        }
+        #[derive(Deserialize, Default)]
+        struct Ctx {
+            #[serde(default)]
+            cluster: String,
+            #[serde(default)]
+            namespace: Option<String>,
+        }
+        #[derive(Deserialize, Default)]
+        struct Cluster {
+            #[serde(default)]
+            server: Option<String>,
+        }
+        fn nullable<'de, D: serde::Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Vec<T>, D::Error> {
+            Ok(Option::<Vec<T>>::deserialize(d)?.unwrap_or_default())
+        }
+        let v: View = serde_json::from_str(json).map_err(|e| format!("kubectl config view's answer isn't kubeconfig: {e}"))?;
+        let servers: BTreeMap<String, Option<String>> = v.clusters.into_iter().map(|c| (c.name, c.body.and_then(|b| b.server))).collect();
+        let mut out = Kubeconfig::default();
+        for c in v.contexts {
+            if crate::kubectl::context(&c.name).is_err() {
+                out.refused.push(c.name);
+                continue;
+            }
+            let body = c.body.unwrap_or_default();
+            out.contexts.push(Context {
+                server: servers.get(&body.cluster).cloned().flatten(),
+                namespace: body.namespace.filter(|n| crate::kubectl::label(n).is_ok()),
+                cluster: body.cluster,
+                name: c.name,
+            });
+        }
+        // The current context exactly as written; one that can't be passed
+        // as one argument is none.
+        out.current = Some(v.current).filter(|c| !c.is_empty() && crate::kubectl::context(c).is_ok());
+        Ok(out)
     }
 
     pub fn context(&self, name: &str) -> Option<&Context> {
@@ -551,6 +594,41 @@ impl Workload {
     }
 }
 
+/// `kubectl::workloads`' lines: one per object, the columns
+/// `WORKLOAD_COLUMNS` names, read into what the page shows of a workload.
+pub fn workload_lines(lines: &[String]) -> Vec<Workload> {
+    lines
+        .iter()
+        .filter_map(|l| {
+            let c: Vec<&str> = l.split('\t').collect();
+            if c.len() < 15 {
+                return None;
+            }
+            let kind = Kind::by_name(c[0])?;
+            let n = |i: usize| c[i].trim().parse::<u32>().ok();
+            let active = match kind {
+                Kind::CronJob => serde_json::from_str::<serde_json::Value>(c[14]).ok().filter(|v| v.is_array()),
+                _ => None,
+            };
+            let job_done = kind == Kind::Job && n(10).unwrap_or(0) >= n(9).unwrap_or(1);
+            let job_failed = kind == Kind::Job && !job_done && n(11).unwrap_or(0) > 0 && c[14].trim().parse::<u32>().unwrap_or(0) == 0;
+            let conditions = if job_done {
+                vec![Condition { kind: "Complete".into(), status: "True".into(), reason: None }]
+            } else if job_failed {
+                vec![Condition { kind: "Failed".into(), status: "True".into(), reason: None }]
+            } else {
+                Vec::new()
+            };
+            let raw = RawWorkload {
+                metadata: Meta { name: c[2].into(), namespace: c[1].into(), creation_timestamp: Some(c[3].to_string()).filter(|s| !s.is_empty()), ..Meta::default() },
+                spec: WorkloadSpec { replicas: n(4), completions: n(9), schedule: Some(c[12].to_string()).filter(|s| !s.is_empty()), suspend: c[13].trim().parse().ok(), selector: None },
+                status: WorkloadStatus { ready_replicas: n(5), updated_replicas: n(6), desired_number_scheduled: n(7), number_ready: n(8), succeeded: n(10), failed: n(11), active, conditions, ..WorkloadStatus::default() },
+            };
+            Some(workload(kind, raw))
+        })
+        .collect()
+}
+
 // Services and ingresses.
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -844,17 +922,44 @@ mod tests {
         parse_time(NOW).unwrap()
     }
 
+    /// kubectl 1.37.2's own `config view -o json`, of a kubeconfig with
+    /// names that a text format would have broken.
     #[test]
-    fn kubeconfig_is_its_names_and_namespaces_only() {
-        let k = Kubeconfig::read("kind-dev\nkind-dev\tkind-dev\tshop\nprod-eu\tgke_acme_europe-west1_prod\t\narn:aws:eks:us-east-1:1:cluster/x\tarn:aws:eks:us-east-1:1:cluster/x\tdefault\n");
-        assert_eq!(k.current.as_deref(), Some("kind-dev"));
-        assert_eq!(k.contexts.len(), 3);
-        assert_eq!(k.context("kind-dev").unwrap().namespace.as_deref(), Some("shop"));
-        assert_eq!(k.context("prod-eu").unwrap().namespace, None);
-        assert_eq!(k.contexts[2].name, "arn:aws:eks:us-east-1:1:cluster/x");
-        // No kubeconfig at all: kubectl prints nothing.
-        assert_eq!(Kubeconfig::read(""), Kubeconfig::default());
-        assert_eq!(Kubeconfig::read("\n"), Kubeconfig::default());
+    fn kubeconfig_is_read_from_kubectls_json_names_exactly() {
+        let k = Kubeconfig::read(include_str!("../tests/fixtures/config-view.json")).unwrap();
+        assert_eq!(k.current.as_deref(), Some("prod "), "the trailing space kept: prod is another context");
+        assert_eq!(k.context("prod ").unwrap().cluster, "prod-cluster");
+        assert_eq!(k.context("prod").unwrap().cluster, "kind-dev");
+        assert_eq!(k.refused, ["new\nline", "tab\there"], "names that can't be one argument are left out, and said");
+        let kind = k.context("kind-dev").unwrap();
+        assert_eq!((kind.namespace.as_deref(), kind.server.as_deref()), (Some("shop"), Some("https://127.0.0.1:6443")));
+        assert_eq!(k.context("gke_acme_europe-west1_prod").unwrap().server.as_deref(), Some("https://34.1.2.3"));
+        // No kubeconfig at all, as kubectl prints it.
+        let empty = Kubeconfig::read(r#"{"kind":"Config","apiVersion":"v1","preferences":{},"clusters":null,"users":null,"contexts":null,"current-context":""}"#).unwrap();
+        assert_eq!(empty, Kubeconfig::default());
+        assert!(Kubeconfig::read("current-context: x").is_err());
+        // A namespace kubeconfig gives that no namespace could be: none.
+        let odd = Kubeconfig::read(r#"{"contexts":[{"name":"a","context":{"cluster":"c","namespace":"x/secrets?"}}],"current-context":"a"}"#).unwrap();
+        assert_eq!(odd.context("a").unwrap().namespace, None);
+    }
+
+    /// kubectl 1.37.2's lines for the one-call workloads, against the
+    /// fixtures served by a fake API server.
+    #[test]
+    fn workloads_are_read_from_kubectls_columns() {
+        let lines: Vec<String> = include_str!("../tests/fixtures/workloads.tsv").lines().map(String::from).collect();
+        let w = workload_lines(&lines);
+        let st: Vec<(Option<Kind>, &str, &str)> = w.iter().map(|w| (w.kind, w.name.as_str(), w.status.as_str())).collect();
+        assert_eq!(st, [
+            (Some(Kind::Deployment), "web", "2/3 ready"),
+            (Some(Kind::Deployment), "api", "0/2 ready, 1 up to date"),
+            (Some(Kind::StatefulSet), "db", "1/1 ready"),
+            (Some(Kind::DaemonSet), "node-exporter", "2/2 ready"),
+            (Some(Kind::Job), "migrate-29384520", "Complete 1/1"),
+            (Some(Kind::CronJob), "migrate", "0 * * * *"),
+        ]);
+        assert_eq!(w[0].replicas, Some(3));
+        assert!(workload_lines(&["garbage".into()]).is_empty());
     }
 
     #[test]
@@ -872,6 +977,14 @@ mod tests {
         assert!(hint("dial tcp 127.0.0.1:6443: connect: connection refused").unwrap().contains("isn't answering"));
         assert!(hint("(Forbidden): pods is forbidden: User \"dev\" cannot list resource").unwrap().contains("namespace"));
         assert_eq!(failure(&[], &[]), "kubectl failed and said nothing");
+        // kubectl 1.37.2's own words.
+        let recorded = |t: &str| t.lines().map(String::from).collect::<Vec<_>>();
+        let why = failure(&recorded(include_str!("../tests/fixtures/unauthorized.stderr")), &[]);
+        assert_eq!(why, "You must be logged in to the server (Unauthorized)");
+        assert!(hint(&why).unwrap().contains("log in again"));
+        let why = failure(&recorded(include_str!("../tests/fixtures/no-context.stderr")), &[]);
+        assert_eq!(why, "context \"nope\" does not exist");
+        assert!(hint(&why).unwrap().contains("no such context"));
         assert!(failure(&["x".repeat(1000)], &[]).chars().count() <= 400);
         assert_eq!(failure(&["\u{1b}[31merror: boom\u{7}".into()], &[]), "boom", "colours and bells out");
     }

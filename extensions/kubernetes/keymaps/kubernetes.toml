@@ -20,16 +20,6 @@ label = "namespace"
 command = "kubernetes.namespace"
 
 [[leader]]
-keys = "SPC o k a"
-label = "apply the YAML buffer"
-command = "kubernetes.apply"
-
-[[leader]]
 keys = "SPC o k f"
 label = "stop a port-forward"
 command = "kubernetes.forwards"
-
-[[leader]]
-keys = "SPC o k u"
-label = "kubeconfig's current context (every tool)"
-command = "kubernetes.use_context"

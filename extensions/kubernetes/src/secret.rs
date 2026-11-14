@@ -1,15 +1,13 @@
 //! A Secret, shown without its values. kubectl gives it as JSON
 //! (`kubectl::get`); before anything else sees it, every value under
-//! `data` and `stringData` is replaced by how long it is, and the
-//! annotations that copy them -- `kubectl.kubernetes.io/last-applied-
-//! configuration`, which holds the whole Secret as it was applied -- go.
+//! `data` and `stringData` is replaced by how long it is, and so is every
+//! annotation's and label's value: any of them can copy the data
+//! (`kubectl.kubernetes.io/last-applied-configuration` holds the whole
+//! Secret as it was applied; tools write checksums and configs there too).
 //! What's left is written as YAML, its keys in place: you see which keys
 //! it has, never what they hold. Nothing here keeps the JSON it was given.
 
 use serde_json::{Map, Value};
-
-/// Annotations that can hold a Secret's values.
-const COPIES: [&str; 2] = ["kubectl.kubernetes.io/last-applied-configuration", "meta.helm.sh/release-values"];
 
 /// `secret` (kubectl's JSON) with its values taken out; an error, holding
 /// nothing of the text, when it isn't one.
@@ -31,10 +29,11 @@ pub fn redact(json: &str) -> Result<Value, String> {
             }
         }
     }
-    if let Some(Value::Object(annotations)) = v.pointer_mut("/metadata/annotations") {
-        for key in COPIES {
-            if annotations.contains_key(key) {
-                annotations.insert(key.into(), Value::String("<hidden: it copies the Secret's values>".into()));
+    for field in ["/metadata/annotations", "/metadata/labels"] {
+        if let Some(Value::Object(map)) = v.pointer_mut(field) {
+            for (_, value) in map.iter_mut() {
+                let bytes = value.as_str().map_or(0, str::len);
+                *value = Value::String(format!("<hidden: {bytes} bytes>"));
             }
         }
     }
@@ -162,8 +161,10 @@ mod tests {
             "namespace": "shop",
             "annotations": {
                 "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"data\":{\"password\":\"aHVudGVyMg==\"},\"kind\":\"Secret\"}\n",
-                "team": "payments"
+                "team": "payments",
+                "checksum/config": "cGFzc3dvcmQ9aHVudGVyMg=="
             },
+            "labels": {"app": "db", "token": "s3cr3t-t0ken"},
             "managedFields": [{"manager": "kubectl", "fieldsV1": {"f:data": {"f:password": {}}}}]
         },
         "data": {"password": "aHVudGVyMg==", "username": "YWRtaW4="},
@@ -180,7 +181,8 @@ mod tests {
         assert!(text.contains("password: \"<hidden: 7 bytes>\""), "{text}");
         assert!(text.contains("username: \"<hidden: 5 bytes>\""), "{text}");
         assert!(text.contains("token: \"<hidden: 12 bytes>\""), "{text}");
-        assert!(text.contains("team: payments"), "other annotations stay: {text}");
+        assert!(text.contains("team: \"<hidden: 8 bytes>\"") && text.contains("checksum/config: \"<hidden: 24 bytes>\""), "every annotation's value hidden, its key kept: {text}");
+        assert!(text.contains("app: \"<hidden: 2 bytes>\"") && !text.contains("cGFzc3dvcmQ"), "labels too: {text}");
         assert!(!text.contains("managedFields"));
         assert_eq!(keys(&v), ["password", "username", "token"]);
     }

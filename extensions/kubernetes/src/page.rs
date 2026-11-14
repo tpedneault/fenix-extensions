@@ -97,8 +97,12 @@ impl Forward {
 pub struct Header {
     /// The context in use, by name; none when kubeconfig has none.
     pub context: Option<String>,
-    /// Whether it's chosen here, or kubeconfig's current one.
-    pub chosen: bool,
+    /// Where the context comes from: chosen here, or kubeconfig's current
+    /// one as read at a time.
+    pub origin: String,
+    /// A context and namespace a setting suggests (yours, or the
+    /// project's), not used until you take it (`u`).
+    pub suggestion: Option<String>,
     pub namespace: String,
     pub protected: bool,
     /// kubectl's version, and the server's.
@@ -149,15 +153,13 @@ pub enum Mutation {
     Delete(Target),
     Restart(Target),
     Scale { target: Target, from: Option<u32>, to: u32 },
-    /// The YAML of apply page `page` applied to `target`.
-    Apply { page: u64, target: Target },
 }
 
 impl Mutation {
     pub fn target(&self) -> &Target {
         match self {
             Mutation::Delete(t) | Mutation::Restart(t) => t,
-            Mutation::Scale { target, .. } | Mutation::Apply { target, .. } => target,
+            Mutation::Scale { target, .. } => target,
         }
     }
 
@@ -168,7 +170,6 @@ impl Mutation {
             Mutation::Restart(t) => format!("restart {t} (rollout restart)"),
             Mutation::Scale { target, from: Some(f), to } => format!("scale {target} from {f} to {to}"),
             Mutation::Scale { target, from: None, to } => format!("scale {target} to {to}"),
-            Mutation::Apply { target, .. } => format!("apply the edited YAML to {target}"),
         }
     }
 
@@ -198,7 +199,8 @@ pub enum Action {
     Shell(Target),
     Forward(Target),
     Yaml(Target),
-    Edit(Target),
+    /// The suggested context and namespace taken.
+    TakeSuggestion,
     Describe(Target),
     Copy(String),
     /// A change asked for: `lib.rs` confirms it, or refuses it.
@@ -530,10 +532,7 @@ impl MainView {
         if k.forwards() {
             rows.push(("Port-forward…", 'f'));
         }
-        rows.push(("YAML", 'i'));
-        if k != Kind::Secret {
-            rows.push(("Edit the YAML, to apply", 'e'));
-        }
+        rows.push(("YAML (read-only)", 'i'));
         rows.push(("Describe", 'D'));
         rows.push(("Copy the name", 'y'));
         if k.restarts() {
@@ -627,7 +626,7 @@ impl MainView {
             Key::Char('!') => return on(Action::Shell, |k| k == Kind::Pod, "A shell"),
             Key::Char('f') => return on(Action::Forward, Kind::forwards, "A port-forward"),
             Key::Char('i') => return on(Action::Yaml, |_| true, "YAML"),
-            Key::Char('e') => return on(Action::Edit, |k| k != Kind::Secret, "Editing"),
+            Key::Char('u') => return Action::TakeSuggestion,
             Key::Char('D') => return on(Action::Describe, |_| true, "Describe"),
             Key::Char('y') if target.is_some() => return Action::Copy(target.map(|t| t.name).unwrap_or_default()),
             Key::Char('x') => return on(|t| Action::Mutate(Mutation::Delete(t)), |k| k == Kind::Pod, "Deleting"),
@@ -704,9 +703,7 @@ impl MainView {
                 if header.protected {
                     x = cv.put(x, 0, " protected", Role::Warn);
                 }
-                if !header.chosen {
-                    x = cv.put(x, 0, " (kubeconfig's)", Role::Muted);
-                }
+                x = cv.put(x, 0, &format!(" ({})", header.origin), Role::Muted);
             }
             None => x = cv.put(x, 0, "none", Role::Warn),
         }
@@ -734,10 +731,18 @@ impl MainView {
             })
             .collect();
         self.tabs.render(&tabs, Rect::new(0, 1, w, 2), &mut cv);
+
         // The foot: what's wrong, what's cut, the keys.
         let foot_y = h - 1;
         let note_y = h - 2;
-        let body = Rect::new(0, 3, w, note_y.saturating_sub(3));
+        // A setting's suggestion, not used yet, over the foot.
+        let above = if let Some(s) = &header.suggestion {
+            cv.put_fit(0, note_y - 1, w, &format!("u uses the suggested {s}"), Role::Warn);
+            1
+        } else {
+            0
+        };
+        let body = Rect::new(0, 3, w, note_y.saturating_sub(3 + above));
         if let Some((problem, hint)) = &header.problem {
             let mut y = body.y;
             for line in fenix_ui_kit::text::wrap(problem, w.saturating_sub(2)).into_iter().take(4) {
@@ -781,7 +786,7 @@ impl MainView {
         }
         let keys = match self.tab() {
             TabId::Forwards => "s stop  o open  Enter output  r reload  c context  n namespace  1-5 tabs",
-            _ => "m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  e edit  x delete  R restart  S scale",
+            _ => "m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  x delete  R restart  S scale",
         };
         cv.put_fit(0, foot_y, w, keys, Role::Muted);
         // The menu, or the question.
@@ -838,11 +843,11 @@ mod tests {
     #[test]
     fn each_kind_has_only_the_actions_it_takes() {
         let keys = |k| MainView::menu_rows(&Target::new(k, "shop", "x").unwrap()).iter().map(|(_, c)| *c).collect::<String>();
-        assert_eq!(keys(Kind::Pod), "l!fieDyx");
-        assert_eq!(keys(Kind::Deployment), "lfieDyRS");
-        assert_eq!(keys(Kind::DaemonSet), "lieDyR");
-        assert_eq!(keys(Kind::Secret), "iDy", "a Secret's YAML is shown redacted, never edited");
-        assert_eq!(keys(Kind::Service), "fieDy");
+        assert_eq!(keys(Kind::Pod), "l!fiDyx");
+        assert_eq!(keys(Kind::Deployment), "lfiDyRS");
+        assert_eq!(keys(Kind::DaemonSet), "liDyR");
+        assert_eq!(keys(Kind::Secret), "iDy");
+        assert_eq!(keys(Kind::Service), "fiDy");
     }
 
     #[test]

@@ -13,11 +13,12 @@ SPC o k k   the Kubernetes page: the context and namespace on its top line
               1-5, ] and [   workloads, pods, network, Secrets, forwards
               j k            move;  Enter opens a workload, m its menu
               c  n           the context (for this project only), the namespace
+              u              take the context a setting suggests
               l  !  f        a log, a shell, a port-forward
-              i  D  e        the YAML, describe, the YAML to edit and apply
+              i  D           the YAML (read-only), describe
               x  R  S        delete a pod, restart, scale: each asked first
               r              ask again;  / filter;  + more of a long list
-SPC o k u   kubeconfig's own current context, for every tool
+kubeconfig itself is never changed.
 On a log: s stops and starts, p the previous run, S since, t times, o a buffer.
 """
 
@@ -27,7 +28,7 @@ hint = "SPC o k k. Without kubectl or a cluster it opens all the same and says w
 page = "fenix.kubernetes/main"
 
 [[step]]
-say = "c: the context picker. What you pick here is this project's: kubeconfig, and every other tool, stay where they were."
+say = "c: the context picker. What you pick here is this project's: kubeconfig, and every other tool, stay where they were. Each says whether it's protected."
 hint = "c, on the page. With no contexts in kubeconfig it says so: s on the tutorial page skips this and the next."
 picker = "any"
 
@@ -47,6 +48,6 @@ hint = "q, on the log page."
 closed = "fenix.kubernetes/logs"
 
 [[step]]
-say = "Back on the page, x on a pod asks first -- naming the context and the namespace -- and only y deletes it; any other key is no. In a protected context (prod, by default) you type its name instead. Not needed now: q closes the page."
+say = "Back on the page, x on a pod asks first -- naming the context and the namespace -- and only y deletes it; any other key is no. In a protected context -- every one but a local cluster's, by default -- you type its name instead. Not needed now: q closes the page."
 hint = "q, on the Kubernetes page. If it's closed already: SPC o k k, then q -- or s on the tutorial page."
 closed = "fenix.kubernetes/main"

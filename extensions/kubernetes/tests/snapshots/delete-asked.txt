@@ -1,8 +1,8 @@
-Kubernetes   context kind-dev (kubeconfig's)   namespace shop                 kubectl v1.31.2 · server v1.30.4
+Kubernetes   context kind-dev (kubeconfig's current, read 12:00)   namespace shop       kubectl v1.37.2 · server v1.30.4
 1 Workloads 6   2 Pods 7   3 Network 0   4 Secrets 0   5 Forwards 0
-──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Name                    Ready  Status             Restarts    Age  Node
-──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 web-7d9c8b6f4-x2k4q     2/2    Running                   1     2d  kind-worker
 web-7d9c8b6f4-q8m2n     2/2    Running                   0     2d  kind-worker2
 web-7d9c8b6f4-zz9pl     0/2    ContainerCreating         0     2m  kind-worker
@@ -23,4 +23,4 @@ migrate-29384520-zx9kq  0/1    Completed                 0    60m  kind-worker2
 
 
 
-m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  e edit  x…
+m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  x delete  R restart…

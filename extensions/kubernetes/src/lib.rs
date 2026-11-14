@@ -2,17 +2,24 @@
 //! choose for this project, a page of workloads, pods, services,
 //! ingresses and Secrets' names, live logs, a shell in a pod, port-
 //! forwards as background tasks, an object's YAML and `describe` in a
-//! buffer, and changes -- delete a pod, restart, scale, apply an edited
-//! YAML -- each asked about first. Coding agents get read-only tools.
+//! read-only buffer, and changes -- delete a pod, restart, scale -- each
+//! asked about first. Coding agents get read-only tools. kubeconfig is
+//! never changed.
 //!
 //! The parts that decide things are plain code, tested natively:
-//! `kubectl` (every command line), `model` (what kubectl answered),
-//! `secret` (a Secret without its values), `agent` (the agents' tools),
-//! `page`, `logs` and `apply` (the pages and their keys). This file meets
-//! Fenix: processes, pickers, prompts, timers, tasks, terminals.
+//! `kubectl` (every command line, and what's protected), `model` (what
+//! kubectl answered), `secret` (a Secret without its values), `agent`
+//! (the agents' tools), `page` and `logs` (the pages and their keys). This
+//! file meets Fenix: processes, pickers, prompts, timers, tasks,
+//! terminals.
+//!
+//! Every answer that comes back is checked against what's being waited
+//! for now: lists, the server's version, namespaces, YAML and describe
+//! carry the selection's generation, kubeconfig's reads a sequence
+//! number, a log stream its process -- a result for an earlier request is
+//! dropped, never shown as the newer one's.
 
 pub mod agent;
-pub mod apply;
 pub mod kubectl;
 pub mod logs;
 pub mod model;
@@ -22,7 +29,7 @@ pub mod secret;
 #[cfg(test)]
 mod driven;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 #[cfg(not(test))]
 pub(crate) use fenix_extension_api as api;
@@ -30,49 +37,71 @@ pub(crate) use fenix_extension_api as api;
 pub(crate) use fenix_test_kit::api;
 
 use api::chrono::Utc;
-use api::{page as pages, Event, Extension, Focus, Key, Page, PickerItem};
+use api::{page as pages, Event, Extension, Key, Page, PickerItem};
 
 use agent::{Ask, Tail};
-use apply::{ApplyAction, ApplyView, Stage};
-use kubectl::{Kind, Ns, Selection, Target};
+use kubectl::{Kind, Ns, Protection, Selection, Target};
 use logs::{LogAction, LogView, Stream};
 use model::{Kubeconfig, More};
 use page::{Action, Cluster, Forward, Header, Listing, MainView, Mutation};
 
 const MAIN: &str = "main";
 const LOGS: &str = "logs";
-const APPLY: &str = "apply";
 
 /// The most a list may be raised to with `+`, of one kind.
 pub const MOST_ITEMS: usize = 5000;
+/// The watchdog's beat, and how many beats a kubectl call that isn't a
+/// stream may take before it's stopped: 20 to 30 seconds.
+pub const WATCH_MS: u32 = 10_000;
+pub const WATCH_BEATS: u32 = 3;
+/// Agents' calls: at most this many at once (one per tool), and in a
+/// minute.
+pub const AGENT_AT_ONCE: usize = 3;
+pub const AGENT_PER_MINUTE: usize = 30;
 
 /// What a process the extension started is for.
 #[derive(Debug, Clone, PartialEq)]
 enum Job {
     ClientVersion,
-    Config,
-    ServerVersion,
+    Config { seq: u64 },
+    ServerVersion { generation: u64 },
     List { kind: Kind, generation: u64 },
     Namespaces { generation: u64 },
-    Yaml { target: Target, editable: bool, context: String },
-    Describe { target: Target, context: String },
+    Yaml { target: Target, context: String, generation: u64 },
+    Describe { target: Target, context: String, generation: u64 },
     Logs { page: u64 },
     Change { what: String },
-    DryRun { page: u64 },
-    Diff { page: u64 },
-    Apply { page: u64 },
-    UseContext(String),
-    /// A coding agent's call: one process of those it needs.
-    Agent { call: u64, part: Option<Kind> },
+    /// A coding agent's call.
+    Agent { call: u64 },
 }
 
-#[derive(Debug, Default)]
+impl Job {
+    /// What it was waiting on, for the watchdog's words.
+    fn waiting(&self) -> String {
+        match self {
+            Job::ClientVersion => "kubectl's version".into(),
+            Job::Config { .. } => "kubeconfig".into(),
+            Job::ServerVersion { .. } => "the cluster's version".into(),
+            Job::List { kind, .. } => format!("the {}", kind.resource()),
+            Job::Namespaces { .. } => "the namespaces".into(),
+            Job::Yaml { target, .. } => format!("{target}'s YAML"),
+            Job::Describe { target, .. } => format!("describe {target}"),
+            Job::Logs { .. } => "a log".into(),
+            Job::Change { what } => what.clone(),
+            Job::Agent { .. } => "an agent's call".into(),
+        }
+    }
+}
+
+#[derive(Debug)]
 struct Running {
-    job: Option<Job>,
+    job: Job,
     out: Vec<String>,
     err: Vec<String>,
-    /// Output cut by hand (a table past its cap): there's more.
+    /// Output cut by hand past its cap: there's more.
     cut: bool,
+    /// Watchdog beats seen.
+    beats: u32,
 }
 
 /// What a prompt was for.
@@ -82,8 +111,7 @@ enum Asking {
     LogFilter(u64),
     Since(u64),
     Replicas(Target, Option<u32>),
-    /// A change in a protected context: the name to type, and the
-    /// context it was asked in.
+    /// A change in a protected context: the context it was asked in.
     Typed(Mutation, String),
     Ports(Target),
     Namespace,
@@ -92,12 +120,12 @@ enum Asking {
 /// What a picker was for.
 #[derive(Debug, Clone, PartialEq)]
 enum Picking {
-    Context { global: bool },
-    Namespace,
+    Context,
+    /// The namespaces, listed in this generation.
+    Namespace(u64),
     LogContainer(Target),
     ShellContainer(Target),
     PageContainer(u64),
-    YamlBuffer,
     StopForward,
 }
 
@@ -111,50 +139,57 @@ enum Server {
     Down(String),
 }
 
-/// An agent's call, while its processes run.
+/// An agent's call, while its process runs.
 #[derive(Debug)]
 struct AgentCall {
+    service: String,
     ask: Ask,
     context: String,
     namespace: String,
-    waiting: usize,
-    workloads: Vec<(Kind, Result<model::Listed<model::Workload>, String>)>,
-    pods: Option<Result<model::Listed<model::Pod>, String>>,
+    /// A log's tail, as it comes.
+    tail: Option<Tail>,
 }
 
 #[derive(Default)]
 pub struct Kube {
     program: String,
     kubeconfig: Option<Kubeconfig>,
+    /// Why kubeconfig couldn't be read.
+    config_error: Option<String>,
+    config_seq: u64,
+    /// When kubeconfig was last read, as the clock says (12:04).
+    read_at: Option<String>,
     client: Option<String>,
     /// Why kubectl can't run at all.
     missing: Option<String>,
     server: Server,
     selection: Selection,
-    /// Bumped when the selection changes: answers to the old one go.
+    /// What `kubernetes.context` and `kubernetes.namespace` suggest --
+    /// yours or the project's, which Fenix doesn't tell apart -- used only
+    /// once you take it (`u`).
+    suggestion: Option<Selection>,
+    /// Bumped when what's listed changes: answers to the old one go.
     generation: u64,
     cluster: Cluster,
     main: Option<(u64, MainView)>,
     main_shown: bool,
     logs: HashMap<u64, LogView>,
-    applies: HashMap<u64, ApplyView>,
     jobs: HashMap<u64, Running>,
     forwards: Vec<Forward>,
-    /// YAML buffers open to edit, and what each was opened from.
-    yaml: HashMap<u64, (Target, String)>,
-    focused_scratch: Option<u64>,
     prompts: HashMap<u64, Asking>,
     pickers: HashMap<u64, Picking>,
     timer: Option<u64>,
+    watchdog: Option<u64>,
     /// A listing failed: the timer asks nothing until you do (`r`).
     failed: bool,
     /// The page asked for before kubeconfig was read.
     refresh_waiting: bool,
     /// A change asked about: it, and the context it was asked in.
     asked: Option<(Mutation, String)>,
-    agent_waiting: Vec<(u64, Ask)>,
+    agent_waiting: Vec<(u64, String, Ask)>,
     agent_calls: HashMap<u64, AgentCall>,
-    agent_tails: HashMap<u64, Tail>,
+    /// When agents' calls were taken, in seconds, the last minute's.
+    agent_times: VecDeque<i64>,
     /// The page's height, for the log pages' keys.
     heights: HashMap<u64, usize>,
 }
@@ -163,26 +198,53 @@ fn setting(key: &str) -> Option<String> {
     api::setting(key).map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
 }
 
+fn list_setting(key: &str) -> Vec<String> {
+    setting(key).map(|v| v.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()).unwrap_or_default()
+}
+
 /// `kubernetes.max_items`: how many of a kind are listed (50 to 5,000).
 fn max_items() -> usize {
     setting("kubernetes.max_items").and_then(|v| v.parse().ok()).unwrap_or(500).clamp(50, MOST_ITEMS)
-}
-
-fn protected_patterns() -> Vec<String> {
-    setting("kubernetes.protected").map(|v| v.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()).unwrap_or_default()
 }
 
 fn now() -> api::chrono::DateTime<Utc> {
     api::clock::now().with_timezone(&Utc)
 }
 
+/// What the settings suggest, if they suggest anything.
+fn suggested() -> Option<Selection> {
+    let context = setting("kubernetes.context").and_then(|c| kubectl::context(&c).ok());
+    let namespace = match setting("kubernetes.namespace").as_deref() {
+        None => Ns::Default,
+        Some("*") | Some("all") => Ns::All,
+        Some(n) => kubectl::label(n).map(Ns::Named).unwrap_or(Ns::Default),
+    };
+    (context.is_some() || namespace != Ns::Default).then_some(Selection { context, namespace })
+}
+
 impl Kube {
     // -- Where it works ----------------------------------------------------
 
     /// The context in use, by name: the one chosen here, else kubeconfig's
-    /// current one.
+    /// current one as last read. None: nothing runs against a cluster.
     fn context(&self) -> Option<String> {
         self.selection.context.clone().or_else(|| self.kubeconfig.as_ref().and_then(|k| k.current.clone()))
+    }
+
+    /// The context's cluster and server, as kubeconfig says.
+    fn cluster_of(&self, context: &str) -> (Option<String>, Option<String>) {
+        match self.kubeconfig.as_ref().and_then(|k| k.context(context)) {
+            Some(c) => (Some(c.cluster.clone()), c.server.clone()),
+            None => (None, None),
+        }
+    }
+
+    /// What decides which cluster calls go to: the context, its cluster and
+    /// its server. A change of any is a new place.
+    fn identity(&self) -> (Option<String>, Option<String>, Option<String>) {
+        let context = self.context();
+        let (cluster, server) = context.as_deref().map(|c| self.cluster_of(c)).unwrap_or_default();
+        (context, cluster, server)
     }
 
     /// The namespace in use; none: all of them.
@@ -190,12 +252,23 @@ impl Kube {
         match &self.selection.namespace {
             Ns::Named(n) => Some(n.clone()),
             Ns::All => None,
+            // kubeconfig's namespace was checked as it was read.
             Ns::Default => Some(self.context().and_then(|c| self.kubeconfig.as_ref().and_then(|k| k.context(&c)).and_then(|c| c.namespace.clone())).unwrap_or_else(|| "default".into())),
         }
     }
 
     fn protected(&self, context: &str) -> bool {
-        kubectl::protected(context, &protected_patterns())
+        let (cluster, server) = self.cluster_of(context);
+        Protection { extra: list_setting("kubernetes.protected"), exempt: list_setting("kubernetes.unprotected") }.protects(context, cluster.as_deref(), server.as_deref())
+    }
+
+    /// The context, or a refusal said: nothing runs without one.
+    fn need_context(&self, what: &str) -> Option<String> {
+        let c = self.context();
+        if c.is_none() {
+            api::notify(&format!("No context to {what} in: kubeconfig has no current context{}. c chooses one; nothing ran.", if self.config_error.is_some() { " (it couldn't be read)" } else { "" }));
+        }
+        c
     }
 
     fn header(&self) -> Header {
@@ -205,18 +278,43 @@ impl Kube {
             (Some(c), _) => format!("kubectl {c}"),
             (None, _) => String::new(),
         };
+        let no_contexts = self.kubeconfig.as_ref().is_some_and(|k| k.contexts.is_empty());
         let problem = if let Some(why) = &self.missing {
             Some((format!("kubectl can't run: {why}"), Some("install kubectl, or set kubernetes.kubectl to where it is")))
-        } else if self.kubeconfig.as_ref().is_some_and(|k| k.contexts.is_empty()) && self.selection.context.is_none() {
+        } else if self.kubeconfig.is_none() {
+            Some(("Reading kubeconfig…".to_string(), None))
+        } else if let (Some(why), None) = (&self.config_error, &context) {
+            Some((format!("kubectl couldn't read kubeconfig: {why}"), Some("fix kubeconfig (KUBECONFIG says where it is), then r")))
+        } else if no_contexts && context.is_none() {
             Some(("kubeconfig has no contexts: there's no ~/.kube/config, or KUBECONFIG names none.".to_string(), Some("set one up with your cluster's tools (kind create cluster, aws eks update-kubeconfig, gcloud container clusters get-credentials)")))
+        } else if context.is_none() {
+            Some(("No context: kubeconfig has no current context, and nothing runs without one.".to_string(), Some("c chooses one, for this project")))
         } else if let Server::Down(why) = &self.server {
             Some((why.clone(), model::hint(why)))
         } else {
             None
         };
+        let origin = if self.selection.context.is_some() {
+            "chosen here".to_string()
+        } else {
+            format!("kubeconfig's current, read {}", self.read_at.as_deref().unwrap_or("?"))
+        };
+        let suggestion = self.suggestion.as_ref().filter(|s| {
+            let taken = Selection { context: s.context.clone().or_else(|| self.selection.context.clone()), namespace: s.namespace.clone() };
+            taken != self.selection
+        });
+        let suggestion = suggestion.map(|s| {
+            let ns = match &s.namespace {
+                Ns::Default => "its own namespace".to_string(),
+                Ns::All => "all namespaces".to_string(),
+                Ns::Named(n) => format!("namespace {n}"),
+            };
+            format!("{}{ns} (from kubernetes.context and .namespace: your settings or this project's)", s.context.as_ref().map(|c| format!("context {c}, ")).unwrap_or_default())
+        });
         Header {
             protected: context.as_deref().is_some_and(|c| self.protected(c)),
-            chosen: self.selection.context.is_some(),
+            origin,
+            suggestion,
             context,
             namespace: self.namespace().unwrap_or_else(|| "all namespaces".into()),
             versions,
@@ -227,48 +325,28 @@ impl Kube {
 
     // -- Processes -----------------------------------------------------------
 
-    fn spawn(&mut self, job: Job, args: Vec<String>, stdin: Option<&str>) -> Option<u64> {
+    fn spawn(&mut self, job: Job, args: Vec<String>) -> Option<u64> {
         let cmd = api::Command::new(&self.program).args(args);
         match api::host::spawn(&cmd) {
             Ok(p) => {
-                if let Some(text) = stdin {
-                    if let Err(why) = api::process::write(p, text.as_bytes()) {
-                        api::warn!("kubectl's input: {why}");
-                    }
-                }
                 // Nothing reads from you: a credential plugin that asks is
                 // told there's nobody there, rather than waiting forever.
                 api::process::close_stdin(p);
-                self.jobs.insert(p, Running { job: Some(job), ..Running::default() });
+                let stream = matches!(job, Job::Logs { .. });
+                self.jobs.insert(p, Running { job, out: Vec::new(), err: Vec::new(), cut: false, beats: 0 });
+                if !stream && self.watchdog.is_none() {
+                    self.watchdog = Some(api::host::set_timer(WATCH_MS, true));
+                }
                 Some(p)
             }
             Err(why) => {
                 api::warn!("{}: {why}", self.program);
                 self.missing = Some(why.clone());
                 self.doctor();
-                self.cannot_run(job, why);
+                self.finish(job, None, Vec::new(), vec![format!("error: {why}")], false);
                 None
             }
         }
-    }
-
-    /// A job whose process couldn't start.
-    fn cannot_run(&mut self, job: Job, why: String) {
-        match job {
-            Job::List { kind, .. } => self.listing_failed(kind, why),
-            Job::Agent { call, .. } => {
-                self.agent_calls.remove(&call);
-                api::answer(call, Err(format!("kubectl can't run: {why}")));
-            }
-            Job::Logs { page } => {
-                if let Some(v) = self.logs.get_mut(&page) {
-                    v.stream = Stream::Ended(why);
-                }
-                pages::refresh(page);
-            }
-            _ => api::notify(&format!("kubectl can't run: {why}")),
-        }
-        self.refresh_main();
     }
 
     fn refresh_main(&self) {
@@ -277,49 +355,95 @@ impl Kube {
         }
     }
 
-    /// What kubectl's answer means, by what it was for.
-    fn ended(&mut self, process: u64, code: Option<i32>) {
-        if let Some(tail) = self.agent_tails.remove(&process) {
-            if let Some(Running { job: Some(Job::Agent { call, .. }), err, out, .. }) = self.jobs.remove(&process) {
-                if let Some(c) = self.agent_calls.remove(&call) {
-                    if code == Some(0) {
-                        api::answer(call, Ok(tail.answer(&c.context, &c.namespace, ask_pod(&c.ask)).to_string()));
-                    } else {
-                        api::answer(call, Err(model::failure(&err, &out)));
-                    }
-                }
+    /// The watchdog's beat: a call that isn't a stream and has gone on too
+    /// long is stopped, and said so -- most often a login plugin waiting
+    /// on a browser or a device code, which `--request-timeout` doesn't
+    /// bound.
+    fn beat(&mut self) {
+        let mut late = Vec::new();
+        for (p, run) in self.jobs.iter_mut() {
+            if matches!(run.job, Job::Logs { .. }) {
+                continue;
             }
-            return;
+            run.beats += 1;
+            if run.beats >= WATCH_BEATS {
+                late.push(*p);
+            }
         }
-        let Some(Running { job: Some(job), out, err, cut }) = self.jobs.remove(&process) else { return };
+        for p in late {
+            api::process::kill(p);
+            if let Some(run) = self.jobs.remove(&p) {
+                let why = format!("error: kubectl gave {} no answer in {} s -- a login plugin may be waiting for you (a browser, a device code). It was stopped; r asks again.", run.job.waiting(), WATCH_BEATS * WATCH_MS / 1000);
+                self.finish(run.job, None, Vec::new(), vec![why], false);
+            }
+        }
+        if !self.jobs.values().any(|r| !matches!(r.job, Job::Logs { .. })) {
+            if let Some(t) = self.watchdog.take() {
+                api::host::cancel_timer(t);
+            }
+        }
+    }
+
+    fn ended(&mut self, process: u64, code: Option<i32>) {
+        let Some(run) = self.jobs.remove(&process) else { return };
+        self.finish(run.job, code, run.out, run.err, run.cut);
+    }
+
+    /// What kubectl's answer means, by what it was for.
+    fn finish(&mut self, job: Job, code: Option<i32>, out: Vec<String>, err: Vec<String>, cut: bool) {
         let ok = code == Some(0);
         let why = || model::failure(&err, &out);
         match job {
             Job::ClientVersion => {
                 self.client = if ok { model::versions(&out.join("\n")).0 } else { None };
-                if !ok {
+                if !ok && self.missing.is_none() {
                     self.missing = Some(why());
                 }
                 self.doctor();
+                self.refresh_main();
             }
-            Job::Config => {
-                // No kubeconfig at all is no contexts, not a failure.
-                self.kubeconfig = Some(if ok { Kubeconfig::read(&out.join("\n")) } else { Kubeconfig::default() });
-                if !ok {
-                    api::warn!("kubectl config view: {}", why());
+            Job::Config { seq } => {
+                if seq != self.config_seq {
+                    return; // An earlier read's: a newer one is coming.
+                }
+                let before = self.kubeconfig.is_some().then(|| self.identity());
+                let read = if ok { Kubeconfig::read(&out.join("\n")) } else { Err(why()) };
+                match read {
+                    Ok(k) => {
+                        if !k.refused.is_empty() {
+                            api::notify(&format!("kubeconfig has {} context(s) whose names hold a tab or a newline: left out, since kubectl can't be given them as one name", k.refused.len()));
+                        }
+                        self.kubeconfig = Some(k);
+                        self.config_error = None;
+                    }
+                    Err(e) => {
+                        api::warn!("kubectl config view: {e}");
+                        self.kubeconfig = Some(Kubeconfig::default());
+                        self.config_error = Some(e);
+                    }
+                }
+                self.read_at = Some(api::clock::now().format("%H:%M").to_string());
+                // Another context, cluster or server than before: what's
+                // listed is another cluster's.
+                if before.is_some_and(|b| b != self.identity()) {
+                    self.reset();
+                    self.refresh_waiting = self.main.is_some();
                 }
                 self.doctor();
                 if std::mem::take(&mut self.refresh_waiting) {
                     self.refresh(true);
                 }
-                for (call, ask) in std::mem::take(&mut self.agent_waiting) {
-                    if let Some(answer) = self.agent_start(call, ask) {
+                for (call, service, ask) in std::mem::take(&mut self.agent_waiting) {
+                    if let Some(answer) = self.agent_start(call, &service, ask) {
                         api::answer(call, answer);
                     }
                 }
                 self.refresh_main();
             }
-            Job::ServerVersion => {
+            Job::ServerVersion { generation } => {
+                if generation != self.generation {
+                    return;
+                }
                 self.server = match (ok, model::versions(&out.join("\n")).1) {
                     (true, Some(v)) => Server::Up(v),
                     (true, None) => Server::Up("?".into()),
@@ -350,7 +474,7 @@ impl Kube {
                     (true, Ok(names)) => {
                         let mut items = vec![PickerItem::new("All namespaces", "*").detail("every namespace you may list")];
                         let current = self.namespace();
-                        items.extend(names.into_iter().map(|n| {
+                        items.extend(names.into_iter().filter(|n| kubectl::label(n).is_ok()).map(|n| {
                             let item = PickerItem::new(n.clone(), n.clone());
                             if current.as_deref() == Some(n.as_str()) {
                                 item.detail("in use")
@@ -359,7 +483,7 @@ impl Kube {
                             }
                         }));
                         let id = api::pick("Namespace", &items);
-                        self.pickers.insert(id, Picking::Namespace);
+                        self.pickers.insert(id, Picking::Namespace(self.generation));
                     }
                     _ => {
                         // Not allowed to list them (or no answer): type one.
@@ -369,7 +493,11 @@ impl Kube {
                     }
                 }
             }
-            Job::Yaml { target, editable, context } => {
+            Job::Yaml { target, context, generation } => {
+                if generation != self.generation {
+                    api::notify(&format!("{target}'s YAML came after the context changed: not shown"));
+                    return;
+                }
                 if !ok {
                     api::notify(&format!("Couldn't read {target}'s YAML: {}", why()));
                     return;
@@ -381,17 +509,14 @@ impl Kube {
                         Ok(text) => api::open_text(&title, &text, Some("yaml")),
                         Err(why) => api::notify(&format!("{target}: {why}")),
                     }
-                } else if editable {
-                    let id = api::scratch::open(&title, &out.join("\n"), Some("yaml"));
-                    self.yaml.insert(id, (target, context));
-                    self.focused_scratch = Some(id);
-                    api::notify(&format!("Edit it, then {} applies it, after a dry run, a diff and a question", key_for("kubernetes.apply", "SPC o k a")));
                 } else {
                     api::open_text(&title, &out.join("\n"), Some("yaml"));
                 }
             }
-            Job::Describe { target, context } => {
-                if ok {
+            Job::Describe { target, context, generation } => {
+                if generation != self.generation {
+                    api::notify(&format!("describe {target} came after the context changed: not shown"));
+                } else if ok {
                     api::open_text(&format!("describe {} ({context}/{})", target.reference(), target.namespace), &out.join("\n"), None);
                 } else {
                     api::notify(&format!("Couldn't describe {target}: {}", why()));
@@ -407,7 +532,7 @@ impl Kube {
             }
             Job::Change { what } => {
                 if ok {
-                    let said = out.iter().map(|l| l.trim()).find(|l| !l.is_empty()).unwrap_or("done");
+                    let said = out.iter().map(|l| agent::plain(l.trim())).find(|l| !l.is_empty()).unwrap_or_else(|| "done".into());
                     api::notify(&format!("{what}: {said}"));
                 } else {
                     api::notify(&format!("Couldn't {what}: {}", why()));
@@ -415,42 +540,14 @@ impl Kube {
                 self.failed = false;
                 self.refresh(false);
             }
-            Job::DryRun { page } => {
-                if let Some(v) = self.applies.get_mut(&page) {
-                    v.dry_run_ended(code, &out.join("\n"), why());
-                }
-                pages::refresh(page);
+            Job::Agent { call } => {
+                let why = why();
+                self.agent_done(call, ok, out, why, cut)
             }
-            Job::Diff { page } => {
-                if let Some(v) = self.applies.get_mut(&page) {
-                    v.diff_ended(code, out.clone(), why());
-                }
-                pages::refresh(page);
-            }
-            Job::Apply { page } => {
-                if let Some(v) = self.applies.get_mut(&page) {
-                    v.stage = if ok { Stage::Applied(out.iter().map(|l| l.trim()).find(|l| !l.is_empty()).unwrap_or("done").to_string()) } else { Stage::Failed(why()) };
-                }
-                pages::refresh(page);
-                self.refresh(false);
-            }
-            Job::UseContext(name) => {
-                if ok {
-                    api::notify(&format!("kubeconfig's current context is now {name}, for every tool that reads it"));
-                    self.spawn(Job::Config, kubectl::config_view(), None);
-                } else {
-                    api::notify(&format!("Couldn't switch kubeconfig to {name}: {}", why()));
-                }
-            }
-            Job::Agent { call, part } => self.agent_part(call, part, ok, &out, why()),
         }
     }
 
     // -- Lists -----------------------------------------------------------------
-
-    fn listing_mut<T>(list: &mut Listing<T>) -> &mut Listing<T> {
-        list
-    }
 
     fn set_loading(&mut self, kind: Kind, loading: bool) -> usize {
         let base = max_items();
@@ -475,17 +572,17 @@ impl Kube {
     }
 
     /// `kind` asked for again.
-    fn list(&mut self, kind: Kind) {
+    fn list(&mut self, kind: Kind, context: &str) {
         if self.is_loading(kind) || self.missing.is_some() {
             return;
         }
         let limit = self.set_loading(kind, true);
-        let (context, namespace) = (self.context(), self.namespace());
+        let namespace = self.namespace();
         let args = match kind {
-            Kind::Secret => kubectl::secrets(context.as_deref(), namespace.as_deref()),
-            k => kubectl::list(k, context.as_deref(), namespace.as_deref(), limit),
+            Kind::Secret => kubectl::secrets(context, namespace.as_deref()),
+            k => kubectl::list(k, context, namespace.as_deref(), limit),
         };
-        self.spawn(Job::List { kind, generation: self.generation }, args, None);
+        self.spawn(Job::List { kind, generation: self.generation }, args);
     }
 
     fn listed(&mut self, kind: Kind, out: &[String], cut: bool) {
@@ -527,7 +624,7 @@ impl Kube {
             Kind::Ingress => set(&mut c.ingresses.error, &mut c.ingresses.loading),
             Kind::Secret => set(&mut c.secrets.error, &mut c.secrets.loading),
             k => {
-                let w = Self::listing_mut(c.workloads.entry(k).or_default());
+                let w = c.workloads.entry(k).or_default();
                 set(&mut w.error, &mut w.loading)
             }
         }
@@ -544,16 +641,39 @@ impl Kube {
         if self.missing.is_some() {
             return;
         }
+        let Some(context) = self.context() else {
+            self.refresh_main();
+            return;
+        };
         if whole {
             self.failed = false;
             self.server = Server::Checking;
-            let context = self.context();
-            self.spawn(Job::ServerVersion, kubectl::server_version(context.as_deref()), None);
+            self.spawn(Job::ServerVersion { generation: self.generation }, kubectl::server_version(&context));
         }
         for kind in tab.kinds() {
-            self.list(*kind);
+            self.list(*kind, &context);
         }
         self.refresh_main();
+    }
+
+    /// `r`: whatever is still being waited for is given up, kubeconfig is
+    /// read again, and everything asked again.
+    fn reload(&mut self) {
+        let waiting: Vec<u64> = self.jobs.iter().filter(|(_, r)| matches!(r.job, Job::List { .. } | Job::ServerVersion { .. })).map(|(p, _)| *p).collect();
+        for p in waiting {
+            api::process::kill(p);
+            if let Some(Running { job: Job::List { kind, .. }, .. }) = self.jobs.remove(&p) {
+                self.set_loading(kind, false);
+            }
+        }
+        self.failed = false;
+        self.read_config();
+        self.refresh(true);
+    }
+
+    fn read_config(&mut self) {
+        self.config_seq += 1;
+        self.spawn(Job::Config { seq: self.config_seq }, kubectl::config_view());
     }
 
     /// On the timer: the tab in view's lists, unless something failed
@@ -583,16 +703,11 @@ impl Kube {
         }
     }
 
-    /// Where it works changed: what was listed goes, and is asked for
-    /// again.
-    fn select(&mut self, selection: Selection) {
-        if selection == self.selection {
-            return;
-        }
-        self.selection = selection;
+    /// What's listed is no longer where calls go: it goes, with every
+    /// answer still coming for it and any question asked about it.
+    fn reset(&mut self) {
         self.generation += 1;
-        // Lists still coming are for the old selection.
-        let old: Vec<u64> = self.jobs.iter().filter(|(_, r)| matches!(r.job, Some(Job::List { .. }) | Some(Job::ServerVersion))).map(|(p, _)| *p).collect();
+        let old: Vec<u64> = self.jobs.iter().filter(|(_, r)| matches!(r.job, Job::List { .. } | Job::ServerVersion { .. } | Job::Namespaces { .. })).map(|(p, _)| *p).collect();
         for p in old {
             api::process::kill(p);
             self.jobs.remove(&p);
@@ -601,10 +716,21 @@ impl Kube {
         self.server = Server::Unknown;
         self.failed = false;
         self.asked = None;
+        self.prompts.retain(|_, a| !matches!(a, Asking::Typed(..) | Asking::Replicas(..)));
         if let Some((_, v)) = &mut self.main {
             v.confirm = None;
             v.menu = None;
         }
+        self.refresh_main();
+    }
+
+    /// Where it works changed by your choice.
+    fn select(&mut self, selection: Selection) {
+        if selection == self.selection {
+            return;
+        }
+        self.selection = selection;
+        self.reset();
         self.doctor();
         self.refresh(true);
     }
@@ -618,9 +744,10 @@ impl Kube {
             (None, None, _) => (Health::Info, "looking for it".to_string()),
             (None, Some(v), Server::Up(s)) => (Health::Ok, format!("{v}; {} answers (server {s})", self.context().unwrap_or_default())),
             (None, Some(v), Server::Down(why)) => (Health::Warn, format!("{v}; {}: {why}", self.context().unwrap_or_else(|| "the cluster".into()))),
-            (None, Some(v), _) => match &self.kubeconfig {
-                Some(k) if k.contexts.is_empty() => (Health::Warn, format!("{v}; kubeconfig has no contexts")),
-                _ => (Health::Ok, format!("{v}; the cluster ({}) is asked when the Kubernetes page opens", self.context().unwrap_or_else(|| "kubeconfig's current".into()))),
+            (None, Some(v), _) => match (&self.kubeconfig, self.context()) {
+                (Some(k), None) if k.contexts.is_empty() => (Health::Warn, format!("{v}; kubeconfig has no contexts")),
+                (Some(_), None) => (Health::Warn, format!("{v}; kubeconfig has no current context: the Kubernetes page's c chooses one")),
+                (_, c) => (Health::Ok, format!("{v}; the cluster ({}) is asked when the Kubernetes page opens", c.unwrap_or_else(|| "kubeconfig's current".into()))),
             },
         };
         let mut check = Check::new(Section::Toolchain, "kubectl", health, detail);
@@ -644,7 +771,11 @@ impl Kube {
         self.refresh(true);
     }
 
-    fn pick_context(&mut self, global: bool) {
+    fn pick_context(&mut self) {
+        if let Some(why) = &self.config_error {
+            api::notify(&format!("kubectl couldn't read kubeconfig: {why}"));
+            return;
+        }
         let Some(k) = &self.kubeconfig else {
             api::notify("kubeconfig isn't read yet: a moment");
             return;
@@ -653,7 +784,6 @@ impl Kube {
             api::notify("kubeconfig has no contexts");
             return;
         }
-        let patterns = protected_patterns();
         let current = self.context();
         let items: Vec<PickerItem> = k
             .contexts
@@ -669,37 +799,36 @@ impl Kube {
                 if current.as_deref() == Some(c.name.as_str()) {
                     detail.push("in use here".into());
                 }
-                if kubectl::protected(&c.name, &patterns) {
-                    detail.push("protected".into());
-                }
+                detail.push(if self.protected(&c.name) { "protected".into() } else { "local: unprotected".into() });
                 PickerItem::new(c.name.clone(), c.name.clone()).detail(detail.join(" · "))
             })
             .collect();
-        let title = if global { "kubectl config use-context: every tool's current context" } else { "Context, for this project" };
-        let id = api::pick(title, &items);
-        self.pickers.insert(id, Picking::Context { global });
+        let id = api::pick("Context, for this project", &items);
+        self.pickers.insert(id, Picking::Context);
     }
 
     fn pick_namespace(&mut self) {
         if self.missing.is_some() {
             return;
         }
-        let context = self.context();
-        self.spawn(Job::Namespaces { generation: self.generation }, kubectl::namespaces(context.as_deref()), None);
+        let Some(context) = self.need_context("list namespaces") else { return };
+        self.spawn(Job::Namespaces { generation: self.generation }, kubectl::namespaces(&context));
     }
 
     fn act(&mut self, page: u64, action: Action) {
         match action {
             Action::Nothing => return,
             Action::Redraw => {}
-            Action::Refresh => {
-                // Asked by you: a failure no longer holds the timer back.
-                self.failed = false;
-                let whole = !matches!(self.server, Server::Up(_));
-                self.refresh(whole);
-            }
-            Action::PickContext => self.pick_context(false),
+            Action::Refresh => self.reload(),
+            Action::PickContext => self.pick_context(),
             Action::PickNamespace => self.pick_namespace(),
+            Action::TakeSuggestion => match self.suggestion.clone() {
+                Some(s) => {
+                    let taken = Selection { context: s.context.or_else(|| self.selection.context.clone()), namespace: s.namespace };
+                    self.select(taken);
+                }
+                None => api::notify("No context or namespace is suggested (kubernetes.context, kubernetes.namespace)"),
+            },
             Action::Filter => {
                 let filter = self.main.as_ref().map(|(_, v)| v.filter.clone()).unwrap_or_default();
                 let id = api::prompt("Filter by name", &filter);
@@ -720,37 +849,34 @@ impl Kube {
                 } else {
                     *limit = (*limit + add).min(MOST_ITEMS);
                     api::notify(&format!("listing up to {} {}", *limit, kind.resource()));
-                    self.list(kind);
+                    if let Some(context) = self.need_context("list") {
+                        self.list(kind, &context);
+                    }
                 }
             }
             Action::Logs(t) => self.open_logs(t),
             Action::Shell(t) => self.shell(t),
             Action::Forward(t) => {
+                let Some(context) = self.need_context("port-forward") else { return pages::refresh(page) };
                 let port = match t.kind {
                     Kind::Service => self.cluster.service(&t).and_then(|s| s.first_port),
                     Kind::Pod => self.cluster.pod(&t.namespace, &t.name).and_then(|p| p.ports.first().copied()),
                     _ => None,
                 };
                 let initial = port.map(|p| format!("{}:{p}", if p < 1024 { 8000 + p } else { p })).unwrap_or_else(|| "8080:80".into());
-                let id = api::prompt(&format!("Port-forward {} ({}/{}): local:remote", t.reference(), self.context().unwrap_or_default(), t.namespace), &initial);
+                let id = api::prompt(&format!("Port-forward {} ({context}/{}): local:remote", t.reference(), t.namespace), &initial);
                 self.prompts.insert(id, Asking::Ports(t));
             }
-            Action::Yaml(t) | Action::Edit(t) if self.context().is_none() => {
-                let _ = t;
-                api::notify("Which cluster? kubeconfig has no current context: c chooses one");
-            }
             Action::Yaml(t) => {
-                let context = self.context().unwrap_or_default();
-                self.spawn(Job::Yaml { target: t.clone(), editable: false, context: context.clone() }, kubectl::get(&t, Some(&context)), None);
-            }
-            Action::Edit(t) => {
-                let context = self.context().unwrap_or_default();
-                self.spawn(Job::Yaml { target: t.clone(), editable: true, context: context.clone() }, kubectl::get(&t, Some(&context)), None);
+                if let Some(context) = self.need_context("read YAML") {
+                    self.spawn(Job::Yaml { target: t.clone(), context: context.clone(), generation: self.generation }, kubectl::get(&t, &context));
+                }
             }
             Action::Describe(t) => {
-                let context = self.context().unwrap_or_default();
-                let args = kubectl::describe(&t, self.context().as_deref());
-                self.spawn(Job::Describe { target: t, context }, args, None);
+                if let Some(context) = self.need_context("describe") {
+                    let args = kubectl::describe(&t, &context);
+                    self.spawn(Job::Describe { target: t, context, generation: self.generation }, args);
+                }
             }
             Action::Copy(name) => {
                 api::copy(&name);
@@ -758,9 +884,11 @@ impl Kube {
             }
             Action::Mutate(m) => self.ask_change(m),
             Action::Scale(t) => {
-                let from = self.cluster.workload(&t).and_then(|w| w.replicas);
-                let id = api::prompt(&format!("Scale {t} ({}/{}) to how many replicas?", self.context().unwrap_or_default(), t.namespace), &from.map(|f| f.to_string()).unwrap_or_default());
-                self.prompts.insert(id, Asking::Replicas(t, from));
+                if let Some(context) = self.need_context("scale") {
+                    let from = self.cluster.workload(&t).and_then(|w| w.replicas);
+                    let id = api::prompt(&format!("Scale {t} ({context}/{}) to how many replicas?", t.namespace), &from.map(|f| f.to_string()).unwrap_or_default());
+                    self.prompts.insert(id, Asking::Replicas(t, from));
+                }
             }
             Action::Confirmed(m) => self.confirmed(m),
             Action::Declined => self.asked = None,
@@ -791,7 +919,7 @@ impl Kube {
         };
         if self.protected(&context) {
             if setting("kubernetes.protected_mode").as_deref() == Some("refuse") {
-                api::notify(&format!("{context} is protected (kubernetes.protected): {} refused here. Nothing changed.", m.what()));
+                api::notify(&format!("{context} is protected: {} refused here (kubernetes.protected_mode). Nothing changed.", m.what()));
                 return;
             }
             let name = m.target().name.clone();
@@ -802,60 +930,43 @@ impl Kube {
         }
         let question = m.question(&context);
         self.asked = Some((m.clone(), context));
-        match &m {
-            Mutation::Apply { page, .. } => {
-                if let Some(v) = self.applies.get_mut(page) {
-                    v.confirm = Some(question);
-                }
-                pages::refresh(*page);
-            }
-            _ => {
-                if let Some((p, v)) = &mut self.main {
-                    v.confirm = Some((m, question));
-                    pages::refresh(*p);
-                }
-            }
+        if let Some((p, v)) = &mut self.main {
+            v.confirm = Some((m, question));
+            pages::refresh(*p);
         }
     }
 
     /// `y` to a question: done, if it's still the one asked, in the same
-    /// context.
+    /// context, and that context isn't protected now.
     fn confirmed(&mut self, m: Mutation) {
         match self.asked.take() {
-            Some((asked, context)) if asked == m && self.context().as_deref() == Some(context.as_str()) => self.change(m, &context),
+            Some((asked, context)) if asked == m && self.context().as_deref() == Some(context.as_str()) => {
+                if self.protected(&context) {
+                    api::notify(&format!("{context} is protected now: ask again. Nothing changed."));
+                } else {
+                    self.change(m, &context);
+                }
+            }
             _ => api::notify("The context changed since it was asked: nothing done"),
         }
     }
 
     fn change(&mut self, m: Mutation, context: &str) {
         let what = m.what();
-        match m {
-            Mutation::Delete(t) => {
-                self.spawn(Job::Change { what }, kubectl::delete(&t, Some(context)), None);
-            }
-            Mutation::Restart(t) => {
-                self.spawn(Job::Change { what }, kubectl::rollout_restart(&t, Some(context)), None);
-            }
-            Mutation::Scale { target, from, to } => {
-                self.spawn(Job::Change { what }, kubectl::scale(&target, Some(context), from, to), None);
-            }
-            Mutation::Apply { page, target } => {
-                let Some(v) = self.applies.get_mut(&page) else { return };
-                if v.context.as_deref() != Some(context) {
-                    api::notify("The context changed since the dry run: r checks it again");
-                    return;
-                }
-                v.stage = Stage::Applying;
-                let text = v.text.clone();
-                self.spawn(Job::Apply { page }, kubectl::apply(&target.namespace, Some(context)), Some(&text));
-                pages::refresh(page);
-            }
-        }
+        let args = match &m {
+            Mutation::Delete(t) => kubectl::delete(t, context),
+            Mutation::Restart(t) => kubectl::rollout_restart(t, context),
+            Mutation::Scale { target, from, to } => kubectl::scale(target, context, *from, *to),
+        };
+        self.spawn(Job::Change { what }, args);
     }
 
     // -- Logs, shells, forwards -----------------------------------------------------
 
     fn open_logs(&mut self, t: Target) {
+        if self.need_context("read a log").is_none() {
+            return;
+        }
         let containers = if t.kind == Kind::Pod { self.cluster.pod(&t.namespace, &t.name).map(|p| p.containers.clone()).unwrap_or_default() } else { Vec::new() };
         if containers.len() > 1 {
             let mut items = vec![PickerItem::new("All containers", "*")];
@@ -869,26 +980,26 @@ impl Kube {
     }
 
     fn log_page(&mut self, t: Target, containers: Vec<String>, container: Option<String>) {
-        let view = LogView::new(t.clone(), self.context(), containers, container);
+        let Some(context) = self.need_context("read a log") else { return };
+        let view = LogView::new(t.clone(), context, containers, container);
         let page = pages::open(LOGS, &format!("logs {}", t.name));
         self.logs.insert(page, view);
         self.stream(page);
     }
 
-    /// The log page's stream, (re)started with its options.
+    /// The log page's stream, (re)started with its options. The one before
+    /// is stopped and forgotten: what it still says goes nowhere.
     fn stream(&mut self, page: u64) {
         self.stop_stream(page);
         let Some(v) = self.logs.get_mut(&page) else { return };
-        if v.stream == Stream::Starting || matches!(v.stream, Stream::Stopped | Stream::Ended(_)) {
-            v.stream = Stream::Running;
-        }
+        v.stream = Stream::Running;
         let args = v.args();
-        self.spawn(Job::Logs { page }, args, None);
+        self.spawn(Job::Logs { page }, args);
         pages::refresh(page);
     }
 
     fn stop_stream(&mut self, page: u64) {
-        let running: Vec<u64> = self.jobs.iter().filter(|(_, r)| r.job == Some(Job::Logs { page })).map(|(p, _)| *p).collect();
+        let running: Vec<u64> = self.jobs.iter().filter(|(_, r)| r.job == Job::Logs { page }).map(|(p, _)| *p).collect();
         for p in running {
             api::process::kill(p);
             self.jobs.remove(&p);
@@ -896,6 +1007,9 @@ impl Kube {
     }
 
     fn shell(&mut self, t: Target) {
+        if self.need_context("open a shell").is_none() {
+            return;
+        }
         let containers = self.cluster.pod(&t.namespace, &t.name).map(|p| p.containers.clone()).unwrap_or_default();
         match containers.len() {
             0 => api::notify(&format!("{t}: its containers aren't known yet: r, then again")),
@@ -910,9 +1024,9 @@ impl Kube {
 
     fn exec(&mut self, t: &Target, container: &str) {
         let Ok(container) = kubectl::label(container) else { return };
-        let context = self.context();
-        let cmd = api::Command::new(&self.program).args(kubectl::exec(t, context.as_deref(), &container));
-        let title = format!("{}/{container} ({}/{})", t.name, context.unwrap_or_default(), t.namespace);
+        let Some(context) = self.need_context("open a shell") else { return };
+        let cmd = api::Command::new(&self.program).args(kubectl::exec(t, &context, &container));
+        let title = format!("{}/{container} ({context}/{})", t.name, t.namespace);
         if let Err(why) = api::host::run_in_terminal(&cmd, &title, false) {
             api::notify(&format!("Couldn't open a terminal: {why}"));
         }
@@ -923,13 +1037,13 @@ impl Kube {
             api::notify(&format!("localhost:{local} is already forwarded to {}: s on the Forwards tab stops it", f.target.reference()));
             return;
         }
-        let context = self.context();
-        let cmd = api::Command::new(&self.program).args(kubectl::port_forward(&t, context.as_deref(), local, remote));
+        let Some(context) = self.need_context("port-forward") else { return };
+        let cmd = api::Command::new(&self.program).args(kubectl::port_forward(&t, &context, local, remote));
         let name = format!("port-forward {} {local}:{remote}", t.reference());
         match api::host::run_task_background(&name, &cmd) {
             Ok(task) => {
                 api::notify(&format!("localhost:{local} → {} {remote}, while the task runs (the Forwards tab, 5)", t.reference()));
-                self.forwards.push(Forward { task, target: t, context: context.unwrap_or_else(|| "kubeconfig's context".into()), local, remote });
+                self.forwards.push(Forward { task, target: t, context, local, remote });
             }
             Err(why) => api::notify(&format!("Couldn't start {name}: {why} (Fenix runs 4 background tasks of an extension's at once)")),
         }
@@ -943,141 +1057,63 @@ impl Kube {
         }
     }
 
-    // -- Apply -----------------------------------------------------------------------
-
-    fn apply_command(&mut self) {
-        self.yaml.retain(|id, _| api::scratch::text(*id).is_some());
-        let chosen = match self.focused_scratch.filter(|s| self.yaml.contains_key(s)) {
-            Some(s) => Some(s),
-            None if self.yaml.len() == 1 => self.yaml.keys().next().copied(),
-            None if self.yaml.is_empty() => {
-                api::notify(&format!("No YAML open to apply: e on an object (its menu: Edit the YAML) opens one, then {}", key_for("kubernetes.apply", "SPC o k a")));
-                return;
-            }
-            None => {
-                let items: Vec<PickerItem> = self.yaml.iter().map(|(id, (t, c))| PickerItem::new(format!("{} ({c}/{})", t.reference(), t.namespace), id.to_string())).collect();
-                let id = api::pick("Apply which YAML", &items);
-                self.pickers.insert(id, Picking::YamlBuffer);
-                return;
-            }
-        };
-        if let Some(s) = chosen {
-            self.check_apply(s, None);
-        }
-    }
-
-    /// The buffer's text read, and checked: a dry run and a diff, on a
-    /// page of their own (`page`, or a new one).
-    fn check_apply(&mut self, scratch: u64, page: Option<u64>) {
-        let Some((target, context)) = self.yaml.get(&scratch).cloned() else { return };
-        let Some(text) = api::scratch::text(scratch) else {
-            self.yaml.remove(&scratch);
-            api::notify("That YAML buffer is closed");
-            return;
-        };
-        if self.context().as_deref() != Some(context.as_str()) {
-            api::notify(&format!("This YAML is from {context}, and the page is on {} now: c chooses {context} again to apply it", self.context().unwrap_or_default()));
-            return;
-        }
-        let page = page.unwrap_or_else(|| pages::open(APPLY, &format!("apply {}", target.reference())));
-        self.applies.insert(page, ApplyView::new(scratch, target.clone(), Some(context.clone()), text.clone()));
-        self.spawn(Job::DryRun { page }, kubectl::apply_dry_run(&target.namespace, Some(&context)), Some(&text));
-        self.spawn(Job::Diff { page }, kubectl::diff(&target.namespace, Some(&context)), Some(&text));
-        pages::refresh(page);
-    }
-
     // -- Agents ------------------------------------------------------------------------
 
-    fn agent_start(&mut self, call: u64, ask: Ask) -> Option<Result<String, String>> {
-        if let Some(why) = &self.missing {
-            return Some(Err(format!("kubectl can't run here: {why}")));
+    /// Too many calls: at most one at a time per tool, `AGENT_AT_ONCE` in
+    /// all, `AGENT_PER_MINUTE` a minute.
+    fn agent_busy(&mut self, service: &str) -> Option<String> {
+        let t = api::clock::now().timestamp();
+        while self.agent_times.front().is_some_and(|s| t - s >= 60) {
+            self.agent_times.pop_front();
         }
-        let context = self.context();
-        let namespace = ask.namespace().map(String::from).or_else(|| self.namespace());
-        let shown_context = context.clone().unwrap_or_else(|| "kubeconfig's current context".into());
-        let ns_for_one = match (&namespace, &ask) {
-            (None, Ask::Workloads { .. } | Ask::Pods { .. }) => None,
-            (None, _) => return Some(Err("the extension shows every namespace: say which namespace the pod or object is in".into())),
-            (Some(n), _) => Some(n.clone()),
-        };
-        let mut c = AgentCall { ask: ask.clone(), context: shown_context, namespace: namespace.clone().unwrap_or_else(|| "all".into()), waiting: 0, workloads: Vec::new(), pods: None };
-        let ctx = context.as_deref();
-        let ns = namespace.as_deref();
-        match &ask {
-            Ask::Workloads { .. } => {
-                c.waiting = Kind::WORKLOADS.len();
-                self.agent_calls.insert(call, c);
-                for kind in Kind::WORKLOADS {
-                    self.spawn(Job::Agent { call, part: Some(kind) }, kubectl::list(kind, ctx, ns, agent::MAX_LISTED), None);
-                }
-            }
-            Ask::Pods { .. } => {
-                c.waiting = 1;
-                self.agent_calls.insert(call, c);
-                self.spawn(Job::Agent { call, part: Some(Kind::Pod) }, kubectl::list(Kind::Pod, ctx, ns, agent::MAX_LISTED), None);
-            }
-            Ask::Logs { lines, .. } => {
-                let n = ns_for_one.unwrap_or_default();
-                c.waiting = 1;
-                c.namespace = n.clone();
-                self.agent_calls.insert(call, c);
-                if let Some(p) = self.spawn(Job::Agent { call, part: None }, agent::command(&ask, ctx, &n), None) {
-                    self.agent_tails.insert(p, Tail::new(*lines));
-                }
-            }
-            Ask::Pod { .. } | Ask::Describe { .. } | Ask::Events { .. } => {
-                let n = ns_for_one.unwrap_or_default();
-                c.waiting = 1;
-                c.namespace = n.clone();
-                self.agent_calls.insert(call, c);
-                self.spawn(Job::Agent { call, part: None }, agent::command(&ask, ctx, &n), None);
-            }
+        let running = self.agent_calls.len() + self.agent_waiting.len();
+        let this = self.agent_calls.values().filter(|c| c.service == service).count() + self.agent_waiting.iter().filter(|(_, s, _)| s == service).count();
+        if this > 0 {
+            return Some(format!("busy: a call to this tool is still running; ask again when it has answered ({AGENT_AT_ONCE} calls at once at most, one per tool)"));
         }
+        if running >= AGENT_AT_ONCE {
+            return Some(format!("busy: {running} calls are running; at most {AGENT_AT_ONCE} at once"));
+        }
+        if self.agent_times.len() >= AGENT_PER_MINUTE {
+            return Some(format!("too many calls: {AGENT_PER_MINUTE} in the last minute already; wait a little"));
+        }
+        self.agent_times.push_back(t);
         None
     }
 
-    fn agent_part(&mut self, call: u64, part: Option<Kind>, ok: bool, out: &[String], why: String) {
-        let Some(c) = self.agent_calls.get_mut(&call) else { return };
-        let text = out.join("\n");
-        c.waiting = c.waiting.saturating_sub(1);
-        match part {
-            Some(Kind::Pod) => c.pods = Some(if ok { model::pods(&text) } else { Err(why) }),
-            Some(kind) => c.workloads.push((kind, if ok { model::workloads(kind, &text) } else { Err(why) })),
-            None => {
-                let answer = if !ok {
-                    Err(why)
-                } else {
-                    match &c.ask {
-                        Ask::Pod { .. } => serde_json::from_str::<model::RawPod>(&text).map(|p| agent::pod_answer(&c.context, &p, now()).to_string()).map_err(|e| format!("kubectl's answer wasn't a pod: {e}")),
-                        Ask::Events { .. } => model::read_list::<model::RawEvent>(&text).map(|l| agent::events_answer(&c.context, &c.namespace, l.items, &l.more).to_string()),
-                        Ask::Describe { kind, name, .. } => Ok(agent::describe_answer(&c.context, &c.namespace, kind, name, out).to_string()),
-                        _ => Err("unexpected".into()),
-                    }
-                };
-                self.agent_calls.remove(&call);
-                api::answer(call, answer);
-                return;
-            }
+    fn agent_start(&mut self, call: u64, service: &str, ask: Ask) -> Option<Result<String, String>> {
+        if let Some(why) = &self.missing {
+            return Some(Err(format!("kubectl can't run here: {why}")));
         }
-        if c.waiting > 0 {
-            return;
-        }
+        let Some(context) = self.context() else {
+            return Some(Err("no context: kubeconfig has no current context, and the user hasn't chosen one on the Kubernetes page. Nothing ran.".into()));
+        };
+        let Some(namespace) = self.namespace() else {
+            return Some(Err("the user's Kubernetes page shows every namespace: agents read only one, which the user chooses there (n)".into()));
+        };
+        let tail = match &ask {
+            Ask::Logs { lines, .. } => Some(Tail::new(*lines)),
+            _ => None,
+        };
+        let args = agent::command(&ask, &context, &namespace);
+        self.agent_calls.insert(call, AgentCall { service: service.to_string(), ask, context, namespace, tail });
+        self.spawn(Job::Agent { call }, args);
+        None
+    }
+
+    fn agent_done(&mut self, call: u64, ok: bool, out: Vec<String>, why: String, cut: bool) {
         let Some(c) = self.agent_calls.remove(&call) else { return };
-        let answer = match &c.ask {
-            Ask::Pods { .. } => match c.pods {
-                Some(Ok(l)) => Ok(agent::pods_answer(&c.context, &c.namespace, &l.items, &l.more, now()).to_string()),
-                Some(Err(e)) => Err(e),
-                None => Err("kubectl said nothing".into()),
-            },
-            _ => {
-                if let Some((_, Err(e))) = c.workloads.iter().find(|(_, r)| r.is_err()) {
-                    Err(e.clone())
-                } else {
-                    let mut lists: Vec<(Kind, model::Listed<model::Workload>)> = c.workloads.into_iter().filter_map(|(k, r)| r.ok().map(|l| (k, l))).collect();
-                    lists.sort_by_key(|(k, _)| *k);
-                    let refs: Vec<(Kind, &[model::Workload], &More)> = lists.iter().map(|(k, l)| (*k, l.items.as_slice(), &l.more)).collect();
-                    Ok(agent::workloads_answer(&c.context, &c.namespace, &refs, now()).to_string())
-                }
+        let text = out.join("\n");
+        let answer = if !ok && !(cut && c.ask == Ask::Workloads) {
+            Err(why)
+        } else {
+            match &c.ask {
+                Ask::Workloads => Ok(agent::workloads_answer(&c.context, &c.namespace, &model::workload_lines(&out), cut, now()).to_string()),
+                Ask::Pods => model::pods(&text).map(|l| agent::pods_answer(&c.context, &c.namespace, &l.items, &l.more, now()).to_string()),
+                Ask::Pod { .. } => serde_json::from_str::<model::RawPod>(&text).map(|p| agent::pod_answer(&c.context, &p, now()).to_string()).map_err(|e| format!("kubectl's answer wasn't a pod: {e}")),
+                Ask::Events { .. } => model::read_list::<model::RawEvent>(&text).map(|l| agent::events_answer(&c.context, &c.namespace, l.items, &l.more).to_string()),
+                Ask::Logs { pod, .. } => Ok(c.tail.as_ref().map(|t| t.answer(&c.context, &c.namespace, pod)).unwrap_or_default().to_string()),
+                Ask::Describe { kind, name } => agent::describe_answer(&c.context, &c.namespace, kind, name, &text).map(|v| v.to_string()),
             }
         };
         api::answer(call, answer);
@@ -1090,13 +1126,6 @@ pub fn secret_text(target: &Target, json: &str) -> Result<String, String> {
     Ok(format!("# {target}: its keys, not their values.\n{}", secret::yaml(&v)))
 }
 
-fn ask_pod(ask: &Ask) -> &str {
-    match ask {
-        Ask::Logs { pod, .. } => pod,
-        _ => "",
-    }
-}
-
 fn fill<T>(list: &mut Listing<T>, l: model::Listed<T>) {
     list.items = l.items;
     list.more = l.more;
@@ -1106,30 +1135,14 @@ fn fill<T>(list: &mut Listing<T>, l: model::Listed<T>) {
     list.loaded = true;
 }
 
-/// The keys that run `command` now, else `vim` with the leader of the
-/// scheme in use.
-fn key_for(command: &str, vim: &str) -> String {
-    api::key_for(command).unwrap_or_else(|| match (api::key_scheme(), vim.strip_prefix("SPC ")) {
-        (api::KeyScheme::Standard, Some(rest)) => format!("C-k {rest}"),
-        _ => vim.to_string(),
-    })
-}
-
 impl Extension for Kube {
     fn activate(&mut self) -> Result<(), String> {
         self.program = setting("kubernetes.kubectl").unwrap_or_else(|| "kubectl".into());
-        self.selection = Selection {
-            context: setting("kubernetes.context"),
-            namespace: match setting("kubernetes.namespace").as_deref() {
-                None => Ns::Default,
-                Some("*") | Some("all") => Ns::All,
-                Some(n) => kubectl::label(n).map(Ns::Named).unwrap_or(Ns::Default),
-            },
-        };
+        self.suggestion = suggested();
         // Only what's on this machine: kubectl's version and kubeconfig's
         // contexts. The cluster is asked when the page opens.
-        self.spawn(Job::ClientVersion, kubectl::client_version(), None);
-        self.spawn(Job::Config, kubectl::config_view(), None);
+        self.spawn(Job::ClientVersion, kubectl::client_version());
+        self.read_config();
         self.doctor();
         Ok(())
     }
@@ -1137,10 +1150,8 @@ impl Extension for Kube {
     fn run_command(&mut self, id: &str) -> Result<(), String> {
         match id {
             "kubernetes.open" => self.open_main(),
-            "kubernetes.context" => self.pick_context(false),
-            "kubernetes.use_context" => self.pick_context(true),
+            "kubernetes.context" => self.pick_context(),
             "kubernetes.namespace" => self.pick_namespace(),
-            "kubernetes.apply" => self.apply_command(),
             "kubernetes.forwards" => {
                 if self.forwards.is_empty() {
                     api::notify("No port-forwards running");
@@ -1158,38 +1169,52 @@ impl Extension for Kube {
     fn handle(&mut self, event: Event) {
         match event {
             Event::Timer(t) if Some(t) == self.timer => self.tick(),
+            Event::Timer(t) if Some(t) == self.watchdog => self.beat(),
             Event::ProcessOutput(o) => {
-                if let Some(tail) = self.agent_tails.get_mut(&o.process) {
-                    if !o.stderr {
-                        tail.push(&o.line);
-                        return;
-                    }
-                }
                 let cap = self.cluster.secrets.limit.max(max_items());
                 let Some(run) = self.jobs.get_mut(&o.process) else { return };
+                if o.stderr {
+                    if run.err.len() < 200 {
+                        run.err.push(o.line);
+                    }
+                    return;
+                }
                 match &run.job {
-                    Some(Job::Logs { page }) => {
+                    Job::Logs { page } => {
                         let page = *page;
                         if let Some(v) = self.logs.get_mut(&page) {
-                            if o.stderr {
-                                run.err.push(o.line);
-                            } else {
-                                v.push(&o.line);
-                            }
+                            v.push(&o.line);
                         }
                         pages::refresh(page);
                     }
-                    Some(Job::List { kind: Kind::Secret, .. }) if !o.stderr => {
-                        run.out.push(o.line);
-                        if run.out.len() > cap && !run.cut {
-                            // Past the cap: the rest isn't read.
-                            run.out.truncate(cap);
-                            run.cut = true;
-                            api::process::kill(o.process);
+                    Job::Agent { call } => {
+                        let Some(c) = self.agent_calls.get_mut(call) else { return };
+                        if let Some(tail) = c.tail.as_mut() {
+                            tail.push(&o.line);
+                        } else if c.ask == Ask::Workloads {
+                            if run.out.len() >= agent::MAX_WORKLOAD_LINES {
+                                if !run.cut {
+                                    run.cut = true;
+                                    api::process::kill(o.process);
+                                }
+                            } else {
+                                run.out.push(o.line);
+                            }
+                        } else {
+                            run.out.push(o.line);
                         }
                     }
-                    _ if o.stderr => run.err.push(o.line),
-                    _ if run.cut => {}
+                    Job::List { kind: Kind::Secret, .. } => {
+                        if run.out.len() >= cap {
+                            if !run.cut {
+                                // Past the cap: the rest isn't read.
+                                run.cut = true;
+                                api::process::kill(o.process);
+                            }
+                        } else {
+                            run.out.push(o.line);
+                        }
+                    }
                     _ => run.out.push(o.line),
                 }
             }
@@ -1224,10 +1249,16 @@ impl Extension for Kube {
             }
             Event::SettingChanged(key) => match key.as_str() {
                 "kubernetes.kubectl" => {
+                    // Another kubectl may read another kubeconfig: nothing
+                    // listed, asked or known stays.
                     self.program = setting("kubernetes.kubectl").unwrap_or_else(|| "kubectl".into());
                     self.missing = None;
-                    self.spawn(Job::ClientVersion, kubectl::client_version(), None);
-                    self.spawn(Job::Config, kubectl::config_view(), None);
+                    self.client = None;
+                    self.kubeconfig = None;
+                    self.reset();
+                    self.refresh_waiting = self.main.is_some();
+                    self.spawn(Job::ClientVersion, kubectl::client_version());
+                    self.read_config();
                 }
                 "kubernetes.refresh_seconds" => {
                     self.stop_timer();
@@ -1236,17 +1267,8 @@ impl Extension for Kube {
                     }
                 }
                 "kubernetes.context" | "kubernetes.namespace" => {
-                    let mut s = self.selection.clone();
-                    if key == "kubernetes.context" {
-                        s.context = setting("kubernetes.context");
-                    } else {
-                        s.namespace = match setting("kubernetes.namespace").as_deref() {
-                            None => Ns::Default,
-                            Some("*") | Some("all") => Ns::All,
-                            Some(n) => kubectl::label(n).map(Ns::Named).unwrap_or(Ns::Default),
-                        };
-                    }
-                    self.select(s);
+                    self.suggestion = suggested();
+                    self.refresh_main();
                 }
                 _ => self.refresh_main(),
             },
@@ -1259,22 +1281,27 @@ impl Extension for Kube {
             Ok(a) => a,
             Err(why) => return Some(Err(why)),
         };
+        if agent::NEED_LOGS_SETTING.contains(&name) && setting("kubernetes.agent_logs").as_deref() != Some("true") {
+            return Some(Err("turned off: the user hasn't let agents read logs and descriptions (kubernetes.agent_logs), which can hold secrets and are written by whatever runs in the cluster".into()));
+        }
+        if let Some(why) = self.agent_busy(name) {
+            return Some(Err(why));
+        }
         if self.kubeconfig.is_none() && self.missing.is_none() {
             // kubeconfig's contexts aren't read yet: answered once they are.
-            self.agent_waiting.push((call, ask));
+            self.agent_waiting.push((call, name.to_string(), ask));
             return None;
         }
-        self.agent_start(call, ask)
+        self.agent_start(call, name, ask)
     }
 
     fn service_cancelled(&mut self, call: u64) {
-        self.agent_waiting.retain(|(c, _)| *c != call);
+        self.agent_waiting.retain(|(c, _, _)| *c != call);
         self.agent_calls.remove(&call);
-        let running: Vec<u64> = self.jobs.iter().filter(|(_, r)| matches!(r.job, Some(Job::Agent { call: c, .. }) if c == call)).map(|(p, _)| *p).collect();
+        let running: Vec<u64> = self.jobs.iter().filter(|(_, r)| r.job == Job::Agent { call }).map(|(p, _)| *p).collect();
         for p in running {
             api::process::kill(p);
             self.jobs.remove(&p);
-            self.agent_tails.remove(&p);
         }
     }
 
@@ -1286,9 +1313,6 @@ impl Extension for Kube {
             }
         }
         if let Some(v) = self.logs.get(&page) {
-            return v.render(width as usize, height as usize).to_page();
-        }
-        if let Some(v) = self.applies.get(&page) {
             return v.render(width as usize, height as usize).to_page();
         }
         Page::new().line([pages::muted("Nothing here: the page is closed")])
@@ -1333,27 +1357,6 @@ impl Extension for Kube {
                 }
             }
             pages::refresh(page);
-            return;
-        }
-        if let Some(v) = self.applies.get_mut(&page) {
-            match v.key(key.into()) {
-                ApplyAction::Nothing => return,
-                ApplyAction::Redraw => {}
-                ApplyAction::Ask => {
-                    let m = Mutation::Apply { page, target: v.target.clone() };
-                    self.ask_change(m);
-                }
-                ApplyAction::Declined => self.asked = None,
-                ApplyAction::Confirmed => {
-                    let m = Mutation::Apply { page, target: v.target.clone() };
-                    self.confirmed(m);
-                }
-                ApplyAction::Recheck => {
-                    let scratch = v.scratch;
-                    self.check_apply(scratch, Some(page));
-                }
-            }
-            pages::refresh(page);
         }
     }
 
@@ -1361,32 +1364,17 @@ impl Extension for Kube {
         if self.main.as_ref().is_some_and(|(p, _)| *p == page) {
             self.main = None;
             self.main_shown = false;
+            self.asked = None;
             self.stop_timer();
         }
         if self.logs.remove(&page).is_some() {
             self.stop_stream(page);
         }
-        self.applies.remove(&page);
         self.heights.remove(&page);
     }
 
-    fn scratch_closed(&mut self, scratch: u64) {
-        self.yaml.remove(&scratch);
-        if self.focused_scratch == Some(scratch) {
-            self.focused_scratch = None;
-        }
-    }
-
-    fn focus_moved(&mut self, focus: Focus) {
-        if let Focus::Text(Some(id)) = focus {
-            if self.yaml.contains_key(&id) {
-                self.focused_scratch = Some(id);
-            }
-        }
-    }
-
-    /// The main page keeps where it was: the context, the namespace, the
-    /// tab -- this project's choice, kept with its session.
+    /// The main page keeps where it was: the context and namespace you
+    /// chose, the tab -- kept by Fenix with the project's session.
     fn page_state(&mut self, page: u64) -> Option<String> {
         let (p, view) = self.main.as_ref()?;
         if *p != page {
@@ -1411,7 +1399,7 @@ impl Extension for Kube {
             Some(n) => kubectl::label(n).map(Ns::Named).unwrap_or_default(),
             None => Ns::Default,
         };
-        self.selection = Selection { context: context.or(self.selection.context.clone()), namespace };
+        self.selection = Selection { context, namespace };
         let mut view = MainView::default();
         view.tabs.active = v["tab"].as_u64().unwrap_or(0).min(4) as usize;
         self.main = Some((page, view));
@@ -1425,14 +1413,14 @@ impl Extension for Kube {
 impl Kube {
     fn picked(&mut self, what: Picking, value: String) {
         match what {
-            Picking::Context { global } => {
+            Picking::Context => {
                 let Ok(name) = kubectl::context(&value) else { return };
-                if global {
-                    self.spawn(Job::UseContext(name.clone()), kubectl::use_context(&name), None);
-                }
                 self.select(Selection { context: Some(name), namespace: Ns::Default });
             }
-            Picking::Namespace => {
+            Picking::Namespace(generation) => {
+                if generation != self.generation {
+                    return; // Listed for a context no longer in use.
+                }
                 let namespace = if value == "*" { Ns::All } else { kubectl::label(&value).map(Ns::Named).unwrap_or_default() };
                 let s = Selection { context: self.selection.context.clone().or_else(|| self.context()), namespace };
                 self.select(s);
@@ -1448,11 +1436,6 @@ impl Kube {
                     v.options.container = if value == "*" { None } else { kubectl::label(&value).ok() };
                     v.restart();
                     self.stream(page);
-                }
-            }
-            Picking::YamlBuffer => {
-                if let Ok(id) = value.parse() {
-                    self.check_apply(id, None);
                 }
             }
             Picking::StopForward => {

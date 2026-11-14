@@ -16,6 +16,9 @@ use crate::kubectl::{self, LogOptions, Target};
 pub const KEPT: usize = 5000;
 /// Lines asked for when a log opens.
 pub const TAIL: u32 = 200;
+/// A line longer than this is cut: 5,000 of them stay well inside the
+/// extension's memory, whatever a pod writes.
+pub const MAX_LINE: usize = 16 * 1024;
 
 /// Whether the stream runs.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,7 +34,7 @@ pub enum Stream {
 #[derive(Debug, Clone)]
 pub struct LogView {
     pub target: Target,
-    pub context: Option<String>,
+    pub context: String,
     /// The pod's containers, for `c`.
     pub containers: Vec<String>,
     pub options: LogOptions,
@@ -75,7 +78,7 @@ pub fn split(line: &str) -> (Option<&str>, Option<&str>, &str) {
 }
 
 impl LogView {
-    pub fn new(target: Target, context: Option<String>, containers: Vec<String>, container: Option<String>) -> LogView {
+    pub fn new(target: Target, context: String, containers: Vec<String>, container: Option<String>) -> LogView {
         LogView {
             target,
             context,
@@ -93,12 +96,15 @@ impl LogView {
 
     /// The command line for the stream, as the options are now.
     pub fn args(&self) -> Vec<String> {
-        kubectl::logs(&self.target, self.context.as_deref(), &self.options)
+        kubectl::logs(&self.target, &self.context, &self.options)
     }
 
     /// A line the stream wrote.
     pub fn push(&mut self, line: &str) {
-        let line = plain(line);
+        let mut line = plain(line);
+        if line.len() > MAX_LINE {
+            line = crate::agent::cut_line(&line, MAX_LINE);
+        }
         if let (_, Some(t), _) = split(&line) {
             self.last_time = Some(t.to_string());
         }
@@ -199,7 +205,7 @@ impl LogView {
             Some(c) => format!("{} · {c}", self.target),
             None => format!("{} · all containers", self.target),
         };
-        format!("{what} · {}/{}", self.context.as_deref().unwrap_or("kubeconfig's context"), self.target.namespace)
+        format!("{what} · {}/{}", self.context, self.target.namespace)
     }
 
     pub fn render(&self, width: usize, height: usize) -> Canvas {
@@ -275,7 +281,7 @@ mod tests {
     use crate::kubectl::Kind;
 
     fn view() -> LogView {
-        LogView::new(Target::new(Kind::Pod, "shop", "web-1").unwrap(), Some("kind-dev".into()), vec!["nginx".into(), "sidecar".into()], Some("nginx".into()))
+        LogView::new(Target::new(Kind::Pod, "shop", "web-1").unwrap(), "kind-dev".into(), vec!["nginx".into(), "sidecar".into()], Some("nginx".into()))
     }
 
     #[test]
@@ -320,7 +326,10 @@ mod tests {
         assert_eq!(v.top, None);
         v.times = true;
         assert!(v.render(80, 10).text().contains("2026-11-14T10:00:00Z line"));
-        v.push("\u{1b}[31mERROR\u{1b}[0m boom\u{7}");
+        v.push("\u{1b}[31mERROR\u{1b}[0m boom\u{7}\u{202E}");
         assert!(v.lines.back().unwrap() == "ERROR boom");
+        v.push(&"x".repeat(10 * MAX_LINE));
+        let long = v.lines.back().unwrap();
+        assert!(long.len() < MAX_LINE + 20 && long.ends_with(" …[line cut]"), "{}", long.len());
     }
 }
