@@ -62,6 +62,7 @@ bundles install several at once, and are what the welcome's packs offer.
 | [`fenix.jetbrains-keys`](extensions/jetbrains-keys) | JetBrains keys | The IntelliJ platform's default shortcuts over standard keys -- go to declaration, find usages, duplicate and delete line, rename, reformat, run and debug's F-keys, tool windows -- for every command Fenix has, and what has no equivalent said in its README |
 | [`fenix.jira`](extensions/jira) | Jira | Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it |
 | [`fenix.jupyter`](extensions/jupyter) | Jupyter notebooks | Jupyter notebooks (.ipynb): cells and their outputs on a page -- code highlighted, markdown as it reads, tracebacks, matplotlib's plots and other pictures -- cells edited beside it and changed through the file's buffer, and run on the notebook's Python: ipykernel when it's there, Python itself when it isn't, input() asked of you |
+| [`fenix.kubernetes`](extensions/kubernetes) | Kubernetes | kubectl in a pane: contexts and namespaces per project, workloads and their pods, services, ingresses, live logs, a shell in a pod, port-forwards, YAML and describe, and changes asked about first |
 | [`fenix.logs`](extensions/logs) | Log viewer | Log files read in a pane: each entry's level and time from the formats logs are written in -- JSON lines, logfmt, syslog, journalctl, env_logger and tracing, log4j, Python's logging -- stack traces folded into the entry they follow, filtered by level, text, pattern, field and time, searched, counted over time, and followed as they grow, read a block at a time so a log of gigabytes opens at once |
 | [`fenix.lua`](extensions/lua) | Lua | Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project's checks with their fixes, snippets, and LÖVE game and LuaRocks module projects |
 | [`fenix.mib`](extensions/mib) | SCOS-2000 MIB | SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them |
@@ -98,7 +99,7 @@ bundles install several at once, and are what the welcome's packs offer.
 |---|---|---|
 | [`fenix.jira-bundle`](extensions/jira-bundle) | Jira | Jira, with the agenda kept in step |
 | [`fenix.kotlin-bundle`](extensions/kotlin-bundle) | Kotlin | Kotlin: its highlighting, kotlin-lsp or kotlin-language-server, ktlint, Gradle's tasks, snippets and Kotlin DSL projects -- the Java and Kotlin pack |
-| [`fenix.lab-bundle`](extensions/lab-bundle) | Lab | Arduino, containers, VNC |
+| [`fenix.lab-bundle`](extensions/lab-bundle) | Lab | Arduino, containers, Kubernetes, VNC |
 | [`fenix.mission-bundle`](extensions/mission-bundle) | Mission | SCOS-2000 MIB, CCSDS & PUS, Tcl |
 | [`fenix.personal-bundle`](extensions/personal-bundle) | Personal | Notebook, Diagrams, Agenda |
 | [`fenix.python-bundle`](extensions/python-bundle) | Python | Python with Jupyter notebooks: the language pack (basedpyright, ruff, debugpy, uv), .ipynb notebooks run on a kernel, and the CSV table for the data they read |

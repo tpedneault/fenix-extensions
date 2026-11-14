@@ -1,12 +1,13 @@
 # Lab
 
-The bench: Arduino sketches, Docker and Podman containers, and the
-remote desktops you list. One install on the welcome (`SPC h w`) or the
+The bench: Arduino sketches, Docker and Podman containers, Kubernetes
+clusters through kubectl, and the remote desktops you list. One install on the welcome (`SPC h w`) or the
 Extensions page's Bundles (`SPC h x`) brings them all.
 
 | Extension | What |
 |---|---|
 | `fenix.containers` | Docker, Podman and wslc |
+| `fenix.kubernetes` | Kubernetes through kubectl: workloads, pods, logs, shells, port-forwards |
 | `fenix.arduino` | Arduino sketches: build, upload, the serial monitor |
 | `fenix.vnc` | Remote desktops in a pane |
 
