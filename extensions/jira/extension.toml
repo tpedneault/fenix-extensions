@@ -1,8 +1,8 @@
 [extension]
 id = "fenix.jira"
 name = "Jira"
-version = "1.3.0"
-description = "Your Jira Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it"
+version = "1.4.0"
+description = "Your Jira Cloud, Server or Data Center: searches, issues and their workflow, a new-issue form with the project's real fields -- and the agenda kept in step with it"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tpedneault/fenix-extensions"
@@ -18,8 +18,10 @@ api = "1.5"
 commands = ["jira.*"]
 
 [permissions]
-# Your Jira, and only it: the server in your settings.
-network = ["${setting:jira.base_url}"]
+# Your Jira, and only it: the site in your settings -- and, for a scoped
+# Jira Cloud API token, which Atlassian takes only through its gateway,
+# api.atlassian.com/ex/jira/<your site's cloud id>.
+network = ["${setting:jira.base_url}", "api.atlassian.com"]
 secrets = ["jira.token"]
 # The project's Jira key (`.fenix/project.toml`), for its searches.
 editor = "read"
@@ -56,6 +58,27 @@ external = true
 [[contributes.commands]]
 id = "jira.create_issue"
 title = "Jira: create an issue"
+
+[[contributes.settings]]
+key = "jira.email"
+kind = "text"
+label = "Jira email"
+description = "Jira Cloud only: your Atlassian account's email. Cloud signs you in with it and an API token (the Jira token)."
+
+[[contributes.settings]]
+key = "jira.kind"
+kind = "choice"
+choices = ["auto", "cloud", "server"]
+label = "Which Jira"
+description = "auto: *.atlassian.net is Jira Cloud, any other address Server or Data Center, as the site itself says. cloud or server to say so yourself."
+default = "auto"
+
+[[contributes.settings]]
+key = "jira.scoped_token"
+kind = "bool"
+label = "Scoped API token"
+description = "Jira Cloud only: the API token is a scoped one, which Atlassian takes only through api.atlassian.com."
+default = "false"
 
 [[contributes.settings]]
 key = "jira.sync_minutes"

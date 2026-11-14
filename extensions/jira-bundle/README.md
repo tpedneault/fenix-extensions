@@ -1,6 +1,6 @@
 # Jira
 
-Your Jira Server or Data Center, and the agenda kept in step with it.
+Your Jira Cloud, Server or Data Center, and the agenda kept in step with it.
 One install on the welcome (`SPC h w`) or the Extensions page's Bundles
 (`SPC h x`) brings them all.
 
