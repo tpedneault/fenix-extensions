@@ -1,0 +1,30 @@
+id = "github-issues.issues"
+track = "Issues"
+order = 1
+title = "GitHub issues"
+about = "Your GitHub issues, one open with its comments, and a branch started from it. Needs GitHub signed in: gh auth login, or the token on the settings page (Forges) -- the one Review uses."
+text = """
+GitHub's issues in Fenix. If you already use Review, there's nothing to
+set up: it uses the same sign-in. Without one, s on the tutorial page
+skips a step.
+
+SPC g i   the issues page: your searches across the top -- assigned to
+          you, created by you, mentioning you, the repository you're
+          in, your saved ones. Tab steps through them, / types one.
+On an issue:
+          Enter opens it with its comments, C comments, e and E edit
+          its title and description, l labels, A assignees, s moves it
+          (close as completed, not planned, reopen), b starts a branch
+          for it, a adds it to the agenda, o the browser, y copies it.
+n         a new issue, from the repository's templates; S S sends it.
+"""
+
+[[step]]
+say = "SPC g i: the issues page, the issues assigned to you first."
+hint = "Space, g, i. It needs GitHub signed in; s on the tutorial page skips this."
+page = "fenix.github-issues/issues"
+
+[[step]]
+say = "Tab steps through the searches, Enter on an issue opens it. q closes the page for now."
+hint = "q, on the issues page (twice when an issue is open)."
+closed = "fenix.github-issues/issues"
