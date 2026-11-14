@@ -172,7 +172,8 @@ terminal's colours are 1.4's, `[brackets]` 1.5's, `interface`,
 `parameter` and `macro` 1.5.2's); a snippet has its
 `# key:`, its `# --` line and a body; screenshots are PNG, JPEG, GIF or
 WebP, 2 MB at most; ids are unique; every dependency is here or in the
-index, in a version its range takes, with no circle.
+index, in a version its range takes, with no circle; and the project kinds
+and the templates' kinds above.
 
 **`[[keys]]` in its keymaps** (chords, API 1.5): one key with its
 modifiers; never `C-k`, `C-S-p`, `C-\` or `M-x`, which are Fenix's;
@@ -192,6 +193,61 @@ most 300 characters, which is how an agent decides to call it; an
 one `editor = "write"` or `filesystem = "project-write"`; a `read` or
 `show` one can't say `writes = true`. Pick the class honestly: it's what
 users' rules allow or refuse.
+
+**Project kinds** (`[[contributes.project_kinds]]`, read by Fenix 1.6): a
+language pack can say what kind of project it knows -- named, tagged and
+coloured in the hub, on Home, in the modeline and in the doctor, found by
+the files at its top, and what `kind = "java"` in a project's
+`.fenix/settings.toml` means. It's data in the manifest, no code:
+
+```toml
+[[contributes.project_kinds]]
+id = "ruby"                  # a-z first, then a-z 0-9 - _; 24 at most
+name = "Ruby"                # 32 characters at most
+tag = "RB"                   # 1 to 4 of A-Z 0-9 + # . with a letter
+color = "constant"           # keyword, string, function, type, number, constant (the default), attribute, variable
+markers = ["Gemfile", "gems.rb", ".ruby-version", "config.ru"]   # file names at the project's top
+main = ["config.ru"]         # what it opens on when you've had none of its files open; the first that exists
+```
+
+- **Markers** are file names, not paths: at most 16, each at most 64
+  bytes, no `/`, `\`, `..`, `*`, `?`, `[` or `]`, never `.fenix`,
+  `{folder}` (the folder's own name) at most once and no other braces. A
+  kind's markers say what a project **is**, and one match wins over every
+  other kind, so they're narrower than the context's, which only say when
+  the pack loads: leave `Rakefile`, `package.json` and the like in the
+  context. A kind with no markers is only ever declared (Kotlin among
+  Java's Gradle projects, Flutter beside Dart).
+- **`main`**: at most 8 paths below the project, `/` between the parts,
+  `{folder}` allowed, at most 128 bytes each.
+- **At most 8 kinds** to a pack, each id once. Not `other`, `monorepo`
+  or an alias Fenix reads (`py`, `uv`, `ino`, `sketch`, `rs`, `c++`, `c`,
+  `cmake`, `js`, `ts`, `javascript`, `typescript`, `mib`).
+- **Fenix's own ids** (`python`, `arduino`, `rust`, `tcl`, `cpp`, `node`,
+  `go`) are allowed with `markers` and nothing else: the pack adds files
+  that say a project is one (`deno.json` for `node`), and the kind's
+  name, tag, colour and main files stay Fenix's.
+- **Across the store**: one pack to an id, no tag on two kinds and none
+  of Fenix's (`PY`, `INO`, `RS`, `TCL`, `C++`, `JS`, `GO`, `MONO`,
+  `DIR`); two packs' kinds sharing a marker is a warning.
+- **Keep `api` and `fenix` as they are.** Fenix 1.0 to 1.5.2 ignore the
+  section, so the pack installs and runs as before without its kind; a
+  kind isn't an API, and `validate` doesn't tie it to `engine.api`.
+- **Templates**: a template's `kind` is one of Fenix's ids, or one a pack
+  in the store declares (`validate` refuses a name no pack does, and warns
+  when it's another pack's you don't depend on). Fenix 1.5 refuses a
+  template naming a kind it doesn't know, so one naming the pack's own
+  kind needs `fenix = ">=1.6, <2"`; `validate` refuses it below that.
+  Until the pack's floor is 1.6, templates stay `kind = "other"`.
+- **Version**: adding the section is a **minor** release (something new
+  for the person using it, nothing moved). It's only worth a release
+  with the first Fenix that reads it: an update prompt for a section
+  Fenix 1.5 ignores has nothing in it. Say so in the CHANGELOG ("Fenix
+  1.6 and later show this as a Java project...; earlier Fenix ignores
+  it").
+
+`cargo xtask new language-pack` writes the block commented out beside the
+context, for you to fill in.
 
 ## Versions
 

@@ -35,6 +35,25 @@ name = "{{folder}}"
 # the pack for every file of a language instead.
 markers = ["{{folder}}.toml"]
 
+# The project kind this pack knows: what a project of this language is
+# called, tagged and coloured in the hub, on Home and in the modeline, and
+# what `kind = "{{folder}}"` in a project's settings means. Fenix 1.6 and
+# later read it; earlier Fenix ignore it, so the pack still installs there
+# (keep `api` and `fenix` as they are).
+# TODO(you): uncomment it, with a tag of 1 to 4 of A-Z 0-9 + # . that no
+# other pack in the store has, and only the files that mean *this*
+# language and nothing else (a Rakefile, a package.json: leave those to
+# the context above). A kind no markers can tell, like Kotlin among Java's
+# Gradle projects, has none, and is only ever declared. Leave a template's
+# `kind` as it is until the pack's floor is Fenix 1.6.
+# [[contributes.project_kinds]]
+# id = "{{folder}}"
+# name = "{{name}}"
+# tag = "TAG"
+# color = "constant"    # keyword, string, function, type, number, constant, attribute, variable
+# markers = ["{{folder}}.toml"]
+# main = ["src/main.ext"]    # opened first in a project you've had none of open; {folder} is the folder's name
+
 [[contributes.commands]]
 id = "{{folder}}.doctor"
 title = "{{name}}: check the project again"

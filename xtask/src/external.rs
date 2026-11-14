@@ -414,6 +414,7 @@ fn inspect(entry: &Entry, fetch: &dyn Fetch, known: Option<BTreeMap<String, Know
     let tidy = |e: String| e.replace(&scratch.0.display().to_string(), "the package");
     check_chords(&scratch.0).map_err(tidy)?;
     check_agent_tools(&scratch.0).map_err(tidy)?;
+    crate::kinds::check_pack(&scratch.0).map_err(tidy)?;
     check_contents(&scratch.0)?;
     if let Some(mut known) = known {
         let version = semver::Version::parse(&m.extension.version).map_err(|e| e.to_string())?;
@@ -798,6 +799,19 @@ mod tests {
         refused(b"not a zip".to_vec(), "isn't a zip");
         refused(zip_of(&[("extension.toml", m.as_bytes()), ("screenshots/hero.bmp", b"bmp")]), "a screenshot is one of");
         refused(zip_of(&[("extension.toml", m.as_bytes()), ("themes/x.toml", b"colour = 1")]), "themes/x.toml");
+
+        // Project kinds, held to the rules `validate` holds the store's to.
+        let kinds = |fields: &str| manifest_text("acme.dusk", "1.0.0", "none", &format!("\n[[contributes.project_kinds]]\n{fields}\n"));
+        refused(zip_of(&[("extension.toml", kinds("id = \"other\"\nname = \"X\"\ntag = \"X\"").as_bytes())]), "is Fenix's own");
+        refused(zip_of(&[("extension.toml", kinds("id = \"java\"\nname = \"Java\"\ntag = \"jv\"").as_bytes())]), "tag \"jv\"");
+        refused(zip_of(&[("extension.toml", kinds("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmarkers = [\"../x\"]").as_bytes())]), "project kind java");
+        refused(
+            zip_of(&[("extension.toml", kinds("id = \"java\"\nname = \"Java\"\ntag = \"J\"").as_bytes()), ("templates/app/template.toml", b"[template]\nname = \"App\"\nkind = \"java\"\n")]),
+            "Fenix 1.5 refuses",
+        );
+        let (entry, fetch) = good(zip_of(&[("extension.toml", kinds("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmarkers = [\"pom.xml\"]").as_bytes())]));
+        std::fs::write(repo.0.join("external.toml"), entry).unwrap();
+        check(&repo.0, false, None, &fetch).unwrap();
 
         // A link.
         let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));

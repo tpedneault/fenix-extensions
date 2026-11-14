@@ -505,6 +505,14 @@ mod tests {
         assert_eq!(permissions.keys().collect::<Vec<_>>(), ["process"], "the narrowest: a program, and nothing else");
         assert_eq!(permissions["process"].as_array().unwrap().len(), 1, "one placeholder program");
         assert!(manifest.contains("TODO(you)") && readme.contains("TODO(you)"));
+        // The kind's block is commented out, and uncommented it's valid.
+        assert!(manifest.contains("# [[contributes.project_kinds]]") && !manifest.contains("\n[[contributes.project_kinds]]"));
+        let uncommented: String = manifest.lines().map(|l| l.strip_prefix("# ").filter(|_| l.starts_with("# [[contributes.project_kinds]]") || l.starts_with("# id =") || l.starts_with("# name =") || l.starts_with("# tag =") || l.starts_with("# color =") || l.starts_with("# markers =") || l.starts_with("# main =")).unwrap_or(l)).collect::<Vec<_>>().join("\n");
+        let t = Temp::new("kinds-block");
+        std::fs::create_dir_all(t.0.join("x")).unwrap();
+        std::fs::write(t.0.join("x/extension.toml"), uncommented).unwrap();
+        let pack = crate::kinds::check_pack(&t.0.join("x")).unwrap();
+        assert_eq!((pack.kinds.len(), pack.kinds[0].id.as_str()), (1, "sample"));
         assert!(readme.contains("installs nothing"));
 
         let (files, manifest, readme) = kind("tool");
