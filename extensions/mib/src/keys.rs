@@ -47,6 +47,8 @@ pub struct Hints {
     pub definition: String,
     /// `mib.page`: the MIB page.
     pub page: String,
+    /// `mib.open`: another MIB.
+    pub open: String,
     /// `mib.edit_call`: the telecommand call on the line, in its form.
     pub edit_call: String,
     /// `mib.settings`: this project's MIBs.
@@ -64,6 +66,7 @@ impl Default for Hints {
         Hints {
             definition: "gd".into(),
             page: "SPC k k".into(),
+            open: "SPC k o".into(),
             edit_call: "SPC k e".into(),
             settings: "SPC k ,".into(),
             generate: "SPC k g".into(),
@@ -80,6 +83,7 @@ impl Hints {
         Hints {
             definition: keys("code.goto_definition", &d.definition),
             page: keys("mib.page", &d.page),
+            open: keys("mib.open", &d.open),
             edit_call: keys("mib.edit_call", &d.edit_call),
             settings: keys("mib.settings", &d.settings),
             generate: keys("mib.generate", &d.generate),
@@ -91,7 +95,7 @@ impl Hints {
     /// The same, as standard keys write them with Fenix's leader (tests).
     #[cfg(test)]
     pub fn standard() -> Hints {
-        Hints { definition: "F12".into(), page: "C-k k k".into(), edit_call: "C-k k e".into(), settings: "C-k k ,".into(), generate: "C-k k g".into(), fenix_settings: "C-k ,".into(), recording: "C-k k f".into() }
+        Hints { definition: "F12".into(), page: "C-k k k".into(), open: "C-k k o".into(), edit_call: "C-k k e".into(), settings: "C-k k ,".into(), generate: "C-k k g".into(), fenix_settings: "C-k ,".into(), recording: "C-k k f".into() }
     }
 }
 

@@ -44,6 +44,8 @@ pub enum Action {
     /// The MIB settings: this project's (`true`), or yours.
     Settings(bool),
     OpenFile(PathBuf, usize),
+    /// Another MIB (`SPC k o`).
+    Switch,
 }
 
 /// Which MIBs a page shows, the one that wins a name several define, and
@@ -127,6 +129,15 @@ impl MibPage {
             problems: None,
             note: None,
         }
+    }
+
+    /// Shows `key`'s MIBs: another set leaves no MIB narrowed to.
+    pub fn show(&mut self, key: MibKey) {
+        if key.roots != self.key.roots {
+            self.only = None;
+            self.sel = [0; 5];
+        }
+        self.key = key;
     }
 
     pub fn typing(&self) -> bool {
@@ -260,6 +271,7 @@ impl MibPage {
                 Key::Char('a') => Action::Settings(true),
                 Key::Char('A') => Action::Settings(false),
                 Key::Char('R') => Action::Reload,
+                Key::Char('M' | 'o') => Action::Switch,
                 _ => Action::None,
             };
         };
@@ -408,6 +420,7 @@ impl MibPage {
                 }
             }
             Key::Char('R') => return Action::Reload,
+            Key::Char('M') => return Action::Switch,
             Key::Char('a') => return Action::Settings(true),
             Key::Char('A') => return Action::Settings(false),
             Key::Enter | Key::Char('l') => {
@@ -678,14 +691,13 @@ pub fn layout(page: &MibPage, ctx: &Ctx, cols: usize) -> Page {
             let n = set.problems().len();
             (format!("{n} problem{} · !", if n == 1 { "" } else { "s" }), Role::Warn)
         }
-        (Some(_), false) => (ctx.source.clone(), Role::Muted),
-        (None, false) => (String::new(), Role::Muted),
+        (_, false) => (String::new(), Role::Muted),
     };
     g.put(1, (left + width).saturating_sub(status.0.chars().count()), &status.0, status.1);
 
     let Some(set) = ctx.set else {
         empty(&mut g, ctx, left, width);
-        g.keys(left, width, &[("a", "add to this project"), ("A", "add to yours"), ("R", "read again"), ("q", "close")]);
+        g.keys(left, width, &[("o", "open a MIB"), ("a", "this project's settings"), ("A", "yours"), ("R", "look again"), ("q", "close")]);
         return g.finish();
     };
 
@@ -700,6 +712,12 @@ pub fn layout(page: &MibPage, ctx: &Ctx, cols: usize) -> Page {
     let end = g.put(2, left, &fit_tail(&search, width), if page.searching { Role::Title } else { Role::Muted });
     if page.searching {
         g.panels.push((2, left..end.max(left + 40)));
+    }
+    // Where they come from, and -- when there are others -- the key that
+    // switches to another.
+    let from = ctx.source.chars().count();
+    if from > 0 && end.max(left + 40) + 2 + from <= left + width {
+        g.put(2, left + width - from, &ctx.source, Role::Muted);
     }
     let mut x = left;
     for (i, kind) in Kind::ALL.iter().enumerate() {
@@ -1015,12 +1033,13 @@ fn empty(g: &mut Grid, ctx: &Ctx, left: usize, width: usize) {
         vec![("Reading the MIBs…".into(), Role::Muted)]
     } else {
         vec![
-            ("No MIB for this project.".into(), Role::Title),
+            ("No MIB here.".into(), Role::Title),
             (String::new(), Role::Text),
-            ("A project lists its MIB folders in its settings (mib.roots in .fenix/settings.toml), so everyone working on it uses the same ones. A project that is a MIB -- .dat tables at its root or in mib/ -- needs nothing.".into(), Role::Text),
+            ("None was found in the project -- a folder of .dat tables anywhere in it is found, nothing to set -- and the settings name none.".into(), Role::Text),
             (String::new(), Role::Text),
-            ("a  add a MIB folder to this project's settings".into(), Role::Accent),
-            ("A  add one to your own settings, for every project without its own".into(), Role::Accent),
+            ("o  open a MIB from another folder: it's added to your settings for you".into(), Role::Accent),
+            ("a  name MIB folders in this project's settings (mib.roots), so everyone working on it uses the same ones".into(), Role::Accent),
+            ("A  name them in your own settings, for every project without its own".into(), Role::Accent),
         ]
     };
     let mut y = 4;
@@ -1062,7 +1081,7 @@ fn help(g: &mut Grid, line: usize, left: usize) {
     let groups: [(&str, &[(&str, &str)]); 3] = [
         ("Move", &[("1-5 Tab", "tabs"), ("j k g G", "rows"), ("d u", "20 rows down, up"), ("/", "search: words, field:value"), ("f", "filter with a form"), ("o", "sort by the next column"), ("m", "one MIB, all MIBs"), ("q", "close")]),
         ("A row", &[("Enter", "open its page"), ("i", "insert the telecommand"), ("y", "copy its name"), ("p", "preview on, off")]),
-        ("The MIBs", &[("6", "by PUS service"), ("] [ z", "next, previous service, index"), ("!", "problems in their files and against the standards"), ("R", "read them again"), ("a A", "this project's MIB settings, yours")]),
+        ("The MIBs", &[("6", "by PUS service"), ("] [ z", "next, previous service, index"), ("!", "problems in their files and against the standards"), ("R", "read them again"), ("M", "another MIB of those known here"), ("a A", "this project's MIB settings, yours")]),
     ];
     let mut rows = vec![vec![("Keys".to_string(), Role::Title)]];
     for (title, keys) in groups {
@@ -1322,8 +1341,9 @@ pub(crate) mod tests {
     fn with_no_mib_it_says_how_to_add_one() {
         let page = MibPage::new(MibKey::default());
         let c = Ctx { set: None, loading: false, apid_hex: true, source: String::new() };
-        assert!(layout(&page, &c, 120).text.contains("No MIB for this project."));
+        assert!(layout(&page, &c, 120).text.contains("No MIB here."));
         let mut page = page;
         assert_eq!(page.key(Key::Char('a'), &c), Action::Settings(true));
+        assert_eq!(page.key(Key::Char('o'), &c), Action::Switch);
     }
 }

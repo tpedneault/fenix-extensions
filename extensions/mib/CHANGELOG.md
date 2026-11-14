@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.5.0
+
+How MIBs are found and opened.
+
+- **A MIB in your project is found.** A folder of `.dat` tables anywhere
+  in the project -- `db/ops/`, `mission/mib/`, not only its top or `mib/`
+  -- is found with nothing to set: a project with one MIB in it just
+  works, `SPC k k` shows it. Hidden folders, build output, dependencies,
+  `generated/` and what `.gitignore` names are left out.
+- **`SPC k o` opens a MIB**: every one known here -- found in the
+  project, named in its settings or yours -- with what's in it. Picking
+  one opens its page, and `K`, `gd`, completion, the checks, the insert
+  form, the pickers and agents' `mib_lookup` use it in this project from
+  then on, the next session too. It's kept by the extension, not written
+  in the project's settings. `M` on the MIB page does the same, and its
+  header says where the MIB is from and how many there are.
+- **Another folder…** in `SPC k o` opens a MIB elsewhere on disk: type or
+  paste its path (the explorer's selection is filled in) and it's added
+  to your `mib.roots` for you, named after its folder. Fenix hands the
+  extension that folder when it next starts, and its page opens then.
+- **A MIB is no longer a project.** What the MIB extension did as if
+  the project were a MIB is now done for the MIBs found in it: the
+  project doctor checks the MIB in use wherever it is in the project,
+  and names the project's other MIBs. Use this with a Fenix that no
+  longer makes a MIB folder its own project: the repository is the
+  project, and its MIB folders are found in it.
+- Unchanged when your settings name MIBs: those are still used together
+  until you pick one with `SPC k o`, and "all of them together" there
+  goes back. `SPC k D` compares any two MIBs known here, found ones too.
+
 ## 1.4.0
 
 - The hints that named a leader sequence (`SPC k k`, `SPC k e`, `SPC k ,`,
