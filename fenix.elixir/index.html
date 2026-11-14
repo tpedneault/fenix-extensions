@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elixir · Fenix extensions</title>
+<meta name="description" content="Elixir: its grammar and HEEx&#39;s, Expert, mix format, the compiler&#39;s warnings and Credo on save, mix&#39;s tasks, the project&#39;s checks with fixes that install Hex and Expert, and snippets">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Elixir</h1>
+<p class="id"><code>fenix.elixir</code></p>
+<p class="lead">Elixir: its grammar and HEEx&#39;s, Expert, mix format, the compiler&#39;s warnings and Credo on save, mix&#39;s tasks, the project&#39;s checks with fixes that install Hex and Expert, and snippets</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>512 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/elixir">extensions/elixir</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Elixir</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/elixir-v1.0.0/fenix.elixir-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.elixir-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>mix</code></li><li><code>elixir</code></li><li><code>iex</code></li><li><code>expert</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Elixir in Fenix: its grammar and HEEx&#39;s (Fenix has neither of its own),
+Expert, <code>mix format</code>, the compiler&#39;s warnings and Credo on save, <code>mix</code>&#39;s
+tasks, the project doctor&#39;s checks with fixes that install Hex and
+Expert, project templates, a lesson, and snippets. Built on lang-kit
+(<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It starts with Fenix. Expert is set for Elixir files whenever it&#39;s found;
+the doctor checks Elixir, Hex and Expert in every project, and the
+tasks, linters and <code>mix format</code> are there in a project with a <code>mix.exs</code>
+at its top. It needs Fenix 1.5 or later (extension API 1.5).</p>
+<h3 id="readme-files">Files</h3>
+<div class="table"><table>
+<thead><tr><th>Files</th><th>Read as</th></tr></thead>
+<tbody>
+<tr><td><code>*.ex</code>, <code>*.exs</code>, <code>mix.lock</code></td><td>Elixir</td></tr>
+<tr><td><code>*.heex</code>, <code>*.eex</code>, <code>*.leex</code></td><td>HEEx</td></tr>
+</tbody>
+</table></div>
+<p><code>#</code> comments a line in Elixir.</p>
+<h3 id="readme-the-grammars">The grammars</h3>
+<p>Elixir is read with tree-sitter-elixir 0.3.5&#39;s grammar and HEEx with
+tree-sitter-heex 0.8.1&#39;s (<code>grammars/</code>, Apache-2.0 and MIT; their
+README says where each came from and its SHA-256): highlighted, folded
+(modules, functions, tests, <code>do</code> blocks, collections, tags and
+components), with Enter indenting inside a block and the breadcrumbs and
+<code>SPC c s</code> listing the definitions.</p>
+<ul class="tight">
+<li><p><strong>EEx and LEEx</strong> files are read as HEEx: its <code>&lt;% %&gt;</code> is theirs, and
+the HTML around it is what they hold. There&#39;s no grammar of their own
+here.</p></li>
+<li><p><strong>The Elixir inside a template</strong> (<code>&lt;%= ... %&gt;</code>, <code>{...}</code>) isn&#39;t
+coloured: Fenix doesn&#39;t run one language inside another, so a HEEx file
+shows its tags, components, slots, attributes and delimiters.</p></li>
+</ul>
+<h3 id="readme-the-server">The server</h3>
+<p><strong>Expert</strong> (<code>expert</code>, <a href="https://github.com/expert-lsp/expert">expert-lsp/expert</a>),
+the Elixir project&#39;s official language server -- Lexical and Next LS
+merged -- started as <code>expert --stdio</code>: completion, go to definition,
+hover, references, rename, code actions and its own problems.</p>
+<p>Why Expert and not ElixirLS, Next LS or Lexical: it&#39;s the one the
+Elixir project calls official and keeps tagging (its tags run to
+v0.2.3), and it ships as one file per system on GitHub, which installs
+into the tools folder like any other release. Next LS and Lexical are
+what it was made from; ElixirLS is the long-standing alternative, but
+comes as a zip run through a launch script, which this pack would have
+to unpack and wrap, and is no longer the project the Elixir team points
+to.</p>
+<p>I couldn&#39;t open GitHub&#39;s release pages or API from where this version
+was made, so the asset names (<code>expert_linux_amd64</code>, <code>expert_darwin_arm64</code>,
+<code>expert_windows_amd64.exe</code>, ...) are the ones Expert&#39;s README, its
+<code>justfile</code> and its release workflow give, and v0.2.3 is the newest tag
+<code>git ls-remote</code> shows; that a release is published under it, and what its
+files hash to, is unchecked (see the doctor, below).</p>
+<p>Expert builds what it needs for your project the first time it opens
+it, which takes a while. It&#39;s <strong>alpha</strong>: it works for most projects, and
+may not for an old Elixir or Erlang (the Expert project lists the
+supported ones).</p>
+<h3 id="readme-formatting-and-checks">Formatting and checks</h3>
+<ul class="tight">
+<li><p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <code>mix format --no-compile --stdin-filename &lt;file&gt; -</code>, in the project&#39;s folder, so
+its <code>.formatter.exs</code> (<code>import_deps</code>, <code>locals_without_parens</code>) applies.
+HEEx files are formatted too when <code>.formatter.exs</code> lists
+<code>Phoenix.LiveView.HTMLFormatter</code> in its <code>plugins</code>. Fenix gives a
+formatter three seconds, and <code>mix format</code> has to start the Erlang VM:
+on a big project with plugins it may not finish in time.</p></li>
+<li><p>On save, <strong>the compiler</strong>: <code>mix compile --all-warnings</code> -- Mix compiles
+what changed and prints the warnings of the rest again, so a warning
+stays until it&#39;s fixed -- read into problems with their file, line and
+column and the underline&#39;s width: an unused variable, an undefined
+function, a missing module, and a compile error (a syntax error, an
+undefined variable) where it is. Elixir before 1.16 prints no column:
+the problem is the whole line. A dependency&#39;s warnings are left out
+(<code>elixir.compiler_warnings</code>).</p></li>
+<li><p>On save, in a project that has <strong>Credo</strong> (<code>:credo</code> in <code>mix.exs</code>, or a
+<code>.credo.exs</code>): <code>mix credo &lt;file&gt; --format json</code> on the file, its issues
+as problems -- a warning for Credo&#39;s <code>warning</code> checks, information for
+the others, a hint for a low-priority one (<code># TODO</code> tags) -- with the
+check&#39;s name as the code (<code>elixir.credo</code>).</p></li>
+</ul>
+<p>Both need the project&#39;s dependencies fetched (<code>mix deps.get</code>); without
+them they say so, once, and set nothing.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>:</p>
+<div class="table"><table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>deps.get</code></td><td><code>mix deps.get</code></td></tr>
+<tr><td><code>compile</code></td><td><code>mix compile</code></td></tr>
+<tr><td><code>test</code></td><td><code>mix test</code></td></tr>
+<tr><td><code>test --failed</code></td><td><code>mix test --failed</code>: what failed last time</td></tr>
+<tr><td><code>format --check-formatted</code></td><td><code>mix format --check-formatted</code></td></tr>
+<tr><td><code>format</code></td><td><code>mix format</code></td></tr>
+<tr><td><code>credo</code></td><td><code>mix credo</code>, when the project has Credo</td></tr>
+<tr><td><code>phx.server</code></td><td><code>mix phx.server</code>, when Phoenix is a dependency</td></tr>
+</tbody>
+</table></div>
+<p><code>iex -S mix</code> isn&#39;t a task, since a task&#39;s output is read and iex is typed
+into: <code>SPC m i</code> opens it in a terminal. The project&#39;s <code>.env</code> goes to each
+task.</p>
+<p><strong>Tests</strong> run through the <code>mix test</code> tasks for now. The tests page (<code>SPC T</code>),
+the gutter and running one test are Fenix&#39;s test explorer, which a
+language pack feeds through a test provider; Elixir&#39;s, for ExUnit, is a
+later release, once Fenix has them.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>Elixir</td><td><code>elixir --short-version</code>, held to the version <code>mix.exs</code>&#39;s <code>elixir:</code> asks for; needed</td><td></td></tr>
+<tr><td>Hex</td><td><code>mix hex.info</code>; <code>mix deps.get</code> needs it</td><td><code>mix local.hex --force</code>, as a task</td></tr>
+<tr><td>Expert</td><td><code>expert --version</code>; Fenix works without it</td><td>Expert 0.2.3 (Linux, macOS, Windows on x86_64; Linux and macOS on arm64)</td></tr>
+</tbody>
+</table></div>
+<p>Elixir is the one the pack finds on <code>PATH</code>, or in asdf&#39;s and mise&#39;s
+shims, Homebrew&#39;s and the Windows installer&#39;s folders; installing it (and
+Erlang) is yours: <a href="https://elixir-lang.org/install.html">elixir-lang.org/install</a>,
+asdf, mise.</p>
+<p><strong>Expert&#39;s download is checked.</strong> Its release comes from
+<code>github.com/expert-lsp/expert/releases/download/v0.2.3/expert_&lt;os&gt;_&lt;arch&gt;</code>,
+unpacked into the pack&#39;s tools folder, where only the pack looks. Each
+file&#39;s SHA-256 in <code>src/tools.rs</code> is the one the release&#39;s own
+<code>expert_checksums.txt</code> gives, and Fenix refuses a download that doesn&#39;t
+match it. One you installed yourself (<code>~/.local/bin/expert</code>, as Expert&#39;s own
+<code>just install</code> makes) is used instead.</p>
+<p>Starting an install is said in the message line; how it ended is a
+notification, since a download can take a while: &quot;Installed Expert
+0.2.3&quot;, or &quot;Couldn&#39;t install Expert 0.2.3&quot; with which step failed and
+why, and <em>Try again</em>.</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>Fenix&#39;s new-project wizard has no Elixir templates; this adds two, each
+with tests and its <code>.formatter.exs</code>, made from files (no <code>mix new</code> is
+run):</p>
+<ul class="tight">
+<li><p><strong>Elixir · library</strong>: a Mix library, a documented module with doctests.</p></li>
+<li><p><strong>Elixir · OTP application</strong>: a supervisor, a <code>GenServer</code> counter under
+it, and tests that start it with <code>start_supervised!</code>.</p></li>
+</ul>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>defmodule</code>, <code>moduledoc</code>, <code>doc</code>, <code>docex</code>, <code>spec</code>, <code>typ</code>, <code>callback</code>, <code>behaviour</code></td><td>a module and its documentation, specs and types</td></tr>
+<tr><td><code>def</code>, <code>defp</code>, <code>defg</code>, <code>defone</code>, <code>defmacro</code>, <code>defs</code>, <code>defex</code>, <code>defimpl</code>, <code>defproto</code></td><td>functions (with a guard, in one line), a macro, a struct, an exception, a protocol and its implementation</td></tr>
+<tr><td><code>genserver</code>, <code>init</code>, <code>hcall</code>, <code>hcast</code>, <code>hinfo</code>, <code>hcont</code>, <code>term</code>, <code>sup</code>, <code>agent</code>, <code>task</code></td><td>a <code>GenServer</code> and each of its callbacks, a supervisor, an agent, <code>Task.async_stream</code></td></tr>
+<tr><td><code>case</code>, <code>with</code>, <code>cond</code>, <code>if</code>, <code>ife</code>, <code>unless</code>, <code>try</code>, <code>receive</code></td><td>control flow, with its <code>else</code> and <code>after</code></td></tr>
+<tr><td><code>fn</code>, <code>fnm</code>, <code>for</code>, <code>forinto</code></td><td>anonymous functions (one clause, several), comprehensions</td></tr>
+<tr><td><code>pipe</code>, <code>pmap</code>, <code>pfilter</code>, <code>preduce</code>, <code>pthen</code>, <code>ptap</code>, <code>insp</code></td><td>a pipeline and the steps that go in one; <code>IO.inspect</code> with its label</td></tr>
+<tr><td><code>alias</code>, <code>import</code>, <code>importo</code>, <code>use</code></td><td></td></tr>
+<tr><td><code>exunit</code>, <code>test</code>, <code>testc</code>, <code>describe</code>, <code>setup</code>, <code>setupc</code>, <code>doctest</code>, <code>assert</code>, <code>refute</code>, <code>araise</code>, <code>areceive</code>, <code>tag</code></td><td>an ExUnit module and what goes in one</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>elixir.compiler_warnings</code></td><td>on</td><td><code>mix compile --all-warnings</code> on a saved file</td></tr>
+<tr><td><code>elixir.credo</code></td><td>on</td><td><code>mix credo</code> on a saved file, in a project that has Credo</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in an Elixir project or file (<code>C-k m</code> with standard keys):
+<code>d</code> checks the project again, <code>i</code> opens <code>iex -S mix</code> in a terminal.</p>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>ExUnit as a test provider</strong>: the tests page, gutter marks and
+running one test. Tests run through the <code>mix test</code> tasks until then.</p></li>
+<li><p><strong>Debugging</strong>: there&#39;s no adapter or launch set; Elixir&#39;s debugger
+(<code>:debugger</code>, ElixirLS&#39;s adapter) isn&#39;t wired.</p></li>
+<li><p><strong>Hex&#39;s packages page</strong>: dependencies are <code>mix.exs</code>&#39;s and <code>mix deps.get</code>&#39;s;
+there&#39;s no page for outdated or vulnerable ones (<code>mix hex.outdated</code>,
+<code>mix hex.audit</code>).</p></li>
+<li><p><strong>EEx&#39;s own grammar</strong>, and the Elixir inside templates: see above.</p></li>
+</ul>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run <code>mix</code>, <code>elixir</code>, <code>iex</code> and <code>expert</code></strong> (<code>permissions.process</code>): to
+compile, test, format and run Credo (the tasks you start, and what runs
+when you save), to ask Elixir and Expert their versions for the doctor,
+to open <code>iex -S mix</code> in a terminal, and to start Expert as the language
+server. And programs in the pack&#39;s own tools folder (<code>/tools/*</code>), where
+Expert is installed. No other program.</p></li>
+<li><p><strong>Reach <code>github.com</code></strong> and the hosts GitHub sends its downloads to
+(<code>permissions.network</code>): to download Expert&#39;s release when you run its
+fix row. Nothing else is fetched; <code>mix deps.get</code> has its own network.</p></li>
+<li><p><strong>Read the project&#39;s files</strong> (<code>filesystem = &quot;project-read&quot;</code>):
+<code>mix.exs</code> (its dependencies and the Elixir it asks for),
+<code>.formatter.exs</code> (whether HEEx has a formatter), <code>.credo.exs</code> and
+<code>.env</code>. It writes none.</p></li>
+<li><p><strong>Read the file you saved</strong> (<code>editor = &quot;read&quot;</code>), to compile and check it.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/elixir dist
+cargo xtask install extensions/elixir
+cargo test --manifest-path extensions/elixir/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> runs the pack on the test kit&#39;s fake host (<code>src/lib.rs</code>):
+the server, the formatter and the tasks set, the doctor&#39;s rows and their
+fixes, Expert&#39;s install and a failed one&#39;s notification, the linters run
+on a save and a file made clean, <code>iex</code> in a terminal. Beside it: the
+compiler&#39;s output and Credo&#39;s JSON read as problems (<code>src/lint.rs</code>); the
+project&#39;s <code>mix.exs</code> read (<code>src/project.rs</code>); and the data as Fenix reads
+it -- the language files, the snippets rendered, both grammars loaded and
+their queries run, the templates planned, and the manifest against the
+code (<code>src/data.rs</code>).</p>
+<p><code>src/samples/</code> holds what the tests read. Recorded from real tools
+(Elixir 1.20.5 on Erlang/OTP 29): the compiler&#39;s output for warnings,
+an undefined variable and a syntax error. Written from the formats&#39;
+documentation and sources: Credo&#39;s JSON (from <code>Credo.CLI.Output.Formatter.JSON</code>),
+<code>mix hex.info</code>, and the compiler&#39;s older output (Elixir 1.15); Credo and
+Hex weren&#39;t installed. Expert&#39;s <code>--version</code> output is assumed to be its
+number.</p>
+<h3 id="readme-licence">Licence</h3>
+<p>The pack is MIT OR Apache-2.0, as the repository is. The grammars keep
+theirs: tree-sitter-elixir&#39;s Apache-2.0 (<code>grammars/LICENSE-tree-sitter-elixir</code>)
+and tree-sitter-heex&#39;s MIT (<code>grammars/LICENSE-tree-sitter-heex</code>).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>512 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/elixir-v1.0.0/fenix.elixir-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 a06bbd245c2c31ff6d9329824623a617a3b72c2bbe447e84b3361d5b735e1fa8">a06bbd245c…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.5: Elixir: its grammar and HEEx&#39;s, Expert as the language server, <code>mix format</code>, the compiler&#39;s warnings and Credo on save, <code>mix</code>&#39;s tasks (deps.get, compile, test, test --failed, the format checks, phx.server and credo where the project has them) and <code>iex -S mix</code> in a terminal, the project&#39;s checks with fixes that install Hex and Expert, two project templates, a lesson, and snippets.</p></li>
+<li><p>Expert&#39;s download is checked against the SHA-256 its release publishes. Tests run through the <code>mix test</code> tasks; ExUnit as a test provider comes later.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
