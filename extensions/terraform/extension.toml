@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.terraform"
 name = "Terraform"
-version = "1.0.0"
+version = "1.1.0"
 description = "Terraform and HCL: their grammar, terraform-ls, terraform fmt, terraform validate on save, init, validate, plan and apply as tasks, the project's checks with a fix that installs terraform-ls, snippets, and a root-module project"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -40,6 +40,19 @@ events = ["saved"]
 name = "terraform"
 markers = ["main.tf", "versions.tf", "providers.tf", "terraform.tfvars", ".terraform.lock.hcl", ".terraform-version"]
 languages = ["terraform", "terraform-vars", "hcl"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+# Not terraform.tfvars or .terraform-version, which the context keeps: they say
+# less than a root module's own files do.
+[[contributes.project_kinds]]
+id = "terraform"
+name = "Terraform"
+tag = "TF"
+color = "attribute"
+markers = ["main.tf", "versions.tf", "providers.tf", ".terraform.lock.hcl"]
+main = ["main.tf"]
 
 [[contributes.commands]]
 id = "terraform.doctor"

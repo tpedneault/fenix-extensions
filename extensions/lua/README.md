@@ -121,6 +121,10 @@ Two in the new-project wizard, under Lua:
   the module in `src/`, busted specs with their `.busted`, `stylua.toml`
   and `.luarc.json`.
 
+## Project kind
+
+Fenix 1.6 and later know a Lua project (`LUA`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `.luarc.json`, `.luarc.jsonc`, `selene.toml`, `stylua.toml`, `.stylua.toml`, `.luacheckrc`, `.busted` or `conf.lua` at its top, and opened on `main.lua` or `init.lua` when you've had none of its files open. `kind = "lua"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "lua"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Your home folder is never a project, whatever dotfiles it holds (`.luarc.json`, `.luarc.jsonc`, `.stylua.toml`, `.luacheckrc` and `.busted` among them). Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a Lua file or project (`C-k m` with standard keys): `d`

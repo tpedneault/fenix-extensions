@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.lua"
 name = "Lua"
-version = "1.1.0"
+version = "1.2.0"
 description = "Lua: lua-language-server, StyLua formatting, selene or luacheck on save, busted, LuaRocks and LÖVE tasks, the project's checks with their fixes, snippets, and LÖVE game and LuaRocks module projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -45,6 +45,17 @@ events = ["saved"]
 name = "lua"
 markers = [".luarc.json", ".luarc.jsonc", "selene.toml", "stylua.toml", ".stylua.toml", ".luacheckrc", ".busted", "conf.lua"]
 languages = ["lua"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "lua"
+name = "Lua"
+tag = "LUA"
+color = "constant"
+markers = [".luarc.json", ".luarc.jsonc", "selene.toml", "stylua.toml", ".stylua.toml", ".luacheckrc", ".busted", "conf.lua"]
+main = ["main.lua", "init.lua"]
 
 [[contributes.commands]]
 id = "lua.doctor"

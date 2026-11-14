@@ -144,6 +144,10 @@ Each runs `dotnet new`, with the SDK's framework or the one you pick:
 It needs Fenix 1.5 or later (extension API 1.5); on an older Fenix, .NET
 1.1.0 is the one you get.
 
+## Project kind
+
+Fenix 1.6 and later know a C# and .NET project (`C#`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a solution or project file named for its folder (`<folder>.sln`, `.slnx`, `.csproj`), a `global.json` or a `Directory.Build.props` at its top, and opened on `Program.cs` when you've had none of its files open. `kind = "dotnet"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until `kind = "dotnet"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a .NET project (`C-k m` with standard keys): `p`

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.java"
 name = "Java and Kotlin"
-version = "1.2.0"
+version = "1.3.0"
 description = "Java and Kotlin: Eclipse JDT LS, debugging with java-debug, kotlin-language-server and Kotlin's highlighting, google-java-format and ktlint, Gradle's and Maven's tasks, the project's checks with their fixes, outdated and vulnerable dependencies, snippets, and Gradle, Spring Boot and Maven projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -53,6 +53,24 @@ languages = ["java"]
 name = "java"
 markers = ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "pom.xml"]
 languages = ["java", "kotlin"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "java"
+name = "Java"
+tag = "JAVA"
+color = "keyword"
+markers = ["pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"]
+
+# Declared only: a Kotlin Gradle project's files are a Java one's, so Fenix finds it as java
+# and `kind = "kotlin"` in its settings says otherwise.
+[[contributes.project_kinds]]
+id = "kotlin"
+name = "Kotlin"
+tag = "KT"
+color = "function"
 
 [[contributes.commands]]
 id = "java.packages"

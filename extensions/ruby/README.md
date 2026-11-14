@@ -114,6 +114,10 @@ checks again.
 | `ruby.lint` | `auto` | RuboCop on save: `auto`, `save`, `off` |
 | `ruby.format` | on | RuboCop's layout corrections as the formatter |
 
+## Project kind
+
+Fenix 1.6 and later know a Ruby project (`RB`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `Gemfile`, `gems.rb`, `.ruby-version` or `config.ru` at its top (a `Rakefile` alone isn't enough: plenty of projects have one), and opened on `config.ru` when you've had none of its files open. `kind = "ruby"` in `.fenix/settings.toml` says it by hand. Fenix's own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino (a Rails app with a `package.json` stays `JS`) stays that one until `kind = "ruby"` says otherwise, so this kind names projects Fenix would otherwise call plain folders. Your home folder is never a project, whatever dotfiles it holds (`.ruby-version` among them). Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a Ruby file (`C-k m` with standard keys): `d` checks the
