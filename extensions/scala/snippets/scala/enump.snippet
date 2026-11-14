@@ -1,0 +1,10 @@
+# name: enum with parameters and a method (Scala 3)
+# key: enump
+# scope: scala
+# --
+enum ${1:Planet}(val mass: ${2:Double}):
+  case ${3:Earth} extends $1(${4:5.97e24})
+  case ${5:Mars} extends $1(${6:6.42e23})
+
+  def heavy: Boolean = mass > ${7:1e24}
+$0

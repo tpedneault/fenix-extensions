@@ -1,0 +1,10 @@
+# name: opaque type (Scala 3)
+# key: opaque
+# scope: scala
+# --
+opaque type ${1:Metres} = ${2:Double}
+
+object $1:
+  def apply(value: $2): $1 = value
+  extension (m: $1) def value: $2 = m
+$0

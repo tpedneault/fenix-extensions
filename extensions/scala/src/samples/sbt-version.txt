@@ -1,0 +1,2 @@
+sbt version in this project: 1.12.15
+sbt runner version: 2.0.12

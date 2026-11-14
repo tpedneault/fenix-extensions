@@ -1,0 +1,8 @@
+# name: sealed trait with case classes (Scala 2 and 3)
+# key: adt
+# scope: scala
+# --
+sealed trait ${1:Shape}
+final case class ${2:Circle}(${3:radius: Double}) extends $1
+final case class ${4:Square}(${5:side: Double}) extends $1
+$0

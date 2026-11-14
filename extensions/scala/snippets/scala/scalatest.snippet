@@ -1,0 +1,12 @@
+# name: ScalaTest AnyFunSuite
+# key: scalatest
+# scope: scala
+# --
+import org.scalatest.funsuite.AnyFunSuite
+
+class ${1:Orbit}Spec extends AnyFunSuite {
+  test("${2:it works}") {
+    assert(${3:1 + 1 == 2})
+  }
+}
+$0

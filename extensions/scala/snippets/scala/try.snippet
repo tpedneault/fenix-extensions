@@ -1,0 +1,11 @@
+# name: try, catch and finally
+# key: try
+# scope: scala
+# --
+try
+  ${1:body}
+catch
+  case e: ${2:Exception} => ${3:handle(e)}
+finally
+  ${4:cleanup()}
+$0
