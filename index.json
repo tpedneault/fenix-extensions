@@ -5021,6 +5021,35 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.2.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/zig-v1.2.0/fenix.zig-1.2.0.fenixext",
+          "sha256": "af81e6ab8ac419777c537b6b12e8831e0993bb25206e1f20123e93025405fbbb",
+          "size": 381842,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com",
+              "files.pythonhosted.org"
+            ],
+            "process": [
+              "zig",
+              "zls",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Zig",
