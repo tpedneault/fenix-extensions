@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart · Fenix extensions</title>
+<meta name="description" content="Dart and Flutter: the analysis server, Dart&#39;s highlighting, dart format, debugging with the SDK&#39;s adapters, tasks for both, flutter run on a device you pick with hot reload, the project&#39;s checks, pub packages, snippets, and Dart and Flutter projects">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Dart</h1>
+<p class="id"><code>fenix.dart</code></p>
+<p class="lead">Dart and Flutter: the analysis server, Dart&#39;s highlighting, dart format, debugging with the SDK&#39;s adapters, tasks for both, flutter run on a device you pick with hot reload, the project&#39;s checks, pub packages, snippets, and Dart and Flutter projects</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>478 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/dart">extensions/dart</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Dart</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/dart-v1.0.0/fenix.dart-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.dart-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>dart</code></li><li><code>flutter</code></li><li><code>kill</code></li><li><code>${setting:dart.sdk}</code> <span class="gloss">the program the setting dart.sdk names</span></li><li><code>${setting:dart.flutter}</code> <span class="gloss">the program the setting dart.flutter names</span></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Dart and Flutter in Fenix: highlighting, folding and indenting from
+tree-sitter-dart (Fenix has no Dart of its own), the SDK&#39;s analysis
+server as the language server, <code>dart format</code> as the formatter, debugging
+through the SDK&#39;s debug adapters (<code>dart debug_adapter</code>, <code>flutter debug_adapter</code>), tasks for a Dart package and for a Flutter app, <code>flutter run</code> on a device you pick with hot reload and restart, the project
+doctor&#39;s checks, the pub packages page, snippets for Dart and for
+widgets, and projects to start from. Built on lang-kit
+(<code>crates/lang-kit</code>), as each language pack is. It needs Fenix 1.5 or
+later (extension API 1.5).</p>
+<p>It starts with Fenix. The server, the formatter and the debug adapter are
+set whenever Dart is found; the doctor checks, and the tasks run, in a
+project with a <code>pubspec.yaml</code>. A pubspec that depends on Flutter
+(<code>flutter</code>, <code>flutter_test</code>, ...) makes it a Flutter app, and the pack
+works as Flutter&#39;s tools do.</p>
+<h3 id="readme-the-sdk">The SDK</h3>
+<p>The pack doesn&#39;t install Dart or Flutter: both come with their own
+installers, and Flutter is several gigabytes. The doctor&#39;s fix rows
+(<code>dart.get-dart</code>, <code>dart.get-flutter</code>) say how for this machine and open
+the page: <code>brew install dart</code> (after <code>brew tap dart-lang/dart</code>) on macOS,
+<code>choco install dart-sdk</code> on Windows, the apt repository on Linux --
+dart.dev/get-dart -- or Flutter, which has Dart in it.</p>
+<p><code>dart</code> and <code>flutter</code> are looked for, in this order:</p>
+<ol class="tight">
+<li><p>the settings <code>dart.sdk</code> and <code>dart.flutter</code> (a program, or its folder);</p></li>
+<li><p>the project&#39;s own pinned Flutter, FVM&#39;s <code>.fvm/flutter_sdk/bin</code>;</p></li>
+<li><p><code>PATH</code>;</p></li>
+<li><p>where Flutter&#39;s install guide unpacks it (<code>~/flutter/bin</code>,
+<code>~/development/flutter/bin</code>, ...), the package managers&#39; folders and
+<code>C:\src\flutter\bin</code>; Dart&#39;s own (<code>/usr/lib/dart/bin</code>, Homebrew&#39;s,
+<code>C:\tools\dart-sdk\bin</code>); and <strong>beside the <code>flutter</code> found</strong>: Flutter
+ships its Dart as <code>flutter/bin/dart</code>, so a machine with only Flutter
+has both.</p></li>
+</ol>
+<p><strong>Which Dart.</strong> One <code>dart</code> runs the server, the formatter, the debug
+adapter and the Dart tasks, and in a Flutter app it should be Flutter&#39;s
+own: the Dart a Flutter version was built with. The doctor&#39;s <em>Dart SDK</em>
+row says which it is -- <code>3.14.0 stable (standalone, /usr/lib/dart/bin/dart)</code>
+or <code>(Flutter&#39;s, ~/flutter/bin/dart)</code> -- and warns when a Flutter app is
+using a standalone one: put Flutter&#39;s <code>bin</code> first on <code>PATH</code>, or set
+<code>dart.sdk</code> to <code>flutter/bin/dart</code>.</p>
+<h3 id="readme-the-server">The server</h3>
+<p><code>dart language-server</code>: the analysis server, over LSP, which ships with
+the SDK. It&#39;s where a Dart file&#39;s problems come from -- errors, warnings,
+hints and lints from <code>analysis_options.yaml</code> -- and completion,
+hover, go to definition, references, rename, code actions and <code>dart fix</code>&#39;s
+quick fixes (<code>SPC c a</code>). There&#39;s no linter beside it: <code>dart analyze</code>
+would say the same a second time. <code>dart analyze</code> is a task (below), for
+the whole project at once; each line has its <code>path:line:col</code>, and <code>Enter</code>
+on it opens the place.</p>
+<p>It needs the packages resolved: without <code>.dart_tool/package_config.json</code>
+every <code>package:</code> import is an error. The doctor&#39;s <em>Packages</em> row says so
+and its fix runs <code>pub get</code> (<code>SPC m g</code>).</p>
+<h3 id="readme-formatting">Formatting</h3>
+<p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <code>dart format --stdin-name &lt;file&gt;</code>, reading the buffer on its standard input. It finds
+the file&#39;s package from the name, so its language version and the
+<code>formatter:</code> rules in <code>analysis_options.yaml</code> (<code>page_width</code>,
+<code>trailing_commas</code>, Dart 3.7 and later) are the project&#39;s. A file with a
+syntax error is left as it was.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p>In a Dart package (<code>SPC p t</code>): <em>pub get</em>, <em>run</em> (<code>dart run</code>, when
+<code>bin/&lt;package&gt;.dart</code> is there) and <em>run &lt;name&gt;</em> for each other file in
+<code>bin/</code> (<em>run main</em> for a <code>lib/main.dart</code> alone), <em>run (attachable)</em>
+(<code>dart run --enable-vm-service=0 --write-service-info=...</code>, for the
+attach launch), <em>test</em> (<code>dart test</code>, when <code>test/</code> is there or <code>test</code> is a
+dev dependency), <em>analyze</em>, <em>format</em> (<code>dart format .</code>), <em>compile exe</em>,
+<em>pub outdated</em>, <em>pub upgrade</em>, <em>fix preview</em> (<code>dart fix --dry-run</code>) and
+<em>fix apply</em> (<code>dart fix --apply</code>).</p>
+<p>In a Flutter app: <em>pub get</em> (<code>flutter pub get</code>), <em>run</em>, <em>test</em> (<code>flutter test</code>), <em>analyze</em> (<code>flutter analyze</code>), <em>format</em>, a <em>build</em> for each
+platform it has a folder for and this machine can make -- <code>apk</code> and
+<code>appbundle</code> (<code>android/</code>), <code>web</code>, <code>ios</code> and <code>macos</code> on a Mac, <code>linux</code> on
+Linux, <code>windows</code> on Windows -- <em>devices</em>, <em>doctor</em> (<code>flutter doctor -v</code>), <em>clean</em>, <em>pub outdated</em>, <em>pub upgrade</em>, and <em>fix</em> as above.</p>
+<p><code>dart fix --apply</code> rewrites files all over the project, so it has no key,
+it&#39;s last in the list, and <em>fix preview</em> is the one before it: look,
+then apply (and <code>git diff</code>).</p>
+<p>A package in a pub workspace (<code>resolution: workspace</code>) leaves resolving
+to the workspace&#39;s root: no <em>pub get</em> or <em>pub upgrade</em> in it.</p>
+<p><strong>Running tests</strong> is through these tasks for now (<em>test</em>, with <code>SPC p t</code>):
+their output is <code>dart test</code>&#39;s or <code>flutter test</code>&#39;s own. Fenix&#39;s test
+explorer -- the tests page, the gutter, a test run from its line -- needs
+a test provider, which this pack doesn&#39;t have yet.</p>
+<h3 id="readme-flutter-run-on-a-device">Flutter: run on a device</h3>
+<p><code>SPC m e</code>, <em>Dart: run Flutter on a device</em>: <code>flutter devices --machine</code>
+lists what&#39;s there -- emulators, phones, Linux, macOS, Windows, Chrome --
+and you pick one, or, with one only, it&#39;s used. Then <code>flutter run -d &lt;device&gt; --pid-file .dart_tool/fenix-flutter.pid</code> runs as a <strong>background
+task</strong>, in a buffer of its own (<code>*flutter run*</code>), so the task pane stays
+free for tests and builds. <code>SPC m x</code> stops it. <em>Dart: list Flutter&#39;s
+devices</em> (<code>SPC m D</code>) says what Flutter finds; so does a start in a
+Flutter app, quietly: it gives <em>Debug</em> a launch for each device.</p>
+<p>The <em>run</em> task starts <code>flutter run</code> too, in the task pane and with no
+device chosen, which Flutter picks if there&#39;s one.</p>
+<h4 id="readme-hot-reload-and-hot-restart">Hot reload and hot restart</h4>
+<p><code>SPC m r</code> and <code>SPC m R</code>. Flutter&#39;s tool takes SIGUSR1 for a hot reload and
+SIGUSR2 for a hot restart, and the pid file says whose: the pack reads it
+and runs <code>kill -s USR1 &lt;pid&gt;</code>. It works for a <code>flutter run</code> started by
+the picker, the <em>run</em> task, or by hand, as long as it was started with
+<code>--pid-file .dart_tool/fenix-flutter.pid</code>.</p>
+<p>Why not send <code>r</code> and <code>R</code>? Fenix&#39;s extension API (1.5) has no way to write
+to a task or a terminal: a process the extension starts itself can be
+written to, and <code>flutter run</code> there would have no terminal to draw its
+output in. So:</p>
+<ul class="tight">
+<li><p><strong>Windows has no signals.</strong> <em>Dart: run Flutter on a device, in a
+terminal</em> (<code>dart.run-in-terminal</code>, no key) runs <code>flutter run</code> in a
+terminal pane, where <code>r</code> reloads and <code>R</code> restarts, as in any terminal;
+the two commands say so on Windows.</p></li>
+<li><p>A pid file left by a run that&#39;s over is said when <code>kill</code> finds no such
+process; a run that ended leaves the file, and the next one writes it
+again.</p></li>
+<li><p>The task&#39;s buffer doesn&#39;t take keys: <code>r</code> there isn&#39;t a reload.</p></li>
+</ul>
+<h3 id="readme-debugging">Debugging</h3>
+<p><code>SPC u U</code> offers the launches; <code>SPC u b</code> sets a breakpoint. The adapter is
+the SDK&#39;s, over stdio: <code>dart debug_adapter</code>, or <code>flutter debug_adapter</code>
+in a Flutter app (when Flutter is found). It&#39;s set for Dart files, so
+that&#39;s one adapter per project, by what the project is.</p>
+<p>Launches (<code>launch/</code>, and worked out as the pack runs):</p>
+<ul class="tight">
+<li><p><strong>Dart: run this file</strong>: the file you&#39;re in, with <code>${project}</code> as its
+folder. A test file runs its tests, in the debugger.</p></li>
+<li><p><strong>Dart: run bin/&lt;name&gt;.dart</strong>: one for each program in <code>bin/</code>.</p></li>
+<li><p><strong>Dart: attach to a program started with --write-service-info</strong>: a
+running program&#39;s VM service, found in <code>.dart_tool/fenix-vm-service.json</code>
+-- the <em>run (attachable)</em> task writes it.</p></li>
+<li><p>In a Flutter app: <strong>Flutter: run</strong>, <strong>Flutter: run this file</strong> (a
+<code>main_dev.dart</code>), and <strong>Flutter: run on &lt;device&gt;</strong> for each device
+<code>flutter devices</code> listed, which sends <code>flutter run -d &lt;id&gt;</code> the way
+<code>toolArgs</code> do.</p></li>
+</ul>
+<p>The debug console is where the program&#39;s output goes, and a program that
+reads the keyboard can&#39;t be answered there: Fenix doesn&#39;t answer the
+adapter&#39;s request for a terminal. Run it as a task for that.</p>
+<p>What&#39;s not here: <strong>debugging a Flutter test</strong>. <code>flutter test</code> needs
+<code>flutter debug_adapter --test</code>, a second mode of the adapter, and Fenix
+has one adapter for a language. A Dart test (<code>dart test</code>) runs in the
+debugger as <em>Dart: run this file</em>.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Dart SDK</td><td><code>dart --version</code>: its version and channel, which Dart it is, held to the pubspec&#39;s <code>environment: sdk:</code>; needed in a package</td><td>the page that says how to get Dart</td></tr>
+<tr><td>Flutter</td><td>in a Flutter app: <code>flutter --version --machine</code>, held to <code>environment: flutter:</code>; its channel and the Dart it has</td><td>the page that says how to get Flutter</td></tr>
+<tr><td>Packages</td><td>whether <code>pub get</code> has run (<code>.dart_tool/package_config.json</code>)</td><td><code>pub get</code></td></tr>
+</tbody>
+</table></div>
+<p><code>SPC m d</code> checks again, and the pack looks for the programs again when a
+task ends or <code>dart.sdk</code> or <code>dart.flutter</code> changes.</p>
+<h3 id="readme-packages">Packages</h3>
+<p><code>SPC m p</code> (<code>dart.packages</code>): the pub packages -- <code>dart pub deps --json</code>,
+and <code>dart pub outdated --json</code> for what&#39;s newer -- the outdated first.
+<code>u</code> upgrades one past its constraint (<code>pub upgrade --major-versions &lt;name&gt;</code>), <code>U</code> all, <code>a</code> adds one (<code>pub add</code>; <code>name@^1.2.3</code> or <code>dev:name</code>),
+<code>d</code> removes one. In a Flutter app they&#39;re <code>flutter pub ...</code>. A package
+pub.dev has a security advisory against is in the vulnerable tab (a newer
+pub says so in <code>pub outdated --json</code>, as 3.14&#39;s does).</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>dart.sdk</code></td><td>empty</td><td>The <code>dart</code> to use: its program, or its <code>bin</code> folder</td></tr>
+<tr><td><code>dart.flutter</code></td><td>empty</td><td>The <code>flutter</code> to use: its program, or its <code>bin</code> folder</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-files">Files</h3>
+<p><code>*.dart</code> is Dart; <code>//</code> comments with <code>gcc</code>. <code>pubspec.yaml</code> and
+<code>analysis_options.yaml</code> are YAML, which Fenix has, and so is
+<code>pubspec.lock</code>, which the pack tells it.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Keys</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>main</code>, <code>mains</code></td><td><code>main</code>, and an async <code>main(List&lt;String&gt; args)</code></td></tr>
+<tr><td><code>class</code>, <code>data</code>, <code>enum</code>, <code>sealed</code>, <code>ext</code>, <code>mixin</code>, <code>rec</code></td><td>a class with final fields; an immutable class with <code>==</code>, <code>hashCode</code>, <code>toString</code> and <code>copyWith</code>; an enhanced enum; a sealed hierarchy with its exhaustive <code>switch</code>; an extension; a mixin; a record typedef</td></tr>
+<tr><td><code>fut</code>, <code>stream</code>, <code>trycatch</code>, <code>switch</code>, <code>forin</code></td><td>an async function, an <code>async*</code> generator, <code>try</code>/<code>on</code>/<code>catch</code>/<code>finally</code>, a switch expression, <code>for-in</code></td></tr>
+<tr><td><code>test</code>, <code>group</code>, <code>testw</code></td><td>package:test&#39;s <code>test</code> and <code>group</code> with <code>setUp</code>, flutter_test&#39;s <code>testWidgets</code></td></tr>
+<tr><td><code>stless</code>, <code>stful</code>, <code>build</code>, <code>init</code>, <code>setstate</code></td><td>a <code>StatelessWidget</code>; a <code>StatefulWidget</code> with its <code>State</code>; the <code>build</code> method; <code>initState</code> and <code>dispose</code> around a controller; <code>setState</code></td></tr>
+<tr><td><code>scaffold</code>, <code>futurebuilder</code>, <code>runapp</code></td><td>a <code>Scaffold</code> with an app bar, a <code>FutureBuilder</code>, <code>main</code> with <code>runApp</code> and a <code>MaterialApp</code></td></tr>
+</tbody>
+</table></div>
+<p>Each expands to Dart that parses, with the fields to fill in (<code>data.rs</code>
+checks that, with the grammar).</p>
+<h3 id="readme-project-templates">Project templates</h3>
+<p>In the new-project wizard (<code>SPC p n</code>), under <em>Dart</em>:</p>
+<ul class="tight">
+<li><p><strong>Dart · command-line program</strong>: a package with a program in <code>bin/</code>
+that parses arguments with <code>package:args</code>, a library in <code>lib/</code> that does
+the work, <code>package:test</code> tests and <code>analysis_options.yaml</code> with
+<code>package:lints</code>; then <code>dart pub get</code>.</p></li>
+<li><p><strong>Dart · library</strong>: a package for pub.dev: <code>lib/&lt;name&gt;.dart</code> exporting
+<code>lib/src/</code>, an example, tests, a <code>CHANGELOG.md</code>.</p></li>
+<li><p><strong>Flutter · app</strong>: <code>flutter create</code> runs in the new folder, with
+<code>--project-name</code>, <code>--org</code> (asked) and the platforms you pick: all,
+mobile, web or desktop. The template has no files of its own:
+<code>flutter create</code> writes them, the counter app, and runs <code>pub get</code>.</p></li>
+</ul>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Dart package or file (<code>C-k m</code> with standard keys):</p>
+<div class="table"><table>
+<thead><tr><th>Vim</th><th>Standard</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>SPC m p</code></td><td><code>C-k m p</code></td><td>pub packages</td></tr>
+<tr><td><code>SPC m d</code></td><td><code>C-k m d</code></td><td>check the project again</td></tr>
+<tr><td><code>SPC m g</code></td><td><code>C-k m g</code></td><td>pub get</td></tr>
+<tr><td><code>SPC m e</code></td><td><code>C-k m e</code></td><td>Flutter: run on a device</td></tr>
+<tr><td><code>SPC m r</code></td><td><code>C-k m r</code></td><td>Flutter: hot reload</td></tr>
+<tr><td><code>SPC m R</code></td><td><code>C-k m R</code></td><td>Flutter: hot restart</td></tr>
+<tr><td><code>SPC m x</code></td><td><code>C-k m x</code></td><td>Flutter: stop the run</td></tr>
+<tr><td><code>SPC m D</code></td><td><code>C-k m D</code></td><td>Flutter: list the devices</td></tr>
+</tbody>
+</table></div>
+<p><code>dart.run-in-terminal</code>, <code>dart.get-dart</code> and <code>dart.get-flutter</code> are in
+<code>SPC :</code>; <code>dart fix --apply</code> is a task, with no key.</p>
+<h3 id="readme-grammar">Grammar</h3>
+<p><code>grammars/tree-sitter-dart.wasm</code> is UserNobody14&#39;s tree-sitter-dart,
+built by the pack: <code>grammars/README.md</code> says from which commit and how.
+It&#39;s MIT-licensed (<code>grammars/LICENSE-tree-sitter-dart</code>). <code>queries/dart/</code>
+is that grammar&#39;s <code>highlights.scm</code> (MIT) with Fenix&#39;s capture names,
+and the pack&#39;s own <code>folds.scm</code> and <code>indents.scm</code>.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run <code>dart</code></strong> (<code>permissions.process</code>): the analysis server, the
+formatter, the debug adapter, <code>pub</code>, the tests and the tasks you start,
+and <code>dart --version</code> for the doctor.</p></li>
+<li><p><strong>Run <code>flutter</code></strong>: <code>flutter --version --machine</code> and <code>flutter devices --machine</code> (in a Flutter app, as Fenix starts, and when you ask for the
+devices), and the tasks and <code>flutter run</code> you start.</p></li>
+<li><p><strong>Run <code>kill</code></strong>: only <code>kill -s USR1 &lt;pid&gt;</code> and <code>kill -s USR2 &lt;pid&gt;</code>, for
+hot reload and restart, with the pid <code>flutter run</code> wrote to
+<code>.dart_tool/fenix-flutter.pid</code>.</p></li>
+<li><p><strong>Run what <code>dart.sdk</code> and <code>dart.flutter</code> name</strong>, when you set them.</p></li>
+<li><p><strong>Read the project&#39;s files</strong> (<code>filesystem = &quot;project-read&quot;</code>):
+<code>pubspec.yaml</code>, the names in <code>bin/</code> and the platform folders, and the
+pid file.</p></li>
+</ul>
+<p>It asks for nothing else: no network (the pages it opens for installing
+the SDK open in your browser, through Fenix), no writing to the project,
+no editor, no tools folder.</p>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/dart dist
+cargo xtask install extensions/dart
+cargo test --manifest-path extensions/dart/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> runs the pack on the test kit&#39;s fake host, which plays
+Fenix&#39;s part: the server, formatter, adapter and launches set for a Dart
+package, a Flutter app and a machine with neither; the doctor&#39;s rows; the
+device picker, <code>flutter run</code> as a task and in a terminal, stopping it,
+the pid file and the <code>kill</code> it sends; the pub page, drawn. Beside that,
+the pieces on what the tools print (<code>src/samples/</code>):</p>
+<ul class="tight">
+<li><p><strong>Recorded from Dart 3.14.0</strong> (<code>dart create</code>, then <code>pub add</code>):
+<code>dart --version</code>, <code>dart pub deps --json</code>, <code>dart pub outdated --json</code>,
+<code>pubspec.yaml</code>. The formatter&#39;s standard-input form, the analysis
+server&#39;s LSP diagnostics, the debug adapter (launch and attach) and the
+templates were run by hand against the same SDK, and the pack&#39;s
+grammar parses the sample and every snippet.</p></li>
+<li><p><strong>Written from Flutter&#39;s documented formats</strong>, not recorded: <code>flutter devices --machine</code>, <code>flutter --version --machine</code>, a Flutter app&#39;s
+<code>pubspec.yaml</code>, and <code>flutter run</code>&#39;s <code>--pid-file</code> and signals. No
+Flutter SDK was installed where this was written.</p></li>
+<li><p>One pub advisory (<code>isCurrentAffectedByAdvisory</code>) is the recorded
+outdated list with a field changed, since no SDK package has one.</p></li>
+</ul>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>478 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/dart-v1.0.0/fenix.dart-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 559de0d08bf9bbfd9e821b8e09aa315ab30d4899f6675cb16df7a4a89ae4c8a0">559de0d08b…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.5: Dart and Flutter. Highlighting,
+folding and indenting from tree-sitter-dart; the analysis server
+(<code>dart language-server</code>) as the language server, so its problems and
+quick fixes are Fenix&#39;s; <code>dart format</code> as the formatter; debugging
+through the SDK&#39;s adapters (<code>dart debug_adapter</code>, <code>flutter debug_adapter</code> in a Flutter app), with launches for the file you&#39;re in,
+each program in <code>bin/</code>, attaching to a running program, and <code>flutter run</code>
+on each device Flutter lists; tasks for a Dart package (<code>pub get</code>,
+<code>run</code>, <code>test</code>, <code>analyze</code>, <code>format</code>, <code>compile exe</code>, <code>fix preview</code>, <code>fix apply</code>) and for a Flutter app (<code>flutter pub get</code>, <code>run</code>, <code>test</code>,
+<code>analyze</code>, a build for each platform it has, <code>doctor</code>, <code>devices</code>); <code>flutter run</code> on a device you pick, as a task of its own, with hot reload and hot
+restart as commands (a signal to the pid <code>flutter run</code> wrote; not on
+Windows, where there&#39;s a terminal to type <code>r</code> in instead); the project
+doctor&#39;s checks (which Dart SDK is in use and its version, Flutter, whether
+the packages are resolved), with the pages that say how to get each SDK;
+the pub packages page; snippets for Dart and for widgets; and a command-line
+program, a library and a Flutter app to start from. The SDKs aren&#39;t
+installed by the pack, and tests run through their tasks: no test
+provider yet.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
