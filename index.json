@@ -1550,6 +1550,48 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.elixir",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/elixir-v1.0.0/fenix.elixir-1.0.0.fenixext",
+          "sha256": "a06bbd245c2c31ff6d9329824623a617a3b72c2bbe447e84b3361d5b735e1fa8",
+          "size": 512227,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "mix",
+              "elixir",
+              "iex",
+              "expert",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Elixir",
+      "description": "Elixir: its grammar and HEEx's, Expert, mix format, the compiler's warnings and Credo on save, mix's tasks, the project's checks with fixes that install Hex and Expert, and snippets",
+      "categories": [
+        "languages",
+        "snippets"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.gallery",
       "versions": [
         {
