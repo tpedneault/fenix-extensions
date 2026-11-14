@@ -185,7 +185,7 @@ impl State {
 
 impl Priority {
     pub fn cleaned(self) -> Priority {
-        Priority { name: name(&self.name), level: one_of(&self.level, &level::ALL).unwrap_or_else(|| level::MEDIUM.into()) }
+        Priority { name: name(&self.name), level: self.level.as_deref().and_then(|l| one_of(l, &level::ALL)) }
     }
 }
 
@@ -339,6 +339,7 @@ impl About {
             project_meta: self.project_meta.as_deref().and_then(key),
             browse: self.browse.as_deref().and_then(url).filter(|b| b.contains("%7Bref%7D") || b.contains("{ref}")),
             ref_hint: self.ref_hint.as_deref().map(name),
+            blocked: self.blocked,
         }
     }
 }
@@ -412,7 +413,7 @@ mod tests {
 
     #[test]
     fn about_keeps_a_whole_id_and_a_sane_schedule() {
-        let raw = |id: &str, minutes: u32| About { seam: 1, seams: vec![], minor: 0, id: id.into(), name: "X".into(), ready: true, not_ready: None, can: vec![], sync_minutes: minutes, project_meta: None, browse: None, ref_hint: None };
+        let raw = |id: &str, minutes: u32| About { seam: 1, seams: vec![], minor: 0, id: id.into(), name: "X".into(), ready: true, not_ready: None, can: vec![], sync_minutes: minutes, project_meta: None, browse: None, ref_hint: None, blocked: true };
         let a = raw("fenix.jira", 1).cleaned();
         assert_eq!((a.id.as_str(), a.sync_minutes, a.seams.as_slice()), ("fenix.jira", 5, &[1][..]));
         assert_eq!(raw("Not An Id", 0).cleaned().id, "");
@@ -437,7 +438,7 @@ mod tests {
             title: "One\ntwo\u{7}".into(),
             body: "body\u{1b}".into(),
             state: State { id: "3".into(), name: "In\nProgress".into(), stage: "DOING".into(), column: "sideways".into() },
-            priority: Some(Priority { name: "P1".into(), level: "extreme".into() }),
+            priority: Some(Priority { name: "P1".into(), level: Some("extreme".into()) }),
             labels: vec!["a".into(); 60],
             due: Some("tomorrow".into()),
             comments: (0..120).map(|i| Comment { id: i.to_string(), author: "x".into(), body: "c".into(), created: String::new() }).collect(),
@@ -448,7 +449,7 @@ mod tests {
         assert_eq!(issue.title, "One two");
         assert_eq!(issue.body, "body");
         assert_eq!((issue.state.name.as_str(), issue.state.stage.as_str(), issue.state.column.as_str()), ("In Progress", "doing", "doing"));
-        assert_eq!(issue.priority.unwrap().level, "medium");
+        assert_eq!(issue.priority.unwrap().level, None, "a level it doesn't know is none");
         assert_eq!(issue.labels.len(), LABELS);
         assert_eq!(issue.due, None);
         assert_eq!(issue.comments.len(), COMMENTS);

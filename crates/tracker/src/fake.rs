@@ -38,6 +38,7 @@ struct Inner {
     people: Vec<Person>,
     priorities: Vec<Priority>,
     next_number: u32,
+    project: Option<String>,
 }
 
 /// A tracker in memory. Cheap to clone; every clone is the same tracker.
@@ -69,6 +70,7 @@ impl FakeTracker {
                 project_meta: None,
                 browse: Some("https://tracker.example/{ref}".into()),
                 ref_hint: Some("FAKE-1".into()),
+                blocked: true,
             });
             s.default_moves = vec![
                 Move { id: "start".into(), name: "Start".into(), to: state("2", "Doing", column::DOING), ..Default::default() },
@@ -76,7 +78,7 @@ impl FakeTracker {
                 Move { id: "finish".into(), name: "Finish".into(), to: state("3", "Done", column::DONE), ..Default::default() },
             ];
             s.people = vec![Person { id: "jo".into(), name: "Jo".into() }];
-            s.priorities = vec![Priority { name: "P1".into(), level: "urgent".into() }, Priority { name: "P3".into(), level: "medium".into() }];
+            s.priorities = vec![Priority { name: "P1".into(), level: Some("urgent".into()) }, Priority { name: "P3".into(), level: Some("medium".into()) }];
             s.next_number = 100;
         }
         t
@@ -93,7 +95,7 @@ impl FakeTracker {
             title: title.into(),
             body: format!("{title}, in more words"),
             state: state("1", "Open", column::TODO),
-            priority: Some(Priority { name: "P3".into(), level: "medium".into() }),
+            priority: Some(Priority { name: "P3".into(), level: Some("medium".into()) }),
             assignee: Some(Person { id: "me".into(), name: "Me".into() }),
             mine: Some(true),
             updated: "2026-11-14T09:00:00+00:00".into(),
@@ -128,6 +130,12 @@ impl FakeTracker {
     /// What `transitions` answers for `key`.
     pub fn moves(&self, key: &str, moves: Moves) -> &Self {
         self.0.borrow_mut().moves.insert(key.into(), moves);
+        self
+    }
+
+    /// `project` answers `project`.
+    pub fn project(&self, project: &str) -> &Self {
+        self.0.borrow_mut().project = Some(project.into());
         self
     }
 
@@ -240,7 +248,7 @@ impl FakeTracker {
                 match change {
                     Change::Title(t) => issue.title = t,
                     Change::Body(b) => issue.body = b,
-                    Change::Priority(p) => issue.priority = Some(Priority { level: if p == "P1" { "urgent".into() } else { "medium".into() }, name: p }),
+                    Change::Priority(p) => issue.priority = Some(Priority { level: Some(if p == "P1" { "urgent".into() } else { "medium".into() }), name: p }),
                     Change::Due(d) => issue.due = d,
                     Change::Assignee(p) => {
                         issue.mine = Some(p.as_ref().is_some_and(|p| p.id == "me"));
@@ -270,8 +278,9 @@ impl FakeTracker {
                 let key = format!("FAKE-{}", s.next_number);
                 let issue = Issue { body: req.body, ..FakeTracker::issue(&key, &req.title) };
                 s.issues.push(issue);
-                json(&Created { key: Some(key) })
+                json(&Created { key: Some(key), opened: None })
             }
+            call::PROJECT => json(&crate::seam::Project { project: s.project.clone() }),
             call::REMEMBER => {
                 let req: Remember = serde_json::from_str(payload).map_err(bad)?;
                 s.remembered.push(req.remember);

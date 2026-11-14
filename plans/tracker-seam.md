@@ -48,7 +48,24 @@ first version, this is what moved:
    write that ended so is never re-sent by itself (§3.3, §3.7). An
    unknown field in `update` is `unsupported`, not `bad_request`.
    Mapping guidance for 403 rate limits, 410 and 5xx (§3.3).
-10. **Smaller**: `sync_minutes` is per tracker with a floor of 5;
+10. **From the first trackers built on it** (Linear, Jira Cloud):
+    - a tracker with no Fenix project metadata says which of its
+      projects you're in with a new call, `project` (§4.7);
+    - `create` may answer at once with `opened` instead of holding the
+      call while you fill in a form (§4.6);
+    - a priority's `level` may be `null`: a priority meaning none (§4.2);
+    - `about.blocked: false` says the tracker has no Blocked, so the
+      agenda keeps Blocked to itself instead of a faked `local` move
+      (§4.1);
+    - errors are classed by whatever the API uses, status or body, and
+      `retry_after` is in seconds (§3.3);
+    - `missing` comes back exactly as asked (§4.4);
+    - the gate covers every write wherever the extension serves it,
+      `create` and `remember` included (§3.6);
+    - the agenda's test world is a public, documented helper,
+      `fenix_agenda::testing`, so a tracker runs the agenda against
+      itself from its own crate (§8).
+11. **Smaller**: `sync_minutes` is per tracker with a floor of 5;
     `retry_after` is honoured; `about` must be cheap, and the agenda
     asks lazily; a whole-call `not_found` is forbidden for more than one
     ref; stage mappings for GitHub and Linear's six state types; `local`
@@ -188,7 +205,7 @@ offers it. Any call to an installed tracker *starts* its extension
 - the rest when its page opens, and when you sync, import or link;
 - again whenever it's been five minutes, when `agenda.trackers`
   changes, when a tracker says it changed (`agenda.tracker_changed`,
-  §4.7), and at once -- the command waiting for the answer -- when you
+  §4.8), and at once -- the command waiting for the answer -- when you
   ask for something and no tracker is ready, or a call answers
   `not_set_up` or `signed_out`. So a tracker you've just set up is
   never reported as not set up.
@@ -282,7 +299,7 @@ An `Err` is a JSON object as text:
 |---|---|---|
 | `code` | always | one of the codes below |
 | `message` | always | the tracker's own words, shown as they are (a message, §3.1); for Jira, exactly what the agenda showed before |
-| `retry_after` | `rate_limited`, optional | seconds |
+| `retry_after` | `rate_limited`, optional | whole seconds from now |
 
 What the agenda does, as built:
 
@@ -305,7 +322,11 @@ installed without this call) and `no service <name>` are `unsupported`,
 and `the extension stopped: ...` is `unknown`. An extension that had
 already stopped answers its stop reason alone, which reads as `failed`.
 
-**Mapping, per tracker**: 401 is `signed_out`; 404 and **410** are
+**Mapping, per tracker.** Class by whatever your API uses to say it --
+the HTTP status, or the body when the API puts errors there (GraphQL
+errors under any status; Linear's `RATELIMITED` comes with a 400) --
+and give `retry_after` in seconds, converted from a reset time if
+that's what you get. 401 is `signed_out`; 404 and **410** are
 `not_found`; 429, and **GitHub's 403 with `X-RateLimit-Remaining: 0`**
 (its primary rate limit) and its secondary-limit 403s, are
 `rate_limited`, with `retry_after` from `Retry-After` or
@@ -313,7 +334,8 @@ already stopped answers its stop reason alone, which reads as `failed`.
 504** are `offline` (maintenance, a proxy); other 5xx `failed`; a
 transport error or timeout `offline`. **Linear's GraphQL errors come
 with HTTP 200**: read `errors` (`RATELIMITED` is `rate_limited`,
-`AUTHENTICATION_ERROR` `signed_out`, an entity not found `not_found`).
+`AUTHENTICATION_ERROR` `signed_out`, an entity not found `not_found`,
+whatever the status).
 
 ### 3.4 Timing
 
@@ -356,6 +378,10 @@ that come through the seam** (`transition`, `update`, `comment`,
 `worklog`, `create`, `remember`), with `fenix_tracker::gate`, so the
 code and the words are the same everywhere:
 
+- The gate sits **where every seam write passes in the extension**,
+  whichever layer then serves it: Jira's `create` (its form) and
+  `remember` (its settings) are served by the extension itself, not its
+  client, and are gated the same.
 - Before the first write of a session it asks, with a picker: *"Agenda
   wants to change issues in Jira for you -- allow for this session?"*,
   **Allow for this session** / **Not now**. Writes that come while it's
@@ -419,9 +445,10 @@ asking is what starts it. Answer:
 | `not_ready` | when not ready | what to do about it, with the keys (a message) |
 | `can` | optional, `[]` | its capabilities (§4.6); unknown ones are ignored |
 | `sync_minutes` | optional, 10 | how often its linked tasks should be brought up to date; 0 never on a timer; at least 5. Each tracker is synced on its own schedule |
-| `project_meta` | optional | the key of Fenix's project metadata (`Here.project.meta`) naming this tracker's project for the project you're in (`jira` is Fenix's own `.fenix/project.toml` Jira key) |
+| `project_meta` | optional | the key of Fenix's project metadata (`Here.project.meta`) naming this tracker's project for the project you're in. Fenix 1.5's metadata has only `kind` and the Jira key (`jira`), so only Jira can use it; any other tracker serves `project` instead (§4.7) |
 | `browse` | optional | a URL with `{ref}` in it: an issue's address before the first sync has brought its `url` |
 | `ref_hint` | optional | an example of a `ref`, for "Link to issue (e.g. PROJ-123)" |
+| `blocked` | optional, true | false: it has no Blocked state of its own (GitHub). The agenda then keeps Blocked to itself: a card moved there or out of it sends nothing, and no `local` move needs faking |
 
 ### 4.2 The issue
 
@@ -459,7 +486,7 @@ asking is what starts it. Answer:
 | `body_cut` | optional, false | the body was longer than §3.1 allows |
 | `state` | required | `id` the tracker's own (opaque); `name` as people see it; `stage` exactly one of `todo`, `doing`, `done` (anything else is read as `todo`); `column` one of `todo`, `doing`, `blocked`, `done` -- the agenda column the tracker puts it in, which is `stage` unless the tracker knows it's blocked |
 | `type` | optional | a name |
-| `priority` | optional | `name` the tracker's; `level` one of `urgent`, `high`, `medium`, `low`. No priority is the agenda's Medium |
+| `priority` | optional | `name` the tracker's; `level` one of `urgent`, `high`, `medium`, `low`, or `null` for a priority that means none (Linear's "No priority"). No priority, or a `null` level, is the agenda's Medium |
 | `assignee` | optional | `id` what `update`'s `assignee` takes back, `name` shown. A tracker with several assignees gives the first, and `mine` says whether you're among them |
 | `mine` | optional | assigned to the signed-in person; absent when the tracker can't tell |
 | `labels` | optional, `[]` | names |
@@ -471,10 +498,11 @@ asking is what starts it. Answer:
 
 - **Jira**: its status category (`new` `todo`, `indeterminate` `doing`,
   `done` `done`).
-- **GitHub**: open is `todo`, closed `done`. It has no Doing or
-  Blocked: offer a `local` move to each (§4.5), so a card dragged there
-  moves in the agenda and nothing is sent; a later sync doesn't move it
-  back, since GitHub's state didn't change.
+- **GitHub**: open is `todo`, closed `done`. It has no Blocked: say
+  `blocked: false` in `about`. It has no Doing: offer a `local` move to
+  Doing (§4.5), so a card dragged there moves in the agenda and nothing
+  is sent; a later sync doesn't move it back, since GitHub's state
+  didn't change.
 - **GitLab**: as GitHub, unless the project's scoped `workflow::`
   labels say `doing` or `blocked`.
 - **Linear**, by its state's type: `triage`, `backlog` and `unstarted`
@@ -512,8 +540,9 @@ back as a minor.
 At most 50; each an issue's `id`, its `ref`, or its URL -- the agenda
 asks by `id` once it knows it. Answer: `{"issues": [...], "missing":
 ["OPS-3"]}`, each issue with `asked` set. An issue not found, or not
-visible to you, is in `missing` as it was asked, and the call still
-succeeds. **A tracker never answers `not_found` for the whole call when
+visible to you, is in `missing` **exactly as it was asked**, byte for
+byte, even one that isn't a ref of yours at all (`"bad ref"`), and the
+call still succeeds. **A tracker never answers `not_found` for the whole call when
 asked for more than one**: one that can't tell which is missing asks
 them one at a time. (The agenda copes anyway: a whole-call `not_found`
 of several is asked again one by one.)
@@ -622,14 +651,32 @@ Every write below carries `op` (§3.7) and is gated (§3.6).
   "2026-11-12T09:15:00.000+01:00", "op": "..."}`: time worked, filed on
   the day it started (RFC 3339) → `{}`.
 - **`create`** `{"seam": 1, "title": "...", "body": "...", "op": "..."}`:
-  the tracker's own new-issue form, opened and filled in. Answered
-  `{"ref": "PROJ-13"}` once you've made it, or `{"ref": null}` if you
-  closed it (Jira, as before, leaves a closed form unanswered). No time
-  limit.
+  the tracker's own new-issue form, opened and filled in. Either held
+  until you're done -- answered `{"ref": "PROJ-13"}` once you've made
+  it, `{"ref": null}` if you closed it (Jira, as before, leaves a closed
+  form unanswered), no time limit -- or answered **at once** with
+  `{"ref": null, "opened": "Opened a new issue in your browser -- I
+  links it once it's made"}` (a message), for a tracker whose form is a
+  web page or its own page and that doesn't want to hold the call. The
+  agenda says `opened`.
 - **`remember`** `{"seam": 1, "ref": "10201", "remember": "...", "op": "..."}`
   → `{}`: keeps a choice a move carried.
 
-### 4.7 What the agenda serves back
+### 4.7 `project`: the project you're in
+
+`{"seam": 1}` → `{"project": "ENG"}`, behind the capability `project`:
+the Fenix project you're in (the one the tracker's extension runs in;
+Fenix starts an extension again in each project) as this tracker's
+issues name their `project`, or `null` when it can't tell. How is the
+tracker's own: GitHub and GitLab from the git remote (`owner/repo`),
+Linear from a setting of its own a project may set (`linear.team`,
+`project = true`), Jira Cloud as Server, from `project_meta`. The agenda
+asks it when its page opens, of every ready tracker that lists the
+capability; a tracker that can't tell (or doesn't serve it) puts none
+of its issues in "this project only" (`P`), where tasks still count by
+category.
+
+### 4.8 What the agenda serves back
 
 Trackers may call these, as Jira's page does. `tracker` is the full
 extension id; a call without it is from Jira 1.2 or the notebook, and
@@ -756,6 +803,14 @@ old services -- `jira.request` first of all.
 - `extensions/jira`, on the test kit: the four old services as before;
   `about`; the gate (asked once, `always`, `never`, "Not now"); a
   repeated `op` done once; `remember`; forgetting on a settings change.
+- **`fenix_agenda::testing`** (the agenda's feature `testing`) is the
+  agenda's own test world, public and documented: `world_with` starts
+  the agenda on the test kit's fake host with any services you wire
+  (`serve` puts a `FakeTracker` behind `<id>.tracker.*`; wire your own
+  serving function the same way), in a folder of the test's own, and
+  `World` drives it. A tracker adds `fenix-agenda = { path =
+  "../agenda", features = ["testing"] }` to its dev-dependencies and runs
+  the agenda against its own answers from its own crate.
 - `extensions/agenda`, on the test kit: `FakeTracker` behind
   `acme.fake.tracker.*` through import with paging and dedupe, one
   issue, a moved issue, sync, moves, each error code's handling, an
@@ -813,8 +868,14 @@ Complete, for Jira Cloud, GitHub Issues, GitLab Issues and Linear.
 **Safety and tests**
 - [ ] Hold your own token; nothing of it in an answer; `network` for
       your hosts only.
-- [ ] Tests on recorded responses; the agenda's `src/tests.rs` shows how
-      to drive the agenda with `FakeTracker` or with your own answers.
+- [ ] Tests on recorded responses, and the agenda driven by your own
+      answers with `fenix_agenda::testing` (§8).
+
+**Projects, Blocked, create**
+- [ ] Without a Fenix metadata key, serve `project` (§4.7): from the
+      git remote, or a project-settable setting of your own.
+- [ ] No Blocked of your own: `blocked: false` in `about`.
+- [ ] A form that's a web page: answer `create` at once with `opened`.
 
 What each of the four needs beyond that:
 

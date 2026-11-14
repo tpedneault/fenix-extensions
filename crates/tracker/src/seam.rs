@@ -58,6 +58,18 @@ pub struct About {
     /// An example `ref`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ref_hint: Option<String>,
+    /// Whether it has a Blocked of its own; false, and the agenda keeps
+    /// Blocked to itself (a card moved there sends nothing).
+    #[serde(default = "yes", skip_serializing_if = "is_true")]
+    pub blocked: bool,
+}
+
+fn yes() -> bool {
+    true
+}
+
+fn is_true(b: &bool) -> bool {
+    *b
 }
 
 impl About {
@@ -88,8 +100,10 @@ pub struct State {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Priority {
     pub name: String,
-    /// `urgent`, `high`, `medium` or `low` (`crate::level`).
-    pub level: String,
+    /// `urgent`, `high`, `medium` or `low` (`crate::level`); `null` for
+    /// a priority that means none (Linear's "No priority").
+    #[serde(default)]
+    pub level: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -447,11 +461,25 @@ pub struct Create {
     pub op: Option<String>,
 }
 
-/// `create`'s answer: what was made, or nothing.
+/// `create`'s answer: what was made; or nothing; or, from a tracker that
+/// doesn't hold the call while you fill its form in, `opened`: said at
+/// once ("Opened a new issue in your browser -- I links it once it's
+/// made").
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Created {
     #[serde(rename = "ref", default)]
     pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opened: Option<String>,
+}
+
+/// `project`'s answer: the Fenix project you're in, as this tracker's
+/// issues name their `project` -- from a setting of its own that a
+/// project may set, from the git remote -- or `null` when it can't tell.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Project {
+    #[serde(default)]
+    pub project: Option<String>,
 }
 
 /// `remember`: keep a choice a move carried.
@@ -533,6 +561,9 @@ mod tests {
     fn browse_fills_in_the_ref() {
         let about: About = serde_json::from_str(r#"{"seam": 1, "name": "J", "ready": true, "browse": "https://j/browse/{ref}"}"#).unwrap();
         assert_eq!(about.seams, [1], "an about without seams speaks its seam");
+        assert!(about.blocked, "a Blocked of its own unless it says not");
+        let p: Priority = serde_json::from_str(r#"{"name": "No priority", "level": null}"#).unwrap();
+        assert_eq!(p.level, None);
         assert_eq!(about.browse_url("A-1").as_deref(), Some("https://j/browse/A-1"));
     }
 }

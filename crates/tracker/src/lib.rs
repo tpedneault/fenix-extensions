@@ -59,9 +59,10 @@ pub mod call {
     pub const WORKLOG: &str = "worklog";
     pub const CREATE: &str = "create";
     pub const REMEMBER: &str = "remember";
+    pub const PROJECT: &str = "project";
 
     /// Every call, the required ones first.
-    pub const ALL: [&str; 12] = [ABOUT, ASSIGNED, ISSUES, TRANSITIONS, TRANSITION, UPDATE, PRIORITIES, PEOPLE, COMMENT, WORKLOG, CREATE, REMEMBER];
+    pub const ALL: [&str; 13] = [ABOUT, ASSIGNED, ISSUES, TRANSITIONS, TRANSITION, UPDATE, PRIORITIES, PEOPLE, COMMENT, WORKLOG, CREATE, REMEMBER, PROJECT];
 
     /// The calls that change something in the tracker: gated (`crate::gate`)
     /// and carrying an `op`.
@@ -97,8 +98,10 @@ pub mod can {
     pub const CREATE: &str = "create";
     /// `remember`.
     pub const REMEMBER: &str = "remember";
+    /// `project`: which of its projects the Fenix project you're in is.
+    pub const PROJECT: &str = "project";
 
-    pub const ALL: [&str; 11] = [COMMENTS, EDIT_TITLE, EDIT_BODY, EDIT_PRIORITY, EDIT_DUE, EDIT_ASSIGNEE, EDIT_LABELS, COMMENT, WORKLOG, CREATE, REMEMBER];
+    pub const ALL: [&str; 12] = [COMMENTS, EDIT_TITLE, EDIT_BODY, EDIT_PRIORITY, EDIT_DUE, EDIT_ASSIGNEE, EDIT_LABELS, COMMENT, WORKLOG, CREATE, REMEMBER, PROJECT];
 
     /// The capability an `update` of `change` needs.
     pub fn of(change: &crate::Change) -> &'static str {
