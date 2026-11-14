@@ -51,14 +51,26 @@ pub struct NewIssue {
     pub description: String,
     /// A priority's name; `None` leaves the project's default.
     pub priority: Option<String>,
-    /// A username; `None` leaves it to the project.
+    /// A username (Cloud: an account id); `None` leaves it to the
+    /// project.
     pub assignee: Option<String>,
     /// Required fields beyond those, as (field id, value json).
     pub extra: Vec<(String, serde_json::Value)>,
 }
 
 impl NewIssue {
+    /// As Server and Data Center take it (REST v2).
     pub fn to_json(&self) -> serde_json::Value {
+        self.json(false)
+    }
+
+    /// As Cloud takes it (REST v3): the description as rich text
+    /// (paragraphs and line breaks), the assignee an account id.
+    pub fn to_cloud_json(&self) -> serde_json::Value {
+        self.json(true)
+    }
+
+    fn json(&self, cloud: bool) -> serde_json::Value {
         let mut fields = serde_json::json!({
             "project": {"key": self.project},
             "issuetype": {"id": self.issue_type_id},
@@ -66,7 +78,8 @@ impl NewIssue {
         });
         let map = fields.as_object_mut().expect("an object");
         if !self.description.trim().is_empty() {
-            map.insert("description".into(), serde_json::json!(self.description));
+            let description = if cloud { crate::adf::from_text(&self.description) } else { serde_json::json!(self.description) };
+            map.insert("description".into(), description);
         }
         if let Some(p) = &self.priority {
             map.insert("priority".into(), serde_json::json!({"name": p}));
@@ -75,6 +88,9 @@ impl NewIssue {
         match self.assignee.as_deref() {
             Some("") => {
                 map.insert("assignee".into(), serde_json::Value::Null);
+            }
+            Some(a) if cloud => {
+                map.insert("assignee".into(), serde_json::json!({"accountId": a}));
             }
             Some(a) => {
                 map.insert("assignee".into(), serde_json::json!({"name": a}));
@@ -133,10 +149,10 @@ impl JiraClient {
         }
     }
 
-    /// `POST /rest/api/2/issue` with everything the form collected;
-    /// returns the new key.
+    /// `POST /rest/api/2/issue` (Cloud: v3) with everything the form
+    /// collected; returns the new key.
     pub async fn create(&self, issue: &NewIssue) -> Result<String, String> {
-        let response = self.send("POST", "/rest/api/2/issue", &issue.to_json()).await?;
+        let response = if self.is_cloud() { self.send("POST", "/rest/api/3/issue", &issue.to_cloud_json()).await? } else { self.send("POST", "/rest/api/2/issue", &issue.to_json()).await? };
         response
             .and_then(|v| v.get("key").and_then(|k| k.as_str()).map(str::to_string))
             .ok_or_else(|| "unexpected create-issue response shape".to_string())

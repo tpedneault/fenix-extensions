@@ -1,11 +1,16 @@
 //! A Jira client over a [`Transport`]: the one place every request goes
 //! through, so the same calls run in the Jira extension (its own HTTP,
 //! with your server and token) and in the agenda (asking the Jira
-//! extension, which holds them).
+//! extension, which holds them). It knows which Jira it talks to
+//! ([`Deployment`]): Server and Data Center are asked what they always
+//! were; Cloud the same where it answers the same, and otherwise its own
+//! way (REST v3's rich text, account ids, the enhanced search).
 
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
+
+use crate::cloud::Deployment;
 
 /// What came back for a request: its status and body.
 pub type Reply = Result<(u16, String), String>;
@@ -14,12 +19,19 @@ pub type Reply = Result<(u16, String), String>;
 /// already on it; `body` is the JSON sent, for a write.
 pub trait Transport {
     fn send(&self, method: &str, path: &str, body: Option<String>) -> Pin<Box<dyn Future<Output = Reply>>>;
+
+    /// The seconds the last `429` said to wait (its `Retry-After`), for a
+    /// transport that sees headers; none for one that doesn't.
+    fn retry_after(&self) -> Option<u32> {
+        None
+    }
 }
 
 /// A Jira client: cheap to clone, every clone sharing one transport.
 #[derive(Clone)]
 pub struct JiraClient {
     transport: Rc<dyn Transport>,
+    deployment: Deployment,
 }
 
 /// `value` as it goes in a URL's query.
@@ -50,8 +62,39 @@ fn describe(status: u16, body: &str) -> String {
 }
 
 impl JiraClient {
+    /// A client for Jira Server or Data Center.
     pub fn new(transport: Rc<dyn Transport>) -> Self {
-        JiraClient { transport }
+        JiraClient { transport, deployment: Deployment::Server }
+    }
+
+    /// A client for Jira Cloud.
+    pub fn cloud(transport: Rc<dyn Transport>) -> Self {
+        JiraClient { transport, deployment: Deployment::Cloud }
+    }
+
+    /// A client for whichever `deployment` is.
+    pub fn for_deployment(transport: Rc<dyn Transport>, deployment: Deployment) -> Self {
+        JiraClient { transport, deployment }
+    }
+
+    pub fn deployment(&self) -> Deployment {
+        self.deployment
+    }
+
+    pub fn is_cloud(&self) -> bool {
+        self.deployment.is_cloud()
+    }
+
+    /// What the last `429` said to wait, in seconds, when the transport
+    /// knows.
+    pub fn retry_after(&self) -> Option<u32> {
+        self.transport.retry_after()
+    }
+
+    /// `GET /rest/api/2/serverInfo`: which Jira it is, and its version.
+    pub async fn server_info(&self) -> Result<(Deployment, String), String> {
+        let body = self.request("/rest/api/2/serverInfo", &[]).await?;
+        Deployment::from_server_info(&body.to_string()).ok_or_else(|| "this Jira doesn't say what it is".to_string())
     }
 
     /// `GET {path}?query...`, its JSON body.
