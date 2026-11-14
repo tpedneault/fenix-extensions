@@ -4414,6 +4414,27 @@
               "tclsh"
             ]
           }
+        },
+        {
+          "version": "1.2.1",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/tcl-v1.2.1/fenix.tcl-1.2.1.fenixext",
+          "sha256": "d4fc1be0021465d918c980f6fde1ec72a16669aed6d2ce1fe31dea09e5a08fbc",
+          "size": 173317,
+          "dependencies": {},
+          "categories": [
+            "languages"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "process": [
+              "ctags",
+              "tclsh"
+            ]
+          }
         }
       ],
       "name": "Tcl",
