@@ -137,6 +137,10 @@ the credentials say you are). It runs nothing when it's made.
 |---|---|---|
 | `terraform.validate` | on | `terraform validate` on a saved `.tf` file |
 
+## Project kind
+
+Fenix 1.6 and later know a Terraform project (`TF`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `main.tf`, `versions.tf`, `providers.tf` or `.terraform.lock.hcl` at its top, and opened on `main.tf` when you've had none of its files open. `kind = "terraform"` in `.fenix/settings.toml` says it by hand. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a Terraform project or file (`C-k m` with standard keys):

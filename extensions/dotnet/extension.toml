@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.dotnet"
 name = "C# and .NET"
-version = "1.2.0"
+version = "1.3.0"
 description = "C# and .NET: csharp-ls and its problems, debugging with netcoredbg -- each program built first, a process picked to attach to --, CSharpier, the solution's tasks, the project's checks with their fixes, outdated and vulnerable NuGet packages, snippets, and dotnet new's projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -41,6 +41,17 @@ events = ["saved"]
 name = "dotnet"
 markers = ["{folder}.sln", "{folder}.slnx", "{folder}.csproj", "global.json", "Directory.Build.props"]
 languages = ["csharp"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "dotnet"
+name = "C# and .NET"
+tag = "C#"
+color = "attribute"
+markers = ["{folder}.sln", "{folder}.slnx", "{folder}.csproj", "global.json", "Directory.Build.props"]
+main = ["Program.cs"]
 
 [[contributes.commands]]
 id = "dotnet.packages"

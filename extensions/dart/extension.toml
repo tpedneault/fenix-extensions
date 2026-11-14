@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.dart"
 name = "Dart"
-version = "1.0.0"
+version = "1.1.0"
 description = "Dart and Flutter: the analysis server, Dart's highlighting, dart format, debugging with the SDK's adapters, tasks for both, flutter run on a device you pick with hot reload, the project's checks, pub packages, snippets, and Dart and Flutter projects"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -39,6 +39,26 @@ events = ["saved"]
 name = "dart"
 markers = ["pubspec.yaml"]
 languages = ["dart"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "dart"
+name = "Dart"
+tag = "DART"
+color = "type"
+markers = ["pubspec.yaml"]
+main = ["lib/main.dart", "bin/{folder}.dart"]
+
+# Declared only: telling Flutter from Dart means reading pubspec.yaml, which Fenix
+# doesn't do, so a Flutter app is found as dart and `kind = "flutter"` says otherwise.
+[[contributes.project_kinds]]
+id = "flutter"
+name = "Flutter"
+tag = "FLUT"
+color = "string"
+main = ["lib/main.dart"]
 
 [[contributes.commands]]
 id = "dart.packages"

@@ -107,6 +107,10 @@ PHPUnit test case), `tm` (a test method), `dp` (with a data provider),
 | `php.formatter` | `project` | `project` (Pint or PHP CS Fixer, as the project has) or `server` |
 | `php.phpstan` | on | PHPStan on a saved file |
 
+## Project kind
+
+Fenix 1.6 and later know a PHP project (`PHP`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a `composer.json` or an `artisan` at its top, and opened on `public/index.php` or `index.php` when you've had none of its files open. `kind = "php"` in `.fenix/settings.toml` says it by hand. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in a PHP project or file (`C-k m` with standard keys): `d`

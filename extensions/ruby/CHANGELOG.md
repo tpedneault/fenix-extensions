@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Fenix 1.6 and later show a project with a `Gemfile`, `gems.rb`, `.ruby-version` or `config.ru` at its top (a `Rakefile` alone isn't enough: plenty of projects have one) as a Ruby project (`RB`), in the project hub, on Home, in the modeline and in the doctor, and open it on `config.ru` when you've had none of its files open; `kind = "ruby"` in a project's `.fenix/settings.toml` says it by hand. Fenix 1.5 ignores all this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
+
 ## 1.1.0
 
 - For Fenix 1.5 (extension API 1.5): built against API 1.5, as lang-kit,

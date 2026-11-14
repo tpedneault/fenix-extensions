@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Fenix 1.6 and later show a project with a `pom.xml`, `build.gradle`, `build.gradle.kts`, `settings.gradle` or `settings.gradle.kts` at its top as a Java project (`JAVA`), in the project hub, on Home, in the modeline and in the doctor; `kind = "java"` in a project's `.fenix/settings.toml` says it by hand. A Kotlin project is also a Gradle project, so Fenix finds it as Java; `kind = "kotlin"` in its `.fenix/settings.toml` makes it a Kotlin one (`KT`). Fenix 1.5 ignores all this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
+
 ## 1.2.0
 
 - For Fenix 1.5 (extension API 1.5): how installing Eclipse JDT LS, the

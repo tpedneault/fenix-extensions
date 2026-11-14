@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Fenix 1.6 and later show a project with an `alire.toml` or a `<folder>.gpr` at its top as an Ada project (`ADA`), in the project hub, on Home, in the modeline and in the doctor, and open it on `src/<folder>.adb` when you've had none of its files open; `kind = "ada"` in a project's `.fenix/settings.toml` says it by hand. Fenix 1.5 ignores all this and the pack works there as before: it's only data in the manifest, so it needs no newer Fenix and no newer API.
+
 ## 1.1.0
 
 - For Fenix 1.5 (extension API 1.5): how installing Alire or the Ada

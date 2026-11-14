@@ -126,6 +126,10 @@ wants.
 | `ada.projectFile` | empty | The project file the server, the tasks and GNATprove use, under the project; the project's own setting |
 | `ada.proveLevel` | 2 | `gnatprove --level`, 0 (quickest) to 4 |
 
+## Project kind
+
+Fenix 1.6 and later know an Ada project (`ADA`): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by an `alire.toml` or a `<folder>.gpr` at its top, and opened on `src/<folder>.adb` when you've had none of its files open. `kind = "ada"` in `.fenix/settings.toml` says it by hand. Earlier Fenix ignores this and the pack works there as before. The kind is declared in `extension.toml` (`[[contributes.project_kinds]]`); the pack's context markers say when the pack applies, and are not the same list.
+
 ## Keys
 
 After `SPC m` in an Ada project or file (`C-k m` with standard keys): `d`
