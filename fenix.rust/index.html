@@ -131,6 +131,35 @@ first), test, bench when there are benches, clippy, fmt, and audit with
 cargo-audit. A workspace&#39;s say <code>--workspace</code> and each target its
 package (<code>-p</code>); an example that needs features gets them. A task of the
 same name in <code>.fenix/tools.json</code> wins.</p>
+<h3 id="readme-tests-for-fenix-16">Tests, for Fenix 1.6</h3>
+<p>Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call: built and tested here, but not offered yet.
+Fenix asks for it only once this pack is released for extension API
+1.6, after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5
+as on a nightly. What it will do, as tested on recorded cargo output:</p>
+<ul class="tight">
+<li><p><strong>Find the tests in a file as you type</strong>, nothing run: <code>#[test]</code>,
+<code>#[tokio::test]</code> and any <code>#[&lt;crate&gt;::test]</code>, at their <code>fn</code>&#39;s line, in
+their <code>mod</code>s; <code>#[ignore = &quot;why&quot;]</code> as skipped; <code>#[rstest]</code> with cases
+and <code>#[test_case]</code> as templates whose cases appear once run. A test a
+macro makes, and doc tests, come from <code>cargo test -- --list</code>, which
+builds the tests first.</p></li>
+<li><p><strong>Run</strong> one, a <code>mod</code>, a file, a target, everything or the failed ones
+with <code>cargo test --no-fail-fast</code>, exact names where it has them, a step
+per package; or with <code>cargo nextest run</code> when cargo-nextest 0.9.103 or
+later is installed, which gives each test&#39;s time (cargo test doesn&#39;t).
+It looks for <code>cargo-nextest</code> as the pack starts and asks its version.</p></li>
+<li><p><strong>Read</strong> each result as its binary prints it: a failure at its panic&#39;s
+place, with its message and output; a build that fails as &quot;didn&#39;t
+build&quot;, never as failing tests; a binary that crashes errors its own
+tests and the next ones still run.</p></li>
+<li><p><strong>Debug one test</strong>: <code>cargo test --no-run</code> builds its binary, then
+lldb-dap or CodeLLDB runs it with <code>&lt;name&gt; --exact --nocapture</code> in its
+package&#39;s folder.</p></li>
+</ul>
+<p>What it can&#39;t: a test whose module comes from <code>#[path]</code> or <code>include!</code> is
+found when listed or run, not as you type; a doc test&#39;s id holds its
+line, so editing above it makes it another test.</p>
 <h3 id="readme-the-project-doctor">The project doctor</h3>
 <ul class="tight">
 <li><p><strong>Toolchain</strong>: the one <code>rust-toolchain.toml</code> (or <code>rust-toolchain</code>)
@@ -244,7 +273,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

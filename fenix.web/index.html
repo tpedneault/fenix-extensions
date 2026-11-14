@@ -154,6 +154,48 @@ again.</p>
 background, beside the task pane, so the browser launch has
 its server; run again, it shows its output; <em>Web: stop the dev server</em>
 stops it.</p>
+<h3 id="readme-tests-for-fenix-16">Tests, for Fenix 1.6</h3>
+<p>Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call for Vitest and Jest: built and tested here,
+offered from Fenix 1.6. Fenix asks for it only once this pack is
+released for extension API 1.6, after Fenix 1.6.0; until then nothing
+changes for you, on Fenix 1.5 as on a nightly. What it will do, as
+tested on what Vitest 5.1 and Jest 30.5 printed:</p>
+<ul class="tight">
+<li><p><strong>Find the runner</strong> for each package folder, the project&#39;s and each
+workspace&#39;s (<code>workspaces</code>, <code>pnpm-workspace.yaml</code>): Vitest or Jest in
+its <code>package.json</code>, or their config files; where the root&#39;s config
+runs its packages as <code>projects</code>, the root&#39;s. Run by Node from the
+<code>node_modules</code> Node finds it in (a workspace&#39;s hoisted one too), as
+the launch files run it, never by <code>npx</code> or a <code>.bin</code> shim; a Yarn
+Plug&#39;n&#39;Play project by <code>yarn vitest</code>, <code>yarn jest</code>. A runner that isn&#39;t
+installed says so, and a project without one has no tests page.</p></li>
+<li><p><strong>Find the tests in a file as you type</strong>, nothing run: <code>describe</code>,
+<code>it</code> and <code>test</code> with a string for a title, at their lines, in their
+describes; <code>.skip</code>, <code>xit</code> and a skipped describe&#39;s tests as skipped,
+<code>.todo</code> as &quot;todo&quot;; <code>.each</code> and a title with <code>${..}</code> as templates whose
+cases appear once listed or run. A title that isn&#39;t a string, and a
+<code>describe.each</code>&#39;s tests, come from the listing: a run whose <code>-t</code>
+matches nothing, through the pack&#39;s reporter, which loads every test
+file but runs none.</p></li>
+<li><p><strong>Run</strong> one, a describe, a file, a package, everything or the failed
+ones, a step per package: a file by its path, tests by their names as
+<code>-t</code>&#39;s regex (escaped; joined by <code>&gt;</code> for Vitest, spaces for Jest).
+Two tests of one name are kept apart (the second is <code>name (2)</code>), but
+run together: <code>-t</code> can&#39;t tell them apart.</p></li>
+<li><p><strong>Read</strong> each result as it ends: a failure at its stack&#39;s first frame
+in the project, with its message, its diff and (Vitest) what it
+logged; a file that doesn&#39;t load as &quot;didn&#39;t load&quot;, never as failing
+tests; a worker that dies errors its file&#39;s tests, and the others&#39;
+results stand.</p></li>
+<li><p><strong>Debug one test</strong>: at once, js-debug runs the runner&#39;s script with
+its file and <code>-t</code> its name (Jest <code>--runInBand</code>), as <em>Vitest: current
+file</em> and <em>Jest: current file</em> do.</p></li>
+</ul>
+<p>What it can&#39;t: tests a config&#39;s own <code>include</code> or <code>testMatch</code> adds
+outside <code>*.test.*</code>, <code>*.spec.*</code> (and Jest&#39;s <code>__tests__</code>) aren&#39;t found as
+you type, only when listed or run; Jest gives no test&#39;s output of its
+own; Deno&#39;s and bun&#39;s runners aren&#39;t served.</p>
 <h3 id="readme-the-project-doctor">The project doctor</h3>
 <ul class="tight">
 <li><p><strong>Node</strong>: held to <code>.nvmrc</code> or <code>.node-version</code> (<code>20.11.0</code> is that or a
@@ -287,7 +329,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

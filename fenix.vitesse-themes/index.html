@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitesse themes · Fenix extensions</title>
+<meta name="description" content="Anthony Fu&#39;s Vitesse colour themes from VS Code, light and dark, imported for Fenix">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Vitesse themes</h1>
+<p class="id"><code>fenix.vitesse-themes</code></p>
+<p class="lead">Anthony Fu&#39;s Vitesse colour themes from VS Code, light and dark, imported for Fenix</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=themes">Themes</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>What it is</dt><dd>Data: no code of its own</dd>
+<dt>Download</dt><dd>7 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/vitesse-themes">extensions/vitesse-themes</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Vitesse themes</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/vitesse-themes-v1.0.0/fenix.vitesse-themes-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.vitesse-themes-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Nothing: it's data (themes, snippets, keymaps, templates) and runs no code.</p>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Anthony Fu&#39;s Vitesse, the muted, warm colour themes for VS Code, in
+Fenix: two light and three dark. Pick one with <code>SPC t p</code>.</p>
+<div class="table"><table>
+<thead><tr><th>Theme</th><th>Light or dark</th></tr></thead>
+<tbody>
+<tr><td>Vitesse Light</td><td>light</td></tr>
+<tr><td>Vitesse Light Soft</td><td>light, on a warm grey page</td></tr>
+<tr><td>Vitesse Dark</td><td>dark</td></tr>
+<tr><td>Vitesse Dark Soft</td><td>dark, on a lighter grey</td></tr>
+<tr><td>Vitesse Black</td><td>dark, on black</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-coming-from-vs-code">Coming from VS Code</h3>
+<p>Each theme has the name VS Code gives it, so Fenix&#39;s settings import
+(<code>SPC h i</code>, in Fenix&#39;s nightlies and its next release) brings
+<code>&quot;workbench.colorTheme&quot;: &quot;Vitesse Dark&quot;</code> over as Vitesse Dark once this
+is installed, rather than the nearest theme Fenix ships.</p>
+<h3 id="readme-where-the-colours-come-from">Where the colours come from</h3>
+<p>From <a href="https://github.com/antfu/vscode-theme-vitesse">antfu/vscode-theme-vitesse</a>
+at commit <code>2862595c3d5d05fabfd5aeb50bcbb79ea2f8d85f</code> (its <code>package.json</code>
+says 1.0.1): <code>themes/vitesse-light.json</code>, <code>vitesse-light-soft.json</code>,
+<code>vitesse-dark.json</code>, <code>vitesse-dark-soft.json</code> and <code>vitesse-black.json</code>,
+each converted by <code>cargo xtask theme-import</code> with the name its
+<code>package.json</code> gives it, and not edited after. Each theme file&#39;s header
+says which file it was made from.</p>
+<p>The themes are under the MIT licence, Copyright (c) 2020 Primer and
+Copyright (c) 2021 Anthony Fu: <a href="https://github.com/tpedneault/fenix-extensions/blob/main/extensions/vitesse-themes/LICENSE-vitesse"><code>LICENSE-vitesse</code></a>,
+copied from the repository at that commit. This pack is under the same
+licence.</p>
+<p>To make them again, from the repository&#39;s root, for each theme:</p>
+<pre><code class="language-text">cargo xtask theme-import vitesse-dark.json --out extensions/vitesse-themes/themes --name &quot;Vitesse Dark&quot; --source &quot;&lt;its URL at the commit&gt;&quot;
+</code></pre>
+<h3 id="readme-what-the-import-kept-and-what-it-couldnt">What the import kept, and what it couldn&#39;t</h3>
+<p>As published: the colours are Vitesse&#39;s own, not darkened or lightened
+for contrast. Vitesse keeps its comments and line numbers quiet, and
+below the 4.5:1 Fenix&#39;s own themes keep -- comments 2.0:1 to 4.2:1 on
+their page, line numbers 1.8:1 to 2.4:1.</p>
+<p><strong>From the theme</strong>: the editor&#39;s page, text, popups, side bar, borders,
+current line, selection, bracket match and search matches; every syntax
+colour, from Vitesse&#39;s own TextMate rules, matched the way VS Code
+matches them; the Git colours. The active tab has the accent along its
+top that Vitesse draws there.</p>
+<p><strong>Worked out</strong>, since VS Code has no colour for them:</p>
+<ul class="tight">
+<li><p>the caret: Vitesse leaves VS Code&#39;s cursor as it is; here it&#39;s the
+text colour;</p></li>
+<li><p>the mode badges, from Vitesse&#39;s terminal and link colours: Normal its
+blue, Insert its green, Replace its yellow, Command its cyan. Vitesse
+has no purple, so Visual&#39;s badge (and the picker&#39;s) is one of its
+colours turned to purple: the dark themes&#39; yellow, the light themes&#39;
+teal. The badges&#39; lettering is the page colour, or black where that
+reads better;</p></li>
+<li><p>the folder icons: Normal&#39;s blue (in VS Code they come with an icon
+theme, not a colour theme).</p></li>
+</ul>
+<p><strong>Left out, for this pack&#39;s Fenix 1.0 floor</strong>: Vitesse&#39;s 16 terminal
+colours (Fenix reads a theme&#39;s own from 1.4; until then it makes them
+from the theme&#39;s Git and syntax colours), its six bracket pair colours
+(1.5; until then rainbow brackets are its function, keyword and type
+colours), and its semantic colour for interfaces with its TextMate ones
+for parameters and macros (1.5.2).</p>
+<p><strong>Not mapped</strong>: some 170 workbench colours Fenix&#39;s themes have no place
+for (buttons, lists, badges, inputs, notifications, the activity bar,
+scroll bars, diff and peek views, ...); 45 TextMate rules no Fenix role
+takes its colour from (most for one language: TypeScript, JSON, YAML,
+Markdown, HTML, Vue); font styles (bold, italic, underline -- Fenix&#39;s
+themes have none); the backgrounds five rules give their tokens; and
+Monaco&#39;s own <code>rules</code>, which VS Code doesn&#39;t read either.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<p>Nothing. It&#39;s data alone: five theme files and a licence, no code, and
+it asks for no permissions.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>--</td><td>7 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/vitesse-themes-v1.0.0/fenix.vitesse-themes-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 916acd504e3f260d2b1b412ad436b28cfd42391a88467d4a12defc5b27b6b9bc">916acd504e…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.0: Anthony Fu&#39;s Vitesse themes from VS Code -- Vitesse Light, Light Soft, Dark, Dark Soft and Black -- converted from the theme files at commit 2862595 of antfu/vscode-theme-vitesse, under their MIT licence.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

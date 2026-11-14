@@ -124,6 +124,53 @@ pytest-django; <code>typecheck</code> is mypy when the project has it, else
 basedpyright (or pyright). The project&#39;s <code>.env</code> goes to each. A task of
 the same name in <code>.fenix/tools.json</code> wins. Saving <code>pyproject.toml</code>,
 <code>uv.lock</code> or a requirements file makes them again.</p>
+<h3 id="readme-tests-for-fenix-16">Tests, for Fenix 1.6</h3>
+<p>Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call: built and tested here, but not offered yet.
+Fenix asks for it only once this pack is released for extension API
+1.6, after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5
+as on a nightly. What it will do, as tested on pytest 9.2.0&#39;s recorded
+output (and run for real against it):</p>
+<ul class="tight">
+<li><p><strong>Find the tests in a file as you type</strong>, nothing run or imported:
+<code>test*</code> functions and <code>Test*</code> or <code>unittest.TestCase</code> classes, at their
+<code>def</code>&#39;s line, under their file and classes; <code>@pytest.mark.skip</code> (and
+<code>unittest.skip</code>, <code>pytestmark = pytest.mark.skip(...)</code>) as skipped;
+<code>@pytest.mark.parametrize</code>, and a fixture of the file&#39;s with <code>params</code>,
+as templates whose cases appear once listed or run. It reads
+<code>python_files</code>, <code>python_classes</code> and <code>python_functions</code> from the
+project&#39;s configuration. The cases, and what the scan can&#39;t see, come
+from <code>pytest --collect-only</code>, which imports every test module (so
+Fenix lists only in a project you trust).</p></li>
+<li><p><strong>Run</strong> one, a class, a file, everything or the failed ones: pytest&#39;s
+own node ids (<code>tests/test_basic.py::test_cases[strings [odd] id]</code>), as
+arguments, or in a file of ids when there are many. It runs
+<code>uv run python</code> in a project uv manages (<code>--with pytest</code> when the
+project doesn&#39;t ask for it), else the environment&#39;s Python, through a
+small plugin the pack ships (loaded with <code>-p</code>, nothing installed in
+your project), in the folder of pytest&#39;s configuration, with the
+project&#39;s <code>.env</code>. Where <code>pytest.ini</code>, <code>pyproject.toml</code> and the like are
+in several folders, each is a step of its own.</p></li>
+<li><p><strong>Read</strong> each result as it comes, with its time: a failure at its
+assertion, with its message, traceback and what the test printed; a
+fixture that raises as errored (&quot;setup: ...&quot;), as a teardown that raises
+after a pass; <code>xfail</code> as skipped with its reason, a strict <code>xpass</code> as
+failed; a file that doesn&#39;t load as &quot;didn&#39;t load&quot;, never as failing
+tests (pytest then runs nothing); a process that dies as crashed, naming
+the test it was running. pytest-xdist works: the workers&#39; results reach
+the plugin, interleaved, and a worker that dies errors its test.</p></li>
+<li><p><strong>Debug one test</strong>: debugpy&#39;s <code>pytest</code> module on its node id, in
+pytest&#39;s folder, as the <em>pytest: current file</em> launch.</p></li>
+</ul>
+<p>The runner Fenix shows is <code>pytest</code> and its version, asked of the
+environment&#39;s Python as the pack starts (<code>python -m pytest --version</code>),
+or read from <code>uv.lock</code>; with pytest missing it says so. unittest-only
+projects run through pytest too, which collects <code>unittest.TestCase</code>.</p>
+<p>What it can&#39;t: a test of a base class in another file isn&#39;t found as you
+type, only when listed or run; ids over 1 KiB (a parametrize with a huge
+string as its id) are run by their <code>data</code>, and, when Fenix has lost it,
+by their template; the first run of a project&#39;s <code>uv run</code> may sync its
+environment, as <code>uv run pytest</code> does; Windows isn&#39;t verified.</p>
 <h3 id="readme-the-project-doctor">The project doctor</h3>
 <ul class="tight">
 <li><p><strong>Python</strong>: the one uv would use (<code>uv python find</code>), else <code>python3</code>,
@@ -228,7 +275,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

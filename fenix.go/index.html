@@ -162,6 +162,44 @@ error type with <code>Unwrap</code>), <code>erras</code>. Tests: <code>tt</code>
 <code>hjson</code>, <code>hsrv</code> (a server that shuts down on Ctrl-C). Concurrency: <code>gof</code>,
 <code>wg</code>, <code>ch</code>, <code>sel</code> (with the context), <code>pool</code>, <code>ctx</code>. Types: <code>st</code>, <code>meth</code>,
 <code>new</code>, <code>iface</code>, <code>str</code>. And <code>main</code>.</p>
+<h3 id="readme-tests-for-fenix-16">Tests, for Fenix 1.6</h3>
+<p>Fenix 1.6 brings a test explorer, and this pack carries the test
+provider it will call: built and tested here, but not offered yet.
+Fenix asks for it only once this pack is released for extension API 1.6,
+after Fenix 1.6.0; until then nothing changes for you, on Fenix 1.5 as
+on a nightly. What it will do, as tested on recorded <code>go test -json</code>
+output (Go 1.24.7, and 1.23.8 for a build that fails):</p>
+<ul class="tight">
+<li><p><strong>Find the tests in a file as you type</strong>, nothing run: <code>TestXxx</code>,
+<code>FuzzXxx</code> and <code>ExampleXxx</code> (an example with an <code>// Output:</code> comment, the
+only kind <code>go test</code> runs) at their <code>func</code>&#39;s line, in their package&#39;s
+and file&#39;s groups. A test that calls <code>t.Run</code> and a fuzz target are
+templates: their subtests appear once run, under them, named as <code>go test</code> names them (spaces as <code>_</code>). A file <code>go test</code> doesn&#39;t build here
+(<code>//go:build integration</code>, <code>_windows_test.go</code>) has its tests marked
+skipped. A benchmark isn&#39;t run without <code>-bench</code>, so it isn&#39;t listed.</p></li>
+<li><p><strong>List</strong> what the scan hasn&#39;t seen with <code>go list</code>, which says each
+package&#39;s test files without building them: those it names that Fenix
+hasn&#39;t opened are read and scanned.</p></li>
+<li><p><strong>Run</strong> one test, a subtest, a package, everything or the failed ones
+with <code>go test -json -fullpath</code>: tests by anchored <code>-run</code> regexes, a
+level to each <code>/</code> (so <code>TestTable/a/b</code> runs the subtest Go reads as two),
+names quoted, by import path so a name two packages share runs in the
+one you asked. A <code>go.work</code> runs from the project&#39;s folder (<code>./app/... ./lib/...</code>); modules with none, each from its own folder. Go&#39;s test
+cache stays on: a package that&#39;s cached reports the results it had.</p></li>
+<li><p><strong>Read</strong> each result as its package prints it: a failure at the last
+<code>file_test.go:37:</code> line the test printed (a panic at its first frame in
+your code), with its message and output; a package that doesn&#39;t build as
+&quot;didn&#39;t build&quot;, never as failing tests, the others&#39; results standing; a
+test binary that exits, panics or times out errors its own package&#39;s
+tests and the next packages still run.</p></li>
+<li><p><strong>Debug one test</strong>: Delve&#39;s test mode on its package&#39;s folder, with
+<code>-test.run</code> the test, as <em>Go: test this package</em> does.</p></li>
+</ul>
+<p>What it can&#39;t: a subtest has no line of its own (it&#39;s at its parent&#39;s) and
+exists only once run; a <code>t.Error</code> and a <code>t.Log</code> look alike to <code>go test</code>, so
+a failure&#39;s place is the last line the test printed; a file under a build
+tag shows its tests as skipped (with the tag set in <code>GOFLAGS</code> they run and
+report like any); a project opened below its <code>go.mod</code> isn&#39;t found.</p>
 <h3 id="readme-project-templates">Project templates</h3>
 <p>Fenix&#39;s wizard has no Go templates; this adds three, each asking for the
 module path&#39;s start (<code>example.com</code>, <code>github.com/you</code>) and made with <code>go mod init</code>:</p>
@@ -229,7 +267,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-13">2026-11-13</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>
