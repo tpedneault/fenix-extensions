@@ -1,0 +1,51 @@
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2024.2.1)  14 NOV 2026 10:20
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**thesis/main.tex
+(thesis/main.tex
+LaTeX2e <2023-11-01> patch level 1
+(/usr/share/texlive/texmf-dist/tex/latex/base/book.cls
+Document Class: book 2023/05/17 v1.4n Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/bk10.clo))
+(/usr/share/texlive/texmf-dist/tex/latex/fontspec/fontspec.sty)
+(thesis/main.aux)
+Missing character: There is no ∀ in font [lmroman10-regular]:mapping=tex-text
+(thesis/chapters/one.tex
+! Undefined control sequence.
+l.5 \maketitel
+              
+The control sequence at the beginning of this last line has just been
+\let equal to \relax, since it is not defined.
+
+! Extra }, or forgotten $.
+l.9 \end{document}}
+                  
+I've deleted a group-closing symbol because it seems to be spurious.
+
+)
+(/usr/share/texlive/texmf-dist/tex/latex/oberdiek/broken.sty
+! Package broken Error: Something inside the package went wrong.
+
+See the broken package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.88 \broken@check
+                  
+It was not my fault.
+
+)
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.14 x
+      
+You're in trouble here.  Try typing  <return>  to proceed.
+
+No pages of output.
+Output written on thesis/main.xdv (0 pages).
+Transcript written on thesis/main.log.

@@ -1,0 +1,7 @@
+# BibTeX (and BibLaTeX) databases: tree-sitter-bibtex's grammar, compiled to
+# WebAssembly (grammars/), and its queries from queries/bibtex. texlab serves
+# them with the LaTeX files.
+language = "bibtex"
+grammar = "grammars/tree-sitter-bibtex.wasm"
+extensions = ["bib"]
+comment = "%"

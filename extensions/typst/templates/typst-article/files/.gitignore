@@ -1,0 +1,3 @@
+# What a compile makes: the PDF, and pages as pictures.
+*.pdf
+*-[0-9]*.png

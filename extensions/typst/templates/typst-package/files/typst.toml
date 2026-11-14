@@ -1,0 +1,11 @@
+# The package's manifest: https://github.com/typst/packages#package-format
+[package]
+name = "{{name_kebab}}"
+version = "0.1.0"
+entrypoint = "lib.typ"
+authors = ["{{author}}"]
+license = "{{license}}"
+description = "Describe what {{name_kebab}} does, in a sentence."
+# categories = ["utility"]
+# repository = "https://github.com/you/{{name_kebab}}"
+# exclude = ["main.typ"]

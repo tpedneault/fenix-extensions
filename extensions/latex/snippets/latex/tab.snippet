@@ -1,0 +1,17 @@
+# name: Table
+# key: tab
+# scope: latex
+# --
+\begin{table}[${1:htbp}]
+  \centering
+  \caption{${2:Caption}}
+  \label{tab:${3:label}}
+  \begin{tabular}{${4:lrr}}
+    \toprule
+    ${5:Name} & ${6:Value} & ${7:Error} \\\\
+    \midrule
+    ${8:one} & 1 & 0.1 \\\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+$0

@@ -1,0 +1,9 @@
+typstyle 
+Version:             0.15.2
+Build Timestamp:     2026-10-11T14:27:02.081441556Z
+Build Git Describe:  v0.15.2
+Commit SHA:          38c502baf487dab3ee3ad5ff5697e9e4cb7bb561
+Commit Date:         None
+Commit Branch:       None
+Cargo Target Triple: x86_64-unknown-linux-gnu
+

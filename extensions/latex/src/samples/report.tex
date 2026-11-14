@@ -1,0 +1,34 @@
+% A paper: sections, environments, math and references, for the grammar's queries.
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\newcommand{\vect}[1]{\mathbf{#1}}
+\title{An Orbit}
+\author{Ada Lovelace}
+
+\begin{document}
+\maketitle
+\section{Introduction}\label{sec:intro}
+This is \emph{emphasised} text with inline math $x^2 + y_1$ and a
+citation~\cite{knuth84}. See Section~\ref{sec:intro}.
+
+\subsection{Method}
+\begin{itemize}
+  \item A point
+  \item Another \textbf{point}
+\end{itemize}
+
+\begin{equation}\label{eq:one}
+  E = mc^2 \vect{v}
+\end{equation}
+
+\begin{verbatim}
+\notacommand
+\end{verbatim}
+
+\input{chapters/results}
+\includegraphics[width=\linewidth]{fig/orbit.pdf}
+\href{https://tug.org}{TUG}
+\bibliographystyle{plain}
+\bibliography{refs}
+\end{document}

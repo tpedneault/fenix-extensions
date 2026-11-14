@@ -1,0 +1,19 @@
+[template]
+name = "Typst · article"
+kind = "other"
+group = "Typst"
+description = "An article: a title block, numbered headings, an abstract, a figure and an equation with labels you can reference, and a bibliography. main.typ is the document; SPC m c compiles it and shows main.pdf."
+needs = ["typst"]
+open = ["main.typ"]
+
+[[ask]]
+key = "author"
+label = "Author"
+default = "Ada Lovelace"
+hint = "in the title block and the PDF's metadata"
+
+[[ask]]
+key = "paper"
+label = "Paper size"
+choices = ["a4", "us-letter"]
+default = "a4"

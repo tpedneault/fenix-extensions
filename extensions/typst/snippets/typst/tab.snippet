@@ -1,0 +1,15 @@
+# name: Table in a figure
+# key: tab
+# scope: typst
+# --
+#figure(
+  table(
+    columns: (${1:1fr, 1fr}),
+    align: (${2:left, right}),
+    table.header[*${3:Name}*][*${4:Value}*],
+    [${5:one}], [${6:1}],
+    [${7:two}], [${8:2}],
+  ),
+  caption: [${9:Caption}],
+) <tab:${10:label}>
+$0

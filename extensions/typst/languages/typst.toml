@@ -1,0 +1,7 @@
+# Typst, which Fenix doesn't highlight itself: tree-sitter-typst's grammar,
+# compiled to WebAssembly (grammars/), and its queries from queries/typst.
+# The server is the extension's to set, once it has found tinymist.
+language = "typst"
+grammar = "grammars/tree-sitter-typst.wasm"
+extensions = ["typ"]
+comment = "//"

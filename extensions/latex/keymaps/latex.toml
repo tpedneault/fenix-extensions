@@ -1,0 +1,37 @@
+# LaTeX's keys, after SPC m in a project or file of its context. Your
+# own keybindings.toml wins.
+
+[[local.latex]]
+keys = "b"
+label = "build the document, and show its PDF"
+command = "latex.build"
+
+[[local.latex]]
+keys = "w"
+label = "build continuously (again to stop)"
+command = "latex.watch"
+
+[[local.latex]]
+keys = "p"
+label = "open the document's PDF"
+command = "latex.preview"
+
+[[local.latex]]
+keys = "s"
+label = "go to this line's page in the PDF (synctex)"
+command = "latex.forward_search"
+
+[[local.latex]]
+keys = "c"
+label = "clean the auxiliary files"
+command = "latex.clean"
+
+[[local.latex]]
+keys = "n"
+label = "count the words"
+command = "latex.word_count"
+
+[[local.latex]]
+keys = "d"
+label = "check the project again"
+command = "latex.doctor"

@@ -1,0 +1,24 @@
+[template]
+name = "LaTeX · thesis"
+kind = "other"
+group = "LaTeX"
+description = "A thesis skeleton: a title page, abstract, contents and lists of figures and tables, chapters in files of their own (each says its root with a % !TEX root comment), an appendix, and a BibTeX bibliography. A .latexmkrc names the engine. SPC m b builds main.tex and shows main.pdf."
+open = ["main.tex"]
+
+[[ask]]
+key = "author"
+label = "Author"
+default = "Ada Lovelace"
+hint = "on the title page"
+
+[[ask]]
+key = "degree"
+label = "Degree"
+default = "Master of Science"
+hint = "on the title page"
+
+[[ask]]
+key = "university"
+label = "University"
+default = "University of Examples"
+hint = "on the title page"

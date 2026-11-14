@@ -1,0 +1,21 @@
+# name: Article document
+# key: doc
+# scope: latex
+# --
+\documentclass[${1:11pt}]{${2:article}}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{${3:Title}}
+\author{${4:Author}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+${5:text}$0
+
+\end{document}

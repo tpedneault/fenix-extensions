@@ -1,0 +1,19 @@
+[template]
+name = "LaTeX · Beamer presentation"
+kind = "other"
+group = "LaTeX"
+description = "A Beamer presentation: a title frame, an outline, frames with a list, two columns and a block, and a closing frame. A .latexmkrc names the engine. SPC m b builds it and shows main.pdf."
+open = ["main.tex"]
+
+[[ask]]
+key = "author"
+label = "Author"
+default = "Ada Lovelace"
+hint = "on the title frame"
+
+[[ask]]
+key = "theme"
+label = "Beamer theme"
+choices = ["Madrid", "metropolis", "default", "Warsaw"]
+default = "Madrid"
+hint = "metropolis needs its package; the others come with Beamer"
