@@ -4750,6 +4750,33 @@
               "/tools/*"
             ]
           }
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/terraform-v1.1.0/fenix.terraform-1.1.0.fenixext",
+          "sha256": "9e365a5a836c8f570ae0b2a24a028e647a0af6007c11e0500ac1980196091193",
+          "size": 375507,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "releases.hashicorp.com"
+            ],
+            "process": [
+              "terraform",
+              "terraform-ls",
+              "/tools/*"
+            ]
+          }
         }
       ],
       "name": "Terraform",
