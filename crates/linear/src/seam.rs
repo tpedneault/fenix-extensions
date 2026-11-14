@@ -7,11 +7,15 @@
 //! caller. `create` is the extension's too, since it's Linear's page that
 //! opens the form: [`Seam::serve`] answers `unsupported` to it.
 
-use fenix_tracker::{self as seam, can, code, column, SeamError};
+use fenix_tracker::{self as seam, can, code, SeamError};
 
 use crate::linear::{Linear, View};
 use crate::model::{self, PRIORITIES};
 use crate::refs;
+
+/// This tracker's extension id: what its services start with
+/// (`fenix_tracker::service(ID, call)`).
+pub const ID: &str = "fenix.linear";
 
 /// The keys the messages name, as the key scheme in use writes them.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,11 +39,14 @@ pub struct Settings {
     pub ready: bool,
     pub sync_minutes: u32,
     pub keys: Keys,
+    /// The key of the team the Fenix project you're in belongs to
+    /// (`linear.team`, a setting a project may set): `project`'s answer.
+    pub team: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { ready: true, sync_minutes: 10, keys: Keys::default() }
+        Settings { ready: true, sync_minutes: 10, keys: Keys::default(), team: None }
     }
 }
 
@@ -48,20 +55,26 @@ pub fn not_ready(keys: &Keys) -> String {
     format!("Linear isn't set up yet -- add a personal API key in {} (Linear)", keys.settings)
 }
 
-/// `about`: Linear, ready once it has a key.
+/// `about`: Linear, ready once it has a key. Answered whatever `seam` it
+/// was asked with, from no more than the settings.
 pub fn about(settings: &Settings) -> seam::About {
     seam::About {
         seam: seam::SEAM,
+        seams: seam::SEAMS.to_vec(),
         minor: seam::MINOR,
+        id: ID.into(),
         name: "Linear".into(),
         ready: settings.ready,
         not_ready: (!settings.ready).then(|| not_ready(&settings.keys)),
-        can: [can::COMMENTS, can::EDIT, can::PRIORITIES, can::ASSIGN, can::COMMENT, can::CREATE].iter().map(|c| c.to_string()).collect(),
-        sync_minutes: settings.sync_minutes,
-        // Fenix's project metadata has a Jira key and nothing for Linear.
+        can: [can::COMMENTS, can::EDIT_TITLE, can::EDIT_BODY, can::EDIT_PRIORITY, can::EDIT_DUE, can::EDIT_ASSIGNEE, can::EDIT_LABELS, can::COMMENT, can::CREATE, can::PROJECT].iter().map(|c| c.to_string()).collect(),
+        sync_minutes: settings.sync_minutes.max(5),
+        // Fenix's project metadata has a Jira key and nothing for Linear:
+        // `project` says which team the project is.
         project_meta: None,
         browse: Some("https://linear.app/issue/{ref}".into()),
         ref_hint: Some("ENG-123".into()),
+        // Linear has no Blocked state of its own: the agenda keeps it.
+        blocked: false,
     }
 }
 
@@ -103,8 +116,8 @@ impl Seam {
 
     async fn answer(&self, call: &str, payload: &str) -> Answer {
         let hello: seam::Hello = serde_json::from_str(payload).map_err(bad)?;
-        if hello.seam != seam::SEAM {
-            return Err(SeamError::new(code::UNSUPPORTED, format!("Linear speaks the tracker seam {}, not {}", seam::SEAM, hello.seam)));
+        if !seam::SEAMS.contains(&hello.seam) {
+            return Err(SeamError::new(code::UNSUPPORTED, format!("Linear speaks the tracker seam {:?}, not {}", seam::SEAMS, hello.seam)));
         }
         if !self.settings.ready {
             return Err(SeamError::new(code::NOT_SET_UP, not_ready(&self.settings.keys)));
@@ -114,13 +127,14 @@ impl Seam {
             seam::call::ISSUES => self.issues(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::TRANSITIONS => self.transitions(serde_json::from_str(payload).map_err(bad)?).await,
             seam::call::TRANSITION | seam::call::UPDATE | seam::call::COMMENT => self.write(call, payload).await,
-            seam::call::PRIORITIES => json(&seam::Priorities { priorities: PRIORITIES.iter().map(|(_, name, level)| seam::Priority { name: (*name).into(), level: (*level).into() }).collect() }.cleaned()),
+            seam::call::PRIORITIES => json(&seam::Priorities { priorities: PRIORITIES.iter().map(|(_, name, level)| seam::Priority { name: (*name).into(), level: level.map(Into::into) }).collect() }.cleaned()),
             seam::call::PEOPLE => {
                 let one: seam::One = serde_json::from_str(payload).map_err(bad)?;
                 let people = self.linear.people(&one.key).await?;
                 json(&seam::People { people, none: Some("no one to assign to -- this issue's team has no active members".into()) }.cleaned())
             }
-            other => Err(SeamError::new(code::UNSUPPORTED, format!("no service linear.tracker.{other}"))),
+            seam::call::PROJECT => json(&seam::Project { project: self.settings.team.clone().filter(|t| !t.trim().is_empty()) }),
+            other => Err(SeamError::new(code::UNSUPPORTED, format!("no service {}", seam::service(ID, other)))),
         }
     }
 
@@ -144,11 +158,10 @@ impl Seam {
         }
     }
 
-    /// Your open issues; with `since`, everything of yours changed since.
+    /// Your open issues.
     async fn assigned(&self, req: seam::Assigned) -> Answer {
-        let view = View::Assigned { since: req.since.clone().filter(|s| !s.trim().is_empty()) };
-        let page = self.linear.list(&view, req.limit(), req.cursor.as_deref()).await?;
-        json(&seam::Page { issues: page.issues.into_iter().map(|d| d.issue).collect(), next: page.next }.cleaned())
+        let page = self.linear.list(&View::Assigned, req.limit(), req.cursor.as_deref()).await?;
+        json(&seam::Page { issues: page.issues.into_iter().map(|d| d.issue).collect(), next: page.next }.cleaned()?)
     }
 
     async fn issues(&self, req: seam::Issues) -> Answer {
@@ -160,22 +173,10 @@ impl Seam {
     }
 
     /// What can be done next: one move per workflow state of the issue's
-    /// team, but the one it's in, in the order of Linear's board. Linear has
-    /// no Blocked state, so toward Blocked the one move is the agenda's own.
+    /// team, but the one it's in, in the order of Linear's board. Linear
+    /// has no Blocked (`about.blocked` is false), so the agenda never asks
+    /// toward it.
     async fn transitions(&self, req: seam::Transitions) -> Answer {
-        let blocked = Some("Blocked  (agenda only)".to_string());
-        if req.toward.as_deref() == Some(column::BLOCKED) {
-            let from = req.from.clone().unwrap_or_default();
-            let local = seam::Move {
-                id: "local".into(),
-                name: "Keep Blocked here".into(),
-                label: Some("Blocked  (agenda only: Linear has no Blocked state)".into()),
-                local: true,
-                to: seam::State { column: column::BLOCKED.into(), ..from },
-                ..Default::default()
-            };
-            return json(&seam::Moves { transitions: vec![local], blocked, ..Default::default() }.cleaned());
-        }
         let (states, current) = self.linear.states(&req.key).await?;
         let moves = states
             .into_iter()
@@ -191,20 +192,17 @@ impl Seam {
                 }
             })
             .collect();
-        json(&seam::Moves { transitions: moves, blocked, ..Default::default() }.cleaned())
+        json(&seam::Moves { transitions: moves, ..Default::default() }.cleaned())
     }
 
     /// Doing a move: the issue's state set to the one it names.
     async fn transition(&self, req: seam::Transition) -> Answer {
-        if req.id == "local" {
-            return json(&seam::Said::default());
-        }
         let moved = self.linear.set_state(&req.key, &req.id).await?;
         json(&seam::Said { said: Some(format!("moved to {}", moved.issue.state.name)) })
     }
 
     async fn update(&self, req: seam::Update) -> Answer {
-        let change = req.change().map_err(|e| SeamError::new(code::BAD_REQUEST, e))?;
+        let change = req.change()?;
         self.linear.change(&req.key, &change).await?;
         json(&seam::Said::default())
     }

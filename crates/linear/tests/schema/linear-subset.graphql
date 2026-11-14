@@ -38,10 +38,6 @@ type Cycle {
   number: Float!
 }
 
-input DateComparator {
-  gte: DateTimeOrDuration
-}
-
 type Issue {
   assignee: User
   branchName: String!
@@ -94,7 +90,6 @@ input IssueFilter {
   state: WorkflowStateFilter
   team: TeamFilter
   title: StringComparator
-  updatedAt: DateComparator
 }
 
 input IssueIDComparator {
@@ -127,6 +122,7 @@ input IssueUpdateInput {
   assigneeId: String
   description: String
   dueDate: TimelessDate
+  labelIds: [String!]
   priority: Int
   stateId: String
   title: String
@@ -240,5 +236,4 @@ input WorkflowStateFilter {
 }
 
 scalar DateTime
-scalar DateTimeOrDuration
 scalar TimelessDate

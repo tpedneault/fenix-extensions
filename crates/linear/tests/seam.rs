@@ -55,7 +55,8 @@ fn it_says_who_it_is_and_lists_only_what_it_serves() {
     assert_eq!(about.browse_url("ENG-1").as_deref(), Some("https://linear.app/issue/ENG-1"));
     let mut can = about.can.clone();
     can.sort();
-    assert_eq!(can, ["assign", "comment", "comments", "create", "edit", "priorities"], "no worklog and no remember: Linear has neither");
+    assert_eq!(can, ["comment", "comments", "create", "edit.assignee", "edit.body", "edit.due", "edit.labels", "edit.priority", "edit.title", "project"], "per field; no worklog and no remember: Linear has neither");
+    assert_eq!((about.id.as_str(), about.seams.as_slice(), about.blocked), ("fenix.linear", &[1u32][..], false), "no Blocked of its own");
 
     let unready = seam::about(&Settings { ready: false, keys: Keys { settings: "C-,".into(), ..Default::default() }, ..Default::default() });
     assert_eq!((unready.ready, unready.not_ready.as_deref()), (false, Some("Linear isn't set up yet -- add a personal API key in C-, (Linear)")));
@@ -109,7 +110,7 @@ fn assigned_pages_by_cursor_and_maps_every_field() {
     assert_eq!(i.body, "The login times out after **30 s** on slow networks.\n\n- repro: throttle to 3G\n- see ENG-3", "Markdown as it is");
     assert_eq!((i.state.id.as_str(), i.state.name.as_str(), i.state.stage.as_str(), i.state.column.as_str()), ("57000000-0000-4000-8000-000000000004", "In Progress", "doing", "doing"));
     let p = i.priority.as_ref().unwrap();
-    assert_eq!((p.name.as_str(), p.level.as_str()), ("High", "high"));
+    assert_eq!((p.name.as_str(), p.level.as_deref()), ("High", Some("high")));
     assert_eq!((i.assignee.as_ref().map(|a| a.name.as_str()), i.mine), (Some("Jo Bloggs"), Some(true)));
     assert_eq!(i.labels, ["bug", "auth"]);
     assert_eq!((i.due.as_deref(), i.updated.as_str()), (Some("2026-11-20"), "2026-11-13T16:40:12.402Z"));
@@ -118,17 +119,16 @@ fn assigned_pages_by_cursor_and_maps_every_field() {
     assert_eq!((first.issues[1].state.stage.as_str(), first.issues[1].body.as_str()), ("todo", "Cover cookie lifetime.\nAnd refresh."));
     assert_eq!((first.issues[2].state.stage.as_str(), first.issues[2].state.name.as_str(), first.issues[2].priority.is_none()), ("todo", "Backlog", true));
     assert_eq!(second.issues[0].state.stage, "doing", "In Review is a started state");
-    assert_eq!(second.issues[0].priority.as_ref().map(|p| p.level.as_str()), Some("urgent"));
+    assert_eq!(second.issues[0].priority.as_ref().map(|p| p.level.as_deref()), Some(Some("urgent")));
 }
 
 #[test]
-fn since_asks_for_what_changed_finished_or_not() {
+fn a_page_is_at_most_fifty_whatever_the_limit() {
     let (r, s) = workspace();
-    let _: Page = ask(&s, call::ASSIGNED, json!({ "since": "2026-11-12T09:00:00.000Z" })).unwrap();
-    assert_eq!(r.variables_of("AssignedIssues")[0]["filter"], json!({ "updatedAt": { "gte": "2026-11-12T09:00:00.000Z" } }));
-    // And a page is at most 50, whatever the limit: Linear's cost stays down.
     let _: Page = ask(&s, call::ASSIGNED, json!({ "limit": 200 })).unwrap();
-    assert_eq!(r.variables_of("AssignedIssues")[1]["first"], 50);
+    assert_eq!(r.variables_of("AssignedIssues")[0]["first"], 50, "Linear's cost stays down");
+    assert!(ask::<Value>(&s, call::ASSIGNED, json!({ "since": "2026-11-01T00:00:00.000Z" })).is_ok(), "a field it doesn't know is ignored");
+    assert!(r.variables_of("AssignedIssues")[1]["filter"].get("updatedAt").is_none());
 }
 
 #[test]
@@ -139,14 +139,26 @@ fn issues_resolve_identifiers_addresses_and_ids_and_say_which_are_missing() {
     assert_eq!((found.issues[0].key.as_str(), found.missing.len()), ("ENG-12", 0));
     assert_eq!(r.variables_of("Issue"), [json!({ "id": "ENG-12" })]);
 
-    // Several: one request, a filter of each, in variables.
-    let found: Found = ask(&s, call::ISSUES, json!({ "refs": ["eng-12", "ENG-15", "https://linear.app/acme/issue/ENG-99/gone", "nonsense", "3f2504e0-4f89-41d3-9a0c-0305e82c3301"] })).unwrap();
-    assert_eq!(found.issues.iter().map(|i| i.key.as_str()).collect::<Vec<_>>(), ["ENG-12", "ENG-15"]);
-    assert_eq!(found.missing, ["nonsense", "https://linear.app/acme/issue/ENG-99/gone", "3f2504e0-4f89-41d3-9a0c-0305e82c3301"], "as they were asked, what isn't an issue first");
+    // Several: one request, a filter of each, in variables. What it didn't
+    // find is asked for one at a time (an issue that moved has another
+    // identifier now): here, not there either.
+    let gone = || err_reply(200, json!({ "errors": [{ "message": "Entity not found: Issue - Could not find referenced Issue.", "extensions": { "type": "invalid input", "code": "INVALID_INPUT", "userError": true } }], "data": null }));
+    r.on_with("Issue", "\"ENG-99\"", gone());
+    r.on_with("Issue", "3f2504e0", gone());
+    let found: Found = ask(&s, call::ISSUES, json!({ "refs": ["eng-12", "ENG-15", "https://linear.app/acme/issue/ENG-99/gone", "bad ref", "3f2504e0-4f89-41d3-9a0c-0305e82c3301"] })).unwrap();
+    assert_eq!(found.issues.iter().map(|i| (i.key.as_str(), i.asked.as_deref())).collect::<Vec<_>>(), [("ENG-12", Some("eng-12")), ("ENG-15", Some("ENG-15"))], "each says what asked for it");
+    assert_eq!(found.issues[0].id, "1550e000-0000-4000-8000-000000000012", "Linear's own id, which an identifier change doesn't touch");
+    assert_eq!(found.missing, ["https://linear.app/acme/issue/ENG-99/gone", "bad ref", "3f2504e0-4f89-41d3-9a0c-0305e82c3301"], "exactly as asked, even what isn't a ref, in the order asked");
     let filter = &r.variables_of("Issues")[0]["filter"];
     assert_eq!(filter["or"][0], json!({ "team": { "key": { "eqIgnoreCase": "ENG" } }, "number": { "eq": 12 } }));
     assert_eq!(filter["or"][2], json!({ "team": { "key": { "eqIgnoreCase": "ENG" } }, "number": { "eq": 99 } }));
     assert_eq!(filter["or"][3], json!({ "id": { "in": ["3f2504e0-4f89-41d3-9a0c-0305e82c3301"] } }));
+
+    // An issue that moved teams: asked by its old identifier, answered under its new one.
+    r.on_with("Issue", "\"ENG-7\"", Reply::ok(std::fs::read_to_string(fixtures().join("issue-ENG-12.json")).unwrap()));
+    let found: Found = ask(&s, call::ISSUES, json!({ "refs": ["ENG-7", "ENG-15"] })).unwrap();
+    assert_eq!(found.issues.iter().map(|i| (i.key.as_str(), i.asked.as_deref())).collect::<Vec<_>>(), [("ENG-12", Some("ENG-7")), ("ENG-15", Some("ENG-15"))]);
+    assert!(found.missing.is_empty());
 
     // One that isn't there is missing, the call still succeeds.
     r.on("Issue", err_reply(200, json!({ "errors": [{ "message": "Entity not found: Issue - Could not find referenced Issue.", "extensions": { "type": "invalid input", "code": "INVALID_INPUT", "userError": true } }], "data": null })));
@@ -171,18 +183,12 @@ fn one_move_per_workflow_state_in_the_order_of_the_board_but_the_one_it_is_in() 
     );
     assert!(moves.transitions.iter().all(|m| !m.local && m.id == m.to.id && !m.id.is_empty()));
     assert_eq!(moves.transitions[3].row(), "In Review  (started)");
-    assert_eq!(moves.blocked.as_deref(), Some("Blocked  (agenda only)"));
+    assert_eq!(moves.blocked, None);
     assert_eq!(r.variables_of("IssueStates"), [json!({ "id": "ENG-12" })]);
 
-    // Toward Blocked: Linear has none, so the one move is the agenda's own, and nothing is asked.
-    let before = r.sent().len();
-    let from = json!({ "id": "57000000-0000-4000-8000-000000000004", "name": "In Progress", "stage": "doing", "column": "doing" });
-    let moves: Moves = ask(&s, call::TRANSITIONS, json!({ "ref": "ENG-12", "toward": "blocked", "from": from })).unwrap();
-    assert_eq!(r.sent().len(), before);
-    assert_eq!(moves.transitions.len(), 1);
-    let local = &moves.transitions[0];
-    assert!(local.local && local.to.column == "blocked" && local.to.stage == "doing" && local.to.name == "In Progress", "{local:?}");
-    assert!(moves.why.is_none() && moves.ask.is_none());
+    // Linear has no Blocked state, and says so: the agenda keeps Blocked itself.
+    assert!(!seam::about(&Settings::default()).blocked);
+    assert!(moves.transitions.iter().all(|m| !m.local), "no faked local move");
 }
 
 #[test]
@@ -195,9 +201,6 @@ fn doing_a_move_sets_the_state_by_id_and_a_local_one_sends_nothing() {
     // The next write to it doesn't look it up again.
     let _: Value = ask(&s, call::TRANSITION, json!({ "ref": "ENG-12", "id": "57000000-0000-4000-8000-000000000006" })).unwrap();
     assert_eq!(r.operations(), ["IssueId", "UpdateIssue", "UpdateIssue"]);
-    let before = r.sent().len();
-    let said: tracker::Said = ask(&s, call::TRANSITION, json!({ "ref": "ENG-12", "id": "local" })).unwrap();
-    assert!(said.said.is_none() && r.sent().len() == before);
 }
 
 #[test]
@@ -211,6 +214,8 @@ fn update_changes_one_field_priorities_both_ways() {
     set(json!({ "due": "2026-12-01" }));
     set(json!({ "due": null }));
     set(json!({ "assignee": { "id": "7a1c2b3d-0000-4000-8000-0000000000a2", "name": "Amy Park" } }));
+    set(json!({ "assignee": null }));
+    set(json!({ "labels": ["Bug", "docs"] }));
     let inputs: Vec<Value> = r.variables_of("UpdateIssue").into_iter().map(|v| v["input"].clone()).collect();
     assert_eq!(
         inputs,
@@ -222,11 +227,13 @@ fn update_changes_one_field_priorities_both_ways() {
             json!({ "dueDate": "2026-12-01" }),
             json!({ "dueDate": null }),
             json!({ "assigneeId": "7a1c2b3d-0000-4000-8000-0000000000a2" }),
+            json!({ "assigneeId": null }),
+            json!({ "labelIds": ["1abe1000-0000-4000-8000-000000000001", "1abe1000-0000-4000-8000-000000000002"] }),
         ]
     );
     // Every priority the seam offers is one update takes back, and means what its level says.
     let offered: tracker::Priorities = ask(&s, call::PRIORITIES, json!({ "ref": "ENG-12" })).unwrap();
-    assert_eq!(offered.priorities.iter().map(|p| (p.name.as_str(), p.level.as_str())).collect::<Vec<_>>(), [("Urgent", "urgent"), ("High", "high"), ("Medium", "medium"), ("Low", "low"), ("No priority", "medium")]);
+    assert_eq!(offered.priorities.iter().map(|p| (p.name.as_str(), p.level.as_deref())).collect::<Vec<_>>(), [("Urgent", Some("urgent")), ("High", Some("high")), ("Medium", Some("medium")), ("Low", Some("low")), ("No priority", None)], "no priority has no level");
     for (n, p) in offered.priorities.iter().enumerate() {
         set(json!({ "priority": p.name }));
         let sent = r.variables_of("UpdateIssue").pop().unwrap();
@@ -234,8 +241,10 @@ fn update_changes_one_field_priorities_both_ways() {
     }
     let err = ask::<Value>(&s, call::UPDATE, json!({ "ref": "ENG-12", "set": { "priority": "Blocker" } })).unwrap_err();
     assert_eq!(err.code, "bad_request");
+    let err = ask::<Value>(&s, call::UPDATE, json!({ "ref": "ENG-12", "set": { "labels": ["no such label"] } })).unwrap_err();
+    assert_eq!(err.code, "bad_request", "a label that isn't there isn't made up");
     let err = ask::<Value>(&s, call::UPDATE, json!({ "ref": "ENG-12", "set": { "colour": "red" } })).unwrap_err();
-    assert_eq!(err.code, "bad_request");
+    assert_eq!(err.code, "unsupported", "a field the seam doesn't have");
 }
 
 #[test]
@@ -367,4 +376,35 @@ fn an_issue_has_its_whole_page() {
     assert_eq!(d.children.iter().map(|c| (c.key.as_str(), c.stage.as_str())).collect::<Vec<_>>(), [("ENG-14", "todo"), ("ENG-13", "done")]);
     assert_eq!(d.branch, "jo/eng-12-fix-the-login-timeout");
     assert_eq!((d.priority, d.state_type.as_str(), d.team.key.as_str()), (2, "started", "ENG"));
+}
+
+#[test]
+fn it_says_which_team_the_project_is_from_a_setting() {
+    let r = Rc::new(Recorded::workspace(fixtures()));
+    let s = Seam::new(linear(&r), Settings { team: Some("ENG".into()), ..Default::default() });
+    let p: tracker::Project = ask(&s, call::PROJECT, json!({})).unwrap();
+    assert_eq!(p.project.as_deref(), Some("ENG"));
+    let (_, s) = workspace();
+    let p: tracker::Project = ask(&s, call::PROJECT, json!({})).unwrap();
+    assert_eq!(p.project, None, "a project that sets no team is in none");
+    assert!(r.sent().is_empty(), "no request: it's a setting");
+}
+
+#[test]
+fn a_cursor_and_state_ids_pass_through_untouched() {
+    let (r, s) = workspace();
+    let cursor = "  weird cursor with spaces == ";
+    let _: Page = ask(&s, call::ASSIGNED, json!({ "cursor": cursor })).unwrap();
+    assert_eq!(r.variables_of("AssignedIssues")[0]["after"], cursor, "byte for byte");
+    let moves: Moves = ask(&s, call::TRANSITIONS, json!({ "ref": "ENG-12" })).unwrap();
+    assert_eq!(moves.transitions[0].id, "57000000-0000-4000-8000-000000000001");
+}
+
+#[test]
+fn maintenance_is_offline_and_a_gone_issue_is_not_found() {
+    let (r, s) = workspace();
+    for (status, want) in [(502, "offline"), (503, "offline"), (504, "offline"), (410, "not_found"), (500, "failed")] {
+        r.on("AssignedIssues", err_reply(status, json!(null)));
+        assert_eq!(ask::<Page>(&s, call::ASSIGNED, json!({})).unwrap_err().code, want, "{status}");
+    }
 }

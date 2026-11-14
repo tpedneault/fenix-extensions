@@ -441,14 +441,14 @@ fn scenario() -> Rc<Recorded> {
     // A write to an issue not seen yet looks its id up.
     go(call::COMMENT, json!({ "ref": "ENG-77", "body": "hello" }));
     go(call::ASSIGNED, json!({ "limit": 20 }));
-    go(call::ASSIGNED, json!({ "cursor": "cursor-2", "since": "2026-11-01T00:00:00.000Z" }));
+    go(call::ASSIGNED, json!({ "cursor": "cursor-2" }));
     go(call::ISSUES, json!({ "refs": ["ENG-12"] }));
     go(call::ISSUES, json!({ "refs": ["ENG-12", "OPS-7", "3f2504e0-4f89-41d3-9a0c-0305e82c3301"] }));
     go(call::TRANSITIONS, json!({ "ref": "ENG-12" }));
     go(call::TRANSITION, json!({ "ref": "ENG-12", "id": "57000000-0000-4000-8000-000000000005" }));
     go(call::PEOPLE, json!({ "ref": "ENG-12" }));
     go(call::COMMENT, json!({ "ref": "ENG-12", "body": "hello" }));
-    for set in [json!({ "title": "t" }), json!({ "body": "b" }), json!({ "priority": "High" }), json!({ "due": "2026-12-01" }), json!({ "due": null }), json!({ "assignee": { "id": "u", "name": "U" } })] {
+    for set in [json!({ "title": "t" }), json!({ "body": "b" }), json!({ "priority": "High" }), json!({ "due": "2026-12-01" }), json!({ "due": null }), json!({ "assignee": { "id": "u", "name": "U" } }), json!({ "assignee": null }), json!({ "labels": ["bug"] })] {
         go(call::UPDATE, json!({ "ref": "ENG-12", "set": set }));
     }
     let run = |f: &dyn Fn(&Linear) -> Result<(), fenix_tracker::SeamError>| {

@@ -85,9 +85,11 @@ impl Client {
         let code = match reply.status {
             401 => code::SIGNED_OUT,
             403 => code::REFUSED,
-            404 => code::NOT_FOUND,
+            404 | 410 => code::NOT_FOUND,
             429 => code::RATE_LIMITED,
             400..=499 => code::REFUSED,
+            // Maintenance, a proxy: try again later.
+            502..=504 => code::OFFLINE,
             _ => code::FAILED,
         };
         let mut err = SeamError::new(code, message);
@@ -119,6 +121,7 @@ impl Client {
             Kind::BadRequest => (code::BAD_REQUEST, false),
             Kind::Other if reply.status == 401 => (code::SIGNED_OUT, false),
             Kind::Other if reply.status == 429 => (code::RATE_LIMITED, true),
+            Kind::Other if matches!(reply.status, 502..=504) => (code::OFFLINE, false),
             Kind::Other => (code::FAILED, false),
         };
         let mut err = SeamError::new(c, message);
@@ -260,7 +263,7 @@ mod tests {
 
     #[test]
     fn a_failure_with_no_graphql_in_it_is_read_by_its_status() {
-        for (status, want) in [(401, "signed_out"), (403, "refused"), (404, "not_found"), (400, "refused"), (502, "failed"), (500, "failed")] {
+        for (status, want) in [(401, "signed_out"), (403, "refused"), (404, "not_found"), (400, "refused"), (502, "offline"), (503, "offline"), (504, "offline"), (410, "not_found"), (500, "failed")] {
             let e = fails(status, &[], "<html>bad gateway</html>");
             assert_eq!((e.code.as_str(), e.message.as_str()), (want, format!("HTTP {status}").as_str()));
         }

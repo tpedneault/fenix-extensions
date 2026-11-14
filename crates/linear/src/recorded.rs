@@ -96,6 +96,7 @@ impl Recorded {
             .on("Issue", Reply::ok(read("issue-ENG-12.json")))
             .on("IssueStates", Reply::ok(read("states-ENG-12.json")))
             .on("IssuePeople", Reply::ok(read("people-ENG-12.json")))
+            .on("IssueLabels", Reply::ok(read("labels-ENG-12.json")))
             .on("Teams", Reply::ok(read("teams.json")))
             .on("TeamMeta", Reply::ok(read("team-meta.json")))
             .on("IssueId", Reply::ok(read("issue-id.json")))

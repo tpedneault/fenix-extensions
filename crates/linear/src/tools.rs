@@ -98,7 +98,7 @@ pub async fn read_issue(linear: &Linear, args: &str) -> Result<String, SeamError
 pub async fn list_mine(linear: &Linear, args: &str) -> Result<String, SeamError> {
     let args: Value = serde_json::from_str(if args.trim().is_empty() { "{}" } else { args }).unwrap_or_default();
     let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(10).clamp(1, MOST_MINE as u64) as u32;
-    let page = linear.list(&View::Assigned { since: None }, limit, None).await?;
+    let page = linear.list(&View::Assigned, limit, None).await?;
     let issues: Vec<Value> = page
         .issues
         .iter()

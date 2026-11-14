@@ -148,16 +148,15 @@ pub struct RawIssue {
 
 /// Linear's priorities 0 to 4 and the seam's four levels: (number, the
 /// name `priorities` offers and `update` takes back, level). 0, no
-/// priority, is no priority on the issue; the seam has no level for it
-/// (the agenda reads none as Medium), so it's offered last, as a way to
-/// clear it.
-pub const PRIORITIES: [(u8, &str, &str); 5] = [(1, "Urgent", level::URGENT), (2, "High", level::HIGH), (3, "Medium", level::MEDIUM), (4, "Low", level::LOW), (0, "No priority", level::MEDIUM)];
+/// priority, has no level (`null`: the agenda reads it as Medium), and is
+/// offered last, as a way to clear it.
+pub const PRIORITIES: [(u8, &str, Option<&str>); 5] = [(1, "Urgent", Some(level::URGENT)), (2, "High", Some(level::HIGH)), (3, "Medium", Some(level::MEDIUM)), (4, "Low", Some(level::LOW)), (0, "No priority", None)];
 
 /// The seam's priority for Linear's number: none for 0 or a number Linear
 /// doesn't have.
 pub fn priority_of(number: f64) -> Option<seam::Priority> {
     let n = number.round();
-    PRIORITIES.iter().find(|(p, _, _)| *p != 0 && f64::from(*p) == n).map(|(_, name, level)| seam::Priority { name: (*name).into(), level: (*level).into() })
+    PRIORITIES.iter().find(|(p, _, _)| *p != 0 && f64::from(*p) == n).map(|(_, name, level)| seam::Priority { name: (*name).into(), level: level.map(Into::into) })
 }
 
 /// Linear's number for a priority's name: `Urgent`, `High`, `Medium` (or
@@ -174,7 +173,7 @@ pub fn priority_number(name: &str) -> Option<u8> {
 /// Linear's number for a level: the priority the agenda's Urgent, High,
 /// Medium and Low are.
 pub fn priority_for_level(l: &str) -> Option<u8> {
-    PRIORITIES.iter().find(|(num, _, lv)| *num != 0 && *lv == l).map(|(num, _, _)| *num)
+    PRIORITIES.iter().find(|(num, _, lv)| *num != 0 && *lv == Some(l)).map(|(num, _, _)| *num)
 }
 
 // -- States ----------------------------------------------------------------
@@ -266,6 +265,8 @@ pub fn detail(raw: RawIssue) -> Option<Detail> {
     let comments_more = raw.comments.as_ref().and_then(|c| c.page_info.as_ref()).is_some_and(|p| p.has_next_page);
     let assignee = raw.assignee.as_ref().filter(|u| !u.id.is_empty());
     let issue = Issue {
+        id: raw.id.clone(),
+        asked: None,
         key: raw.identifier.trim().to_ascii_uppercase(),
         url: raw.url.clone(),
         project: Some(team.key.clone()).filter(|k| !k.is_empty()),
@@ -321,7 +322,7 @@ mod tests {
         // 1 to 4 are the seam's four levels, 0 is none.
         for (n, name, level) in [(1.0, "Urgent", "urgent"), (2.0, "High", "high"), (3.0, "Medium", "medium"), (4.0, "Low", "low")] {
             let p = priority_of(n).unwrap();
-            assert_eq!((p.name.as_str(), p.level.as_str()), (name, level));
+            assert_eq!((p.name.as_str(), p.level.as_deref()), (name, Some(level)));
             assert_eq!(priority_number(name), Some(n as u8));
             assert_eq!(priority_number(&name.to_uppercase()), Some(n as u8), "any case");
             assert_eq!(priority_for_level(level), Some(n as u8));
@@ -360,6 +361,7 @@ mod tests {
         .unwrap();
         let d = detail(raw).unwrap();
         assert_eq!(d.issue.key, "ENG-1", "capitals");
+        assert_eq!(d.issue.id, "u", "Linear's own id, kept for the agenda");
         assert_eq!(d.issue.comments.iter().map(|c| (c.id.as_str(), c.author.as_str())).collect::<Vec<_>>(), [("c1", "Linear"), ("c2", "GitHub"), ("c3", "Jo")]);
         assert!(d.comments_more);
         assert_eq!(d.issue.mine, Some(false), "unassigned isn't mine");

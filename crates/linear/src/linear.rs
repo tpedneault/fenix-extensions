@@ -22,9 +22,8 @@ const FINISHED: [&str; 2] = ["completed", "canceled"];
 /// Which issues a list is of.
 #[derive(Debug, Clone, PartialEq)]
 pub enum View {
-    /// Assigned to you, not finished -- or, with `since` (an `updated`), all
-    /// of yours changed at or after it, finished or not.
-    Assigned { since: Option<String> },
+    /// Assigned to you, not finished.
+    Assigned,
     /// Made by you, not finished.
     Created,
     /// A team's active cycle: its key.
@@ -170,21 +169,20 @@ impl Linear {
     pub async fn list(&self, view: &View, first: u32, after: Option<&str>) -> Result<Listed, SeamError> {
         let finished = json!({ "state": { "type": { "nin": FINISHED } } });
         let filter = match view {
-            View::Assigned { since: Some(since) } => json!({ "updatedAt": { "gte": since } }),
-            View::Assigned { since: None } | View::Created => finished,
+            View::Assigned | View::Created => finished,
             View::Cycle { team } => json!({ "team": { "key": { "eqIgnoreCase": team } }, "cycle": { "isActive": { "eq": true } } }),
             View::Backlog { team } => json!({ "team": { "key": { "eqIgnoreCase": team } }, "state": { "type": { "eq": "backlog" } } }),
             View::Filter(filter) => filter.clone(),
         };
         let query = match view {
-            View::Assigned { .. } => queries::ASSIGNED,
+            View::Assigned => queries::ASSIGNED,
             View::Created => queries::CREATED,
             _ => queries::ISSUES,
         };
         let data = self.client.run(query, json!({ "first": first.clamp(1, 50), "after": after, "filter": filter })).await?;
         let page: Issues = read("a list of issues", data)?;
         let page = match view {
-            View::Assigned { .. } => listed(page.viewer.and_then(|v| v.assigned_issues)),
+            View::Assigned => listed(page.viewer.and_then(|v| v.assigned_issues)),
             View::Created => listed(page.viewer.and_then(|v| v.created_issues)),
             _ => listed(page.issues),
         };
@@ -209,50 +207,66 @@ impl Linear {
         }
     }
 
-    /// Issues by what they were called, in one request when there are
-    /// several (one issue is fetched on its own, which also finds it by an
-    /// identifier it once had). The refs of those not found come back too,
-    /// as they were asked.
+    /// Issues by what they were called -- identifier, address or id --
+    /// each answered with `asked` set to what asked for it. One is
+    /// fetched on its own, several in one request; any the request didn't
+    /// find by identifier are asked for one at a time, which also finds an
+    /// issue under an identifier it once had (moved to another team).
+    /// What's still not found comes back in `missing` exactly as it was
+    /// asked, in the order asked; the call never fails for one issue.
     pub async fn issues(&self, asked: &[String]) -> Result<(Vec<Detail>, Vec<String>), SeamError> {
-        let named: Vec<(&String, Option<Named>)> = asked.iter().map(|r| (r, refs::parse(r))).collect();
-        let mut missing: Vec<String> = named.iter().filter(|(_, n)| n.is_none()).map(|(r, _)| (*r).clone()).collect();
-        let valid: Vec<&Named> = named.iter().filter_map(|(_, n)| n.as_ref()).collect();
-        let mut found: Vec<Detail> = Vec::new();
-        match valid.as_slice() {
-            [] => {}
-            [one] => match self.issue(one).await {
-                Ok(d) => found.push(d),
-                Err(e) if e.is(code::NOT_FOUND) => missing.extend(named.iter().filter(|(_, n)| n.is_some()).map(|(r, _)| (*r).clone())),
+        let named: Vec<Option<Named>> = asked.iter().map(|r| refs::parse(r)).collect();
+        let mut got: Vec<Option<Detail>> = vec![None; asked.len()];
+        let valid: Vec<usize> = (0..asked.len()).filter(|i| named[*i].is_some()).collect();
+        if valid.len() > 1 {
+            let mut any: Vec<Value> = Vec::new();
+            let mut ids: Vec<String> = Vec::new();
+            for i in &valid {
+                match named[*i].as_ref().expect("valid") {
+                    Named::Identifier { team, number } => any.push(json!({ "team": { "key": { "eqIgnoreCase": team } }, "number": { "eq": number } })),
+                    Named::Id(id) => ids.push(id.clone()),
+                }
+            }
+            if !ids.is_empty() {
+                any.push(json!({ "id": { "in": ids } }));
+            }
+            let data = self.client.run(queries::ISSUES, json!({ "first": valid.len().min(50), "after": null, "filter": { "or": any } })).await?;
+            let page: Issues = read("issues", data)?;
+            let found = listed(page.issues).issues;
+            for d in &found {
+                self.remember(d);
+            }
+            for i in &valid {
+                let hit = found.iter().find(|d| match named[*i].as_ref().expect("valid") {
+                    Named::Identifier { team, number } => d.issue.key == format!("{team}-{number}"),
+                    Named::Id(id) => d.id.eq_ignore_ascii_case(id),
+                });
+                got[*i] = hit.cloned();
+            }
+        }
+        // The rest one at a time: the only one, or those not found above (a
+        // moved issue), a few at most.
+        let mut alone = 0;
+        for i in &valid {
+            if got[*i].is_some() || alone >= 10 {
+                continue;
+            }
+            alone += 1;
+            match self.issue(named[*i].as_ref().expect("valid")).await {
+                Ok(d) => got[*i] = Some(d),
+                Err(e) if e.is(code::NOT_FOUND) => {}
                 Err(e) => return Err(e),
-            },
-            many => {
-                let mut any: Vec<Value> = Vec::new();
-                let mut ids: Vec<&str> = Vec::new();
-                for n in many {
-                    match n {
-                        Named::Identifier { team, number } => any.push(json!({ "team": { "key": { "eqIgnoreCase": team } }, "number": { "eq": number } })),
-                        Named::Id(id) => ids.push(id),
-                    }
+            }
+        }
+        let mut found = Vec::new();
+        let mut missing = Vec::new();
+        for (i, r) in asked.iter().enumerate() {
+            match got[i].take() {
+                Some(mut d) => {
+                    d.issue.asked = Some(r.clone());
+                    found.push(d);
                 }
-                if !ids.is_empty() {
-                    any.push(json!({ "id": { "in": ids } }));
-                }
-                let data = self.client.run(queries::ISSUES, json!({ "first": many.len().min(50), "after": null, "filter": { "or": any } })).await?;
-                let page: Issues = read("issues", data)?;
-                found = listed(page.issues).issues;
-                for d in &found {
-                    self.remember(d);
-                }
-                for (r, n) in &named {
-                    let has = match n {
-                        Some(Named::Identifier { team, number }) => found.iter().any(|d| d.issue.key == format!("{team}-{number}")),
-                        Some(Named::Id(id)) => found.iter().any(|d| d.id.eq_ignore_ascii_case(id)),
-                        None => continue,
-                    };
-                    if !has {
-                        missing.push((*r).clone());
-                    }
-                }
+                None => missing.push(r.clone()),
             }
         }
         Ok((found, missing))
@@ -349,9 +363,28 @@ impl Linear {
                 json!({ "priority": n })
             }
             Change::Due(d) => json!({ "dueDate": d }),
-            Change::Assignee(p) => json!({ "assigneeId": p.id }),
+            Change::Assignee(p) => json!({ "assigneeId": p.as_ref().map(|p| p.id.as_str()) }),
+            Change::Labels(names) => json!({ "labelIds": self.label_ids(r, names).await? }),
         };
         self.update_input(r, input).await
+    }
+
+    /// The ids of the labels called `names` (any case) in the issue's team;
+    /// one that isn't there is a `bad_request`, not made up.
+    async fn label_ids(&self, r: &str, names: &[String]) -> Result<Vec<String>, SeamError> {
+        let named = refs::parse(r).ok_or_else(|| SeamError::new(code::NOT_FOUND, format!("\"{}\" isn't an issue's identifier or address", clean::line(r, 60))))?;
+        let data = self.client.run(queries::ISSUE_LABELS, json!({ "id": named.text() })).await?;
+        let issue: RawIssue = read("an issue's labels", data["issue"].clone())?;
+        let have = issue.team.unwrap_or_default().labels.unwrap_or_default().nodes;
+        names
+            .iter()
+            .map(|n| {
+                have.iter()
+                    .find(|l| l.name.eq_ignore_ascii_case(n.trim()))
+                    .map(|l| l.id.clone())
+                    .ok_or_else(|| SeamError::new(code::BAD_REQUEST, format!("this issue's team has no label called \"{}\"", clean::line(n, 60))))
+            })
+            .collect()
     }
 
     /// Priority `n` (0 to 4) set directly.

@@ -80,6 +80,9 @@ pub const ISSUE_STATES: &str = "query IssueStates($id: String!) { issue(id: $id)
 /// The people an issue can be assigned to: its team's.
 pub const ISSUE_PEOPLE: &str = "query IssuePeople($id: String!) { issue(id: $id) { team { members(first: 250) { nodes { id name displayName active } } } } }";
 
+/// The labels an issue can have: its team's.
+pub const ISSUE_LABELS: &str = "query IssueLabels($id: String!) { issue(id: $id) { team { labels(first: 250) { nodes { id name } } } } }";
+
 /// Your teams.
 pub const TEAMS: &str = "query Teams($first: Int!, $after: String) { teams(first: $first, after: $after) { nodes { id key name } pageInfo { hasNextPage endCursor } } }";
 
@@ -96,7 +99,7 @@ pub const CREATE_COMMENT: &str = "mutation CreateComment($input: CommentCreateIn
 pub const CREATE_ISSUE: &str = "mutation CreateIssue($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { id identifier url } } }";
 
 /// Every one, for the test that holds them to the schema.
-pub const ALL: [(&str, &str); 13] = [
+pub const ALL: [(&str, &str); 14] = [
     ("Viewer", VIEWER),
     ("AssignedIssues", ASSIGNED),
     ("CreatedIssues", CREATED),
@@ -105,6 +108,7 @@ pub const ALL: [(&str, &str); 13] = [
     ("IssueId", ISSUE_ID),
     ("IssueStates", ISSUE_STATES),
     ("IssuePeople", ISSUE_PEOPLE),
+    ("IssueLabels", ISSUE_LABELS),
     ("Teams", TEAMS),
     ("TeamMeta", TEAM_META),
     ("UpdateIssue", UPDATE_ISSUE),

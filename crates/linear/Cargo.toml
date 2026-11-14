@@ -16,6 +16,9 @@ fenix-tracker = { path = "../tracker" }
 futures-executor = "0.3"
 # Every query this crate sends, read and held to Linear's schema.
 graphql-parser = "0.4"
+# The agenda run against this tracker's answers (`tests/agenda.rs`).
+fenix-agenda = { path = "../../extensions/agenda", features = ["testing"] }
+fenix-test-kit = { path = "../test-kit" }
 
 # Built with whichever extension uses it.
 [workspace]
