@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terraform · Fenix extensions</title>
+<meta name="description" content="Terraform and HCL: their grammar, terraform-ls, terraform fmt, terraform validate on save, init, validate, plan and apply as tasks, the project&#39;s checks with a fix that installs terraform-ls, snippets, and a root-module project">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Terraform</h1>
+<p class="id"><code>fenix.terraform</code></p>
+<p class="lead">Terraform and HCL: their grammar, terraform-ls, terraform fmt, terraform validate on save, init, validate, plan and apply as tasks, the project&#39;s checks with a fix that installs terraform-ls, snippets, and a root-module project</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>375 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/terraform">extensions/terraform</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Terraform</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/terraform-v1.0.0/fenix.terraform-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.terraform-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>terraform</code></li><li><code>terraform-ls</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>releases.hashicorp.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Terraform and HCL in Fenix: their grammar (Fenix has none of its own),
+terraform-ls, <code>terraform fmt</code>, <code>terraform validate</code> on save, <code>init</code>,
+<code>validate</code>, <code>plan</code> and <code>apply</code> as tasks, the project doctor&#39;s checks with a
+fix that installs terraform-ls, snippets, and a root-module project in the
+new-project wizard. Built on lang-kit (<code>crates/lang-kit</code>), as each language
+pack is.</p>
+<p>It starts with Fenix. The server and the formatter are set whenever the
+programs are found; the tasks and the checks are for a project with <code>.tf</code>
+files. It needs Fenix 1.5 or later (extension API 1.5), and Terraform,
+which it doesn&#39;t install: HashiCorp&#39;s own
+(<a href="https://developer.hashicorp.com/terraform/install">install guide</a>),
+Homebrew&#39;s, winget&#39;s, or a version manager&#39;s (<code>tfenv</code>, <code>tenv</code>) -- which
+version the project wants is yours to choose. It&#39;s Terraform&#39;s: OpenTofu&#39;s
+<code>tofu</code> isn&#39;t run.</p>
+<h3 id="readme-the-grammar">The grammar</h3>
+<p><code>*.tf</code> files are read with tree-sitter-hcl 1.2.0&#39;s Terraform dialect,
+<code>*.tfvars</code> files with the same grammar as <code>terraform-vars</code> (the name
+terraform-ls knows them by), and <code>*.hcl</code> files -- <code>.terraform.lock.hcl</code>,
+Terragrunt&#39;s, Packer&#39;s and Nomad&#39;s, a <code>.tftest.hcl</code>, the CLI&#39;s <code>.terraformrc</code>
+-- with its HCL grammar (<code>grammars/</code>, Apache-2.0). Highlighted (a block&#39;s
+type and labels, attributes, the <code>var.</code>, <code>local.</code> and <code>each.</code> roots,
+functions, provider functions, templates and heredocs), folded (blocks,
+objects, lists, heredocs), with Enter indenting inside a block, and the
+breadcrumbs and <code>SPC c s</code> listing the blocks: <code>resource &quot;aws_instance&quot; &quot;web&quot; {</code>. <code>#</code> comments a line. The grammar&#39;s repository has no queries; the
+pack&#39;s own are in <code>queries/terraform/</code>.</p>
+<h3 id="readme-the-server">The server</h3>
+<p>terraform-ls, HashiCorp&#39;s: completion for resource, data source and
+provider arguments, hover, go to definition and references, rename, and
+its own problems. It&#39;s started with <code>terraform-ls serve</code> for <code>.tf</code> and
+<code>.tfvars</code> files. It reads providers&#39; schemas through Terraform, so run the
+<code>init</code> task first; and it finds <code>terraform</code> on <code>PATH</code>. A Terraform the pack
+found elsewhere (tfenv&#39;s folder, winget&#39;s links) is used by the tasks,
+<code>fmt</code> and <code>validate</code>, but terraform-ls may not see it: put it on <code>PATH</code>.</p>
+<h3 id="readme-formatting-and-checks">Formatting and checks</h3>
+<ul>
+<li><p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <code>terraform fmt -</code>,
+for <code>.tf</code>, <code>.tfvars</code> and <code>.hcl</code> files.</p></li>
+<li><p>On save: <code>terraform validate -json</code> on the saved <code>.tf</code> file&#39;s folder,
+as one module (<code>terraform.validate</code>), its errors and warnings shown with
+terraform-ls&#39;s, in whichever of the folder&#39;s files they are -- and in a
+module it calls, when Terraform says so. A problem about the whole
+configuration (a provider not installed, a module not installed) has no
+place: it&#39;s at the top of the file you saved. They go away on <code>init</code>
+and saving again.</p>
+<p><code>validate</code> needs <code>terraform init</code> first for the providers and modules; it
+doesn&#39;t need credentials or state, and changes nothing. It checks what
+Terraform can without planning: syntax, references, the arguments a block
+takes, types. What needs a plan (a value only the cloud knows) is
+<code>plan</code>&#39;s.</p></li>
+</ul>
+<p><a href="https://github.com/terraform-linters/tflint">tflint</a> isn&#39;t run: it isn&#39;t
+part of Terraform, and its rules are the project&#39;s to choose.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>, in this order, each in the project&#39;s root module -- the top, or
+the one folder under it that holds <code>.tf</code> files (<code>infra/</code>, <code>terraform/</code>; run
+there with <code>-chdir</code>):</p>
+<div class="table"><table>
+<thead><tr><th>Task</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td><code>init</code></td><td><code>terraform init -input=false -no-color</code></td></tr>
+<tr><td><code>validate</code></td><td><code>terraform validate -no-color</code></td></tr>
+<tr><td><code>fmt -check</code></td><td><code>terraform fmt -check -diff -recursive -no-color</code>: the files that aren&#39;t formatted, and how they&#39;d change</td></tr>
+<tr><td><code>plan</code></td><td><code>terraform plan -input=false -no-color -out=tfplan</code>: what would change, kept as a file</td></tr>
+<tr><td><code>apply saved plan</code></td><td><code>terraform apply -input=false -no-color tfplan</code>: <strong>changes real infrastructure</strong></td></tr>
+</tbody>
+</table></div>
+<p>A task&#39;s stdin is closed, so Terraform can&#39;t ask &quot;Do you want to perform
+these actions?&quot;, and the pack doesn&#39;t answer for you with <code>-auto-approve</code>.
+<code>apply saved plan</code> applies the plan file <code>plan</code> wrote and nothing else;
+Terraform refuses one that&#39;s stale (state changed since), so applying twice,
+or after someone else&#39;s apply, is refused. It&#39;s the last task, it has no
+key of its own, and its name says what it does: read the plan in Task
+Output, then apply it. <code>tfplan</code> can hold secrets: keep it out of Git (the
+project template&#39;s <code>.gitignore</code> does). There&#39;s no <code>destroy</code> task.</p>
+<p>Every task is started by you, from the picker or <code>SPC p T</code> (rerun the
+last), and only runs what&#39;s in the table. The project&#39;s <code>.env</code> goes to
+each: <code>TF_VAR_region=eu-west-1</code> sets a variable, <code>AWS_PROFILE=orbit</code> a
+provider&#39;s profile. A task of the same name in <code>.fenix/tools.json</code> wins.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>Terraform</td><td><code>terraform version</code>, 1.0 or later; needed in a project with <code>.tf</code> files, a warning in any other</td><td>none: HashiCorp, Homebrew, winget or a version manager</td></tr>
+<tr><td>terraform-ls</td><td><code>terraform-ls version</code>; optional</td><td>terraform-ls 0.39.1 (Linux, macOS, Windows; x86_64 and arm64)</td></tr>
+</tbody>
+</table></div>
+<p>terraform-ls&#39;s release comes from <code>releases.hashicorp.com</code>, the file for
+this machine, checked against the SHA-256 the pack knows (the same as the
+release&#39;s signed <code>SHA256SUMS</code>), unpacked into the pack&#39;s tools folder, and
+used at once. Starting it is said in the message line; how it ended is a
+notification: &quot;Installed terraform-ls 0.39.1&quot;, or &quot;Couldn&#39;t install
+terraform-ls 0.39.1&quot; with which step failed and why, and <em>Try again</em>. One
+you installed yourself is used instead: the pack looks on <code>PATH</code>, and in
+<code>~/.local/bin</code>, <code>~/.tfenv/bin</code>, <code>~/.tenv/bin</code>, Homebrew&#39;s, Snap&#39;s, winget&#39;s
+and Chocolatey&#39;s.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>tf</code></td><td>the <code>terraform</code> block, with a required provider</td></tr>
+<tr><td><code>prov</code>, <code>bk</code></td><td>a <code>provider</code> block; a <code>backend</code></td></tr>
+<tr><td><code>res</code>, <code>data</code></td><td>a <code>resource</code>; a <code>data</code> source</td></tr>
+<tr><td><code>var</code>, <code>varv</code></td><td>a variable; one with a validation</td></tr>
+<tr><td><code>out</code>, <code>loc</code></td><td>an output; <code>locals</code></td></tr>
+<tr><td><code>mod</code></td><td>a module call, its source <code>./modules/&lt;name&gt;</code></td></tr>
+<tr><td><code>foreach</code>, <code>count</code></td><td>a resource per item (<code>each.key</code>); a resource that&#39;s on or off (<code>count = cond ? 1 : 0</code>)</td></tr>
+<tr><td><code>dyn</code>, <code>life</code>, <code>prec</code></td><td>a <code>dynamic</code> block; a <code>lifecycle</code> block; a <code>precondition</code></td></tr>
+<tr><td><code>fe</code>, <code>cond</code>, <code>tmpl</code></td><td>a <code>for</code> expression; a conditional; <code>templatefile(...)</code></td></tr>
+<tr><td><code>moved</code>, <code>imp</code></td><td>a <code>moved</code> block; an <code>import</code> block</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-new-projects">New projects</h3>
+<p><em>Terraform · root module</em> in the new-project wizard: <code>main.tf</code>,
+<code>versions.tf</code>, <code>variables.tf</code> and <code>outputs.tf</code>, a <code>.gitignore</code> that keeps
+<code>.terraform/</code>, state and <code>tfplan</code> out of Git, and a first resource. With
+the provider <em>none</em> it&#39;s Terraform&#39;s built-in <code>terraform_data</code>, so <code>init</code>,
+<code>plan</code> and <code>apply saved plan</code> work with no account; <em>aws</em>, <em>azurerm</em> and
+<em>google</em> add the provider&#39;s block and a data source that only reads (who
+the credentials say you are). It runs nothing when it&#39;s made.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>terraform.validate</code></td><td>on</td><td><code>terraform validate</code> on a saved <code>.tf</code> file</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Terraform project or file (<code>C-k m</code> with standard keys):
+<code>d</code> checks the project again.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run <code>terraform</code> and <code>terraform-ls</code></strong> (<code>permissions.process</code>): to ask
+their versions for the doctor; <code>terraform fmt</code> as the formatter,
+<code>terraform validate</code> on save, and the tasks you start; terraform-ls as
+the server. <code>/tools/*</code> is where the pack installs terraform-ls. No other
+program.</p></li>
+<li><p><strong>Reach <code>releases.hashicorp.com</code></strong> (<code>permissions.network</code>): to download
+terraform-ls when you run its fix row. Terraform itself reaches what its
+providers and modules need, as it does in a terminal; that&#39;s Terraform&#39;s,
+not the pack&#39;s.</p></li>
+<li><p><strong>Read the project</strong> (<code>filesystem = &quot;project-read&quot;</code>): to see whether
+there are <code>.tf</code> files at the top or one folder down, and <code>.env</code>. It
+writes nothing: the plan file is Terraform&#39;s.</p></li>
+<li><p><strong>Read the file you save</strong> (<code>editor = &quot;read&quot;</code>): to know which folder to
+validate.</p></li>
+</ul>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>Debugging</strong>: Terraform has no debugger.</p></li>
+<li><p><strong>tflint</strong>, <strong>OpenTofu</strong>, a <code>destroy</code> task, workspaces, and <code>.tf.json</code> and
+<code>.tftest.hcl</code> files as Terraform&#39;s (the second is read as HCL).</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/terraform dist
+cargo xtask install extensions/terraform
+cargo test --locked --manifest-path extensions/terraform/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> runs the pack on lang-kit&#39;s fake host and the test kit&#39;s: its
+tasks, server and formatter are set, the doctor reads the version of what it
+finds, <code>terraform validate</code>&#39;s JSON is read into problems, the fix row&#39;s
+download names the release and its SHA-256, and a failed install is a
+notification (<code>src/lib.rs</code>); each piece on its own (<code>src/tools.rs</code>,
+<code>doctor.rs</code>, <code>tasks.rs</code>, <code>lint.rs</code>, <code>project.rs</code>); and the data as Fenix reads
+it (<code>src/data.rs</code>) -- the language files, the grammars loaded and the
+queries run on a sample, the snippets, the project template, and the
+manifest against the code. What <code>terraform validate</code> and <code>terraform version</code>
+printed in <code>src/samples/</code> was recorded from Terraform 1.17.2 and
+terraform-ls 0.39.1 (see <code>src/samples/README.md</code>).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>375 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/terraform-v1.0.0/fenix.terraform-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 36906e4532f9a06b8d846aad79a1d81af1efea24f0c7dc113c40aa1831599a4f">36906e4532…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.5 (extension API 1.5): Terraform and HCL.
+Their grammar (<code>.tf</code>, <code>.tfvars</code> and <code>.hcl</code> files: highlighted, folded,
+indented, with their blocks as the scopes <code>SPC c s</code> and the breadcrumbs
+list), terraform-ls as the language server, <code>terraform fmt</code> as the
+formatter, <code>terraform validate</code> on save, and tasks: <code>init</code>, <code>validate</code>,
+<code>fmt -check</code>, <code>plan</code> and <code>apply saved plan</code>, which applies the plan file
+<code>plan</code> wrote and nothing else. The project doctor checks Terraform and
+terraform-ls, with a fix that installs terraform-ls 0.39.1 from
+HashiCorp&#39;s release, checked against its SHA-256. Snippets, a <em>Terraform ·
+root module</em> project for the new-project wizard, and a lesson in the
+tutorial.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
