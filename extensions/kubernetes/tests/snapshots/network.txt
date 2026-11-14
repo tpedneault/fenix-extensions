@@ -1,0 +1,24 @@
+Kubernetes   context kind-dev (kubeconfig's current, read 12:00)   namespace shop       kubectl v1.37.2 · server v1.30.4
+1 Workloads 6   2 Pods 7   3 Network 3   4 Secrets 0   5 Forwards 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▾ Services                                                                                                             2
+    web  LoadBalancer 10.96.12.40     80:31080/TCP  → 172.18.0.50                                                     2d
+    db   ClusterIP    None            5432/TCP                                                                       44d
+▾ Ingresses                                                                                                            1
+    shop  shop.example.test  tls  → 172.18.0.51                                                                       2d
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  x delete  R restart…
