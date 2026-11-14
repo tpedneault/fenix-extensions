@@ -1,6 +1,6 @@
 [package]
 name = "fenix-jira"
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
@@ -13,8 +13,13 @@ crate-type = ["cdylib", "rlib"]
 fenix-extension-api = { git = "https://github.com/tpedneault/fenix", tag = "v1.5.0" }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 fenix-jira-client = { path = "../../crates/jira" }
+fenix-tracker = { path = "../../crates/tracker" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[dev-dependencies]
+# A fake host for its tests.
+fenix-test-kit = { path = "../../crates/test-kit" }
 
 [profile.release]
 opt-level = "s"

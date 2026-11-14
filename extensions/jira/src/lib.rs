@@ -1,7 +1,12 @@
 //! Jira, as a WebAssembly extension: the Jira page (`SPC j j`) -- your
 //! searches, their issues, a preview, and an issue's own page -- and
 //! Jira for the agenda. It holds your server, your token and Jira's
-//! settings; the agenda reaches Jira through its services:
+//! settings; the agenda reaches Jira through the tracker seam
+//! (`plans/tracker-seam.md`), `jira.tracker.*`, served by
+//! `fenix_jira_client::tracker` over its own HTTP.
+//!
+//! The agenda 1.2, from before the seam, reaches it through these, kept
+//! for it until both are 2.0:
 //!
 //! - `jira.request`: a request, sent as you (`{method, path, body}` ->
 //!   `{status, body}`)
@@ -13,13 +18,21 @@
 pub mod dates;
 pub mod page;
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-use fenix_extension_api::{self as api, host, run, Event, Extension, HttpRequest, Key, Page, PickerItem};
+#[cfg(not(test))]
+use fenix_extension_api as api;
+#[cfg(test)]
+use fenix_test_kit::api;
+
+use api::{host, run, Event, Extension, HttpRequest, Key, Page, PickerItem};
+use fenix_jira_client::tracker::{self as seam, Learned};
 use fenix_jira_client::{IssueDetail, IssueSummary, JiraClient, Reply, Transport};
+use fenix_tracker::{code, SeamError};
 
 use page::{Action as A, Choice, JiraPage, Loaded, QueryKind};
 
@@ -82,6 +95,41 @@ fn not_set_up(keys: &str) -> String {
     format!("Jira isn't set up yet -- set its server and token on the settings page ({keys}), under Jira")
 }
 
+/// The keys that open the Jira page now (`jira.open`).
+fn page_keys() -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        api::key_for("jira.open").unwrap_or_else(|| "SPC j j".to_string())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        "SPC j j".to_string()
+    }
+}
+
+/// Jira's settings, as the tracker seam reads them.
+fn tracker_settings() -> seam::Settings {
+    seam::Settings {
+        base_url: base_url(),
+        projects: map("jira.projects").into_iter().map(|(k, _)| k).collect(),
+        users: map("jira.users"),
+        priorities: map("jira.priorities"),
+        blocked: map("jira.blocked"),
+        sync_minutes: api::setting("jira.sync_minutes").and_then(|m| m.trim().parse().ok()).unwrap_or(10),
+        keys: seam::Keys { settings: settings_keys(), page: page_keys() },
+    }
+}
+
+/// The agenda's payload for an issue of this tracker's: `tracker` and
+/// `ref` for the agenda 1.3, `key` for 1.2.
+fn agenda_payload(key: &str, clock: Option<bool>) -> String {
+    let mut payload = serde_json::json!({ "tracker": "jira", "ref": key, "key": key });
+    if let Some(clock) = clock {
+        payload["clock"] = clock.into();
+    }
+    payload.to_string()
+}
+
 /// Where Jira is, when it's set up.
 fn base_url() -> Option<String> {
     api::setting("jira.base_url").map(|b| b.trim().trim_end_matches('/').to_string()).filter(|b| !b.is_empty())
@@ -139,6 +187,12 @@ pub struct Jira {
     /// The token owner's username.
     me: Option<String>,
     asked: HashMap<u64, Asked>,
+    /// What the tracker seam has learned of this Jira: who you are, its
+    /// Flagged field.
+    learned: Rc<RefCell<Learned>>,
+    /// New-issue forms the seam's `create` opened, answered as the seam
+    /// answers (`{"ref": ...}`) rather than with a bare key.
+    seam_creates: HashSet<Waiting>,
 }
 
 impl Jira {
@@ -147,7 +201,7 @@ impl Jira {
     }
 
     fn ctx_parts(&self) -> (Vec<(String, String)>, String, chrono::NaiveDate, String) {
-        (map("jira.users"), base_url().unwrap_or_default(), fenix_extension_api::clock::now().date_naive(), settings_keys())
+        (map("jira.users"), base_url().unwrap_or_default(), api::clock::now().date_naive(), settings_keys())
     }
 
     fn refresh(&self) {
@@ -306,7 +360,7 @@ impl Jira {
             A::Detail(key) => self.fetch_detail(key),
             A::Refresh => self.refresh_page(),
             A::OpenTask(key) => {
-                let payload = serde_json::json!({ "key": key }).to_string();
+                let payload = agenda_payload(&key, None);
                 spawn(async move {
                     let _ = run::call("agenda.open_task", &payload).await;
                     Done::InAgenda(HashSet::new())
@@ -379,7 +433,7 @@ impl Jira {
                 self.asked.insert(id, Asked::Comment(key));
             }
             A::AddToAgenda { key, clock } => {
-                let payload = serde_json::json!({ "key": key, "clock": clock }).to_string();
+                let payload = agenda_payload(&key, Some(clock));
                 spawn(async move {
                     if let Err(why) = run::call("agenda.add_issue", &payload).await {
                         host::notify(api::Level::Error, &format!("couldn't add it to the agenda: {why}"));
@@ -554,9 +608,10 @@ impl Jira {
                     Ok(key) => {
                         match task {
                             // The agenda's task it was made from: linked there.
+                            Some(call) if self.seam_creates.remove(&call) => api::answer(call, Ok(serde_json::json!({ "ref": key }).to_string())),
                             Some(call) => api::answer(call, Ok(key.clone())),
                             None if agenda => {
-                                let payload = serde_json::json!({ "key": key, "clock": clock }).to_string();
+                                let payload = agenda_payload(&key, Some(clock));
                                 spawn(async move {
                                     let _ = run::call("agenda.add_issue", &payload).await;
                                     Done::InAgenda(HashSet::new())
@@ -569,7 +624,8 @@ impl Jira {
                     }
                     Err(err) => {
                         if let Some(call) = task {
-                            api::answer(call, Err(err.clone()));
+                            let answer = if self.seam_creates.remove(&call) { seam::classify(err.clone()).to_err() } else { err.clone() };
+                            api::answer(call, Err(answer));
                         }
                         host::notify(api::Level::Error, &format!("couldn't create the issue: {err}"));
                     }
@@ -586,6 +642,65 @@ impl Jira {
             }
         }
         self.refresh();
+    }
+
+    /// The new-issue form, filled in from an agenda task; `call` is
+    /// answered once the issue is made.
+    fn new_issue_form(&mut self, call: Waiting, summary: String, description: String) {
+        self.open_page();
+        let projects = self.form_projects();
+        let action = self.page.as_mut().map(|(_, p)| p.start_issue(projects, Some((call, summary, description))));
+        if let Some(action) = action {
+            self.action(action);
+        }
+        self.take_done();
+    }
+
+    /// `jira.tracker.<call>`: the tracker seam. `about`, `create` and
+    /// `remember` are this extension's own (its settings, its form); the
+    /// rest are `fenix_jira_client::tracker`'s, over its own HTTP,
+    /// answered once Jira has.
+    fn serve_seam(&mut self, call: Waiting, name: &str, payload: &str) -> Option<Result<String, String>> {
+        let settings = tracker_settings();
+        let refuse = |code: &str, why: String| Some(Err(SeamError::new(code, why).to_err()));
+        match name {
+            fenix_tracker::call::ABOUT => {
+                let ready = client().is_ok();
+                Some(serde_json::to_string(&seam::about(&settings, ready)).map_err(|e| e.to_string()))
+            }
+            fenix_tracker::call::REMEMBER => match serde_json::from_str::<fenix_tracker::Remember>(payload).ok().and_then(|r| seam::parse_remember(&r.remember)) {
+                Some((project, blocked)) => {
+                    self.set_blocked(&project, &blocked.text());
+                    Some(Ok("{}".into()))
+                }
+                None => refuse(code::BAD_REQUEST, format!("a Jira call: what to remember isn't Jira's: {payload}")),
+            },
+            fenix_tracker::call::CREATE => {
+                let new: fenix_tracker::Create = match serde_json::from_str(payload) {
+                    Ok(new) => new,
+                    Err(e) => return refuse(code::BAD_REQUEST, format!("a Jira call: {e}")),
+                };
+                if let Err(why) = client() {
+                    return refuse(code::NOT_SET_UP, why);
+                }
+                self.seam_creates.insert(call);
+                self.new_issue_form(call, new.title, new.body);
+                None
+            }
+            _ => {
+                let client = match client() {
+                    Ok(client) => client,
+                    Err(_) => return refuse(code::NOT_SET_UP, seam::about(&settings, false).not_ready.unwrap_or_default()),
+                };
+                let tracker = seam::Seam::new(client, settings, self.learned.clone());
+                let (name, payload) = (name.to_string(), payload.to_string());
+                run::spawn(async move {
+                    let answer = tracker.serve(&name, &payload).await;
+                    api::answer(call, answer);
+                });
+                None
+            }
+        }
     }
 
     /// `jira.config`: Jira's settings, as the agenda needs them.
@@ -726,6 +841,9 @@ impl Extension for Jira {
     }
 
     fn serve(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        if let Some(seam_call) = fenix_tracker::call_of("jira", name) {
+            return self.serve_seam(call, seam_call, payload);
+        }
         let answer = match name {
             "jira.request" => {
                 #[derive(serde::Deserialize)]
@@ -777,13 +895,7 @@ impl Extension for Jira {
                     Ok(new) => new,
                     Err(e) => return Some(Err(format!("a Jira call: {e}"))),
                 };
-                self.open_page();
-                let projects = self.form_projects();
-                let action = self.page.as_mut().map(|(_, p)| p.start_issue(projects, Some((call, new.summary, new.description))));
-                if let Some(action) = action {
-                    self.action(action);
-                }
-                self.take_done();
+                self.new_issue_form(call, new.summary, new.description);
                 return None;
             }
             other => Err(format!("no service {other}")),
@@ -797,6 +909,93 @@ api::export!(Jira);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fenix_test_kit::{Fake, Harness};
+    use fenix_tracker::SeamError;
+
+    const TOKEN: &str = "NjQ1MzIxOTg3NjU0OlRPS0VO-secret";
+
+    fn jira(token: bool) -> Harness<Jira> {
+        let fake = Fake::new();
+        fake.setting("jira.base_url", "https://jira.example.com/")
+            .setting("jira.projects", r#"[["PROJ", "Project"]]"#)
+            .setting("jira.users", r#"[["jo1", "Jo Bloggs"]]"#)
+            .setting("jira.blocked", r#"[["PROJ", "flag"]]"#)
+            .setting("jira.sync_minutes", "5");
+        if token {
+            fake.secret("jira.token", TOKEN);
+        }
+        Harness::with_fake(fake)
+    }
+
+    fn json(text: &str) -> serde_json::Value {
+        serde_json::from_str(text).unwrap()
+    }
+
+    /// The agenda 1.2 calls these, and Jira 1.3 answers them as 1.2 did.
+    #[test]
+    fn the_agenda_1_2s_services_answer_as_they_did() {
+        let mut h = jira(true);
+        let config = h.serve("jira.config", "null").unwrap().unwrap();
+        assert_eq!(
+            json(&config),
+            serde_json::json!({ "base_url": "https://jira.example.com", "projects": ["PROJ"], "users": [["jo1", "Jo Bloggs"]], "priorities": [], "blocked": [["PROJ", "flag"]], "sync_minutes": 5 })
+        );
+        assert_eq!(h.serve("jira.set_blocked", r#"{"project": "OPS", "blocked": "local"}"#), Some(Ok(String::new())));
+        assert_eq!(h.fake.setting_value("jira.blocked").as_deref(), Some(r#"[["PROJ","flag"],["OPS","local"]]"#));
+        assert!(!config.contains(TOKEN));
+
+        let mut h = jira(false);
+        let refused = h.serve("jira.request", r#"{"method": "GET", "path": "/rest/api/2/myself", "body": null}"#);
+        assert_eq!(refused, Some(Err(not_set_up("SPC ,"))));
+
+        let manifest: toml_lite::Services = toml_lite::services(include_str!("../extension.toml"));
+        for old in ["jira.request", "jira.config", "jira.set_blocked", "jira.new_issue"] {
+            assert!(manifest.0.iter().any(|s| s == old), "{old} still served");
+        }
+        for call in fenix_tracker::call::ALL {
+            assert!(manifest.0.contains(&fenix_tracker::service("jira", call)), "jira.tracker.{call}");
+        }
+    }
+
+    #[test]
+    fn the_seam_says_who_it_is_and_keeps_what_blocked_means() {
+        let mut h = jira(true);
+        let about: fenix_tracker::About = serde_json::from_str(&h.serve("jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+        assert_eq!((about.name.as_str(), about.ready, about.sync_minutes), ("Jira", true, 5));
+        assert_eq!(about.browse.as_deref(), Some("https://jira.example.com/browse/{ref}"));
+        assert_eq!(about.can.len(), fenix_tracker::can::ALL.len());
+
+        let remember = serde_json::json!({ "seam": 1, "ref": "OPS-1", "remember": serde_json::json!({ "project": "OPS", "blocked": "10103: On Hold" }).to_string() }).to_string();
+        assert_eq!(h.serve("jira.tracker.remember", &remember), Some(Ok("{}".into())));
+        assert_eq!(h.fake.setting_value("jira.blocked").as_deref(), Some(r#"[["PROJ","flag"],["OPS","10103: On Hold"]]"#));
+        let odd = SeamError::from_err(&h.serve("jira.tracker.remember", r#"{"seam": 1, "remember": "not Jira's"}"#).unwrap().unwrap_err());
+        assert_eq!(odd.code, fenix_tracker::code::BAD_REQUEST);
+
+        let mut h = jira(false);
+        let about: fenix_tracker::About = serde_json::from_str(&h.serve("jira.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+        assert_eq!((about.ready, about.not_ready.as_deref()), (false, Some("Jira isn't set up yet -- set its server and token in SPC , (Jira)")));
+        let err = SeamError::from_err(&h.serve("jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap().unwrap_err());
+        assert_eq!((err.code.as_str(), err.message.as_str()), ("not_set_up", "Jira isn't set up yet -- set its server and token in SPC , (Jira)"));
+        let err = SeamError::from_err(&h.serve("jira.tracker.create", r#"{"seam": 1, "title": "T"}"#).unwrap().unwrap_err());
+        assert_eq!(err.code, "not_set_up");
+    }
+
+    #[test]
+    fn its_page_tells_the_agenda_which_tracker_an_issue_is_from() {
+        assert_eq!(json(&agenda_payload("PROJ-1", Some(true))), serde_json::json!({ "tracker": "jira", "ref": "PROJ-1", "key": "PROJ-1", "clock": true }));
+        assert_eq!(json(&agenda_payload("PROJ-1", None)), serde_json::json!({ "tracker": "jira", "ref": "PROJ-1", "key": "PROJ-1" }));
+    }
+
+    /// Just enough of the manifest: its services.
+    mod toml_lite {
+        pub struct Services(pub Vec<String>);
+
+        pub fn services(manifest: &str) -> Services {
+            let start = manifest.find("services = [").expect("services") + "services = [".len();
+            let end = start + manifest[start..].find(']').expect("]");
+            Services(manifest[start..end].split(',').map(|s| s.trim().trim_matches('"').to_string()).filter(|s| !s.is_empty()).collect())
+        }
+    }
 
     #[test]
     fn not_set_up_names_the_settings_keys_of_the_scheme_in_use() {
