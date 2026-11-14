@@ -1,0 +1,4 @@
+kind-dev
+kind-dev	kind-dev	shop
+prod-eu	gke_acme_europe-west1_prod	payments
+staging	staging	

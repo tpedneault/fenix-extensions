@@ -1,0 +1,26 @@
+Kubernetes   context kind-dev (kubeconfig's)   namespace shop                 kubectl v1.31.2 · server v1.30.4
+1 Workloads 6   2 Pods 7   3 Network 0   4 Secrets 0   5 Forwards 0
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Name                    Ready  Status             Restarts    Age  Node
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+web-7d9c8b6f4-x2k4q     2/2    Running                   1     2d  kind-worker
+web-7d9c8b6f4-q8m2n     2/2    Running                   0     2d  kind-worker2
+web-7d9c8b6f4-zz9pl     0/2    ContainerCreating         0     2m  kind-worker
+api-5f6d7c8b9-abcde     0/1    CrashLoopBackOff         14     4h  kind-worker2
+  │ Delete pod api-5f6d7c8b9-abcde? context kind-dev, namespace shop
+  │ y yes, do it    any other key: no
+db-0                    1/1    Running                   0    44d  kind-worker
+node-exporter-k7x2p     1/1    Running                   0    55d  kind-worker
+migrate-29384520-zx9kq  0/1    Completed                 0    60m  kind-worker2
+
+
+
+
+
+
+
+
+
+
+
+m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  e edit  x…

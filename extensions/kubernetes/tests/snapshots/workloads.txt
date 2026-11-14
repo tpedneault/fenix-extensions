@@ -1,0 +1,24 @@
+Kubernetes   context kind-dev (kubeconfig's)   namespace shop                 kubectl v1.31.2 · server v1.30.4
+1 Workloads 6   2 Pods 7   3 Network 0   4 Secrets 0   5 Forwards 0
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▾ Deployments                                                                                                2
+  ▸ web  2/3 ready                                                                                          2d
+  ▸ api  0/2 ready, 1 up to date                                                                            4h
+▾ StatefulSets                                                                                               1
+  ▸ db  1/1 ready                                                                                          44d
+▾ DaemonSets                                                                                                 1
+  ▸ node-exporter  2/2 ready                                                                               55d
+▾ Jobs                                                                                                       1
+  ▸ migrate-29384520  Complete 1/1                                                                         60m
+▾ CronJobs                                                                                                   1
+  ▸ migrate  0 * * * *                                                                                     44d
+
+
+
+
+
+
+
+
+
+m menu  l logs  ! shell  f forward  i yaml  D describe  c context  n namespace  r reload  / filter  e edit  x…
