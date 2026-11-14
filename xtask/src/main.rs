@@ -339,6 +339,8 @@ fn validate(root: &Path, index: Option<&Path>) -> Result<(), String> {
     for warning in kinds::check_store(&kind_packs)? {
         println!("warn {warning}");
     }
+    let (kinds, markers) = kinds::totals(&kind_packs);
+    println!("project kinds: {kinds} of {} (Fenix's cap), {markers} distinct markers of {}", kinds::MAX_STORE_KINDS, kinds::MAX_STORE_MARKERS);
     screenshots::validate_all(root)?;
     lessons::validate_all(root)?;
     println!("{count} extension(s)");

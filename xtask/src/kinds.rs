@@ -42,6 +42,10 @@ const MAX_MARKERS: usize = 16;
 const MAX_MARKER: usize = 64;
 const MAX_MAIN: usize = 8;
 const MAX_MAIN_PATH: usize = 128;
+/// What Fenix takes across every extension (§6.2): beyond these it leaves
+/// kinds and markers out.
+pub const MAX_STORE_KINDS: usize = 256;
+pub const MAX_STORE_MARKERS: usize = 256;
 
 /// One `[[contributes.project_kinds]]`, with every field Fenix reads and
 /// no other (a typo is an error, as Fenix's own contributions are).
@@ -88,6 +92,9 @@ fn fenix_id(id: &str) -> bool {
 }
 
 fn check_marker(marker: &str) -> Result<(), String> {
+    if marker.chars().any(char::is_control) {
+        return Err(format!("marker {marker:?} has a control character"));
+    }
     if marker.is_empty() || marker.len() > MAX_MARKER {
         return Err(format!("marker {marker:?} is {} bytes: 1 to {MAX_MARKER}", marker.len()));
     }
@@ -134,8 +141,12 @@ fn check_kind(kind: &Declared) -> Result<(), String> {
     if kind.markers.len() > MAX_MARKERS {
         return Err(format!("{} markers -- at most {MAX_MARKERS}", kind.markers.len()));
     }
-    for marker in &kind.markers {
+    for (i, marker) in kind.markers.iter().enumerate() {
         check_marker(marker)?;
+        // Fenix looks for a marker given twice once; here it's a mistake.
+        if kind.markers[..i].contains(marker) {
+            return Err(format!("marker {marker:?} is there twice"));
+        }
     }
     if kind.main.len() > MAX_MAIN {
         return Err(format!("{} main files -- at most {MAX_MAIN}", kind.main.len()));
@@ -154,8 +165,8 @@ fn check_kind(kind: &Declared) -> Result<(), String> {
         return Ok(());
     }
     let name = kind.name.as_deref().ok_or("it needs a name")?;
-    if name.is_empty() || name.chars().count() > MAX_NAME || name.chars().any(char::is_control) {
-        return Err(format!("name {name:?} -- 1 to {MAX_NAME} characters, no control characters"));
+    if name.is_empty() || name.chars().count() > MAX_NAME || name.chars().any(char::is_control) || name.chars().all(char::is_whitespace) {
+        return Err(format!("name {name:?} -- 1 to {MAX_NAME} characters, no control characters, one that isn't whitespace"));
     }
     let tag = kind.tag.as_deref().ok_or("it needs a tag")?;
     if tag.is_empty() || tag.len() > MAX_TAG || !tag.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || matches!(c, '+' | '#' | '.')) || !tag.chars().any(|c| c.is_ascii_uppercase()) {
@@ -228,6 +239,14 @@ pub fn check_pack(dir: &Path) -> Result<Pack, String> {
     Ok(pack)
 }
 
+/// The store's totals against Fenix's caps: distinct kind ids (built-in
+/// ones included) and distinct markers, across every pack.
+pub fn totals(packs: &[Pack]) -> (usize, usize) {
+    let ids: BTreeSet<&str> = packs.iter().flat_map(|p| p.kinds.iter().map(|k| k.id.as_str())).collect();
+    let markers: BTreeSet<&str> = packs.iter().flat_map(|p| p.kinds.iter().flat_map(|k| k.markers.iter().map(String::as_str))).collect();
+    (ids.len(), markers.len())
+}
+
 /// What the whole store says: a kind has one pack, a tag one kind and
 /// none of Fenix's, and a template's kind is one somebody declares.
 /// Returns the warnings (two packs' kinds sharing a marker; a template
@@ -251,6 +270,10 @@ pub fn check_store(packs: &[Pack]) -> Result<Vec<String>, String> {
                 return Err(format!("tag {tag} is on kind {other_id} of {} and on kind {} of {}: a tag marks one kind", other.id, kind.id, pack.id));
             }
         }
+    }
+    let (kinds, markers) = totals(packs);
+    if kinds > MAX_STORE_KINDS || markers > MAX_STORE_MARKERS {
+        return Err(format!("the store declares {kinds} project kinds and {markers} distinct markers: Fenix takes at most {MAX_STORE_KINDS} and {MAX_STORE_MARKERS}"));
     }
     // The same marker on kinds of two packs: whichever Fenix puts first
     // takes the project.
@@ -398,6 +421,8 @@ mod tests {
         for bad in ["a/b", "a\\\\b", "..", "a..b", "*.java", "pom?", "x[1]", "{folder}{folder}", "{folder", "{other}", "a}", "x{folder}{", ".fenix", ".FENIX", ""] {
             refused(&with(bad), "marker");
         }
+        refused(&with("a\\u0007b"), "control character");
+        refused(&kind("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmarkers = [\"a\", \"b\", \"a\"]"), "there twice");
         refused(&with(&"m".repeat(65)), "65 bytes");
         refused(&with(&"é".repeat(33)), "66 bytes");
         for fine in ["pom.xml", "{folder}.sln", "x{folder}y", &"m".repeat(64), ".terraform.lock.hcl", ".fenixignore", "a.b."] {
@@ -406,6 +431,31 @@ mod tests {
         let many = |n: usize| kind(&format!("id = \"java\"\nname = \"Java\"\ntag = \"J\"\nmarkers = [{}]", (0..n).map(|i| format!("\"m{i}\"")).collect::<Vec<_>>().join(", ")));
         check_pack(&pack_dir(&Temp::new("m16"), "x", ">=1.5, <2", &many(16))).unwrap();
         refused(&many(17), "17 markers -- at most 16");
+    }
+
+    #[test]
+    fn a_name_has_a_visible_character() {
+        refused(&kind("id = \"java\"\nname = \"   \"\ntag = \"J\""), "isn't whitespace");
+        refused(&kind("id = \"java\"\nname = \"\\u00a0\"\ntag = \"J\""), "isn't whitespace");
+    }
+
+    #[test]
+    fn the_store_stays_under_fenixs_totals() {
+        let kinds = |n: usize| (0..n).map(|i| (format!("k{i}"), format!("T{i}"), Vec::<String>::new())).collect::<Vec<_>>();
+        let build = |n: usize, per: usize| -> Vec<Pack> {
+            let mut packs = Vec::new();
+            for (i, (id, tag, _)) in kinds(n).into_iter().enumerate() {
+                let mut p = pack(&format!("fenix.p{i}"), &[(&id, &tag, &[])], &[]);
+                p.kinds[0].markers = (0..per).map(|m| format!("m{i}_{m}")).collect();
+                packs.push(p);
+            }
+            packs
+        };
+        let ok = build(256, 1);
+        assert_eq!(totals(&ok), (256, 256));
+        check_store(&ok).unwrap();
+        assert!(check_store(&build(257, 0)).unwrap_err().contains("at most 256"));
+        assert!(check_store(&build(10, 26)).unwrap_err().contains("distinct markers"));
     }
 
     #[test]
@@ -552,5 +602,7 @@ mod tests {
             packs.push(check_pack(&dir).unwrap_or_else(|e| panic!("{e}")));
         }
         check_store(&packs).unwrap();
+        let (kinds, markers) = totals(&packs);
+        assert!(kinds < MAX_STORE_KINDS && markers < MAX_STORE_MARKERS);
     }
 }

@@ -212,14 +212,16 @@ main = ["config.ru"]         # what it opens on when you've had none of its file
 
 - **Markers** are file names, not paths: at most 16, each at most 64
   bytes, no `/`, `\`, `..`, `*`, `?`, `[` or `]`, never `.fenix`,
-  `{folder}` (the folder's own name) at most once and no other braces. A
+  `{folder}` (the folder's own name) at most once and no other braces, no
+  control characters, none given twice. A
   kind's markers say what a project **is**, and one match wins over every
   other kind, so they're narrower than the context's, which only say when
   the pack loads: leave `Rakefile`, `package.json` and the like in the
   context. A kind with no markers is only ever declared (Kotlin among
   Java's Gradle projects, Flutter beside Dart).
 - **`main`**: at most 8 paths below the project, `/` between the parts,
-  `{folder}` allowed, at most 128 bytes each.
+  `{folder}` allowed, at most 128 bytes each, no empty part, no `..`, no
+  `\`, not starting with `/`. A `name` needs a visible character.
 - **At most 8 kinds** to a pack, each id once. Not `other`, `monorepo`
   or an alias Fenix reads (`py`, `uv`, `ino`, `sketch`, `rs`, `c++`, `c`,
   `cmake`, `js`, `ts`, `javascript`, `typescript`, `mib`).
@@ -229,7 +231,9 @@ main = ["config.ru"]         # what it opens on when you've had none of its file
   name, tag, colour and main files stay Fenix's.
 - **Across the store**: one pack to an id, no tag on two kinds and none
   of Fenix's (`PY`, `INO`, `RS`, `TCL`, `C++`, `JS`, `GO`, `MONO`,
-  `DIR`); two packs' kinds sharing a marker is a warning.
+  `DIR`); two packs' kinds sharing a marker is a warning; and the whole
+  store stays under Fenix's 256 kinds and 256 distinct markers (`validate`
+  prints where it stands).
 - **Keep `api` and `fenix` as they are.** Fenix 1.0 to 1.5.2 ignore the
   section, so the pack installs and runs as before without its kind; a
   kind isn't an API, and `validate` doesn't tie it to `engine.api`.
