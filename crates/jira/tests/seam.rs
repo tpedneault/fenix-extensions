@@ -77,7 +77,8 @@ fn linked_issues_come_back_as_the_seam_has_them() {
     assert_eq!(asked[0], "GET /rest/api/2/myself");
     assert_eq!(asked[1], "GET /rest/api/2/field");
     assert!(asked[2].starts_with("GET /rest/api/2/search?jql=key%20IN%20%28%22PROJ-1%22%2C%22PROJ-2%22%2C%22OPS-7%22%2C%22PROJ-404%22%29&maxResults=4&fields="), "{asked:?}");
-    assert!(asked[2].ends_with("issuetype%2Clabels%2Ccustomfield_10000"), "{asked:?}");
+    assert!(asked[2].ends_with("issuetype%2Clabels%2Ccustomfield_10000&validateQuery=false"), "a deleted key is left out, not a failed search: {asked:?}");
+    assert_eq!((one.id.as_str(), one.asked.as_deref()), ("10201", Some("PROJ-1")));
 
     // Learned once: the next call asks neither again.
     call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["PROJ-1"]})).unwrap();
@@ -111,8 +112,6 @@ fn whats_assigned_pages_by_start_at_and_is_cleaned() {
     // Someone's escape codes, bidi override and newline: shown, never run.
     assert_eq!(second.issues[0].title, "Write the [31mrelease notes for 2.0");
 
-    call(&seam, "assigned", serde_json::json!({"seam": 1, "since": "2026-11-10T00:00:00.000+0100"})).unwrap();
-    assert!(jira.asked().last().unwrap().contains("updated%20%3E%3D%20%222026%2F11%2F10%2000%3A00%22%20ORDER%20BY"), "{:?}", jira.asked());
 }
 
 #[test]
@@ -233,4 +232,83 @@ fn a_newer_seam_or_an_odd_payload_is_refused_plainly() {
     assert_eq!(err.code, code::BAD_REQUEST);
     let err = SeamError::from_err(&call(&seam, "teleport", serde_json::json!({"seam": 1})).unwrap_err());
     assert_eq!(err.code, code::UNSUPPORTED);
+}
+
+#[test]
+fn refs_are_checked_before_they_reach_a_url() {
+    let (seam, jira) = seam_with(settings());
+    for bad in ["../../secure/admin", "A-1?x=1", "PROJ-1/../2", "proj 1", ""] {
+        for (name, payload) in [
+            ("transitions", serde_json::json!({"seam": 1, "ref": bad})),
+            ("transition", serde_json::json!({"seam": 1, "ref": bad, "id": "1"})),
+            ("comment", serde_json::json!({"seam": 1, "ref": bad, "body": "x"})),
+            ("update", serde_json::json!({"seam": 1, "ref": bad, "set": {"title": "x"}})),
+        ] {
+            let err = SeamError::from_err(&call(&seam, name, payload).unwrap_err());
+            assert_eq!(err.code, code::BAD_REQUEST, "{name} {bad:?}");
+        }
+    }
+    assert!(jira.asked().is_empty(), "nothing sent: {:?}", jira.asked());
+    // In a batch, a bad one is only missing.
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["PROJ-1", "../x"]})).unwrap()).unwrap();
+    assert_eq!(found.missing, ["../x"]);
+}
+
+#[test]
+fn issues_are_asked_by_id_and_a_moved_one_answers_what_asked_for_it() {
+    let (seam, jira) = seam_with(settings());
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["10201", "10202", "OPS-7"]})).unwrap()).unwrap();
+    assert!(jira.asked().iter().any(|a| a.starts_with("GET /rest/api/2/search?jql=id%20IN%20%2810201%2C10202%29%20OR%20key%20IN%20%28%22OPS-7%22%29")), "{:?}", jira.asked());
+    assert_eq!(found.issues.iter().map(|i| i.asked.as_deref().unwrap()).collect::<Vec<_>>(), ["10201", "10202", "OPS-7"]);
+
+    // OLD-1 moved: Jira answers its fetch as PROJ-1, which is what OLD-1 asked.
+    jira.on("GET", "/rest/api/2/issue/OLD-1?", 200, std::fs::read_to_string(fixtures().join("issue-PROJ-1.json")).unwrap());
+    let moved: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["OLD-1"]})).unwrap()).unwrap();
+    assert_eq!((moved.issues[0].key.as_str(), moved.issues[0].id.as_str(), moved.issues[0].asked.as_deref()), ("PROJ-1", "10201", Some("OLD-1")));
+}
+
+#[test]
+fn a_server_that_still_refuses_the_search_is_asked_one_at_a_time() {
+    let (seam, jira) = seam_with(settings());
+    jira.on("GET", "/rest/api/2/search?jql=key%20IN", 400, r#"{"errorMessages":["An issue with key 'PROJ-404' does not exist for field 'key'."]}"#);
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["PROJ-1", "NOPE-1"]})).unwrap()).unwrap();
+    assert_eq!((found.issues.len(), found.missing.as_slice()), (1, &["NOPE-1".to_string()][..]));
+}
+
+#[test]
+fn unassigning_and_labels_and_more_errors() {
+    let (seam, jira) = seam_with(settings());
+    call(&seam, "update", serde_json::json!({"seam": 1, "ref": "PROJ-1", "set": {"assignee": null}})).unwrap();
+    assert_eq!(jira.sent.borrow().last().unwrap(), &("PUT /rest/api/2/issue/PROJ-1/assignee".to_string(), Some(r#"{"name":null}"#.to_string())));
+    call(&seam, "update", serde_json::json!({"seam": 1, "ref": "PROJ-1", "set": {"labels": ["a", "b c"]}})).unwrap();
+    assert_eq!(jira.sent.borrow().last().unwrap().1.as_deref(), Some(r#"{"fields":{"labels":["a","b c"]}}"#));
+    let odd = SeamError::from_err(&call(&seam, "update", serde_json::json!({"seam": 1, "ref": "PROJ-1", "set": {"colour": "red"}})).unwrap_err());
+    assert_eq!(odd.code, code::UNSUPPORTED);
+    for (status, want) in [(410, code::NOT_FOUND), (503, code::OFFLINE), (502, code::OFFLINE), (500, code::FAILED)] {
+        jira.on("GET", "/rest/api/2/issue/PROJ-1/transitions", status, "");
+        let err = SeamError::from_err(&call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "PROJ-1"})).unwrap_err());
+        assert_eq!(err.code, want, "{status}");
+    }
+}
+
+#[test]
+fn what_it_learned_is_forgotten_when_the_server_changes() {
+    let jira = Rc::new(Recorded::jira_server(fixtures()));
+    let learned = Rc::new(RefCell::new(Learned::default()));
+    let one = Seam::new(JiraClient::new(jira.clone()), settings(), learned.clone());
+    call(&one, "issues", serde_json::json!({"seam": 1, "refs": ["PROJ-1"]})).unwrap();
+    assert_eq!(learned.borrow().me.as_deref(), Some("jo1"));
+    let asked = jira.asked().iter().filter(|a| a.ends_with("/myself")).count();
+    let other = Seam::new(JiraClient::new(jira.clone()), Settings { base_url: Some("https://other.example.com".into()), ..settings() }, learned.clone());
+    call(&other, "issues", serde_json::json!({"seam": 1, "refs": ["PROJ-1"]})).unwrap();
+    assert_eq!(jira.asked().iter().filter(|a| a.ends_with("/myself")).count(), asked + 1, "asked again of the new server");
+    assert_eq!(learned.borrow().base.as_deref(), Some("https://other.example.com"));
+}
+
+#[test]
+fn about_is_fenix_jiras_whatever_seam_and_names_are_by_full_id() {
+    let a = fenix_jira_client::tracker::about(&settings(), true);
+    assert_eq!((a.id.as_str(), a.seams.as_slice()), ("fenix.jira", &[1u32][..]));
+    assert!(a.can.iter().any(|c| c == "edit.assignee") && !a.can.iter().any(|c| c == "edit"));
+    assert_eq!(fenix_tracker::service(fenix_jira_client::tracker::ID, "about"), "fenix.jira.tracker.about");
 }

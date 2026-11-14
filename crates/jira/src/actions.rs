@@ -82,6 +82,18 @@ impl JiraClient {
         self.update_fields(key, serde_json::json!({"duedate": due})).await
     }
 
+    /// Sets every label the issue should have.
+    pub async fn update_labels(&self, key: &str, labels: &[String]) -> Result<(), String> {
+        self.update_fields(key, serde_json::json!({"labels": labels})).await
+    }
+
+    /// `PUT .../assignee` with `{"name": null}`: nobody.
+    pub async fn unassign(&self, key: &str) -> Result<(), String> {
+        let path = format!("/rest/api/2/issue/{key}/assignee");
+        self.send("PUT", &path, &serde_json::json!({"name": null})).await?;
+        Ok(())
+    }
+
     async fn update_fields(&self, key: &str, fields: serde_json::Value) -> Result<(), String> {
         let path = format!("/rest/api/2/issue/{key}");
         self.send("PUT", &path, &serde_json::json!({"fields": fields})).await?;
