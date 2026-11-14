@@ -1,8 +1,8 @@
 [extension]
 id = "fenix.mib"
 name = "SCOS-2000 MIB"
-version = "1.4.0"
-description = "SCOS-2000 MIBs: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them"
+version = "1.5.0"
+description = "SCOS-2000 MIBs, found in the project or opened from anywhere: browse them, telecommands and parameters in your scripts (K, gd, completion, checks), the telecommand insert form with repeated groups and value sets, command sequences, two MIBs compared, and XTCE, C, Python or a Wireshark dissector generated from them"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tpedneault/fenix-extensions"
@@ -29,17 +29,20 @@ on_startup = true
 # Where you are (the call on the cursor's line, the file the insert form
 # goes into), and the telecommand typed into it.
 editor = "write"
-# A project that's a MIB, read; what SPC k g generates, into generated/.
+# The MIBs found in the project, read; what SPC k g generates and SPC k D
+# compares, into its generated/.
 filesystem = "project-write"
-# The MIB folders mib.roots names: each at /folders/mib/<name>.
+# The MIB folders mib.roots names: each at /folders/mib/<name>. A folder
+# opened with SPC k o's "another folder…" is added to your list.
 folders = { mib = "${setting:mib.roots}" }
 # The mission profile packets are read and built against: the CCSDS
 # settings.
 settings = ["ccsds"]
 
 [contributes]
-# The notebook's mib: links; coding agents' mib_lookup.
-services = ["mib.open", "mib.lookup"]
+# The notebook's mib: links; coding agents' mib_lookup; the CCSDS
+# extension asks which MIBs are in use (mib.which).
+services = ["mib.open", "mib.lookup", "mib.which"]
 
 # Agents see it as mib_lookup.
 [[contributes.agent_tools]]
@@ -62,6 +65,11 @@ languages = ["tcl"]
 [[contributes.commands]]
 id = "mib.page"
 title = "MIB: the MIB page -- telecommands, TC and TM parameters, TM packets, calibrations"
+external = true
+
+[[contributes.commands]]
+id = "mib.open"
+title = "MIB: open a MIB -- found in the project, named in the settings, or another folder"
 external = true
 
 [[contributes.commands]]
@@ -103,7 +111,7 @@ title = "MIB: insert a command sequence as the telecommands it sends"
 
 [[contributes.commands]]
 id = "mib.diff"
-title = "MIB: compare two of the project's MIBs, definition by definition"
+title = "MIB: compare two MIBs, definition by definition"
 external = true
 
 [[contributes.commands]]
@@ -128,13 +136,13 @@ key = "mib.roots"
 kind = "map"
 columns = ["Name", "Folder"]
 label = "MIBs"
-description = "The MIB folders: their .dat tables -- or, in a project, an XTCE file relative to it. A project's own list takes the place of yours in that project; a folder in a project can be relative to it."
+description = "MIB folders besides those found in the project (SPC k o adds one to yours): their .dat tables -- or, in a project, an XTCE file relative to it. A project's own list takes the place of yours in that project; a folder in a project can be relative to it. Those named here are used together, until SPC k o picks one."
 project = true
 
 [[contributes.settings]]
 key = "mib.default"
 label = "Default MIB"
-description = "The MIB whose definition is used when several define the same name; empty, the first."
+description = "Of the MIBs used together (those mib.roots names), the one whose definition is used when several define the same name; empty, the first."
 project = true
 
 [[contributes.settings]]

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+- **Packets are named through the MIB you have open.** The MIBs the CCSDS
+  extension decodes against are the ones the MIB extension (1.5) has in
+  use: the one picked with `SPC k o` in the project, the MIBs your
+  settings name, or the one found anywhere in the project -- where 1.3
+  looked only at `mib.roots`, then the project's `mib/` or its top. When
+  the pick changes, the CCSDS extension follows. Without the MIB
+  extension it follows the same rule, without a pick.
+
 ## 1.3.0
 
 - For Fenix 1.5 (extension API 1.5): what it says names the keys of the

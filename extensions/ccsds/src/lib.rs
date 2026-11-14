@@ -6,9 +6,12 @@
 //! an on-board time anywhere, and the mission clock in the modeline.
 //!
 //! The mission's profile is its `ccsds.*` settings, the project's over
-//! yours. Packets are named through the MIB: the same MIBs the MIB
-//! extension reads (`mib.roots`, `permissions.settings = ["mib"]`), read
-//! here with the shared crate. Live sources come over its sockets, held
+//! yours. Packets are named through the MIB: the MIBs the MIB extension
+//! has in use -- it says which (`mib.which`, and `ccsds.mib` when they
+//! change), the one picked in the project included -- read here with the
+//! shared crate. Without the MIB extension, the shared crate's rule
+//! (`fenix_mib::which`) on `mib.roots` (`permissions.settings = ["mib"]`)
+//! and the MIBs found in the project. Live sources come over its sockets, held
 //! to the addresses `ccsds.sources` lists; it only receives.
 
 mod agent;
@@ -158,6 +161,12 @@ pub(crate) struct Ccsds {
     next_search: u64,
     /// Services it called: what to say when there's none.
     calls: HashMap<u64, String>,
+    /// The MIBs in use as the MIB extension said, once it has.
+    told: Option<Vec<MibRoot>>,
+    /// Its question to the MIB extension (`mib.which`), while unanswered.
+    asked_which: Option<u64>,
+    /// Without the MIB extension: the project looked through for MIBs.
+    found: Option<fenix_mib::which::Walk>,
 }
 
 /// What a set of MIBs was read from.
@@ -218,26 +227,34 @@ fn wants_the_reader(what: &str, keys: &str) -> String {
     format!("{what} the PDF reader, the fenix.pdf extension: {keys} installs it")
 }
 
-/// The MIBs here, as the MIB extension reads them: those `mib.roots`
-/// names, else the project when it's a MIB.
-fn mib_key() -> MibKey {
+/// How the MIBs are read: `mib.icd`, `mib.icd_per_mib`, `mib.columns`.
+fn read_options() -> fenix_mib::ReadOptions {
     use fenix_mib::{schema, Icd, Schema};
     let map = |key: &str| text(key).map(|t| map_entries(&t)).unwrap_or_default();
-    let mut roots: Vec<MibRoot> = map("mib.roots").into_iter().filter_map(|(label, value)| Some(MibRoot { path: fenix_mib::root_path(&label, &value, Path::new(MIBS), Path::new(PROJECT))?, label })).collect();
-    if roots.is_empty() {
-        let tables = ["vdf.dat", "ccf.dat", "pcf.dat", "pid.dat", "tpcf.dat", "caf.dat", "txf.dat"];
-        let root = Path::new(PROJECT);
-        if let Some(dir) = [root.join("mib"), root.to_path_buf()].into_iter().find(|d| tables.iter().any(|t| d.join(t).is_file())) {
-            roots.push(MibRoot { label: "project".into(), path: dir });
-        }
-    }
     let issue = |t: &str| if t.trim() == "auto" { None } else { Some(Icd::parse(t).unwrap_or(Icd::LATEST)) };
     let schema = Schema {
         icd: text("mib.icd").map_or(Some(Icd::LATEST), |t| issue(&t)),
         per_root: map("mib.icd_per_mib").into_iter().map(|(label, t)| (label, issue(&t))).collect(),
         columns: map("mib.columns").into_iter().map(|(t, c)| (t.trim().to_ascii_lowercase(), schema::parse_columns(&c))).collect(),
     };
-    MibKey { roots, default: text("mib.default"), options: fenix_mib::ReadOptions { schema, ..Default::default() } }
+    fenix_mib::ReadOptions { schema, ..Default::default() }
+}
+
+/// The MIBs the MIB extension said are in use (`{"roots": [[name,
+/// folder], ...]}`), each where it is in this extension's sandbox too.
+fn told_roots(answer: &str) -> Option<Vec<MibRoot>> {
+    let v: serde_json::Value = serde_json::from_str(answer).ok()?;
+    let roots: Vec<(String, String)> = serde_json::from_value(v.get("roots")?.clone()).ok()?;
+    Some(roots.into_iter().map(|(label, path)| MibRoot { label, path: PathBuf::from(path) }).collect())
+}
+
+/// The MIBs in use by the shared rule, as the MIB extension has it when
+/// nothing's picked: `found`, what the project was found to hold.
+fn rule_roots(found: &[fenix_mib::which::Found], named: &[(String, String)], places: &fenix_mib::which::Places) -> Vec<MibRoot> {
+    use fenix_mib::which;
+    let project_lists = std::fs::read_to_string(places.project.join(".fenix/settings.toml")).ok().and_then(|t| t.parse::<toml::Table>().ok()).and_then(|t| t.get("mib")?.get("roots")?.as_table().map(|r| !r.is_empty())).unwrap_or(false);
+    let known = which::known(found, named, project_lists, None, places);
+    which::in_use(&known, None).used.iter().filter_map(|k| k.root()).collect()
 }
 
 /// The live sources the project (or you) lists.
@@ -362,9 +379,49 @@ fn longest_hex(line: &str) -> Option<Vec<u8>> {
 // -- The MIBs ------------------------------------------------------------------
 
 impl Ccsds {
+    /// The MIBs in use: as the MIB extension said; else -- before it has,
+    /// or without it -- by the shared rule: the project's `mib/` and top
+    /// until it answers, the project looked through when it can't.
+    fn mib_key(&mut self) -> MibKey {
+        let roots = match &self.told {
+            Some(roots) => roots.clone(),
+            None => {
+                let found = match &self.found {
+                    Some(walk) => walk.found.clone(),
+                    None => {
+                        let project = Path::new(PROJECT);
+                        [fenix_mib::which::probe(&project.join("mib"), "mib"), fenix_mib::which::probe(project, "")].into_iter().flatten().collect()
+                    }
+                };
+                let named = text("mib.roots").map(|t| map_entries(&t)).unwrap_or_default();
+                let here = api::here().and_then(|h| h.project);
+                let name = here.as_ref().map(|p| p.name.clone()).unwrap_or_else(|| "the project".into());
+                let places = fenix_mib::which::Places { project: Path::new(PROJECT), folders: Path::new(MIBS), project_path: here.as_ref().map(|p| p.root.as_str()), project_name: &name };
+                rule_roots(&found, &named, &places)
+            }
+        };
+        MibKey { roots, default: text("mib.default"), options: read_options() }
+    }
+
+    /// The MIB extension asked which MIBs are in use.
+    fn ask_which(&mut self) {
+        if self.asked_which.is_none() {
+            self.asked_which = Some(api::call_service("mib.which", "{}"));
+        }
+    }
+
+    /// What the MIB extension said is in use, or that it's not there.
+    fn told(&mut self, answer: Result<String, String>) {
+        match answer.ok().as_deref().and_then(told_roots) {
+            Some(roots) => self.told = Some(roots),
+            None if self.found.is_none() && Path::new(PROJECT).is_dir() => self.found = Some(fenix_mib::which::walk(Path::new(PROJECT), fenix_mib::which::BOUNDS)),
+            None => {}
+        }
+    }
+
     /// The MIBs here, read now if they weren't.
     fn set(&mut self) -> Option<Arc<MibSet>> {
-        let key = mib_key();
+        let key = self.mib_key();
         if key.roots.is_empty() {
             return None;
         }
@@ -1143,6 +1200,9 @@ impl Ccsds {
     /// A service answered: a standards search's hits, or why one it
     /// called couldn't be.
     fn replied(&mut self, call: u64, answer: Result<String, String>) {
+        if self.asked_which == Some(call) {
+            return self.told(answer);
+        }
         if let Some((page, standard, search)) = self.searches.remove(&call) {
             if self.searched.get(&page) != Some(&search) {
                 return;
@@ -1287,6 +1347,7 @@ impl LanguageServer for Ccsds {
 impl Extension for CcsdsExtension {
     fn activate(&mut self) -> Result<(), String> {
         self.ccsds.clock();
+        self.ccsds.ask_which();
         Ok(())
     }
 
@@ -1359,6 +1420,14 @@ impl Extension for CcsdsExtension {
         let call: serde_json::Value = serde_json::from_str(payload).unwrap_or(serde_json::Value::Null);
         let field = |key: &str| call.get(key).and_then(|v| v.as_str()).map(str::to_string);
         let answer = match name {
+            // The MIB extension: the MIBs in use changed.
+            "ccsds.mib" => match told_roots(payload) {
+                Some(roots) => {
+                    self.ccsds.told = Some(roots);
+                    Ok(String::new())
+                }
+                None => Err("ccsds.mib: {\"roots\": [[name, folder], ...]}".into()),
+            },
             "ccsds.hex" => match field("path") {
                 Some(path) => {
                     self.ccsds.open_hex(&path, None);
@@ -1428,5 +1497,42 @@ mod tests {
         assert_eq!(wants_the_reader("standards open in", "C-k h x"), "standards open in the PDF reader, the fenix.pdf extension: C-k h x installs it");
         // Natively there's no Fenix to ask: its Vim keys.
         assert_eq!(extensions_keys(), "SPC h x");
+    }
+
+    fn mib(dir: &Path) {
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("ccf.dat"), "").unwrap();
+        std::fs::write(dir.join("pid.dat"), "").unwrap();
+    }
+
+    #[test]
+    fn the_mibs_in_use_are_those_the_mib_extension_says() {
+        let roots = told_roots(r#"{"roots":[["db/sim","/project/db/sim"],["OPS","/folders/mib/OPS"]]}"#).unwrap();
+        assert_eq!(roots, vec![MibRoot { label: "db/sim".into(), path: "/project/db/sim".into() }, MibRoot { label: "OPS".into(), path: "/folders/mib/OPS".into() }]);
+        assert_eq!(told_roots(r#"{"roots":[]}"#), Some(Vec::new()), "none in use is an answer");
+        assert_eq!(told_roots("no"), None);
+    }
+
+    #[test]
+    fn without_the_mib_extension_the_shared_rule_is_followed() {
+        let project = tempfile::tempdir().unwrap();
+        fn places(p: &Path) -> fenix_mib::which::Places<'_> {
+            fenix_mib::which::Places { project: p, folders: Path::new("/nowhere"), project_path: Some("/home/me/mission"), project_name: "mission" }
+        }
+        // A MIB anywhere in it, the only one: in use, as the MIB extension
+        // has it -- not only mib/ or the top, as 1.3 had it.
+        mib(&project.path().join("db/ops"));
+        mib(&project.path().join("tests/fixtures/ops"));
+        let found = fenix_mib::which::walk(project.path(), fenix_mib::which::BOUNDS).found;
+        let roots = rule_roots(&found, &[], &places(project.path()));
+        assert_eq!(roots, vec![MibRoot { label: "db/ops".into(), path: project.path().join("db/ops") }]);
+        // Two: none, until one is picked.
+        mib(&project.path().join("db/sim"));
+        let found = fenix_mib::which::walk(project.path(), fenix_mib::which::BOUNDS).found;
+        assert!(rule_roots(&found, &[], &places(project.path())).is_empty());
+        // mib/, by the project's name, as the MIB extension labels it.
+        mib(&project.path().join("mib"));
+        let found = fenix_mib::which::walk(project.path(), fenix_mib::which::BOUNDS).found;
+        assert_eq!(rule_roots(&found, &[], &places(project.path())), vec![MibRoot { label: "mission".into(), path: project.path().join("mib") }]);
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "fenix-mib"
-version = "1.1.2"
+version = "1.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
@@ -10,6 +10,9 @@ description = "SCOS-2000 MIBs (and XTCE) read, checked, queried and generated fr
 fenix-ccsds = { path = "../ccsds" }
 roxmltree = "0.20"
 serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
 
 # Built with whichever extension uses it.
 [workspace]

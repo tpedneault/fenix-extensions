@@ -12,6 +12,11 @@ label = "MIB page"
 command = "mib.page"
 
 [[leader]]
+keys = "SPC k o"
+label = "open a MIB"
+command = "mib.open"
+
+[[leader]]
 keys = "SPC k /"
 label = "search every kind"
 command = "mib.search"
@@ -120,6 +125,11 @@ command = "mib.calibration"
 keys = "m"
 label = "MIB page"
 command = "mib.page"
+
+[[local.tcl]]
+keys = "o"
+label = "open a MIB"
+command = "mib.open"
 
 [[local.tcl]]
 keys = "r"

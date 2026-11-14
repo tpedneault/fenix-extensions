@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+- A repository of Tcl procedures with its MIB in it (`main.tcl` and
+  `mib/ccf.dat`, or tables beside the scripts) is a Tcl project: the
+  project doctor checks Tcl and Universal Ctags there. MIB tables no
+  longer make it a MIB project, on any Fenix.
+
 ## 1.2.0
 
 - The hints that named a leader sequence (`SPC m s`, `SPC m T`) say the keys
