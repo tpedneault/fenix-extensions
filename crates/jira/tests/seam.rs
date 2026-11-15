@@ -55,7 +55,8 @@ fn linked_issues_come_back_as_the_seam_has_them() {
     assert_eq!(one.url.as_deref(), Some("https://jira.example.com/browse/PROJ-1"));
     assert_eq!(one.project.as_deref(), Some("PROJ"));
     assert_eq!(one.title, "Fix the login timeout");
-    assert_eq!(one.body, "Users are logged out after 5 minutes.\n\n*Steps*\n# Log in\n# Wait", "wiki markup as it is, line ends as \\n");
+    assert_eq!(one.body, "Users are logged out after 5 minutes.\r\n\r\n*Steps*\r\n# Log in\r\n# Wait", "wiki markup as Jira has it, byte for byte");
+    assert_eq!(fenix_tracker::clean::text(&one.body, 10_000).0, "Users are logged out after 5 minutes.\n\n*Steps*\n# Log in\n# Wait", "line ends as \\n to be shown");
     assert_eq!((one.state.id.as_str(), one.state.name.as_str(), one.state.stage.as_str(), one.state.column.as_str()), ("3", "In Progress", "doing", "doing"));
     assert_eq!(one.priority.as_ref().map(|p| (p.name.as_str(), p.level.as_deref())), Some(("Major", Some("high"))));
     assert_eq!(one.assignee.as_ref().map(|p| (p.id.as_str(), p.name.as_str())), Some(("jo1", "Jo Bloggs")));
@@ -109,8 +110,10 @@ fn whats_assigned_pages_by_start_at_and_is_cleaned() {
     );
     let second: Page = serde_json::from_str(&call(&seam, "assigned", serde_json::json!({"seam": 1, "limit": 2, "cursor": "2"})).unwrap()).unwrap();
     assert_eq!(second.next, None);
-    // Someone's escape codes, bidi override and newline: shown, never run.
-    assert_eq!(second.issues[0].title, "Write the [31mrelease notes for 2.0");
+    // Someone's escape codes, bidi override and newline: kept as they came,
+    // to write back unchanged; shown cleaned, never run.
+    assert_eq!(second.issues[0].title, "Write the \u{1b}[31mrelease\u{202e} notes\nfor 2.0");
+    assert_eq!(fenix_tracker::clean::line(&second.issues[0].title, 200), "Write the [31mrelease notes for 2.0");
 
 }
 

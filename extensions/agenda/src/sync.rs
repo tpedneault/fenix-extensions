@@ -10,6 +10,7 @@
 //! once the job's answer has come (`Agenda::take_done`).
 
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::time::{Duration, Instant};
@@ -62,10 +63,10 @@ pub struct Sync {
     pub probe_again: bool,
     /// Commands waiting for the asking to be done.
     pub waiting: Vec<Then>,
-    /// The op being sent -- one at a time, in order, whichever tracker
-    /// it's for, so a title change can't overtake the move queued before
-    /// it.
-    pub in_flight: Option<u64>,
+    /// The op being sent to each tracker -- one at a time each, in order,
+    /// so a title change can't overtake the move queued before it; one
+    /// tracker that's slow to answer holds only its own.
+    pub in_flight: HashMap<String, u64>,
     pub round: Option<Round>,
     /// Pull again once the outbox empties (a comment was posted).
     pub pull_after_drain: bool,
@@ -127,6 +128,8 @@ pub enum Pick {
     /// A change that may have been made: send it again, or forget it.
     SendAgain,
     Forget,
+    /// Changes the tracker dropped: what to do with them.
+    Dropped(crate::model::DroppedChoice),
 }
 
 /// What an issue fetch was for.
@@ -146,6 +149,8 @@ pub struct WorklogSent {
     pub entries: Vec<usize>,
     pub key: String,
     pub minutes: i64,
+    /// The `op` it went with.
+    pub op: String,
     pub result: Result<(), SeamError>,
 }
 
@@ -198,6 +203,11 @@ thread_local! {
 /// Jobs that have ended since the agenda last looked.
 pub fn take_done() -> Vec<Done> {
     DONE.with(|d| std::mem::take(&mut *d.borrow_mut()))
+}
+
+/// A job's end, for `take_done`.
+fn finish(done: Done) {
+    DONE.with(|d| d.borrow_mut().push(done));
 }
 
 /// Runs `job`; what it ends with comes to `take_done`.
@@ -257,12 +267,13 @@ pub fn pull(via: Via, asked: Vec<String>) {
     });
 }
 
-/// One op from the outbox, sent, with its `op`.
-pub fn send_op(via: Via, op: PendingOp, key: String) {
+/// One op from the outbox, sent with its `op` to the issue `asked` (its
+/// id once known); `key` is its ref, to say it by.
+pub fn send_op(via: Via, op: PendingOp, asked: String, key: String) {
     spawn(async move {
         let uid = (!op.uid.is_empty()).then(|| op.uid.clone());
-        let update = |change: seam::Change| seam::Update::new(&key, &change, uid.clone());
-        let transition = |id: String| seam::Transition { seam: seam::SEAM, key: key.clone(), id, op: uid.clone() };
+        let update = |change: seam::Change| seam::Update::new(&asked, &change, uid.clone());
+        let transition = |id: String| seam::Transition { seam: seam::SEAM, key: asked.clone(), id, op: uid.clone() };
         let result = match &op.kind {
             OpKind::SetSummary(s) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Title(s.clone()))).await,
             OpKind::SetDescription(s) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Body(s.clone()))).await,
@@ -272,7 +283,7 @@ pub fn send_op(via: Via, op: PendingOp, key: String) {
                 let who = (!id.is_empty()).then(|| seam::Person { id: id.clone(), name: name.clone() });
                 via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Assignee(who))).await
             }
-            OpKind::AddComment(body) => via.put::<seam::Said>(call::COMMENT, &seam::NewComment { seam: seam::SEAM, key: key.clone(), body: body.clone(), op: uid.clone() }).await,
+            OpKind::AddComment(body) => via.put::<seam::Said>(call::COMMENT, &seam::NewComment { seam: seam::SEAM, key: asked.clone(), body: body.clone(), op: uid.clone() }).await,
             OpKind::Transition { id, .. } => via.put::<seam::Said>(call::TRANSITION, &transition(id.clone())).await,
             OpKind::SetFlag(on) => via.put::<seam::Said>(call::TRANSITION, &transition(crate::legacy::flag_move(*on).into())).await,
         };
@@ -341,23 +352,37 @@ pub fn assigned(purpose: IssueFetch, vias: Vec<Via>, most: u32) {
     });
 }
 
-/// Issue `key`, from the first of `vias` that has it.
+/// Issue `key`, from the first of `vias` that has it: all asked at once,
+/// so one slow to answer doesn't hold the others back.
 pub fn issue(purpose: IssueFetch, vias: Vec<Via>, key: String) {
-    spawn(async move {
-        let mut failures = Vec::new();
-        for via in vias {
-            match via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(vec![key.clone()])).await {
-                Ok(found) => {
-                    if let Some(issue) = found.cleaned().issues.into_iter().next() {
-                        return Done::Issues { purpose, found: vec![(via.id, issue)], failures: Vec::new() };
-                    }
-                    failures.push((via.id.clone(), SeamError::new(code::NOT_FOUND, format!("{} returned no issue", via.name))));
-                }
-                Err(err) => failures.push((via.id.clone(), err)),
+    type Answers = Rc<RefCell<Vec<Option<Result<Option<Issue>, SeamError>>>>>;
+    let answers: Answers = Rc::new(RefCell::new(vec![None; vias.len()]));
+    let names: Vec<(String, String)> = vias.iter().map(|v| (v.id.clone(), v.name.clone())).collect();
+    if vias.is_empty() {
+        return spawn(async move { Done::Issues { purpose, found: Vec::new(), failures: Vec::new() } });
+    }
+    let purpose = Rc::new(RefCell::new(Some(purpose)));
+    for (i, via) in vias.into_iter().enumerate() {
+        let (answers, names, purpose, key) = (answers.clone(), names.clone(), purpose.clone(), key.clone());
+        crate::calls::spawn(async move {
+            let got = via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(vec![key])).await.map(|f| f.cleaned().issues.into_iter().next());
+            answers.borrow_mut()[i] = Some(got);
+            if answers.borrow().iter().any(Option::is_none) {
+                return;
             }
-        }
-        Done::Issues { purpose, found: Vec::new(), failures }
-    });
+            let Some(purpose) = purpose.borrow_mut().take() else { return };
+            let mut failures = Vec::new();
+            for ((id, name), got) in names.into_iter().zip(answers.borrow_mut().drain(..)) {
+                match got {
+                    Some(Ok(Some(issue))) => return finish(Done::Issues { purpose, found: vec![(id, issue)], failures: Vec::new() }),
+                    Some(Ok(None)) => failures.push((id, SeamError::new(code::NOT_FOUND, format!("{name} returned no issue")))),
+                    Some(Err(err)) => failures.push((id, err)),
+                    None => {}
+                }
+            }
+            finish(Done::Issues { purpose, found: Vec::new(), failures });
+        });
+    }
 }
 
 pub fn worklogs(rows: Vec<(Via, WorklogRow, String)>) {
@@ -365,9 +390,9 @@ pub fn worklogs(rows: Vec<(Via, WorklogRow, String)>) {
         let mut results = Vec::new();
         for (via, row, op) in rows {
             let started = row.started.to_rfc3339_opts(chrono::SecondsFormat::Millis, false);
-            let req = seam::Worklog { seam: seam::SEAM, key: row.key.clone(), seconds: row.minutes * 60, started, op: Some(op) };
+            let req = seam::Worklog { seam: seam::SEAM, key: row.asked.clone(), seconds: row.minutes * 60, started, op: Some(op.clone()) };
             let result = via.write(call::WORKLOG, &req).await.map(|_| ());
-            results.push(WorklogSent { task: row.task, entries: row.entries, key: row.key, minutes: row.minutes, result });
+            results.push(WorklogSent { task: row.task, entries: row.entries, key: row.key, minutes: row.minutes, op, result });
         }
         Done::WorklogsSent(results)
     });
@@ -430,6 +455,7 @@ pub fn remote_update(i: &Issue) -> RemoteUpdate {
             url: i.url.clone(),
             project: i.project.clone(),
             description_cut: i.body_cut,
+            title_cut: i.title_cut,
         },
         status: model::link::status_for_column(&i.state.column),
         priority: model::link::priority_for_level(i.priority.as_ref().and_then(|p| p.level.as_deref())),

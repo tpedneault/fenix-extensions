@@ -251,6 +251,8 @@ pub enum Action {
     WorklogMinutes(TaskId, NaiveDate, i64),
     WorklogDrop(TaskId, NaiveDate),
     WorklogDismiss(TaskId, NaiveDate),
+    /// A worklog that may have been logged, sent again with its `op`.
+    WorklogResend(TaskId, NaiveDate),
     SendWorklogs,
     /// The week as text, for the clipboard.
     Copy(String),
@@ -560,7 +562,7 @@ impl AgendaPage {
 
         let mut needs: Vec<Row> = tasks
             .iter()
-            .filter(|t| t.link.as_ref().is_some_and(|l| !l.conflicts.is_empty() || l.error.is_some()))
+            .filter(|t| t.link.as_ref().is_some_and(|l| !l.conflicts.is_empty() || l.error.is_some() || !l.dropped.is_empty()))
             .map(|t| Row::Task(t.id))
             .collect();
         if ctx.worklogs.iter().any(|r| r.minutes > 0) {
@@ -1430,6 +1432,11 @@ impl AgendaPage {
                     return Action::WorklogDismiss(r.task, r.date);
                 }
             }
+            Key::Char('s') => {
+                if let Some(r) = row.filter(|r| r.maybe.is_some()) {
+                    return Action::WorklogResend(r.task, r.date);
+                }
+            }
             Key::Char('W') => return Action::SendWorklogs,
             _ => {}
         }
@@ -1746,6 +1753,9 @@ fn sync_mark(ctx: &Ctx, t: &Task) -> Option<(String, Role)> {
     }
     if let Some(err) = &link.error {
         return Some((format!("⚠ not synced: {}", fit(err, 40)), Role::Bad));
+    }
+    if let Some(d) = link.dropped.first() {
+        return Some((format!("⚠ not taken: {}", fit(&d.kind.describe(), 30)), Role::Bad));
     }
     if link.resolving || ctx.store.pending_for(t.id).next().is_some() {
         return Some(("↑".to_string(), Role::Warn));
@@ -2270,6 +2280,10 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
             g.put(*y, left + 1, &fit(&format!("⚠ {tracker} refused the last change: {err} -- r retries"), width - 1), Role::Bad);
             *y += 1;
         }
+        for d in &link.dropped {
+            g.put(*y, left + 1, &fit(&format!("⚠ {tracker} won't take a change ({}): {} -- kept here only; r sends it again or takes {tracker}'s back", d.kind.describe(), d.why), width - 1), Role::Bad);
+            *y += 1;
+        }
     }
 
     // Description.
@@ -2488,13 +2502,14 @@ fn popups(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, line: usize, left: usize, 
                 (format!("{:<10}", r.key), Role::Accent),
                 (format!("{:<32}", fit(&r.title, 30)), if on { Role::Title } else { Role::Text }),
                 (amount, Role::Text),
+                (if r.maybe.is_some() { "  ⚠ may have been logged -- s sends again, x it was".to_string() } else { String::new() }, Role::Warn),
             ]);
         }
         rows.push(Vec::new());
         if total > 0 {
             rows.push(vec![(format!("Total {}", format_minutes(total)), Role::Title)]);
         }
-        rows.push(vec![("e amount · D leave out · x never send · W send all · Esc close".into(), Role::Muted)]);
+        rows.push(vec![("e amount · D leave out · x never send · W send all · s send again · Esc close".into(), Role::Muted)]);
         g.popup = Some(Popup { line, col, rows });
         return;
     }

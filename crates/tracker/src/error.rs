@@ -55,10 +55,12 @@ impl SeamError {
         self.is(code::OFFLINE) || self.is(code::RATE_LIMITED)
     }
 
-    /// The tracker doesn't take this: a call, a field or a version it
-    /// doesn't serve, or a request it can't read. Retrying won't help.
+    /// The tracker will never take this: a call, a field or a version it
+    /// doesn't serve. Only `unsupported` says so: `bad_request` may be
+    /// this change at this moment (Linear's `BAD_USER_INPUT` for a state
+    /// from the issue's old team), so it waits for you like `refused`.
     pub fn never(&self) -> bool {
-        self.is(code::UNSUPPORTED) || self.is(code::BAD_REQUEST)
+        self.is(code::UNSUPPORTED)
     }
 
     /// Fenix's answer for a tracker that isn't installed.

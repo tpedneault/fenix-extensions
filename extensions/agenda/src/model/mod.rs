@@ -8,8 +8,8 @@ mod store;
 mod sync;
 mod task;
 
-pub use link::{Conflict, IssueLink, OpKind, PendingOp, RemoteComment, RemoteSnapshot, RemoteUpdate, SyncField};
-pub use persist::{load, reload, save};
+pub use link::{Conflict, Dropped, IssueLink, OpKind, PendingOp, RemoteComment, RemoteSnapshot, RemoteUpdate, SyncField};
+pub use persist::{load, reload, save, LINKS};
 pub use store::{ActiveTimer, AgendaStore};
-pub use sync::{parse_due, WorklogRow};
+pub use sync::{nonce, parse_due, DroppedChoice, WorklogRow};
 pub use task::{CodeRef, NoteEntry, Priority, Status, Subtask, Task, TaskId, TimeEntry, TimeSource};

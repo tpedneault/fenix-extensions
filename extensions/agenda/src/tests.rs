@@ -281,7 +281,7 @@ fn worklogs_go_to_the_tracker_that_takes_them_on_their_day() {
     w.h.ext.store.log_manual_time(id, chrono::Duration::minutes(50));
     w.act(A::SendWorklogs);
     let sent = t.worklogs();
-    assert_eq!((sent[0].key.as_str(), sent[0].seconds), ("FAKE-1", 45 * 60), "rounded to 15 minutes");
+    assert_eq!((sent[0].key.as_str(), sent[0].seconds), ("id-FAKE-1", 45 * 60), "rounded to 15 minutes, to the issue by its id");
     assert!(chrono::DateTime::parse_from_rfc3339(&sent[0].started).is_ok(), "{}", sent[0].started);
     assert!(w.h.ext.store.worklog_batch(15, |_| true).is_empty());
 
@@ -406,13 +406,24 @@ fn what_a_tracker_sends_is_cleaned_and_capped_and_a_cut_body_isnt_written_back()
     t.add(seam::Issue { key: "BAD REF".into(), ..FakeTracker::issue("X-1", "dropped") });
     let mut w = world("untrusted", &[("acme.fake", &t)]);
     let id = w.add("acme.fake", "FAKE-1");
+    // Kept as the tracker has it, to write back unchanged; shown cleaned.
     let task = w.task(id);
-    assert_eq!(task.title, "Fix[2J the thing now");
+    assert_eq!(task.title, "Fix\u{1b}[2J the\u{202e} thing\nnow");
     assert!(task.description.len() <= seam::clean::BODY_BYTES);
     let base = &task.link.as_ref().unwrap().base;
     assert!(base.description_cut);
-    assert_eq!((base.url.as_deref(), base.status_name.as_str()), (None, "Open for good"));
+    assert_eq!((base.url.as_deref(), base.status_name.as_str()), (None, "Open\r\nfor good"));
+    let shown = w.h.ext.store.shown();
+    let (task, base) = (shown.task(id).unwrap(), &shown.task(id).unwrap().link.as_ref().unwrap().base);
+    assert_eq!(task.title, "Fix[2J the thing now");
+    assert_eq!(base.status_name, "Open for good");
     assert_eq!((base.comments[0].author.as_str(), base.comments[0].body.as_str()), ("Mallory", "hi"));
+    w.h.serve("agenda.open_task", r#"{"tracker": "acme.fake", "ref": "FAKE-1"}"#);
+    let page = w.h.page("agenda");
+    let screen = w.h.screen(page);
+    assert!(screen.contains("Fix[2J the thing now") && !screen.contains('\u{1b}') && !screen.contains('\u{202e}'), "{screen}");
+    let tasks = w.h.serve("agenda.tasks", "{}").unwrap().unwrap();
+    assert!(tasks.contains("Fix[2J the thing now"), "an agent is given it cleaned: {tasks}");
 
     w.h.fake.on_prompt("Description", "shorter");
     w.act(A::EditDescription(id));
@@ -593,10 +604,10 @@ mod jira {
             assert_eq!((old.status, old.priority, old.mine), (new.status, new.priority, new.mine), "{}", o.summary);
             assert_eq!((&o.summary, &o.status_id, &o.status_name, &o.priority), (&n.summary, &n.status_id, &n.status_name, &n.priority));
             assert_eq!((&o.assignee, &o.assignee_id, &o.updated, &o.due, &o.comments), (&n.assignee, &n.assignee_id, &n.updated, &n.due, &n.comments));
-            // What differs is what the seam says another way: line ends
-            // cleaned, the stage in its own words, the Flagged field as
-            // the column it puts the issue in.
-            assert_eq!(o.description.replace("\r\n", "\n"), n.description);
+            // What differs is what the seam says another way: the stage
+            // in its own words, the Flagged field as the column it puts
+            // the issue in. The text is Jira's, as it was.
+            assert_eq!(o.description, n.description);
             assert_eq!(fenix_jira_client::tracker::stage(&o.status_category), n.status_category);
             assert_eq!(o.flagged, n.column.as_deref() == Some("blocked") && n.status_id != "10103");
         }
@@ -637,9 +648,10 @@ mod jira {
         assert_eq!((w.task(id).title.as_str(), w.task(id).status), ("Fix the login timeout", Status::InProgress));
         assert!(jira.asked().iter().any(|a| a.starts_with("GET /rest/api/2/issue/PROJ-1?")));
 
-        // Blocked in PROJ is On Hold: one transition, by Jira's own id.
+        // Blocked in PROJ is On Hold: one transition, by Jira's own id,
+        // to the issue by its id (10201), which outlives a move.
         w.set_status(id, Status::Blocked);
-        assert_eq!(jira.sent.borrow().last().unwrap(), &("POST /rest/api/2/issue/PROJ-1/transitions".to_string(), Some(r#"{"transition":{"id":"41"}}"#.to_string())));
+        assert_eq!(jira.sent.borrow().last().unwrap(), &("POST /rest/api/2/issue/10201/transitions".to_string(), Some(r#"{"transition":{"id":"41"}}"#.to_string())));
         assert_eq!(w.last_said(), "PROJ-1: moved to On Hold");
         w.no_secrets();
         assert!(blocked.borrow().is_empty());
@@ -662,7 +674,7 @@ mod jira {
         assert!(w.said().contains(&"Pick what Blocked means in PROJ -- asked once, then remembered (b on the project in SPC j j changes it)".to_string()), "{:?}", w.said());
         assert!(w.said().contains(&"Blocked in PROJ now flags the issue as an impediment".to_string()));
         let sent = jira.sent.borrow().clone();
-        assert_eq!(sent.last().unwrap(), &("PUT /rest/api/2/issue/PROJ-1".to_string(), Some(r#"{"fields":{"customfield_10000":[{"value":"Impediment"}]}}"#.to_string())));
+        assert_eq!(sent.last().unwrap(), &("PUT /rest/api/2/issue/10201".to_string(), Some(r#"{"fields":{"customfield_10000":[{"value":"Impediment"}]}}"#.to_string())));
         assert_eq!((w.task(id).status, w.last_said()), (Status::Blocked, "PROJ-1: flagged".to_string()));
 
         // Kept: the next block asks nothing.
@@ -757,7 +769,7 @@ fn an_unsupported_field_is_dropped_and_doesnt_hold_up_later_changes() {
         }
     });
     w.act(A::SetDue(id, chrono::NaiveDate::from_ymd_opt(2026, 12, 1)));
-    assert_eq!(w.last_said(), "FAKE-1: Fake doesn't take that change (due 2026-12-01): no due dates here -- it stays on the task");
+    assert_eq!(w.last_said(), "FAKE-1: Fake doesn't take that change (due 2026-12-01): no due dates here -- it stays on the task, marked; r chooses what to do");
     assert_eq!(w.task(id).due, chrono::NaiveDate::from_ymd_opt(2026, 12, 1), "kept here");
     w.act(A::SetTitle(id, "Mine".into()));
     assert_eq!(t.get("FAKE-1").unwrap().title, "Mine", "not stalled");
@@ -979,4 +991,204 @@ fn drifting_pages_give_each_issue_once() {
     assert_eq!(picker.items.len(), 1);
     let calls = w.h.fake.services().into_iter().filter(|c| c.name == "acme.fake.tracker.assigned").count();
     assert_eq!(calls, 3, "stopped at the empty page, though it named a next");
+}
+
+// -- After the second review: each finding's own test -------------------------
+
+/// M5: a write goes to the issue by its id, so one that moved since the
+/// last sync (a new key) still gets it -- and so do its moves,
+/// priorities and people.
+#[test]
+fn writes_moves_priorities_and_people_go_by_the_issues_id() {
+    let t = two_fakes();
+    let mut w = world("by-id", &[("acme.fake", &t)]);
+    let id = w.add("acme.fake", "FAKE-1");
+    // Moved in the tracker: a new key, the same id; the agenda hasn't seen it.
+    t.edit("FAKE-1", |i| i.key = "OPS-5".into());
+    w.act(A::SetTitle(id, "Mine".into()));
+    assert_eq!(t.get("OPS-5").unwrap().title, "Mine", "{:?}", w.said());
+    assert_eq!(json(t.calls_of("update").last().unwrap())["ref"], "id-FAKE-1");
+    w.set_status(id, Status::Done);
+    assert_eq!(json(t.calls_of("transitions").last().unwrap())["ref"], "id-FAKE-1");
+    w.act(A::TrackerPriority(id));
+    assert_eq!(json(t.calls_of("priorities").last().unwrap())["ref"], "id-FAKE-1");
+    w.act(A::Assign(id));
+    assert_eq!(json(t.calls_of("people").last().unwrap())["ref"], "id-FAKE-1");
+}
+
+/// M4: a worklog with no answer may have been logged: `W` leaves it out,
+/// and `s` sends it again with the same `op`, made without a clock.
+#[test]
+fn a_worklog_that_may_have_been_logged_waits_and_goes_again_with_its_op() {
+    let t = two_fakes();
+    let mut w = world_with("maybe-logged", &["acme.fake"], |fake| serve_but(fake, "acme.fake", &t, &["worklog"]));
+    let id = w.add("acme.fake", "FAKE-1");
+    w.h.ext.store.log_manual_time(id, chrono::Duration::minutes(50));
+    w.act(A::SendWorklogs);
+    w.later(Duration::from_secs(181));
+    let sent = |w: &World| w.h.fake.services().into_iter().filter(|c| c.name == "acme.fake.tracker.worklog").map(|c| json(&c.payload)["op"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    assert_eq!(sent(&w).len(), 1);
+    let row = w.h.ext.worklog_rows().into_iter().next().unwrap();
+    assert!(row.maybe.is_some(), "it may have been logged: {:?}", w.said());
+    w.act(A::SendWorklogs);
+    assert_eq!(sent(&w).len(), 1, "W leaves it out");
+    assert!(w.last_said().starts_with("Nothing sent: 1 may have been logged already"), "{}", w.last_said());
+    w.act(A::WorklogResend(id, row.date));
+    let ops = sent(&w);
+    assert_eq!(ops.len(), 2);
+    assert_eq!(ops[0], ops[1], "the same op, for the tracker to log it once");
+    assert!(ops[0].starts_with(&format!("agenda:w{}:{}:", id.0, row.date)), "no clock in it: {}", ops[0]);
+    // x says it was logged: it's done with.
+    w.act(A::WorklogDismiss(id, row.date));
+    assert!(w.h.ext.worklog_rows().is_empty());
+}
+
+/// S2: two `op`s made in one millisecond aren't the same.
+#[test]
+fn ops_made_together_differ() {
+    let w = world("ops", &[("acme.fake", &two_fakes())]);
+    assert_ne!(w.h.ext.op_id(), w.h.ext.op_id());
+}
+
+/// S1: `bad_request` isn't dropped -- it waits for `r`; `unsupported` is,
+/// and leaves a mark on the task until you choose: `r` takes the
+/// tracker's value back.
+#[test]
+fn a_bad_request_waits_and_a_dropped_change_is_marked_until_you_choose() {
+    let t = two_fakes();
+    let mut w = world("dropped", &[("acme.fake", &t)]);
+    let id = w.add("acme.fake", "FAKE-1");
+    t.fail("update", SeamError::new(code::BAD_REQUEST, "that state is another team's"));
+    w.act(A::SetTitle(id, "Mine".into()));
+    assert_eq!(w.queued(), 1, "kept, not dropped");
+    assert!(w.task(id).link.as_ref().unwrap().error.is_some());
+    t.heal("update");
+    w.act(A::Retry(id));
+    assert_eq!((w.queued(), t.get("FAKE-1").unwrap().title.as_str()), (0, "Mine"));
+
+    t.fail("update", SeamError::new(code::UNSUPPORTED, "no due dates here"));
+    w.act(A::SetDue(id, chrono::NaiveDate::from_ymd_opt(2026, 12, 1)));
+    let link = w.task(id).link.clone().unwrap();
+    assert_eq!((w.queued(), link.dropped.len()), (0, 1), "off the outbox, marked on the task");
+    w.h.serve("agenda.open_task", r#"{"tracker": "acme.fake", "ref": "FAKE-1"}"#);
+    let page = w.h.page("agenda");
+    assert!(w.h.screen(page).contains("won't take a change (due 2026-12-01)"), "{}", w.h.screen(page));
+    t.heal("update");
+    w.h.fake.on_pick("didn't take a change", "Take Fake's back (due 2026-12-01)");
+    w.act(A::Retry(id));
+    assert_eq!(w.task(id).due, None, "the tracker's value, back");
+    assert!(w.task(id).link.as_ref().unwrap().dropped.is_empty() && w.queued() == 0);
+}
+
+/// S3: a tracker that never answers holds only its own changes; one
+/// that's ready is used without waiting for one slow to say who it is;
+/// a typed key is asked of every tracker at once.
+#[test]
+fn one_hung_tracker_holds_no_other() {
+    let slow = FakeTracker::new("Slow");
+    slow.add(FakeTracker::issue("SLOW-1", "x"));
+    let fast = two_fakes();
+    let mut w = world_with("hung", &["acme.slow", "acme.fake"], |fake| {
+        serve_but(fake, "acme.slow", &slow, &["update"]);
+        serve(fake, "acme.fake", &fast);
+    });
+    let a = w.add("acme.slow", "SLOW-1");
+    let b = w.add("acme.fake", "FAKE-1");
+    w.act(A::SetTitle(a, "Slow's".into()));
+    w.act(A::SetTitle(b, "Fast's".into()));
+    assert_eq!(fast.get("FAKE-1").unwrap().title, "Fast's", "not held behind Slow");
+
+    // Slow never says who it is: Fake is used at once.
+    let fast = two_fakes();
+    let mut w = world_with("hung-about", &["acme.slow", "acme.fake"], |fake| {
+        serve_but(fake, "acme.slow", &FakeTracker::new("Slow"), &["about"]);
+        serve(fake, "acme.fake", &fast);
+    });
+    assert!(w.h.ext.sync.ready("acme.fake").is_some(), "ready, though Slow hasn't answered");
+    w.h.fake.on_pick_many("Import", &["FAKE-1  Fix the login  [Open]"]);
+    w.h.command("agenda.import").unwrap();
+    assert!(w.find("acme.fake", "FAKE-1").is_some(), "{:?}", w.said());
+
+    // A typed key: two silent trackers cost one wait, not two.
+    let found = FakeTracker::new("Found");
+    found.add(FakeTracker::issue("F-9", "Typed"));
+    let (one, two) = (FakeTracker::new("One"), FakeTracker::new("Two"));
+    let mut w = world_with("typed", &["acme.one", "acme.two", "acme.found"], |fake| {
+        serve_but(fake, "acme.one", &one, &["issues"]);
+        serve_but(fake, "acme.two", &two, &["issues"]);
+        serve(fake, "acme.found", &found);
+    });
+    let task = w.local("Mine");
+    w.h.ext.link_key(task, "F-9".into());
+    w.h.settle();
+    w.later(Duration::from_secs(91));
+    assert_eq!(w.task(task).link.as_ref().map(|l| l.key.as_str()), Some("F-9"), "{:?}", w.said());
+}
+
+/// S4: agenda 1.2 drops every link that isn't Jira's when it saves; the
+/// side file brings them back, and a change left for a task with no link
+/// is dropped with a note.
+#[test]
+fn non_jira_links_survive_agenda_1_2_saving_the_file() {
+    let folder = Folder::new("one-two");
+    let path = folder.0.join("agenda.json");
+    let mut store = crate::model::AgendaStore::default();
+    let kept = store.create_task("kept".into(), String::new(), crate::model::Priority::Low, None);
+    let lost = store.create_task("lost".into(), String::new(), crate::model::Priority::Low, None);
+    let jira = store.create_task("jira".into(), String::new(), crate::model::Priority::Low, None);
+    store.link(kept, "fenix.linear", "ENG-12".into(), crate::sync::remote_update(&FakeTracker::issue("ENG-12", "kept")));
+    store.link(lost, "fenix.linear", "ENG-13".into(), crate::sync::remote_update(&FakeTracker::issue("ENG-13", "lost")));
+    store.link(jira, "fenix.jira", "PROJ-1".into(), crate::sync::remote_update(&FakeTracker::issue("PROJ-1", "jira")));
+    store.enqueue(kept, crate::model::OpKind::SetSummary("Mine".into()));
+    store.enqueue(lost, crate::model::OpKind::SetSummary("Gone".into()));
+    crate::model::save(&path, &store).unwrap();
+    assert!(folder.0.join(crate::model::LINKS).exists());
+
+    // 1.2 reads `"jira"` only, and saves without `"link"`.
+    let mut file: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    for t in file["tasks"].as_array_mut().unwrap() {
+        t.as_object_mut().unwrap().remove("link");
+    }
+    std::fs::write(&path, file.to_string()).unwrap();
+    // `lost` was another task by then (1.2 deleted it, and made another).
+    let mut side: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(folder.0.join(crate::model::LINKS)).unwrap()).unwrap();
+    side["links"].as_array_mut().unwrap().retain(|l| l["task"] != serde_json::json!(lost.0));
+    std::fs::write(folder.0.join(crate::model::LINKS), side.to_string()).unwrap();
+
+    for back in [crate::model::load(&path), crate::model::reload(&path).unwrap().unwrap()] {
+        assert_eq!(back.task(kept).unwrap().link.as_ref().map(|l| (l.tracker.as_str(), l.key.as_str())), Some(("fenix.linear", "ENG-12")), "back from the side file");
+        assert_eq!(back.task(jira).unwrap().link.as_ref().map(|l| l.key.as_str()), Some("PROJ-1"));
+        assert!(back.task(lost).unwrap().link.is_none());
+        assert_eq!(back.outbox.iter().map(|op| op.task).collect::<Vec<_>>(), [kept], "the lost link's change dropped");
+        assert!(back.task(lost).unwrap().notes.iter().any(|n| n.text.contains("was dropped: the task's link was lost")));
+    }
+}
+
+/// The tracker's text is kept byte for byte -- a Persian ZWNJ, an
+/// override someone slipped in -- shown cleaned, and never written back
+/// cleaned: a change to the description sends the body alone, and a
+/// title too long to keep isn't written back at all.
+#[test]
+fn the_trackers_text_is_kept_as_it_came_and_never_written_back_cleaned() {
+    let t = FakeTracker::new("Fake");
+    let title = "می\u{200c}خواهم \u{202e}ok";
+    t.add(FakeTracker::issue("FAKE-1", title));
+    t.add(FakeTracker::issue("FAKE-2", &"long ".repeat(200)));
+    let mut w = world("as-it-came", &[("acme.fake", &t)]);
+    let id = w.add("acme.fake", "FAKE-1");
+    assert_eq!(w.task(id).title, title);
+    assert_eq!(w.h.ext.store.shown().task(id).unwrap().title, "می\u{200c}خواهم ok", "the ZWNJ shown, the override not");
+    w.h.command("agenda.sync").unwrap();
+    assert!(w.task(id).link.as_ref().unwrap().conflicts.is_empty() && w.queued() == 0, "no change");
+    w.h.fake.on_prompt("Description", "New words");
+    w.act(A::EditDescription(id));
+    let sets: Vec<serde_json::Value> = t.calls_of("update").iter().map(|p| json(p)["set"].clone()).collect();
+    assert_eq!(sets, [serde_json::json!({ "body": "New words" })]);
+    assert_eq!(t.get("FAKE-1").unwrap().title, title, "byte for byte");
+
+    let long = w.add("acme.fake", "FAKE-2");
+    assert!(w.task(long).link.as_ref().unwrap().base.title_cut);
+    w.act(A::SetTitle(long, "Short".into()));
+    assert_eq!(t.calls_of("update").len(), 1, "a cut title isn't written back");
+    assert_eq!(w.last_said(), "FAKE-2's title is too long to edit here -- yours stays on the task; edit it in Fake");
 }

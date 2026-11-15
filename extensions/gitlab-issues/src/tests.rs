@@ -174,12 +174,24 @@ fn the_seams_writes_are_gated_and_the_project_is_the_remotes() {
     let mut h = harness(fake());
     assert_eq!(h.serve("fenix.gitlab-issues.tracker.comment", COMMENT), None, "held while asking");
     let gate = h.fake.pickers().into_iter().last().unwrap();
-    assert_eq!(gate.title, "Agenda wants to change issues in GitLab for you -- allow for this session?");
+    assert_eq!(gate.title, "An extension asks to change issues in GitLab for you (Fenix can't tell which; usually the Agenda) -- allow?");
     assert_eq!(notes(&h), 0);
     h.event(api::Event::Picked((gate.id, Some("allow".into()))));
     assert_eq!((notes(&h), answer(&h)), (1, Ok("{}".to_string())));
     assert_eq!(h.serve("fenix.gitlab-issues.tracker.comment", COMMENT), Some(Ok("{}".into())));
     assert_eq!(notes(&h), 1, "a repeated op isn't done twice");
+    // The same op on another call is another change.
+    h.serve("fenix.gitlab-issues.tracker.update", r#"{"seam": 1, "ref": "acme/platform/api#4", "set": {"title": "T"}, "op": "agenda:1:1"}"#);
+    assert!(h.fake.requests().iter().any(|(_, r)| r.method == "PUT"), "an update with a comment's op is still made");
+
+    // A question that runs out refuses what waited, and the next asks again.
+    let mut h = harness(fake());
+    h.serve("fenix.gitlab-issues.tracker.comment", COMMENT);
+    h.fire_timers();
+    let e = SeamError::from_err(&answer(&h).unwrap_err());
+    assert_eq!(e.message, "no answer came to whether to allow changes through GitLab -- r on the task asks again");
+    h.serve("fenix.gitlab-issues.tracker.comment", COMMENT);
+    assert_eq!(h.fake.pickers().len(), 2, "asked again");
 
     h.serve("fenix.gitlab-issues.tracker.project", r#"{"seam": 1}"#);
     assert_eq!(answer(&h), Ok(r#"{"project":"acme/platform/api"}"#.into()));
@@ -188,7 +200,7 @@ fn the_seams_writes_are_gated_and_the_project_is_the_remotes() {
 #[test]
 fn a_new_issue_with_a_template_and_the_agendas_create() {
     let f = fake();
-    f.on_pick("Issue template", "Bug").on_pick("Agenda wants to change issues in GitLab", fenix_tracker::gate::ALLOW);
+    f.on_pick("Issue template", "Bug").on_pick("asks to change issues in GitLab", fenix_tracker::gate::ALLOW);
     let mut h = harness(f);
     h.serve("fenix.gitlab-issues.tracker.create", r#"{"seam": 1, "title": "From a task", "body": ""}"#);
     let page = h.page(KIND);

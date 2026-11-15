@@ -118,7 +118,8 @@ fn whats_assigned_is_the_issue_search_paged_without_pull_requests() {
     let one = &first.issues[0];
     assert_eq!(one.url.as_deref(), Some("https://github.com/acme/rocket/issues/12"));
     assert_eq!((one.project.as_deref(), one.title.as_str()), (Some("acme/rocket"), "Login times out after five minutes"));
-    assert_eq!(one.body, "Users are logged out after **5 minutes**.\n\n- [ ] find the timer\n- [ ] fix it\n", "Markdown as it is, line ends as \\n");
+    assert_eq!(one.body, "Users are logged out after **5 minutes**.\r\n\r\n- [ ] find the timer\r\n- [ ] fix it\r\n", "Markdown as GitHub has it, byte for byte");
+    assert_eq!(fenix_tracker::clean::text(&one.body, 10_000).0, "Users are logged out after **5 minutes**.\n\n- [ ] find the timer\n- [ ] fix it\n", "line ends as \\n to be shown");
     assert_eq!((one.state.id.as_str(), one.state.name.as_str(), one.state.stage.as_str(), one.state.column.as_str()), ("open", "Open", "todo", "todo"), "open is To do, whatever its labels");
     assert_eq!(one.id, "I_kwDOACME_ROCKET_12", "GitHub's own id, which outlives a transfer");
     assert_eq!(one.assignee.as_ref().map(|p| (p.id.as_str(), p.name.as_str())), Some(("octocat", "octocat")));
@@ -131,8 +132,10 @@ fn whats_assigned_is_the_issue_search_paged_without_pull_requests() {
     let second: Page = serde_json::from_str(&call(&seam, "assigned", serde_json::json!({"seam": 1, "limit": 50, "cursor": "2:100"})).unwrap()).unwrap();
     assert_eq!(second.next, None);
     assert!(http.asked().last().unwrap().ends_with("&per_page=100&page=2"), "{:?}", http.asked());
-    // Someone's escape codes, bidi override and newline: shown, never run.
-    assert_eq!(second.issues[0].title, "Write the [31mrelease notes for 2.0");
+    // Someone's escape codes, bidi override and newline: kept as they came,
+    // to write back unchanged; shown cleaned, never run.
+    assert_eq!(second.issues[0].title, "Write the \u{1b}[31mrelease notes\u{202e} for\n2.0");
+    assert_eq!(fenix_tracker::clean::line(&second.issues[0].title, 200), "Write the [31mrelease notes for 2.0");
     assert_eq!(http.asked().iter().filter(|a| a.ends_with("/user")).count(), 1, "who you are, asked once");
     let e = err(call(&seam, "assigned", serde_json::json!({"seam": 1, "cursor": "not ours"})));
     assert_eq!(e.code, code::BAD_REQUEST, "a cursor that isn't its own");
@@ -150,7 +153,7 @@ fn these_issues_by_key_or_address_and_what_isnt_an_issue_is_missing() {
     let twelve = &found.issues[0];
     assert_eq!(twelve.comments.len(), 2, "it has comments, so they're asked for");
     assert_eq!((twelve.comments[0].author.as_str(), twelve.comments[0].body.as_str(), twelve.comments[0].id.as_str()), ("hubot", "I can reproduce it on 1.4.", "501"));
-    assert_eq!(twelve.comments[1].body, "The session timer is in `auth/session.rs`.\n");
+    assert_eq!(twelve.comments[1].body, "The session timer is in `auth/session.rs`.\r\n", "as GitHub has it");
     assert!(found.issues[1].comments.is_empty() && !http.asked().iter().any(|a| a.contains("/web/issues/3/comments")), "none to ask for");
 
     let closed: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["acme/rocket#7"]})).unwrap()).unwrap();

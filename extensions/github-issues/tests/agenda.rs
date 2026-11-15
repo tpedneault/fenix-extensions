@@ -29,7 +29,9 @@ fn github_issues_seam_drives_the_agenda() {
         .fixture(&d, "GET", "/search/issues", "search-assigned-1.json")
         .fixture(&d, "GET", "/repos/acme/rocket/issues/12", "issue-acme-rocket-12.json")
         .fixture(&d, "GET", "/repos/acme/rocket/issues/12/comments", "comments-acme-rocket-12.json")
-        .on("PATCH", "/repos/", 200, "{}");
+        .on("PATCH", "/repos/", 200, "{}")
+        // The agenda names the issue by its id: GitHub's GraphQL says where it is now.
+        .on("POST", "api.github.com/graphql", 200, r#"{"data": {"node": {"number": 12, "repository": {"nameWithOwner": "acme/rocket"}}}}"#);
     let settings = Settings { ready: true, ..Settings::default() };
     let tracker = Rc::new(Seam::new(GitHubIssues::new(http.clone(), None, TOKEN), settings, Rc::new(RefCell::new(Learned::default()))));
     let mut w = world_with("github-issues", &[ID], |fake| {
@@ -51,11 +53,12 @@ fn github_issues_seam_drives_the_agenda() {
     let sent = http.sent.borrow().len();
     w.set_status(id, Status::InProgress);
     assert_eq!(w.task(id).status, Status::InProgress);
-    assert!(http.sent.borrow()[sent..].iter().all(|s| s.method == "GET"), "nothing written for Doing");
+    let read = |s: &fenix_forge::recorded::Sent| s.method == "GET" || s.url.ends_with("/graphql");
+    assert!(http.sent.borrow()[sent..].iter().all(read), "nothing written for Doing");
     // Blocked: GitHub has none, so the agenda keeps it to itself.
     w.set_status(id, Status::Blocked);
     assert_eq!(w.task(id).status, Status::Blocked);
-    assert!(http.sent.borrow().iter().all(|s| s.method == "GET"));
+    assert!(http.sent.borrow().iter().all(read));
 
     // Done: two moves get there -- asked, which.
     w.h.fake.on_pick("acme/rocket#12", "Close as not planned  ->  Closed as not planned");
@@ -63,6 +66,7 @@ fn github_issues_seam_drives_the_agenda() {
     let picker = w.h.fake.pickers().into_iter().last().unwrap();
     assert!(picker.items.iter().any(|i| i.label == "Close as completed  ->  Closed"), "{:?}", picker.items);
     assert_eq!(http.last().unwrap().body.as_deref(), Some(r#"{"state":"closed","state_reason":"not_planned"}"#));
+    assert!(http.sent.borrow().iter().any(|s| s.url.ends_with("/graphql") && s.body.as_deref().is_some_and(|b| b.contains("\"id\""))), "written to the issue by its id");
     w.no_secrets();
     for s in w.h.fake.services() {
         assert!(!s.payload.contains(TOKEN));

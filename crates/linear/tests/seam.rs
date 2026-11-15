@@ -115,8 +115,8 @@ fn assigned_pages_by_cursor_and_maps_every_field() {
     assert_eq!(i.labels, ["bug", "auth"]);
     assert_eq!((i.due.as_deref(), i.updated.as_str()), (Some("2026-11-20"), "2026-11-13T16:40:12.402Z"));
     assert_eq!(i.comments.iter().map(|c| (c.author.as_str(), c.body.as_str())).collect::<Vec<_>>(), [("Jo Bloggs", "Taking this."), ("Sentry", "Linked the Sentry event."), ("Amy Park", "Reproduced on staging.")], "oldest first, a bot by its name");
-    // Backlog and Todo are the agenda's todo; no priority is none; \r\n is cleaned.
-    assert_eq!((first.issues[1].state.stage.as_str(), first.issues[1].body.as_str()), ("todo", "Cover cookie lifetime.\nAnd refresh."));
+    // Backlog and Todo are the agenda's todo; no priority is none; \r\n is kept, as Linear has it.
+    assert_eq!((first.issues[1].state.stage.as_str(), first.issues[1].body.as_str()), ("todo", "Cover cookie lifetime.\r\nAnd refresh."));
     assert_eq!((first.issues[2].state.stage.as_str(), first.issues[2].state.name.as_str(), first.issues[2].priority.is_none()), ("todo", "Backlog", true));
     assert_eq!(second.issues[0].state.stage, "doing", "In Review is a started state");
     assert_eq!(second.issues[0].priority.as_ref().map(|p| p.level.as_deref()), Some(Some("urgent")));

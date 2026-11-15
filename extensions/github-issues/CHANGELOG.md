@@ -17,8 +17,10 @@ Fenix.
 - The agenda's issues from GitHub, through the tracker seam: linked
   tasks kept in step, their moves, edits, comments and assignees.
 - Changes the agenda (or any extension) asks for through the seam are
-  asked about once a session first (`github-issues.seam_writes`); what
-  you do on its page never is.
+  asked about first (`github-issues.seam_writes`): allowed until Fenix
+  restarts, or not now for 10 minutes; a question left unanswered for a
+  minute refuses what waited and asks again next time. What you do on its
+  page never is asked about.
 - A branch from an issue takes nothing from a remote as an option to
   git, fetches only from the issue's own remote, and never over
   `file://` or `ext::`.

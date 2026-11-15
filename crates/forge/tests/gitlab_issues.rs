@@ -117,12 +117,14 @@ fn whats_assigned_pages_by_x_next_page_across_nested_groups() {
     assert_eq!((a.state.id.as_str(), a.state.name.as_str(), a.state.stage.as_str(), a.state.column.as_str()), ("opened:Doing", "Doing", "doing", "doing"));
     assert_eq!((a.due.as_deref(), a.mine), (Some("2026-11-20"), Some(true)));
     assert_eq!(a.assignee.as_ref().map(|p| (p.id.as_str(), p.name.as_str())), Some(("jo", "Jo Bloggs")), "assigned by username");
-    assert_eq!(a.body, "Bursts over **100 rps** are dropped.\n\n```\n429 Too Many Requests\n```");
+    assert_eq!(a.body, "Bursts over **100 rps** are dropped.\r\n\r\n```\r\n429 Too Many Requests\r\n```", "as GitLab has it, byte for byte");
+    assert_eq!(fenix_tracker::clean::text(&a.body, 10_000).0, "Bursts over **100 rps** are dropped.\n\n```\n429 Too Many Requests\n```", "line ends as \\n to be shown");
     assert_eq!((first.issues[1].state.name.as_str(), first.issues[1].state.stage.as_str(), first.issues[1].state.column.as_str()), ("Blocked", "doing", "blocked"), "a workflow step that says so");
     assert_eq!(a.id, "1004", "GitLab's global id");
 
     let second: Page = serde_json::from_str(&call(&seam, "assigned", serde_json::json!({"seam": 1, "limit": 3, "cursor": "2:100"})).unwrap()).unwrap();
-    assert_eq!((second.next, second.issues[0].title.as_str()), (None, "Write the [31mrelease notes"));
+    assert_eq!((second.next, second.issues[0].title.as_str()), (None, "Write the \u{1b}[31mrelease notes\u{202e}"), "kept as it came");
+    assert_eq!(fenix_tracker::clean::line(&second.issues[0].title, 200), "Write the [31mrelease notes", "shown cleaned");
     // `since` is gone from seam 1: an old caller's is ignored.
     http.on("GET", "/api/v4/issues?", 200, "[]");
     call(&seam, "assigned", serde_json::json!({"seam": 1, "since": "2026-11-10T00:00:00Z"})).unwrap();
@@ -138,7 +140,7 @@ fn these_issues_by_key_or_address_with_peoples_comments_not_gitlabs() {
     assert_eq!(found.issues.iter().map(|i| i.key.as_str()).collect::<Vec<_>>(), ["acme/platform/api#4", "acme/web#8"]);
     assert_eq!(found.missing, ["acme/platform/api#404", "https://gitlab.com/acme/web/-/issues/8"], "not there, and another instance's address");
     let comments: Vec<(&str, &str)> = found.issues[0].comments.iter().map(|c| (c.author.as_str(), c.body.as_str())).collect();
-    assert_eq!(comments, [("Jo Bloggs", "Seen in production too."), ("Kim Park", "The limiter's window is 1 s.\n")], "oldest first, the system note left out");
+    assert_eq!(comments, [("Jo Bloggs", "Seen in production too."), ("Kim Park", "The limiter's window is 1 s.\r\n")], "oldest first, the system note left out");
     assert!(http.asked().contains(&format!("GET {API}{PROJECT}/issues/4/notes?sort=desc&order_by=created_at&per_page=100")));
     let closed: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["acme/web#2"]})).unwrap()).unwrap();
     assert_eq!((closed.issues[0].state.id.as_str(), closed.issues[0].state.column.as_str()), ("closed", "done"));

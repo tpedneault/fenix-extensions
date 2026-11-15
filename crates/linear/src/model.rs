@@ -273,6 +273,7 @@ pub fn detail(raw: RawIssue) -> Option<Detail> {
         title: raw.title.clone(),
         body: raw.description.clone().unwrap_or_default(),
         body_cut: false,
+        title_cut: false,
         state: self::state(&state),
         kind: None,
         priority: priority_of(number),

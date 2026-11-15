@@ -147,6 +147,9 @@ pub struct Issue {
     pub body: String,
     #[serde(default, skip_serializing_if = "is_false")]
     pub body_cut: bool,
+    /// The title was longer than the agenda keeps: never written back.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub title_cut: bool,
     pub state: State,
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,

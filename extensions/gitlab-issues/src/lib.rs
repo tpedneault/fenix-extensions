@@ -213,13 +213,6 @@ enum Ask {
     Gate,
 }
 
-/// A seam write held while you're asked whether to allow it.
-struct Held {
-    call: u64,
-    name: String,
-    payload: String,
-}
-
 /// A write's `op`, when it carries one.
 fn op_of(payload: &str) -> Option<String> {
     serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string))
@@ -234,12 +227,13 @@ pub struct IssuesExt {
     learned: Rc<RefCell<Learned>>,
     /// A form opened by the seam's `create`: the page, and the call to
     /// answer once it's sent or closed, with its `op`.
-    creating: HashMap<u64, (u64, Option<String>)>,
-    /// The gate on the seam's writes, this session's, and the writes
+    creating: HashMap<u64, (u64, Option<String>, String)>,
+    /// The gate on the seam's writes, this session's, with the writes
     /// held while it asks.
     gate: fenix_tracker::gate::Gate,
-    held: Vec<Held>,
-    /// The seam's writes done this session, by `op`.
+    /// The timer for the gate's question running out.
+    gate_timer: Option<u64>,
+    /// The seam's writes done this session, by call and `op`.
     done_ops: Rc<RefCell<fenix_tracker::Dedupe>>,
     /// Whether a sign-in found after `about` said not ready was looked for.
     looked: bool,
@@ -531,9 +525,9 @@ impl IssuesExt {
                 Err(e) => Err(e),
             };
             done(move |ext| {
-                if let (Ok(issue), Some((call, op))) = (&result, ext.creating.remove(&page)) {
+                if let (Ok(issue), Some((call, op, payload))) = (&result, ext.creating.remove(&page)) {
                     let answer = Ok(serde_json::json!({ "ref": issue.key.key() }).to_string());
-                    ext.done_ops.borrow_mut().put(op.as_deref(), &answer);
+                    ext.done_ops.borrow_mut().put(seam::call::CREATE, op.as_deref(), &payload, &answer);
                     api::answer(call, answer);
                 }
                 if let Some(p) = ext.page_mut(page) {
@@ -546,7 +540,7 @@ impl IssuesExt {
 
     /// The seam's `create` answered: nothing made.
     fn create_closed(&mut self, page: u64) {
-        if let Some((call, _)) = self.creating.remove(&page) {
+        if let Some((call, _, _)) = self.creating.remove(&page) {
             api::answer(call, Ok(r#"{"ref":null}"#.into()));
         }
     }
@@ -643,7 +637,7 @@ impl IssuesExt {
     fn answered(&mut self, id: u64, text: Option<String>) {
         let Some(ask) = self.asks.remove(&id) else { return };
         if let Ask::Gate = ask {
-            return self.gate_answered(text.as_deref() == Some("allow"));
+            return self.gate_answered(text.as_deref());
         }
         let Some(text) = text else { return };
         let split = |t: &str| t.split(',').map(|s| s.trim().trim_start_matches('@').to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>();
@@ -687,7 +681,7 @@ impl IssuesExt {
     /// and the session's `op` memory first. The page's own writes never
     /// come this way.
     fn serve_seam(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
-        use fenix_tracker::gate::{self, Verdict};
+        use fenix_tracker::gate;
         if name == seam::call::ABOUT {
             let ready = ready_now();
             if !ready {
@@ -709,36 +703,66 @@ impl IssuesExt {
         if !ready_now() {
             return Some(Err(SeamError::new(seam::code::NOT_SET_UP, not_ready()).to_err()));
         }
-        if let Some(answer) = self.done_ops.borrow().get(op_of(payload).as_deref()) {
+        if let Some(answer) = self.done_ops.borrow().get(name, op_of(payload).as_deref(), payload) {
             return Some(answer);
         }
-        let held = Held { call, name: name.to_string(), payload: payload.to_string() };
-        match self.gate.check(api::setting(SEAM_WRITES).as_deref(), HOST.name()) {
-            Verdict::Go => self.serve_seam_now(call, name, payload),
-            Verdict::Refuse(why) => Some(Err(why.to_err())),
-            Verdict::Wait => {
-                self.held.push(held);
-                None
-            }
-            Verdict::Ask => {
-                self.held.push(held);
-                let rows = [PickerItem::new(gate::ALLOW, "allow"), PickerItem::new(gate::DENY, "deny")];
-                let id = api::pick(&gate::question(HOST.name()), &rows);
-                self.asks.insert(id, Ask::Gate);
-                None
-            }
-        }
+        let write = gate::Write { call, name: name.to_string(), payload: payload.to_string(), caller: None };
+        let steps = self.gate.check(api::setting(SEAM_WRITES).as_deref(), HOST.name(), std::time::Instant::now(), write);
+        self.gate_steps(steps, Some(call))
     }
 
-    /// You answered the gate: the writes held go through, or are refused.
-    fn gate_answered(&mut self, allow: bool) {
-        self.gate.answered(allow);
-        for Held { call, name, payload } in std::mem::take(&mut self.held) {
-            let answer = if allow { self.serve_seam_now(call, &name, &payload) } else { Some(Err(fenix_tracker::gate::Gate::denied(HOST.name()).to_err())) };
-            if let Some(answer) = answer {
-                api::answer(call, answer);
+    /// What the gate says to do: writes done or refused, a question
+    /// asked. What's for `this` call, when it's answered now, comes back
+    /// rather than being answered.
+    fn gate_steps(&mut self, steps: Vec<fenix_tracker::gate::Step>, this: Option<u64>) -> Option<Result<String, String>> {
+        use fenix_tracker::gate::Step;
+        let mut mine = None;
+        for step in steps {
+            let (call, answer) = match step {
+                Step::Go(w) => (w.call, self.serve_seam_now(w.call, &w.name, &w.payload)),
+                Step::Refuse(w, why) => (w.call, Some(Err(why.to_err()))),
+                Step::Ask(q) => {
+                    // A question asked before (Fenix replaced it, or it ran
+                    // out) is no longer this one: its late answer is ignored.
+                    self.asks.retain(|_, a| !matches!(a, Ask::Gate));
+                    let rows: Vec<PickerItem> = q.rows.iter().map(|(label, value)| PickerItem::new(label.clone(), value.to_string())).collect();
+                    let id = api::pick(&q.title, &rows);
+                    self.asks.insert(id, Ask::Gate);
+                    if let Some(t) = self.gate_timer.take() {
+                        api::host::cancel_timer(t);
+                    }
+                    if let Some(deadline) = self.gate.deadline() {
+                        let ms = deadline.saturating_duration_since(std::time::Instant::now()).as_millis().min(u32::MAX as u128) as u32;
+                        self.gate_timer = Some(api::host::set_timer(ms.max(1), false));
+                    }
+                    continue;
+                }
+            };
+            match answer {
+                Some(answer) if Some(call) == this => mine = Some(answer),
+                Some(answer) => api::answer(call, answer),
+                None => {}
             }
         }
+        mine
+    }
+
+    /// You answered the gate (`allow`, `deny`, or nothing: Esc).
+    fn gate_answered(&mut self, choice: Option<&str>) {
+        if let Some(t) = self.gate_timer.take() {
+            api::host::cancel_timer(t);
+        }
+        let steps = self.gate.answered(choice, HOST.name(), std::time::Instant::now());
+        self.gate_steps(steps, None);
+    }
+
+    /// The gate's question ran out: what waited is refused.
+    fn gate_expired(&mut self) {
+        self.gate_timer = None;
+        let now = self.gate.deadline().map_or_else(std::time::Instant::now, |d| d.max(std::time::Instant::now()));
+        self.asks.retain(|_, a| !matches!(a, Ask::Gate));
+        let steps = self.gate.expire(HOST.name(), now);
+        self.gate_steps(steps, None);
     }
 
     /// A seam call, past the gate: answered later, once the forge has.
@@ -752,14 +776,14 @@ impl IssuesExt {
             let page = self.open_page();
             self.create_closed(page);
             self.new_issue(page, fenix_tracker::clean::line(&req.title, fenix_tracker::clean::TITLE), fenix_tracker::clean::text(&req.body, fenix_tracker::clean::BODY_BYTES).0);
-            self.creating.insert(page, (call, op));
+            self.creating.insert(page, (call, op, payload.to_string()));
             return None;
         }
         let (name, payload, learned, done_ops) = (name.to_string(), payload.to_string(), self.learned.clone(), self.done_ops.clone());
         jobs::spawn(async move {
             let answer = tracker(learned).await.serve(&name, &payload).await;
             if seam::call::writes(&name) {
-                done_ops.borrow_mut().put(op.as_deref(), &answer);
+                done_ops.borrow_mut().put(&name, op.as_deref(), &payload, &answer);
             }
             api::answer(call, answer);
         });
@@ -831,7 +855,11 @@ impl Extension for IssuesExt {
         let event = jobs::deliver(event);
         match event {
             Some(Event::Prompted((id, text)) | Event::Composed((id, text)) | Event::Picked((id, text))) => self.answered(id, text),
-            Some(Event::SettingChanged(_)) => {
+            Some(Event::Timer(t)) if Some(t) == self.gate_timer => self.gate_expired(),
+            Some(Event::SettingChanged(key)) => {
+                if key == SEAM_WRITES {
+                    self.gate.reset();
+                }
                 // What was learned of the old server goes; the agenda asks
                 // again.
                 *self.learned.borrow_mut() = Learned::default();

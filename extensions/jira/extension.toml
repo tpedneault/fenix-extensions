@@ -125,9 +125,16 @@ label = "Priority names"
 description = "How a Jira priority maps onto the agenda's."
 
 [[contributes.settings]]
+key = "jira.allow_http"
+kind = "bool"
+label = "Allow a Server over http"
+description = "Send your Server or Data Center token to an http:// address, in clear. Off, only https is used. Jira Cloud is never reached over http."
+default = "false"
+
+[[contributes.settings]]
 key = "jira.seam_writes"
 kind = "choice"
 choices = ["ask", "always", "never"]
 label = "Changes from the agenda"
-description = "Whether the agenda (or any extension using the tracker seam) may change your issues: ask once a session, always, or never."
+description = "Whether extensions (usually the agenda) may change your issues through the tracker seam: ask (once, until Fenix restarts; Not now refuses for 10 minutes), always, or never."
 default = "ask"

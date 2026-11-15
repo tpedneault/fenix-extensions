@@ -112,6 +112,6 @@ project = true
 key = "linear.seam_writes"
 kind = "choice"
 label = "Changes from the agenda"
-description = "Whether the agenda (or any extension) may change your Linear issues through the tracker seam: ask the first time each session, always, or never. Your own changes on Linear's page are not asked about."
+description = "Whether the agenda (or any extension) may change your Linear issues through the tracker seam: ask (allowed until Fenix restarts, or not now for 10 minutes), always, or never. Your own changes on Linear's page are not asked about."
 choices = ["ask", "always", "never"]
 default = "ask"

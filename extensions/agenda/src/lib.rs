@@ -194,7 +194,7 @@ impl Agenda {
             let busy = self.sync.pulling().then(|| format!("syncing {}", self.label()));
             return api::status(busy.as_deref());
         };
-        let title = self.store.task(timer.task_id).map(|t| t.title.as_str()).unwrap_or("?");
+        let title = self.store.task(timer.task_id).map(|t| shown(&t.title)).unwrap_or_else(|| "?".into());
         let elapsed = page::format_minutes((clock::now() - timer.started_at).num_minutes());
         api::status(Some(&format!("\u{23f1} {title} {elapsed}")));
     }
@@ -513,8 +513,12 @@ impl Agenda {
                 let Some(row) = self.worklog_rows().into_iter().find(|r| r.task == task && r.date == date) else { return };
                 self.store.mark_sent(task, &row.entries);
                 self.save_and_refresh();
-                api::notify(&format!("{} on {}: dismissed, won't be sent", row.key, row.date));
+                match row.maybe {
+                    Some(_) => api::notify(&format!("{} on {}: taken as logged, won't be sent again", row.key, row.date)),
+                    None => api::notify(&format!("{} on {}: dismissed, won't be sent", row.key, row.date)),
+                }
             }
+            A::WorklogResend(task, date) => self.with_tracker(move |a| a.resend_worklog(task, date)),
             A::SendWorklogs => self.with_tracker(|a| a.send_worklogs()),
             A::Copy(text) => {
                 api::copy(&text);
@@ -562,15 +566,15 @@ impl Agenda {
     }
 
     fn clock_picker(&mut self, title: &str, rows: Vec<(String, ClockPick)>) {
-        let items: Vec<PickerItem> = rows.iter().enumerate().map(|(i, (label, _))| PickerItem::new(label.clone(), i.to_string())).collect();
-        let id = api::pick(title, &items);
+        let items: Vec<PickerItem> = rows.iter().enumerate().map(|(i, (label, _))| PickerItem::new(shown(label), i.to_string())).collect();
+        let id = api::pick(&shown(title), &items);
         self.asked.insert(id, Asked::Clock(rows.into_iter().map(|(_, p)| p).collect()));
     }
 
     /// `SPC A T`: the clock back on what you worked on last.
     fn resume(&mut self) {
         if let Some(timer) = &self.store.active_timer {
-            let name = self.store.task(timer.task_id).map(|t| t.title.clone()).unwrap_or_default();
+            let name = self.store.task(timer.task_id).map(|t| shown(&t.title)).unwrap_or_default();
             return api::notify(&format!("The clock is already on \"{name}\""));
         }
         let Some((id, _)) = self.store.recently_worked().into_iter().next() else {
@@ -585,7 +589,7 @@ impl Agenda {
             ClockPick::Stop => self.store.clock_out(),
             ClockPick::Start(id) => {
                 self.store.clock_in(id);
-                let name = self.store.task(id).map(|t| t.title.clone()).unwrap_or_default();
+                let name = self.store.task(id).map(|t| shown(&t.title)).unwrap_or_default();
                 api::notify(&format!("Clock on \"{name}\""));
             }
             ClockPick::KeepUntil(at) => {
@@ -631,7 +635,7 @@ impl Agenda {
     fn ask_about_gap(&mut self, last: DateTime<Local>) {
         let Some(timer) = &self.store.active_timer else { return };
         let now = clock::now();
-        let name = self.store.task(timer.task_id).map(|t| t.title.clone()).unwrap_or_default();
+        let name = self.store.task(timer.task_id).map(|t| shown(&t.title)).unwrap_or_default();
         let kept = page::format_minutes((last - timer.started_at).num_minutes());
         let all = page::format_minutes((now - timer.started_at).num_minutes());
         let rows = vec![
@@ -678,7 +682,8 @@ impl Agenda {
             .into_iter()
             // As the control protocol writes them (`fenix_control::AgendaTask`).
             .map(|t| {
-                let mut task = serde_json::json!({ "id": t.id.0, "title": t.title, "status": name(t.status), "elapsedMinutes": self.store.elapsed_on(t.id).num_minutes() });
+                // What came from a tracker reaches an agent cleaned.
+                let mut task = serde_json::json!({ "id": t.id.0, "title": shown(&t.title), "status": name(t.status), "elapsedMinutes": self.store.elapsed_on(t.id).num_minutes() });
                 // Fenix's protocol names an issue's key `jiraKey`, from
                 // before there were other trackers; `tracker` says whose.
                 if let Some(link) = &t.link {
@@ -695,7 +700,7 @@ impl Agenda {
         match &self.store.active_timer {
             Some(timer) => serde_json::json!({
                 "taskId": timer.task_id.0,
-                "title": self.store.task(timer.task_id).map(|t| t.title.clone()).unwrap_or_default(),
+                "title": self.store.task(timer.task_id).map(|t| shown(&t.title)).unwrap_or_default(),
                 "since": timer.started_at.to_rfc3339(),
             })
             .to_string(),
@@ -716,12 +721,18 @@ fn here_project(trackers: &Trackers) -> Option<Project> {
     Some(Project { issues: issues.collect(), name: project.name })
 }
 
-/// "PROJ-12 Its title", or its title.
+/// "PROJ-12 Its title", or its title, to be shown.
 fn keyed(t: &Task) -> String {
     match t.issue_key() {
-        Some(key) => format!("{key} {}", t.title),
-        None => t.title.clone(),
+        Some(key) => shown(&format!("{key} {}", t.title)),
+        None => shown(&t.title),
     }
+}
+
+/// Text, a tracker's maybe, as it's shown: one line, cleaned
+/// (`fenix_tracker::clean`). What's kept stays as it came.
+fn shown(text: &str) -> String {
+    fenix_tracker::clean::line(text, usize::MAX)
 }
 
 /// The tag a sync's notification goes by: the next sync's replaces it.
@@ -808,10 +819,28 @@ impl Agenda {
 
     /// One tracker said who it is (or nothing did).
     fn probed_one(&mut self, id: String, found: trackers::Found) {
+        let ready = found.tracker().filter(Tracker::ready);
         if let Some(slot) = self.sync.probing.iter_mut().find(|(i, _)| *i == id) {
             slot.1 = Some(found);
         }
         if self.sync.probing.iter().any(|(_, f)| f.is_none()) {
+            // Ready: in use now, its changes sent and what waited for a
+            // tracker run, without waiting for one slow to answer.
+            if let Some(t) = ready {
+                let first = !self.sync.any_ready();
+                match self.sync.trackers.list.iter_mut().find(|x| x.id == id) {
+                    Some(old) => *old = t,
+                    None => self.sync.trackers.list.push(t),
+                }
+                let order = trackers::ids(api::setting("agenda.trackers").as_deref());
+                self.sync.trackers.list.sort_by_key(|t| order.iter().position(|i| *i == t.id).unwrap_or(usize::MAX));
+                for then in std::mem::take(&mut self.sync.waiting) {
+                    then(self);
+                }
+                if first {
+                    self.drain_outbox();
+                }
+            }
             return;
         }
         let asked = std::mem::take(&mut self.sync.probing);
@@ -893,7 +922,7 @@ impl Agenda {
     fn task_tracker(&self, id: TaskId) -> Option<(Via, String)> {
         let link = self.store.task(id)?.link.as_ref()?;
         match self.sync.trackers.get(&link.tracker) {
-            Some(t) if t.ready() => Some((t.via(), link.key.clone())),
+            Some(t) if t.ready() => Some((t.via(), link.asked().to_string())),
             Some(t) => {
                 host::notify(api::Level::Error, &t.about.not_ready.clone().unwrap_or_else(|| format!("{} isn't set up yet", t.name())));
                 None
@@ -914,6 +943,10 @@ impl Agenda {
             if !t.can(cap) {
                 return;
             }
+        }
+        if matches!(kind, OpKind::SetSummary(_)) && link.base.title_cut {
+            let name = self.sync.trackers.name(&link.tracker);
+            return host::notify(api::Level::Error, &format!("{}'s title is too long to edit here -- yours stays on the task; edit it in {name}", link.key));
         }
         if matches!(kind, OpKind::SetDescription(_)) && link.base.description_cut {
             let name = self.sync.trackers.name(&link.tracker);
@@ -1116,27 +1149,31 @@ impl Agenda {
     }
 
     /// `drain_outbox`, a tracker backing off until after `now` skipped.
+    /// Each tracker has its own queue: one slow to answer holds its own
+    /// changes, never another's.
     fn drain_outbox_at(&mut self, now: Instant) {
-        if self.sync.in_flight.is_some() || !self.sync.any_ready() {
+        if !self.sync.any_ready() {
             return;
         }
-        let ready: Vec<String> = self.sync.trackers.ready().filter(|t| !self.sync.trackers.backing_off(&t.id, now)).map(|t| t.id.clone()).collect();
-        let Some(op) = self.store.next_op(|tracker| ready.iter().any(|r| r == tracker)).cloned() else {
-            if std::mem::take(&mut self.sync.pull_after_drain) {
-                self.sync_now(true);
-            }
-            return;
-        };
-        let Some((via, key)) = self.store.task(op.task).and_then(|t| t.link.as_ref()).and_then(|l| Some((self.sync.ready(&l.tracker)?.via(), l.key.clone()))) else {
-            self.store.discard_op(op.id);
-            return;
-        };
-        self.sync.in_flight = Some(op.id);
-        sync::send_op(via, op, key);
+        let ready: Vec<String> = self.sync.trackers.ready().filter(|t| !self.sync.trackers.backing_off(&t.id, now) && !self.sync.in_flight.contains_key(&t.id)).map(|t| t.id.clone()).collect();
+        for tracker in ready {
+            let Some(op) = self.store.next_op(|t| t == tracker).cloned() else { continue };
+            let Some((via, asked, key)) = self.store.task(op.task).and_then(|t| t.link.as_ref()).and_then(|l| Some((self.sync.ready(&l.tracker)?.via(), l.asked().to_string(), l.key.clone()))) else {
+                self.store.discard_op(op.id);
+                continue;
+            };
+            self.sync.in_flight.insert(tracker, op.id);
+            sync::send_op(via, op, asked, key);
+        }
+        if self.sync.in_flight.is_empty() && self.store.next_op(|t| self.sync.ready(t).is_some()).is_none() && std::mem::take(&mut self.sync.pull_after_drain) {
+            self.sync_now(true);
+        }
     }
 
     fn op_done(&mut self, op_id: u64, key: String, tracker: String, what: String, result: Result<Option<String>, SeamError>) {
-        self.sync.in_flight = None;
+        if self.sync.in_flight.get(&tracker) == Some(&op_id) {
+            self.sync.in_flight.remove(&tracker);
+        }
         let op = self.store.outbox.iter().find(|op| op.id == op_id).cloned();
         let comment = op.as_ref().is_some_and(|op| matches!(op.kind, OpKind::AddComment(_)));
         let name = self.sync.trackers.name(&tracker);
@@ -1148,14 +1185,14 @@ impl Agenda {
                 self.save_and_refresh();
                 self.drain_outbox();
             }
-            // It'll never be taken: dropped, and the task's later
-            // changes go on.
+            // It'll never be taken: off the outbox, so the task's later
+            // changes go on, and marked on the task until you choose.
             Err(err) if err.never() => {
-                if let (true, Some(cap)) = (err.is(code::UNSUPPORTED), op.as_ref().and_then(|op| needs(&op.kind))) {
+                if let Some(cap) = op.as_ref().and_then(|op| needs(&op.kind)) {
                     self.sync.trackers.drop_capability(&tracker, cap);
                 }
-                self.store.discard_op(op_id);
-                host::notify(api::Level::Error, &format!("{key}: {name} doesn't take that change ({what}): {err} -- it stays on the task"));
+                self.store.op_dropped(op_id, err.message.clone());
+                host::notify(api::Level::Error, &format!("{key}: {name} doesn't take that change ({what}): {err} -- it stays on the task, marked; r chooses what to do"));
                 self.save_and_refresh();
                 self.drain_outbox();
             }
@@ -1181,6 +1218,17 @@ impl Agenda {
     /// asked first.
     fn retry(&mut self, id: TaskId) {
         let Some(link) = self.store.task(id).and_then(|t| t.link.as_ref()) else { return };
+        if !link.dropped.is_empty() {
+            let name = self.sync.trackers.name(&link.tracker);
+            let what: Vec<String> = link.dropped.iter().map(|d| d.kind.describe()).collect();
+            let what = fenix_tracker::clean::line(&what.join(", "), 80);
+            let mut rows = vec![(format!("Send it again ({what})"), Pick::Dropped(model::DroppedChoice::SendAgain))];
+            if link.dropped.iter().any(|d| d.kind.field().is_some()) {
+                rows.push((format!("Take {name}'s back ({what})"), Pick::Dropped(model::DroppedChoice::TakeTheirs)));
+            }
+            rows.push((format!("Keep mine, here only ({what})"), Pick::Dropped(model::DroppedChoice::KeepMine)));
+            return self.sync_picker(&format!("{}: {name} didn't take a change", link.key), Some(id), None, None, rows);
+        }
         if link.unknown {
             let what = self.store.held_op(id).map(|op| op.kind.describe()).unwrap_or_default();
             let rows = vec![(format!("Send it again ({what})"), Pick::SendAgain), (format!("It was made -- forget it ({what})"), Pick::Forget)];
@@ -1214,7 +1262,7 @@ impl Agenda {
         }
         self.store.set_resolving(id, true);
         self.save_and_refresh();
-        sync::transitions(t.via(), id, link.key.clone(), sync::seen(&link.base), Some(target), prev);
+        sync::transitions(t.via(), id, link.asked().to_string(), sync::seen(&link.base), Some(target), prev);
     }
 
     /// `s` on a linked task: its tracker's moves, plus a Blocked row.
@@ -1286,9 +1334,10 @@ impl Agenda {
         self.sync_picker(&title, Some(id), Some(tracker.to_string()), revert, rows);
     }
 
-    /// A fresh `op` for a write that isn't queued.
+    /// A fresh `op` for a write that isn't queued: its random part keeps
+    /// two in one millisecond apart.
     fn op_id(&self) -> String {
-        format!("agenda:{}:x{}", clock::now().timestamp_millis(), self.store.outbox.len())
+        format!("agenda:{}:x{:016x}", clock::now().timestamp_millis(), model::nonce())
     }
 
     /// A move picked or worked out: the card into the column it lands
@@ -1299,7 +1348,7 @@ impl Agenda {
             self.store.move_to_status(id, status);
         }
         if let (Some(remember), Some(via)) = (&m.remember, self.sync.ready(tracker).map(Tracker::via)) {
-            let key = self.store.task(id).and_then(|t| t.issue_key()).unwrap_or_default().to_string();
+            let key = self.store.task(id).and_then(|t| t.link.as_ref()).map(|l| l.asked().to_string()).unwrap_or_default();
             sync::remember(via, key, remember.clone(), self.op_id());
         }
         if m.local {
@@ -1351,7 +1400,7 @@ impl Agenda {
 
     fn link_issue(&mut self, id: TaskId, tracker: &str, issue: &Issue) {
         if let Some(existing) = self.store.find_issue(tracker, &issue.id, &issue.key).filter(|&t| t != id) {
-            let title = self.store.task(existing).map(|t| t.title.clone()).unwrap_or_default();
+            let title = self.store.task(existing).map(|t| shown(&t.title)).unwrap_or_default();
             return host::notify(api::Level::Error, &format!("{} is already linked to \"{title}\"", issue.key));
         }
         self.store.link_with_id(id, tracker, Some(issue.id.clone()), issue.key.clone(), sync::remote_update(issue));
@@ -1401,7 +1450,7 @@ impl Agenda {
                 if rows.is_empty() {
                     return api::notify("Every open issue assigned to you is already in the agenda");
                 }
-                let items: Vec<PickerItem> = rows.iter().enumerate().map(|(i, (label, _))| PickerItem::new(label.clone(), i.to_string())).collect();
+                let items: Vec<PickerItem> = rows.iter().enumerate().map(|(i, (label, _))| PickerItem::new(shown(label), i.to_string())).collect();
                 let picker = api::pick_many("Import  (Tab marks)", &items);
                 self.asked.insert(picker, Asked::Sync(PickerCtx { task: None, tracker: None, revert: None, rows: rows.into_iter().map(|(_, p)| p).collect() }));
                 api::notify("Tab marks issues to import, Enter adds them");
@@ -1448,9 +1497,11 @@ impl Agenda {
         }
     }
 
+    /// A picker of the sync's: its words, a tracker's among them, cleaned
+    /// to be shown; what's picked is the row, as it came.
     fn sync_picker(&mut self, title: &str, task: Option<TaskId>, tracker: Option<String>, revert: Option<(Status, i64)>, rows: Vec<(String, Pick)>) {
-        let items: Vec<PickerItem> = rows.iter().enumerate().map(|(i, (label, _))| PickerItem::new(label.clone(), i.to_string())).collect();
-        let id = api::pick(title, &items);
+        let items: Vec<PickerItem> = rows.iter().enumerate().map(|(i, (label, _))| PickerItem::new(fenix_tracker::clean::line(label, 300), i.to_string())).collect();
+        let id = api::pick(&fenix_tracker::clean::line(title, 300), &items);
         self.asked.insert(id, Asked::Sync(PickerCtx { task, tracker, revert, rows: rows.into_iter().map(|(_, p)| p).collect() }));
     }
 
@@ -1555,6 +1606,15 @@ impl Agenda {
                     self.after_edit();
                 }
             }
+            Pick::Dropped(choice) => {
+                if let Some(id) = task {
+                    self.store.resolve_dropped(id, choice);
+                    self.after_edit();
+                    if choice == model::DroppedChoice::TakeTheirs {
+                        self.sync_now(true);
+                    }
+                }
+            }
         }
     }
 
@@ -1563,28 +1623,51 @@ impl Agenda {
         if self.sync.sending_worklogs {
             return;
         }
-        let stamp = clock::now().timestamp_millis();
-        let rows: Vec<(Via, model::WorklogRow, String)> = self
-            .worklog_rows()
-            .into_iter()
-            .filter(|r| r.minutes > 0)
-            .filter_map(|r| {
-                let op = format!("agenda:{stamp}:w{}:{}", r.task.0, r.date);
-                Some((self.sync.ready(&r.tracker)?.via(), r, op))
-            })
-            .collect();
+        let all = self.worklog_rows();
+        let maybe = all.iter().filter(|r| r.maybe.is_some()).count();
+        let rows = self.worklogs_to_send(all.into_iter().filter(|r| r.maybe.is_none()).collect());
         if rows.is_empty() {
-            return api::notify("Nothing to send");
+            return match maybe {
+                0 => api::notify("Nothing to send"),
+                n => api::notify(&format!("Nothing sent: {n} may have been logged already -- s on its row sends it again, x says it was")),
+            };
         }
         self.sync.sending_worklogs = true;
         api::notify("Sending worklogs...");
         sync::worklogs(rows);
     }
 
+    /// `rows`, each with its tracker and its `op`: the same row sent
+    /// again goes with the same `op`.
+    fn worklogs_to_send(&self, rows: Vec<model::WorklogRow>) -> Vec<(Via, model::WorklogRow, String)> {
+        rows.into_iter()
+            .filter(|r| r.minutes > 0)
+            .filter_map(|r| {
+                let op = r.op(&self.store.starts(r.task, &r.entries));
+                Some((self.sync.ready(&r.tracker)?.via(), r, op))
+            })
+            .collect()
+    }
+
+    /// `s` on a worklog that may have been logged: sent again, with the
+    /// `op` it went with, so a tracker that took it doesn't log it twice.
+    fn resend_worklog(&mut self, task: TaskId, date: chrono::NaiveDate) {
+        if self.sync.sending_worklogs {
+            return;
+        }
+        let rows = self.worklogs_to_send(self.worklog_rows().into_iter().filter(|r| r.task == task && r.date == date).collect());
+        if rows.is_empty() {
+            return api::notify("Nothing to send");
+        }
+        self.sync.sending_worklogs = true;
+        api::notify("Sending the worklog again...");
+        sync::worklogs(rows);
+    }
+
     fn worklogs_sent(&mut self, results: Vec<sync::WorklogSent>) {
         self.sync.sending_worklogs = false;
         let (mut sent, mut minutes, mut failures) = (0, 0, Vec::new());
-        for sync::WorklogSent { task, entries, key, minutes: row_minutes, result } in results {
+        for sync::WorklogSent { task, entries, key, minutes: row_minutes, op, result } in results {
             match result {
                 Ok(()) => {
                     self.store.mark_sent(task, &entries);
@@ -1594,7 +1677,10 @@ impl Agenda {
                 }
                 // No answer: it may have been logged. Said so, so it isn't
                 // simply sent again.
-                Err(err) if err.is(code::UNKNOWN) => failures.push(format!("{key}: no answer -- it may have been logged; check before sending it again")),
+                Err(err) if err.is(code::UNKNOWN) => {
+                    self.store.mark_maybe(task, &entries, &op);
+                    failures.push(format!("{key}: no answer -- it may have been logged; W leaves it out until s on its row sends it again or x says it was"));
+                }
                 Err(err) => failures.push(format!("{key}: {err}")),
             }
         }
@@ -1821,9 +1907,16 @@ impl Extension for Agenda {
         if *id != page {
             return Page::new();
         }
-        let worklogs = self.worklog_rows();
+        // Drawn from the store as it's shown: what came from a tracker,
+        // cleaned for the screen. Keys act on the store as kept.
+        let shown = self.store.shown();
+        let mut worklogs = self.worklog_rows();
+        for r in &mut worklogs {
+            r.title = fenix_tracker::clean::line(&r.title, usize::MAX);
+            r.key = fenix_tracker::clean::line(&r.key, usize::MAX);
+        }
         let categories = self.categories();
-        let ctx = page::Ctx { store: &self.store, now: clock::now(), categories: &categories, worklogs: &worklogs, round: self.round(), sync: self.sync_label(), import_keys: keys::keys_for("agenda.import", "SPC A i"), trackers: &self.sync.trackers };
+        let ctx = page::Ctx { store: &shown, now: clock::now(), categories: &categories, worklogs: &worklogs, round: self.round(), sync: self.sync_label(), import_keys: keys::keys_for("agenda.import", "SPC A i"), trackers: &self.sync.trackers };
         Page::canvas(page::layout(p, &ctx, width as usize)).typing(p.typing()).space(p.claims_space())
     }
 

@@ -75,11 +75,18 @@ only" knows your issues by the repository the project's remote is.
 **Changes from the agenda are asked about.** Any installed extension can
 call the tracker seam, and Fenix doesn't say which one did, so the first
 change that comes through it in a session -- a move, an edit, a comment,
-a new issue -- asks you first: *Agenda wants to change issues in GitHub
-for you -- allow for this session?* `github-issues.seam_writes` says it for
-good: `ask` (the default), `always` or `never`. What you do on this
-extension's own page is never asked about. A change sent twice (the
-agenda gave up waiting, and you said send it again) is done once.
+a new issue -- asks you first: *An extension asks to change issues in GitHub for you
+(Fenix can't tell which; usually the Agenda) -- allow?* **Allow** lets
+every extension's changes through GitHub until Fenix restarts. **Not now**
+(or Esc) refuses them, and any other for 10 minutes without asking
+again; `r` on the task tries again after that, and changing the setting
+ends the 10 minutes. A question no one answers within a minute (or that
+Fenix replaced with another picker) refuses what waited, and the next
+change asks again; at most 50 changes wait. `github-issues.seam_writes` says it for good: `ask` (the
+default), `always` or `never`. What you do on this extension's own page
+is never asked about. A change sent twice (the agenda gave up waiting,
+and you said send it again) is done once; it's known by its call and
+`op` together.
 
 ## For agents
 
@@ -99,7 +106,7 @@ Fenix's own, under Forges (`SPC ,`, `Ctrl+,` with standard keys):
 | `github-issues.repositories` | Repositories whose open issues the page lists |
 | `github-issues.queries` | Saved searches, by name |
 | `github-issues.branch_pattern` | A branch's name: `{number}`, `{title}`, `{project}` (`{number}-{title}`) |
-| `github-issues.seam_writes` | Changes from the agenda: `ask` once a session, `always`, `never` |
+| `github-issues.seam_writes` | Changes from extensions through the seam: `ask`, `always`, `never` |
 | `github-issues.sync_minutes` | How often the agenda's linked tasks are brought up to date |
 
 ## What it may do

@@ -177,7 +177,7 @@ impl AgendaStore {
             return false;
         }
         let Some(task) = self.task_mut(id) else { return false };
-        task.time_entries.push(TimeEntry { start, end, source: TimeSource::Manual, sent: false });
+        task.time_entries.push(TimeEntry { start, end, source: TimeSource::Manual, sent: false, maybe: None });
         task.time_entries.sort_by_key(|e| e.start);
         task.updated_at = crate::clock::now();
         true
@@ -275,7 +275,7 @@ impl AgendaStore {
             return;
         }
         if let Some(task) = self.task_mut(timer.task_id) {
-            task.time_entries.push(TimeEntry { start: timer.started_at, end, source: TimeSource::Timer, sent: false });
+            task.time_entries.push(TimeEntry { start: timer.started_at, end, source: TimeSource::Timer, sent: false, maybe: None });
             task.updated_at = crate::clock::now();
         }
     }
@@ -300,7 +300,7 @@ impl AgendaStore {
         if let Some(timer) = self.active_timer.take() {
             let now = crate::clock::now();
             if let Some(task) = self.task_mut(timer.task_id) {
-                task.time_entries.push(TimeEntry { start: timer.started_at, end: now, source: TimeSource::Timer, sent: false });
+                task.time_entries.push(TimeEntry { start: timer.started_at, end: now, source: TimeSource::Timer, sent: false, maybe: None });
                 task.updated_at = now;
             }
         }
@@ -309,7 +309,7 @@ impl AgendaStore {
     pub fn log_manual_time(&mut self, id: TaskId, duration: chrono::Duration) {
         let now = crate::clock::now();
         if let Some(task) = self.task_mut(id) {
-            task.time_entries.push(TimeEntry { start: now - duration, end: now, source: TimeSource::Manual, sent: false });
+            task.time_entries.push(TimeEntry { start: now - duration, end: now, source: TimeSource::Manual, sent: false, maybe: None });
             task.updated_at = now;
         }
     }
