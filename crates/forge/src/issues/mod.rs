@@ -387,6 +387,22 @@ pub trait Issues {
     /// Its issue templates, when it keeps any.
     async fn templates(&self, project: &str) -> Result<Vec<Template>, ApiError>;
 
+    /// Whether `text` is this forge's immutable id for an issue rather
+    /// than a ref or an address: GitHub's node id (`I_kwDO...`), GitLab's
+    /// global id (digits).
+    fn is_id(&self, text: &str) -> bool {
+        let t = text.trim();
+        match self.host() {
+            Host::GitHub => !t.is_empty() && t.len() <= 100 && !t.contains(['/', '#', ':']) && t.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '=')) && t.chars().any(|c| c.is_ascii_alphabetic()),
+            Host::GitLab => !t.is_empty() && t.len() <= 20 && t.chars().all(|c| c.is_ascii_digit()),
+        }
+    }
+
+    /// The issue an immutable id names, wherever it lives now (it may
+    /// have moved): asked of the forge's GraphQL API, the only one that
+    /// finds an issue by it for anyone but an administrator.
+    async fn resolve(&self, id: &str) -> Result<IssueRef, ApiError>;
+
     /// Time spent on it, filed on `day` (`YYYY-MM-DD`): GitLab's time
     /// tracking. GitHub has none.
     async fn spend(&self, key: &IssueRef, seconds: i64, day: &str) -> Result<(), ApiError> {

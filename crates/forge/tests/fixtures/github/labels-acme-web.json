@@ -1,6 +1,6 @@
 [
   {
-    "id": 546732472,
+    "id": 208046264,
     "node_id": "LA_kwDObug",
     "url": "https://api.github.com/repos/acme/rocket/labels/bug",
     "name": "bug",
@@ -9,7 +9,7 @@
     "default": false
   },
   {
-    "id": 756267284,
+    "id": 208046371,
     "node_id": "LA_kwDOdocs",
     "url": "https://api.github.com/repos/acme/rocket/labels/docs",
     "name": "docs",

@@ -325,6 +325,21 @@ impl<H: Http> Issues for GitLabIssues<H> {
         Ok(value.as_array().into_iter().flatten().map(user).filter(|u| !u.username.is_empty()).collect())
     }
 
+    async fn resolve(&self, id: &str) -> Result<IssueRef, ApiError> {
+        if !self.is_id(id) {
+            return Err(ApiError::status(400, format!("\"{id}\" isn't a GitLab issue id")));
+        }
+        let query = "query($id:IssueID!){issue(id:$id){iid reference(full:true)}}";
+        let body = json!({ "query": query, "variables": { "id": format!("gid://gitlab/Issue/{id}") } });
+        let headers = [("Authorization", format!("Bearer {}", self.token)), ("Content-Type", "application/json".to_string()), ("Accept", "application/json".to_string())];
+        let value = json(&send(&self.http, Host::GitLab, "POST", &format!("{}/api/graphql", self.base), &headers, Some(body.to_string())).await?)?;
+        let found = value.get("data").and_then(|d| d.get("issue")).filter(|i| !i.is_null()).and_then(|i| i.get("reference")?.as_str()?.rsplit_once('#').map(|(p, n)| (p.to_string(), n.to_string())));
+        match found.and_then(|(p, n)| IssueRef::checked(&p, &n, Host::GitLab)) {
+            Some(key) => Ok(key),
+            None => Err(ApiError::status(404, format!("no issue with the id {id}"))),
+        }
+    }
+
     async fn templates(&self, project: &str) -> Result<Vec<Template>, ApiError> {
         let base = format!("{}/templates/issues", Self::project(project)?);
         let listing = match self.get(&base, &[]).await {

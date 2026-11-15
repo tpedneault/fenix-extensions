@@ -1,6 +1,6 @@
 {
   "id": 100005,
-  "node_id": "MDU6SXNzdWUx",
+  "node_id": "I_kwDOPLATFORM_TOOLS_5",
   "url": "https://ghe.example.com/api/v3/repos/platform/tools/issues/5",
   "repository_url": "https://ghe.example.com/api/v3/repos/platform/tools",
   "labels_url": "https://ghe.example.com/api/v3/repos/platform/tools/issues/5/labels{/name}",

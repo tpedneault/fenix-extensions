@@ -315,6 +315,25 @@ impl<H: Http> Issues for GitHubIssues<H> {
         Ok(value.as_array().into_iter().flatten().map(user).filter(|u| !u.username.is_empty()).collect())
     }
 
+    async fn resolve(&self, id: &str) -> Result<IssueRef, ApiError> {
+        // GraphQL is `/graphql` on github.com, `/api/graphql` on a server.
+        let url = match self.api.strip_suffix("/api/v3") {
+            Some(host) => format!("{host}/api/graphql"),
+            None => format!("{}/graphql", self.api),
+        };
+        let query = "query($id:ID!){node(id:$id){... on Issue{number repository{nameWithOwner}}}}";
+        let body = json!({ "query": query, "variables": { "id": id } });
+        let mut headers = self.headers("application/vnd.github+json");
+        headers.push(("Content-Type", "application/json".to_string()));
+        let value = json(&send(&self.http, Host::GitHub, "POST", &url, &headers, Some(body.to_string())).await?)?;
+        let node = value.get("data").and_then(|d| d.get("node")).filter(|n| !n.is_null());
+        let found = node.and_then(|n| Some((n.get("repository")?.get("nameWithOwner")?.as_str()?.to_string(), n.get("number")?.as_u64()?)));
+        match found {
+            Some((project, number)) => Ok(IssueRef::new(project, number)),
+            None => Err(ApiError::status(404, format!("no issue with the id {id}"))),
+        }
+    }
+
     async fn templates(&self, project: &str) -> Result<Vec<Template>, ApiError> {
         let dir = format!("{}/contents/.github/ISSUE_TEMPLATE", Self::repo(project)?);
         let listing = match self.get(&dir, &[]).await {

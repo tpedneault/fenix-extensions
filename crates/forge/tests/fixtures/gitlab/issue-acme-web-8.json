@@ -10,7 +10,7 @@
   "closed_at": null,
   "closed_by": null,
   "labels": [
-    "blocked"
+    "workflow::Blocked"
   ],
   "milestone": {
     "id": 17,

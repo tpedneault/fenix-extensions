@@ -1,6 +1,6 @@
 {
   "id": 100007,
-  "node_id": "MDU6SXNzdWUx",
+  "node_id": "I_kwDOACME_ROCKET_7",
   "url": "https://api.github.com/repos/acme/rocket/issues/7",
   "repository_url": "https://api.github.com/repos/acme/rocket",
   "labels_url": "https://api.github.com/repos/acme/rocket/issues/7/labels{/name}",
@@ -34,7 +34,7 @@
   "pinned_comment": null,
   "labels": [
     {
-      "id": 834338869,
+      "id": 208047104,
       "node_id": "LA_kwDOenhancement",
       "url": "https://api.github.com/repos/acme/rocket/labels/enhancement",
       "name": "enhancement",

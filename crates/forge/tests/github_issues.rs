@@ -90,7 +90,11 @@ fn about_says_who_it_is_and_what_it_takes() {
     let (seam, http) = world();
     let about: fenix_tracker::About = serde_json::from_str(&call(&seam, "about", serde_json::json!({"seam": 1})).unwrap()).unwrap();
     assert_eq!((about.name.as_str(), about.ready, about.ref_hint.as_deref()), ("GitHub", true, Some("owner/repo#123")));
-    assert_eq!(about.can, ["comments", "edit", "assign", "comment", "create"], "no priorities, worklog or remember");
+    assert_eq!(about.can, ["comments", "edit.title", "edit.body", "edit.assignee", "edit.labels", "comment", "create", "project"], "no priority, due date, worklog or remember");
+    assert_eq!((about.id.as_str(), about.seams.clone(), about.blocked, about.browse.clone()), ("fenix.github-issues", vec![1], false, None), "no Blocked of its own; each issue carries its url");
+    // Answered whatever seam it's asked with.
+    let newer: fenix_tracker::About = serde_json::from_str(&call(&seam, "about", serde_json::json!({"seam": 7})).unwrap()).unwrap();
+    assert_eq!(newer.seams, [1]);
     assert!(http.asked().is_empty(), "known without asking GitHub");
 
     let seam = seam_with(github(), Settings { ready: false, not_ready: "Sign GitHub in -- gh auth login, or its token in SPC , (Forges)".into(), ..Settings::default() }, None);
@@ -115,12 +119,13 @@ fn whats_assigned_is_the_issue_search_paged_without_pull_requests() {
     assert_eq!(one.url.as_deref(), Some("https://github.com/acme/rocket/issues/12"));
     assert_eq!((one.project.as_deref(), one.title.as_str()), (Some("acme/rocket"), "Login times out after five minutes"));
     assert_eq!(one.body, "Users are logged out after **5 minutes**.\n\n- [ ] find the timer\n- [ ] fix it\n", "Markdown as it is, line ends as \\n");
-    assert_eq!((one.state.id.as_str(), one.state.name.as_str(), one.state.stage.as_str(), one.state.column.as_str()), ("open+doing", "Open", "doing", "doing"), "the in-progress label");
+    assert_eq!((one.state.id.as_str(), one.state.name.as_str(), one.state.stage.as_str(), one.state.column.as_str()), ("open", "Open", "todo", "todo"), "open is To do, whatever its labels");
+    assert_eq!(one.id, "I_kwDOACME_ROCKET_12", "GitHub's own id, which outlives a transfer");
     assert_eq!(one.assignee.as_ref().map(|p| (p.id.as_str(), p.name.as_str())), Some(("octocat", "octocat")));
     assert_eq!((one.mine, one.labels.clone(), one.updated.as_str()), (Some(true), vec!["bug".to_string(), "in progress".to_string()], "2026-11-13T16:05:09Z"));
     assert!(one.priority.is_none() && one.due.is_none() && one.comments.is_empty());
     let web = &first.issues[1];
-    assert_eq!((web.state.stage.as_str(), web.state.column.as_str()), ("todo", "blocked"), "the blocked label");
+    assert_eq!((web.state.stage.as_str(), web.state.column.as_str()), ("todo", "todo"), "no Blocked of GitHub's own");
 
     // The next page, with a smaller limit asked: it follows on.
     let second: Page = serde_json::from_str(&call(&seam, "assigned", serde_json::json!({"seam": 1, "limit": 50, "cursor": "2:100"})).unwrap()).unwrap();
@@ -129,9 +134,8 @@ fn whats_assigned_is_the_issue_search_paged_without_pull_requests() {
     // Someone's escape codes, bidi override and newline: shown, never run.
     assert_eq!(second.issues[0].title, "Write the [31mrelease notes for 2.0");
     assert_eq!(http.asked().iter().filter(|a| a.ends_with("/user")).count(), 1, "who you are, asked once");
-
-    call(&seam, "assigned", serde_json::json!({"seam": 1, "since": "2026-11-10T00:00:00Z"})).unwrap();
-    assert!(http.asked().last().unwrap().contains("updated%3A%3E%3D2026-11-10T00%3A00%3A00Z"), "{:?}", http.asked());
+    let e = err(call(&seam, "assigned", serde_json::json!({"seam": 1, "cursor": "not ours"})));
+    assert_eq!(e.code, code::BAD_REQUEST, "a cursor that isn't its own");
     token_only_to_github(&http, API);
 }
 
@@ -141,7 +145,8 @@ fn these_issues_by_key_or_address_and_what_isnt_an_issue_is_missing() {
     let refs = ["acme/rocket#12", "https://github.com/acme/web/issues/3", "acme/rocket#13", "acme/rocket#404", "not a ref", "https://evil.example.com/acme/rocket/issues/12"];
     let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": refs})).unwrap()).unwrap();
     assert_eq!(found.issues.iter().map(|i| i.key.as_str()).collect::<Vec<_>>(), ["acme/rocket#12", "acme/web#3"], "the address answered under its ref");
-    assert_eq!(found.missing, ["acme/rocket#13", "acme/rocket#404", "https://evil.example.com/acme/rocket/issues/12"], "a pull request, a 404, another host; a ref that's no ref is dropped by cleaning");
+    assert_eq!(found.missing, ["acme/rocket#13", "acme/rocket#404", "not a ref", "https://evil.example.com/acme/rocket/issues/12"], "a pull request, a 404, no ref at all, another host: each exactly as asked");
+    assert_eq!(found.issues.iter().map(|i| i.asked.as_deref()).collect::<Vec<_>>(), [Some("acme/rocket#12"), Some("https://github.com/acme/web/issues/3")]);
     let twelve = &found.issues[0];
     assert_eq!(twelve.comments.len(), 2, "it has comments, so they're asked for");
     assert_eq!((twelve.comments[0].author.as_str(), twelve.comments[0].body.as_str(), twelve.comments[0].id.as_str()), ("hubot", "I can reproduce it on 1.4.", "501"));
@@ -169,54 +174,38 @@ fn a_long_thread_brings_its_most_recent_hundred_comments() {
 }
 
 #[test]
-fn moves_are_close_as_completed_or_not_planned_reopen_and_the_blocked_label() {
+fn moves_are_close_as_completed_or_not_planned_reopen_and_doing_in_the_agenda_only() {
     let (seam, http) = world();
     let open: Moves = serde_json::from_str(&call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/rocket#12"})).unwrap()).unwrap();
-    let rows: Vec<(String, &str, &str)> = open.transitions.iter().map(|m| (m.row(), m.id.as_str(), m.to.column.as_str())).collect();
+    let rows: Vec<(String, &str, &str, bool)> = open.transitions.iter().map(|m| (m.row(), m.id.as_str(), m.to.column.as_str(), m.local)).collect();
     assert_eq!(rows, [
-        ("Close as completed  ->  Closed".to_string(), "close", "done"),
-        ("Close as not planned  ->  Closed as not planned".to_string(), "close:not_planned", "done"),
-        ("Block   (the blocked label)".to_string(), "label:+blocked", "blocked"),
+        ("Close as completed  ->  Closed".to_string(), "close", "done", false),
+        ("Close as not planned  ->  Closed as not planned".to_string(), "close:not_planned", "done", false),
+        ("Doing in the agenda only  ->  Open".to_string(), "local:doing", "doing", true),
     ]);
-    assert_eq!(open.blocked.as_deref(), Some("Blocked  (the blocked label)"));
-    let n = http.sent.borrow().len();
+    assert!(!open.transitions.iter().any(|m| m.to.column == "blocked"), "GitHub has no Blocked: about says so, and no move is faked");
     assert!(http.sent.borrow().iter().all(|s| s.method == "GET"), "transitions changes nothing");
 
     let closed: Moves = serde_json::from_str(&call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/rocket#7"})).unwrap()).unwrap();
     assert_eq!(closed.transitions.iter().map(|m| (m.id.as_str(), m.to.stage.as_str())).collect::<Vec<_>>(), [("reopen", "todo")]);
-    assert_eq!(http.asked().iter().filter(|a| a.contains("/labels")).count(), 1, "a repository's labels, asked once");
 
     for (id, body, said) in [
         ("close", r#"{"state":"closed","state_reason":"completed"}"#, "closed as completed"),
         ("close:not_planned", r#"{"state":"closed","state_reason":"not_planned"}"#, "closed as not planned"),
         ("reopen", r#"{"state":"open","state_reason":"reopened"}"#, "reopened"),
     ] {
-        let answer = call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "id": id})).unwrap();
+        let answer = call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "id": id, "op": "agenda:1:1"})).unwrap();
         assert_eq!(answer, format!(r#"{{"said":"{said}"}}"#));
         let sent = http.last().unwrap();
         assert_eq!((sent.line(), sent.body.as_deref()), (format!("PATCH {API}/repos/acme/rocket/issues/12"), Some(body)));
     }
-    call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "id": "label:+blocked"})).unwrap();
-    assert_eq!((http.last().unwrap().line(), http.last().unwrap().body), (format!("POST {API}/repos/acme/rocket/issues/12/labels"), Some(r#"{"labels":["blocked"]}"#.to_string())));
-    call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/web#3", "id": "label:-blocked"})).unwrap();
-    assert_eq!(http.last().unwrap().line(), format!("DELETE {API}/repos/acme/web/issues/3/labels/blocked"));
-    let e = err(call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "id": "teleport"})));
-    assert_eq!(e.code, code::REFUSED);
-    assert!(http.sent.borrow().len() > n);
-}
-
-#[test]
-fn without_a_blocked_label_blocked_stays_in_the_agenda() {
-    let (seam, http) = world();
-    http.on("GET", "/repos/acme/rocket/labels", 200, r#"[{"name": "bug"}]"#);
-    let toward: Moves = serde_json::from_str(&call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "toward": "blocked"})).unwrap()).unwrap();
-    let local = toward.transitions.iter().find(|m| m.to.column == "blocked").unwrap();
-    assert!(local.local && local.id == "local");
-    assert_eq!(local.note.as_deref(), Some("acme/rocket has no \"blocked\" label -- Blocked stays in your agenda"));
-    assert_eq!(toward.blocked.as_deref(), Some("Blocked  (in your agenda only)"));
     let n = http.sent.borrow().len();
-    assert_eq!(call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "id": "local"})).unwrap(), "{}");
+    assert_eq!(call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "id": "local:doing"})).unwrap(), "{}");
     assert_eq!(http.sent.borrow().len(), n, "a local move sends nothing");
+    for id in ["teleport", "label:+anything", "label:+blocked"] {
+        assert_eq!(err(call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "id": id}))).code, code::REFUSED, "{id}: no move adds a label of the caller's choosing");
+    }
+    assert_eq!(http.sent.borrow().len(), n);
 }
 
 #[test]
@@ -226,7 +215,8 @@ fn edits_comments_and_people_are_githubs_and_what_it_hasnt_is_unsupported() {
         (serde_json::json!({"title": "Shorter"}), r#"{"title":"Shorter"}"#),
         (serde_json::json!({"body": "New *body*"}), r#"{"body":"New *body*"}"#),
         (serde_json::json!({"assignee": {"id": "hubot", "name": "hubot"}}), r#"{"assignees":["hubot"]}"#),
-        (serde_json::json!({"assignee": {"id": "", "name": ""}}), r#"{"assignees":[]}"#),
+        (serde_json::json!({"assignee": null}), r#"{"assignees":[]}"#),
+        (serde_json::json!({"labels": ["bug", "needs triage"]}), r#"{"labels":["bug","needs triage"]}"#),
     ] {
         assert_eq!(call(&seam, "update", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "set": set})).unwrap(), "{}");
         let sent = http.last().unwrap();
@@ -276,13 +266,19 @@ fn errors_are_the_seams_with_githubs_words() {
 
     http.on("GET", "/repos/acme/rocket/issues/7", 502, "<html>Bad gateway</html>");
     let e = err(call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/rocket#7"})));
-    assert_eq!((e.code.as_str(), e.message.as_str()), (code::FAILED, "HTTP 502 (Bad Gateway)"));
+    assert_eq!((e.code.as_str(), e.message.as_str()), (code::OFFLINE, "HTTP 502 (Bad Gateway)"), "a proxy or maintenance: the next sync tries again");
+    http.on("GET", "/repos/acme/rocket/issues/7", 500, "");
+    assert_eq!(err(call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/rocket#7"}))).code, code::FAILED);
+    http.on("GET", "/repos/acme/rocket/issues/7", 410, r#"{"message": "This issue was deleted"}"#);
+    assert_eq!(err(call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/rocket#7"}))).code, code::NOT_FOUND);
 
     let e = err(call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/nowhere#1"})));
     assert_eq!(e.code, code::OFFLINE, "nothing came back: {e:?}");
-    let e = err(call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "nope"})));
-    assert_eq!((e.code.as_str(), e.message.as_str()), (code::BAD_REQUEST, "\"nope\" isn't an issue -- owner/repo#12, or the issue's address"));
+    let e = err(call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "nope here"})));
+    assert_eq!((e.code.as_str(), e.message.as_str()), (code::BAD_REQUEST, "\"nope here\" isn't an issue -- owner/repo#12, its id, or the issue's address"));
     assert_eq!(err(call(&seam, "issues", serde_json::json!({"seam": 2, "refs": []}))).code, code::UNSUPPORTED);
+    let e = err(call(&seam, "update", serde_json::json!({"seam": 1, "ref": "acme/rocket#7", "set": {"colour": "red"}})));
+    assert_eq!(e.code, code::UNSUPPORTED, "a field it doesn't know");
     assert_eq!(SeamError::from_err(&block_on(seam.serve("issues", "not json")).unwrap_err()).code, code::BAD_REQUEST);
     token_only_to_github(&http, API);
 }
@@ -342,5 +338,20 @@ fn the_page_asks_for_searches_linked_requests_templates_and_a_new_issue() {
     http.on("DELETE", "/labels/", 404, "{}");
     block_on(gh.change(&IssueRef::new("acme/rocket", 12), &Change::RemoveLabel("in progress".into()))).unwrap();
     assert!(http.asked().last().unwrap().ends_with("/labels/in%20progress"));
+    token_only_to_github(&http, API);
+}
+
+#[test]
+fn an_issue_asked_by_its_id_is_found_where_it_lives_now() {
+    let (seam, http) = world();
+    // It was acme/web#3; transferred, it's acme/rocket#12 now.
+    http.on("POST", "api.github.com/graphql", 200, r#"{"data": {"node": {"number": 12, "repository": {"nameWithOwner": "acme/rocket"}}}}"#);
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["I_kwDOACME_ROCKET_12"]})).unwrap()).unwrap();
+    assert_eq!((found.issues[0].key.as_str(), found.issues[0].asked.as_deref(), found.issues[0].id.as_str()), ("acme/rocket#12", Some("I_kwDOACME_ROCKET_12"), "I_kwDOACME_ROCKET_12"));
+    let ask = http.sent.borrow().iter().find(|s| s.url.ends_with("/graphql")).cloned().unwrap();
+    assert_eq!(ask.body.as_deref(), Some(r#"{"query":"query($id:ID!){node(id:$id){... on Issue{number repository{nameWithOwner}}}}","variables":{"id":"I_kwDOACME_ROCKET_12"}}"#));
+    http.on("POST", "api.github.com/graphql", 200, r#"{"data": {"node": null}, "errors": [{"type": "NOT_FOUND", "message": "Could not resolve to a node with the global id of 'I_gone'"}]}"#);
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["I_gone"]})).unwrap()).unwrap();
+    assert_eq!(found.missing, ["I_gone"]);
     token_only_to_github(&http, API);
 }

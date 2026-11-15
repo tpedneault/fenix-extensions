@@ -80,10 +80,12 @@ fn err(answer: Result<String, String>) -> SeamError {
 
 fn token_only_to_gitlab(http: &Recorded) {
     for s in http.sent.borrow().iter() {
-        assert!(s.url.starts_with(API), "{}", s.url);
+        assert!(s.url.starts_with(API) || s.url == "https://gitlab.example.com/api/graphql", "{}", s.url);
         assert!(!s.url.contains(TOKEN) && !s.body.as_deref().unwrap_or_default().contains(TOKEN), "{s:?}");
         let with: Vec<&(String, String)> = s.headers.iter().filter(|(_, v)| v.contains(TOKEN)).collect();
-        assert_eq!(with, [&("PRIVATE-TOKEN".to_string(), TOKEN.to_string())], "{s:?}");
+        let graphql = s.url.ends_with("/api/graphql");
+        let want = if graphql { ("Authorization".to_string(), format!("Bearer {TOKEN}")) } else { ("PRIVATE-TOKEN".to_string(), TOKEN.to_string()) };
+        assert_eq!(with, [&want], "{s:?}");
     }
 }
 
@@ -92,7 +94,8 @@ fn about_says_gitlab_and_time_tracking_only_when_asked_for() {
     let (seam, _) = world();
     let about: fenix_tracker::About = serde_json::from_str(&call(&seam, "about", serde_json::json!({"seam": 1})).unwrap()).unwrap();
     assert_eq!((about.name.as_str(), about.ref_hint.as_deref()), ("GitLab", Some("group/project#123")));
-    assert_eq!(about.can, ["comments", "edit", "assign", "comment", "create", "worklog"]);
+    assert_eq!(about.can, ["comments", "edit.title", "edit.body", "edit.due", "edit.assignee", "edit.labels", "comment", "create", "project", "worklog"]);
+    assert_eq!((about.id.as_str(), about.blocked, about.browse.clone()), ("fenix.gitlab-issues", true, None));
     let (seam, _) = world_with(Settings { worklog: false, ..settings() });
     let about: fenix_tracker::About = serde_json::from_str(&call(&seam, "about", serde_json::json!({"seam": 1})).unwrap()).unwrap();
     assert!(!about.can("worklog"));
@@ -115,13 +118,15 @@ fn whats_assigned_pages_by_x_next_page_across_nested_groups() {
     assert_eq!((a.due.as_deref(), a.mine), (Some("2026-11-20"), Some(true)));
     assert_eq!(a.assignee.as_ref().map(|p| (p.id.as_str(), p.name.as_str())), Some(("jo", "Jo Bloggs")), "assigned by username");
     assert_eq!(a.body, "Bursts over **100 rps** are dropped.\n\n```\n429 Too Many Requests\n```");
-    assert_eq!((first.issues[1].state.stage.as_str(), first.issues[1].state.column.as_str()), ("todo", "blocked"));
+    assert_eq!((first.issues[1].state.name.as_str(), first.issues[1].state.stage.as_str(), first.issues[1].state.column.as_str()), ("Blocked", "doing", "blocked"), "a workflow step that says so");
+    assert_eq!(a.id, "1004", "GitLab's global id");
 
     let second: Page = serde_json::from_str(&call(&seam, "assigned", serde_json::json!({"seam": 1, "limit": 3, "cursor": "2:100"})).unwrap()).unwrap();
     assert_eq!((second.next, second.issues[0].title.as_str()), (None, "Write the [31mrelease notes"));
-    http.on("GET", "&updated_after=", 200, "[]");
+    // `since` is gone from seam 1: an old caller's is ignored.
+    http.on("GET", "/api/v4/issues?", 200, "[]");
     call(&seam, "assigned", serde_json::json!({"seam": 1, "since": "2026-11-10T00:00:00Z"})).unwrap();
-    assert!(http.asked().last().unwrap().ends_with("&updated_after=2026-11-10T00%3A00%3A00Z"), "{:?}", http.asked());
+    assert!(!http.asked().last().unwrap().contains("updated_after"), "{:?}", http.asked());
     token_only_to_gitlab(&http);
 }
 
@@ -140,36 +145,38 @@ fn these_issues_by_key_or_address_with_peoples_comments_not_gitlabs() {
 }
 
 #[test]
-fn moves_are_close_reopen_the_workflows_steps_and_the_blocked_label() {
+fn moves_are_close_reopen_the_workflows_steps_and_local_ones_for_the_rest() {
     let (seam, http) = world();
     let moves: Moves = serde_json::from_str(&call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/platform/api#4"})).unwrap()).unwrap();
     let rows: Vec<(&str, &str, &str)> = moves.transitions.iter().map(|m| (m.id.as_str(), m.to.name.as_str(), m.to.column.as_str())).collect();
-    // `workflow::To Do` is offered too, but the seam's cleaning (fenix-tracker
-    // 1.0) drops a move whose id has a space in it; the seam's fix is
-    // in hand there.
-    assert_eq!(rows, [("close", "Closed", "done"), ("label:+workflow::Review", "Review", "doing"), ("label:+workflow::Done", "Done", "done"), ("label:+blocked", "Doing", "blocked")]);
-    assert_eq!(moves.transitions[1].row(), "Review   (workflow::Review)");
+    assert_eq!(rows, [("close", "Closed", "done"), ("label:+workflow::To Do", "To Do", "todo"), ("label:+workflow::Review", "Review", "doing"), ("label:+workflow::Done", "Done", "done"), ("label:+workflow::Blocked", "Blocked", "blocked")], "an id with a space kept whole");
+    assert_eq!(moves.transitions[1].row(), "To Do   (workflow::To Do)");
     assert!(http.sent.borrow().iter().all(|s| s.method == "GET"));
 
+    // A project with no workflow labels: Doing and Blocked are the agenda's.
+    http.on("GET", "/projects/acme%2Fweb/labels", 200, "[]");
+    let learned_fresh = Seam::new(GitLabIssues::new(http.clone(), "https://gitlab.example.com", TOKEN), settings(), Rc::new(RefCell::new(Learned::default())));
+    let plain: Moves = serde_json::from_str(&call(&learned_fresh, "transitions", serde_json::json!({"seam": 1, "ref": "acme/web#8"})).unwrap()).unwrap();
+    assert_eq!(plain.transitions.iter().map(|m| (m.id.as_str(), m.to.column.as_str(), m.local)).collect::<Vec<_>>(), [("close", "done", false), ("local:doing", "doing", true)], "already Blocked by its step: no local move to it");
     let reopen: Moves = serde_json::from_str(&call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/web#2"})).unwrap()).unwrap();
     assert_eq!(reopen.transitions.iter().map(|m| (m.id.as_str(), m.to.stage.as_str())).collect::<Vec<_>>(), [("reopen", "todo")]);
-    let unblock: Moves = serde_json::from_str(&call(&seam, "transitions", serde_json::json!({"seam": 1, "ref": "acme/web#8"})).unwrap()).unwrap();
-    assert!(unblock.transitions.iter().any(|m| m.id == "label:-blocked" && m.to.column == "todo"));
 
     for (r, id, body, said) in [
         ("acme/platform/api#4", "close", r#"{"state_event":"close"}"#, "closed"),
         ("acme/platform/api#4", "reopen", r#"{"state_event":"reopen"}"#, "reopened"),
-        ("acme/platform/api#4", "label:+workflow::Review", r#"{"add_labels":"workflow::Review"}"#, "moved to workflow::Review"),
-        ("acme/web#8", "label:-blocked", r#"{"remove_labels":"blocked"}"#, "took the blocked label off"),
+        ("acme/platform/api#4", "label:+workflow::To Do", r#"{"add_labels":"workflow::To Do"}"#, "moved to workflow::To Do"),
     ] {
-        let answer = call(&seam, "transition", serde_json::json!({"seam": 1, "ref": r, "id": id})).unwrap();
+        let answer = call(&seam, "transition", serde_json::json!({"seam": 1, "ref": r, "id": id, "op": "agenda:1:2"})).unwrap();
         assert_eq!(answer, format!(r#"{{"said":"{said}"}}"#));
         assert_eq!(http.last().unwrap().body.as_deref(), Some(body), "{id}");
         assert_eq!(http.last().unwrap().method, "PUT");
     }
-    assert!(http.last().unwrap().url.ends_with("/projects/acme%2Fweb/issues/8"));
-    // GitHub's reason isn't GitLab's.
-    assert_eq!(err(call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/web#8", "id": "close:not_planned"}))).code, code::REFUSED);
+    let n = http.sent.borrow().len();
+    for id in ["close:not_planned", "label:+bug", "label:-blocked"] {
+        assert_eq!(err(call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/web#8", "id": id}))).code, code::REFUSED, "{id}");
+    }
+    assert_eq!(call(&seam, "transition", serde_json::json!({"seam": 1, "ref": "acme/web#8", "id": "local:doing"})).unwrap(), "{}");
+    assert_eq!(http.sent.borrow().len(), n, "nothing sent");
 }
 
 #[test]
@@ -181,7 +188,8 @@ fn edits_due_dates_assignees_comments_and_time() {
         (serde_json::json!({"due": "2026-12-01"}), r#"{"due_date":"2026-12-01"}"#),
         (serde_json::json!({"due": null}), r#"{"due_date":null}"#),
         (serde_json::json!({"assignee": {"id": "kim.park", "name": "Kim Park"}}), r#"{"assignee_ids":[12]}"#),
-        (serde_json::json!({"assignee": {"id": "", "name": ""}}), r#"{"assignee_ids":[0]}"#),
+        (serde_json::json!({"assignee": null}), r#"{"assignee_ids":[0]}"#),
+        (serde_json::json!({"labels": ["backend", "workflow::In Review"]}), r#"{"labels":"backend,workflow::In Review"}"#),
     ] {
         assert_eq!(call(&seam, "update", serde_json::json!({"seam": 1, "ref": "acme/platform/api#4", "set": set})).unwrap(), "{}");
         let sent = http.last().unwrap();
@@ -262,4 +270,17 @@ fn the_page_asks_for_searches_linked_requests_templates_and_a_new_issue() {
     let issue = block_on(gl.issue(&IssueRef::new("acme/platform/api", 4))).unwrap();
     assert_eq!((issue.weight, issue.estimate, issue.spent, issue.milestone.as_deref()), (Some(3), Some(7200), Some(1800), Some("v4.0")));
     token_only_to_gitlab(&http);
+}
+
+#[test]
+fn an_issue_asked_by_its_global_id_is_found_where_it_lives_now() {
+    let (seam, http) = world();
+    http.on("POST", "/api/graphql", 200, r#"{"data": {"issue": {"iid": "4", "reference": "acme/platform/api#4"}}}"#);
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["1004"]})).unwrap()).unwrap();
+    assert_eq!((found.issues[0].key.as_str(), found.issues[0].asked.as_deref()), ("acme/platform/api#4", Some("1004")));
+    let ask = http.sent.borrow().iter().find(|s| s.url.ends_with("/api/graphql")).cloned().unwrap();
+    assert_eq!(ask.body.as_deref(), Some(r#"{"query":"query($id:IssueID!){issue(id:$id){iid reference(full:true)}}","variables":{"id":"gid://gitlab/Issue/1004"}}"#));
+    http.on("POST", "/api/graphql", 200, r#"{"data": {"issue": null}}"#);
+    let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["999", "acme/web#8"]})).unwrap()).unwrap();
+    assert_eq!((found.missing.clone(), found.issues.len()), (vec!["999".to_string()], 1));
 }
