@@ -13,6 +13,43 @@
 > where this was written (claims about Jira's REST API that rest on
 > memory say so).
 
+## Changed after the second review
+
+A second independent review (15 November 2026) found the fixed seam
+still had holes. What moved, for the four trackers built on it:
+
+1. **The gate's API and words** (`fenix_tracker::gate`, §3.6). The
+   gate now holds the waiting writes itself and says what to do as
+   `Step`s (`check`, `answered`, `expire` at `deadline`, `reset`). A
+   question lapses after 60 s -- Fenix replaces an open picker without
+   answering it -- and refuses what waited; at most 50 writes wait.
+   "Not now" (or Esc) refuses for 10 minutes without asking, so it
+   can't be asked again until you give in; changing `<name>.seam_writes`
+   ends that. The words say what's true: "An extension asks to change
+   issues in Jira for you (Fenix can't tell which; usually the Agenda)
+   -- allow?", **Allow every extension's changes through Jira until
+   Fenix restarts** / **Not now -- refuse them for 10 minutes**. A
+   `caller` can be given once Fenix says who's calling: then the
+   question names it and an allow is kept for it alone.
+2. **`Dedupe` is keyed by call and `op`**, and a payload that isn't the
+   first one's is refused (§3.7). A write sent again carries the `op` it
+   had the first time: the agenda's worklogs too.
+3. **Every call about an issue is by its `id`** once the caller knows it
+   (§4.2): writes, moves, priorities and people, not only reads.
+4. **Only `unsupported` drops a change.** `bad_request` waits for `r`
+   like `refused` (Linear's `BAD_USER_INPUT` can be this moment's). A
+   dropped change leaves a mark on its task, with `r` to send it again
+   or take the tracker's value back (§3.3).
+5. **Keeping and showing text are two jobs** (§3.1): what's kept and
+   written back is the tracker's own text, byte for byte (`title_cut`
+   joins `body_cut`); what's shown is cleaned, and the cleaning keeps
+   what living scripts and emoji need (ZWNJ, ZWJ, LRM, RLM, ALM, CGJ, one
+   variation selector after a base) and removes the rest, variation
+   selectors smuggling ASCII included.
+6. The agenda sends each tracker's queue on its own; its non-Jira links
+   survive a round trip through agenda 1.2 (§7). Jira refuses
+   `jira.request` for Cloud and credentials over `http://` (§6).
+
 ## Changed after review
 
 Seam 1 changed before any tracker shipped it. If you started from the
@@ -229,21 +266,31 @@ or `Err` with an error (§3.3).
 
 Titles, bodies, names, comments and messages come from other people,
 through someone else's server. Both sides treat them as text to show,
-never to run, open or follow:
+never to run, open or follow. **Keeping and showing are two jobs**:
 
-- **Cleaned** (`fenix_tracker::clean`): no C0 control characters but
-  `\n` (and `\t` in a body), no DEL or C1 controls, and none of the
-  invisible format characters -- the bidirectional marks, overrides and
-  isolates (LRM, RLM, ALM, U+202A to U+202E, U+2066 to U+2069), the
-  zero-width characters (U+200B to U+200D), the word joiner and
-  invisible operators (U+2060 to U+206F), the soft hyphen, U+034F, the
-  BOM, the interlinear annotation marks (U+FFF9 to U+FFFB), the Hangul
-  fillers, the Mongolian selectors, and **the tag characters (U+E0000
-  to U+E007F)**, which spell hidden ASCII -- a title reaches coding
-  agents through the control channel, so hidden instructions in it would
-  be a prompt injection. `\r\n` and a lone `\r` become `\n`. A **line**
-  (a title, a name, a message) has its newlines and tabs turned into
-  spaces.
+- **Kept as it came.** What's stored, and written back to the tracker,
+  is the tracker's own text, byte for byte -- capped in size (and said
+  so: `title_cut`, `body_cut`), never cleaned. An edit starts from that
+  text, so it can never write a cleaned copy back over the original
+  (which would remove, for everyone, a Persian ZWNJ the cleaning took
+  out). A field that was cut is never written back.
+- **Cleaned to be shown** (`fenix_tracker::clean::line`, `text`,
+  `name`, `message`): wherever text is drawn, picked from, notified, or
+  given to a coding agent (the control channel's `agenda.tasks`). Gone:
+  C0 controls but `\n` (and `\t` in a body), DEL, C1 controls, the
+  bidirectional embeddings, overrides and isolates (U+202A to U+202E,
+  U+2066 to U+2069), the zero-width space, the word joiner and invisible
+  operators (U+2060 to U+206F), the soft hyphen, the BOM, the
+  interlinear annotation marks (U+FFF9 to U+FFFB), the Hangul fillers,
+  the Mongolian vowel separator, **the tag characters (U+E0000 to
+  U+E007F)**, which spell hidden ASCII, and **variation selectors
+  smuggling it** (U+FE00 to U+FE0F, U+E0100 to U+E01EF): only one is
+  kept, right after a character it can modify. Kept, because living
+  scripts need them: ZWNJ and ZWJ between two characters that show
+  (Persian, Devanagari, emoji families; a stray one at an edge goes),
+  LRM, RLM and ALM, the combining grapheme joiner, Mongolian free
+  variation selectors. `\r\n` and a lone `\r` become `\n`; a **line**
+  has its newlines and tabs turned into spaces.
 - **Opaque values are never cleaned**: an issue's `id`, a state's, a
   person's, a move's `id`, a cursor (`next`), a `remember`, an `asked`.
   They go back to the tracker byte for byte, so they're kept exactly as
@@ -259,7 +306,7 @@ never to run, open or follow:
   | an id (issue, state, person, move, comment) | 512 bytes, opaque; an issue or move whose id is longer is dropped |
   | a cursor, a `remember` | 4096 bytes, opaque; a longer cursor fails the call, a move with a longer `remember` is dropped |
   | `url` | 2048 bytes, `https://` or `http://` only, no whitespace, no user or password in it (dropped otherwise) |
-  | `title` | 500, one line |
+  | `title` | 500, kept as it came; cut with `title_cut: true` (shown as one line) |
   | `body` | 64 KiB (bytes); cut at a character's edge, with `body_cut: true` |
   | a name, a label, a type, a state's name | 200, one line |
   | `labels` | 50 of them |
@@ -316,8 +363,8 @@ What the agenda does, as built:
 | `rate_limited` | the tracker said to slow down | that tracker is left alone until `retry_after` (or its next sync) | waits; sent again after `retry_after` |
 | `offline` | the request didn't reach the tracker | the sync says it failed | waits; sent again at the tracker's next sync |
 | `refused` | the tracker said no (403, a 400 for this change, the write gate) | the sync says it failed | waits for `r`, said on the task |
-| `bad_request` | the request wasn't understood | as `refused` | **dropped**, said once: it'll never be understood; the task's later changes go on |
-| `unsupported` | a call, capability, field or seam it doesn't serve | the agenda stops asking it | **dropped**, said once, and the agenda stops offering it for that tracker this session |
+| `bad_request` | the request wasn't understood -- or this change, now (Linear's `BAD_USER_INPUT` for a state of the issue's old team) | as `refused` | as `refused`: waits for `r`. Never dropped: it may be taken later |
+| `unsupported` | a call, capability, field or seam it doesn't serve | the agenda stops asking it | **dropped**, the only code that drops: the task's later changes go on, the agenda stops offering it for that tracker this session, and **the task says so** ("due date kept here -- Fenix doesn't take it"), with `r` to send it again or take the tracker's value back |
 | `failed` | anything else | the sync says it failed | waits for `r` |
 | `unknown` | no answer came (§3.4), or the extension stopped | as `offline` | **never re-sent by itself**: "may have been made", and `r` asks whether to send it again (with the same `op`) or forget it |
 
@@ -387,11 +434,26 @@ code and the words are the same everywhere:
   whichever layer then serves it: Jira's `create` (its form) and
   `remember` (its settings) are served by the extension itself, not its
   client, and are gated the same.
-- Before the first write of a session it asks, with a picker: *"Agenda
-  wants to change issues in Jira for you -- allow for this session?"*,
-  **Allow for this session** / **Not now**. Writes that come while it's
-  asking wait for the answer; "Not now" refuses them (`refused`, "r on
-  the task asks again") and asks again at the next write.
+- Before the first write it asks, with a picker: *"An extension asks to
+  change issues in Jira for you (Fenix can't tell which; usually the
+  Agenda) -- allow?"*, **Allow every extension's changes through Jira
+  until Fenix restarts** / **Not now -- refuse them for 10 minutes**. It
+  can't say who asks, so it doesn't pretend to; and the allow says what
+  it allows.
+- Writes that come while it's asking wait for the answer -- at most 50;
+  the rest are refused at once. A question unanswered after **60 s**
+  lapses: Fenix replaces an open picker without answering it (another
+  picker opened, the agenda's own), so the gate can't wait for ever. What
+  waited is refused (`refused`, "r on the task asks again"), and the
+  next write asks afresh. The tracker sets a timer for the question's
+  `deadline` and calls `expire`.
+- **"Not now" (or Esc) holds for 10 minutes**: writes in that time are
+  refused without a question, so an extension can't ask again and again
+  until you give in. Changing `<name>.seam_writes` ends it at once.
+- **When Fenix says who calls** (being built; not in 1.5), the tracker
+  passes it as the write's `caller`: the question names it ("fenix.agenda
+  asks to change issues in Linear for you -- allow?") and an allow is
+  kept for that caller alone.
 - Its setting `<name>.seam_writes` (`ask`, the default; `always`;
   `never`) says for good. `never` refuses every write.
 - **Only writes that arrive through the seam.** The tracker's own page
@@ -401,21 +463,28 @@ code and the words are the same everywhere:
   same client call.
 - **It's a speed bump, not authentication.** In practice the first
   write follows your own move in the agenda, so the question makes
-  sense; but an extension that waits for you to allow it gets through.
-  Reads aren't gated: they would ask at every start.
+  sense; but once you allow, any installed extension's writes go
+  through until Fenix restarts. Reads aren't gated: they would ask at
+  every start.
 
 The agenda's own writes reach it like anyone's: the first after
 starting Fenix asks.
 
 ### 3.7 Writes that may have happened: `op`
 
-Every write request carries `op`, an id of its own, the same each time
-that write is sent (`agenda:<when it was made>:<number>`). A tracker
-that can, answers a repeat as it answered the first and doesn't do it
-again (`fenix_tracker::Dedupe`: Jira keeps the session's ops in
-memory, so a write sent twice in one Fenix session is done once; after
-a restart it can't tell). A caller never re-sends a write whose answer
-didn't come (`unknown`) by itself: it tells you, and you choose.
+Every write request carries `op`, an id of its own, **the same each
+time that write is sent** -- a queued change's is kept with it, and a
+worklog's is made from its task, day and time entries, never from the
+clock. A tracker that can, answers a repeat as it answered the first
+and doesn't do it again (`fenix_tracker::Dedupe`, kept while the
+tracker's extension runs, so after a restart it can't tell). A repeat
+is the same **call** with the same `op` and the same payload: the same
+`op` on another call is another write, and on another payload is
+refused (`bad_request`). A write still under way isn't remembered yet:
+sent again meanwhile, it runs twice. A caller never re-sends a write
+whose answer didn't come (`unknown`) by itself: it tells you, and you
+choose; a worklog that may have been logged stays out of the next send
+until you do.
 
 ## 4. The calls
 
@@ -487,7 +556,7 @@ asking is what starts it. Answer:
 | Field | | |
 |---|---|---|
 | `id` | required | the tracker's **immutable** id for it, opaque, never shown: what a link is kept by. Jira's numeric issue id, GitHub's and GitLab's global issue id (`id`, not `number`/`iid`), Linear's UUID. A tracker with none gives its `ref` (and the agenda takes an empty `id` as the `ref`) |
-| `ref` | required | its key as people write it, shown and typed: Jira `PROJ-12`, GitHub and GitLab `owner/repo#12` (GitLab's group paths included), Linear `ENG-123`. **It may change** -- an issue moved to another project, team or repository, a renamed repository -- and the agenda follows it by `id` |
+| `ref` | required | its key as people write it, shown and typed (**every call about an issue a caller already knows is by its `id`**: after GitLab moves an issue, its old `group/project#n` is another issue): Jira `PROJ-12`, GitHub and GitLab `owner/repo#12` (GitLab's group paths included), Linear `ENG-123`. **It may change** -- an issue moved to another project, team or repository, a renamed repository -- and the agenda follows it by `id` |
 | `asked` | in `issues`' answer | the item of `refs` this answers, as it was asked (an id, a ref, a URL), so a moved issue is matched to what asked for it |
 | `url` | optional | its page, for `y` and `o` |
 | `project` | optional | its project, repository or team, as `about.project_meta`'s value would name it |
@@ -795,6 +864,15 @@ which 1.2 ignores: it never mistakes a Linear `ENG-12` for Jira's
 A link without `tracker`, or with 1.3's early `jira`, is `fenix.jira`'s;
 a flagged one gets the column `blocked`; an id is learned at the first
 sync.
+
+**Agenda 1.2 drops what it doesn't know when it saves** (shown with
+1.2's own model): a non-Jira link would be gone after a round trip
+through 1.2, its queued changes orphaned. So 1.3 also keeps every
+non-Jira link in a file of its own beside it, `agenda-links.json`, by
+task id and when the task was made; loading `agenda.json`, a task that
+has lost its link gets it back from there (a task 1.2 deleted, or one
+made since under the same id, doesn't). Its queued changes, which 1.2
+keeps, then go as before.
 
 **When the old path goes.** Together, in the next major of each (agenda
 2.0, Jira 2.0; the bundle's ranges move to `^2`): the agenda drops
