@@ -106,7 +106,11 @@ pub fn classify(e: ApiError) -> SeamError {
         (_, Some(_)) => code::RATE_LIMITED,
         (Some(401), _) => code::SIGNED_OUT,
         (Some(404 | 410), _) => code::NOT_FOUND,
-        (Some(502..=504), _) => code::OFFLINE,
+        // Transient: tried again by the next sync, never dropped.
+        (Some(408 | 425 | 502..=504), _) => code::OFFLINE,
+        // A write sent elsewhere wasn't made: `r` tries again once the
+        // issue's place is known.
+        (Some(300..=399), _) => code::REFUSED,
         (Some(s), _) if (400..500).contains(&s) => code::REFUSED,
         _ => code::FAILED,
     };
@@ -173,6 +177,20 @@ impl<C: Issues> Seam<C> {
             Host::GitLab => "group/project#12, its id, or the issue's address",
         };
         Err(SeamError::new(code::BAD_REQUEST, format!("\"{r}\" isn't an issue -- {hint}")))
+    }
+
+    /// Where a write goes: the issue as it is now, found by reading it --
+    /// GitHub's read follows a transferred issue to its repository (a
+    /// GET, so following is safe), and GitLab's moved issue says where it
+    /// went (`moved_to_id`, found by its global id). A write never relies
+    /// on a redirect: Fenix would turn one into a bodiless GET.
+    async fn locate_for_write(&self, r: &str) -> Result<IssueRef, SeamError> {
+        let key = self.locate(r).await?;
+        let issue = self.client.issue(&key).await.map_err(classify)?;
+        match &issue.moved_to {
+            Some(id) => self.client.resolve(id).await.map_err(classify),
+            None => Ok(issue.key),
+        }
     }
 
     /// The scoped label prefix, `workflow::`; none on GitHub or when
@@ -314,13 +332,13 @@ impl<C: Issues> Seam<C> {
                 if c.body.len() > fenix_tracker::clean::BODY_BYTES {
                     return Err(SeamError::new(code::BAD_REQUEST, "a comment is at most 64 KiB"));
                 }
-                let key = self.locate(&c.key).await?;
+                let key = self.locate_for_write(&c.key).await?;
                 self.client.comment(&key, &c.body).await.map_err(classify)?;
                 json(&seam::Said::default())
             }
             seam::call::WORKLOG if self.host() == Host::GitLab && self.settings.worklog => {
                 let w: seam::Worklog = serde_json::from_str(payload).map_err(|e| self.bad(e))?;
-                let key = self.locate(&w.key).await?;
+                let key = self.locate_for_write(&w.key).await?;
                 let day = w.started.get(..10).unwrap_or_default();
                 self.client.spend(&key, w.seconds, day).await.map_err(classify)?;
                 json(&seam::Said { said: Some(format!("logged {}", crate::issues::gitlab::duration(w.seconds))) })
@@ -457,6 +475,7 @@ impl<C: Issues> Seam<C> {
     async fn transition(&self, req: seam::Transition) -> Answer {
         let key = self.locate(&req.key).await?;
         let Some((change, said)) = self.change_for_move(&key, &req.id)? else { return json(&seam::Said::default()) };
+        let key = self.locate_for_write(&req.key).await?;
         self.client.change(&key, &change).await.map_err(classify)?;
         json(&seam::Said { said: Some(said) })
     }
@@ -492,7 +511,7 @@ impl<C: Issues> Seam<C> {
             };
             return Err(SeamError::new(code::UNSUPPORTED, format!("{name} issues have {what} -- it stays on the task")));
         }
-        let key = self.locate(&req.key).await?;
+        let key = self.locate_for_write(&req.key).await?;
         let change = match change {
             SeamChange::Title(t) => Change::Title(t),
             SeamChange::Body(b) => Change::Body(b),

@@ -153,6 +153,7 @@ pub fn parse_issue(v: &Value, api: &str, web: &str) -> Option<Issue> {
         updated: text(v, "updated_at"),
         comments: v.get("comments").and_then(Value::as_u64).unwrap_or(0),
         confidential: false,
+        moved_to: None,
     })
 }
 

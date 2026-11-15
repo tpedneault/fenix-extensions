@@ -284,3 +284,15 @@ fn an_issue_asked_by_its_global_id_is_found_where_it_lives_now() {
     let found: Found = serde_json::from_str(&call(&seam, "issues", serde_json::json!({"seam": 1, "refs": ["999", "acme/web#8"]})).unwrap()).unwrap();
     assert_eq!((found.missing.clone(), found.issues.len()), (vec!["999".to_string()], 1));
 }
+
+#[test]
+fn a_write_to_a_moved_issue_goes_to_where_it_was_moved() {
+    let (seam, http) = world();
+    // acme/web#2 was moved: it stays behind, closed, saying where it went.
+    let mut moved: serde_json::Value = serde_json::from_str(&read("issue-acme-web-2.json")).unwrap();
+    moved["moved_to_id"] = serde_json::json!(1004);
+    http.on("GET", "/projects/acme%2Fweb/issues/2", 200, moved.to_string());
+    http.on("POST", "/api/graphql", 200, r#"{"data": {"issue": {"iid": "4", "reference": "acme/platform/api#4"}}}"#);
+    call(&seam, "comment", serde_json::json!({"seam": 1, "ref": "acme/web#2", "body": "x", "op": "agenda:4:1"})).unwrap();
+    assert_eq!(http.last().unwrap().line(), format!("POST {API}{PROJECT}/issues/4/notes"), "not the old, closed issue");
+}

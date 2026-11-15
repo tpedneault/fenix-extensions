@@ -39,7 +39,7 @@ fn fake() -> Fake {
     f.on_spawn("git remote -v", Ran::ok("origin\tgit@github.com:acme/rocket.git (fetch)\norigin\tgit@github.com:acme/rocket.git (push)"))
         .on_spawn("git status --porcelain", Ran::ok(""))
         .on_spawn("git branch --format=%(refname:short)", Ran::ok("main"))
-        .on_spawn("git symbolic-ref refs/remotes/origin/HEAD", Ran::ok("refs/remotes/origin/main"))
+        .on_spawn("git symbolic-ref", Ran::ok("refs/remotes/origin/main"))
         .on_spawn("git check-ref-format", Ran::ok(""))
         .on_spawn("git fetch", Ran::ok(""))
         .on_spawn("git switch", Ran::ok(""));
@@ -84,6 +84,11 @@ fn the_manifest_serves_every_seam_call_by_its_name_and_asks_only_for_githubs_hos
     let perms = &manifest["permissions"];
     assert_eq!(perms["network"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>(), ["api.github.com", "${setting:github-issues.server}"]);
     assert_eq!(perms["secrets"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>(), ["github.token"]);
+    // No setting a project could set: none chooses a server, a branch
+    // name or what the agenda may write from a cloned repository.
+    for setting in manifest["contributes"]["settings"].as_array().unwrap() {
+        assert!(setting.get("project").is_none(), "{setting:?}");
+    }
     for tool in manifest["contributes"]["agent_tools"].as_array().unwrap() {
         assert_eq!(tool["class"].as_str(), Some("read"), "read-only tools");
         assert!(tool.get("writes").is_none());
@@ -118,6 +123,7 @@ fn about_is_answered_at_once_ready_with_fenixs_token_or_the_github_clis() {
     // Neither (and the CLI's token kept above forgotten, as a new
     // session would have it).
     GH.with(|g| *g.borrow_mut() = None);
+    GH_FAILED.with(|g| *g.borrow_mut() = None);
     let f = fake();
     f.state_mut().secrets.clear();
     f.on_spawn("gh auth token", Ran::fails(1, "not logged in"));
@@ -130,6 +136,47 @@ fn about_is_answered_at_once_ready_with_fenixs_token_or_the_github_clis() {
     let e = SeamError::from_err(&h.serve("fenix.github-issues.tracker.comment", r#"{"seam": 1, "ref": "acme/rocket#12", "body": "x"}"#).unwrap().unwrap_err());
     assert_eq!(e.code, seam::code::NOT_SET_UP, "a write not set up: said at once, nothing asked");
     assert!(h.fake.pickers().is_empty() && h.fake.requests().is_empty(), "nothing sent without a token");
+}
+
+#[test]
+fn an_enterprise_server_gets_its_own_token_never_fenixs_github_com_one() {
+    const GHE: &str = "ghe_9b1c-enterprise-token";
+    let issue = fixture("ghe-issue-platform-tools-5.json");
+    let f = fake();
+    f.setting("github-issues.server", "https://ghe.example.com").on_spawn("gh auth token --hostname ghe.example.com", Ran::ok(format!("{GHE}\n")));
+    f.on_http("GET https://ghe.example.com/api/v3/repos/platform/tools/issues/5", ok(issue)).on_http("GET https://ghe.example.com/api/v3/user", ok(fixture("user.json")));
+    let mut h = harness(f);
+    h.serve("fenix.github-issues.tracker.about", r#"{"seam": 1}"#);
+    h.serve("fenix.github-issues.tracker.issues", r#"{"seam": 1, "refs": ["platform/tools#5"]}"#);
+    let found: seam::Found = serde_json::from_str(&answer(&h).unwrap()).unwrap();
+    assert_eq!(found.issues[0].key, "platform/tools#5");
+    let requests = h.fake.requests();
+    assert!(!requests.is_empty());
+    for (_, r) in &requests {
+        assert!(r.url.starts_with("https://ghe.example.com/"), "{}", r.url);
+        assert!(r.headers.iter().all(|(_, v)| !v.contains(TOKEN)), "github.com's token sent to {}", r.url);
+        assert!(r.headers.contains(&("Authorization".to_string(), format!("Bearer {GHE}"))));
+    }
+    // `gh` ran with fixed arguments, for the configured host only.
+    let gh: Vec<String> = h.fake.spawned().into_iter().map(|(_, l)| l).filter(|l| l.starts_with("gh ")).collect();
+    assert_eq!(gh, ["gh auth token --hostname ghe.example.com"]);
+
+    // gh has no token for it: not ready, saying what to do -- and
+    // Fenix's github.com token is never tried instead.
+    GH.with(|g| *g.borrow_mut() = None);
+    GH_FAILED.with(|g| *g.borrow_mut() = None);
+    let f = fake();
+    f.setting("github-issues.server", "ghe.example.com").on_spawn("gh auth token", Ran::fails(1, "no oauth token found for ghe.example.com"));
+    let mut h = harness(f);
+    let about: seam::About = serde_json::from_str(&h.serve("fenix.github-issues.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+    assert_eq!((about.ready, about.not_ready.as_deref()), (false, Some("Sign in to ghe.example.com: gh auth login --hostname ghe.example.com -- Fenix's GitHub token is github.com's, and isn't sent to another server")));
+    for _ in 0..3 {
+        h.serve("fenix.github-issues.tracker.assigned", r#"{"seam": 1}"#);
+        assert_eq!(SeamError::from_err(&answer(&h).unwrap_err()).code, seam::code::NOT_SET_UP);
+    }
+    assert!(h.fake.requests().is_empty(), "nothing sent anywhere");
+    assert_eq!(h.fake.spawned().iter().filter(|(_, l)| l.starts_with("gh ")).count(), 1, "a gh that gave nothing isn't asked again for a minute");
+    GH_FAILED.with(|g| *g.borrow_mut() = None);
 }
 
 #[test]
@@ -299,7 +346,9 @@ fn a_branch_from_an_issue_is_made_only_in_its_repository_and_says_what_comes_alo
     let prompt = h.fake.prompts().into_iter().last().unwrap();
     assert_eq!((prompt.label.as_str(), prompt.initial.as_str()), ("Branch for acme/rocket#12 (your 1 uncommitted change(s) come along to the new branch):", "12-login-times-out-after-five-minutes"));
     let git: Vec<String> = h.fake.spawned().into_iter().map(|(_, l)| l).filter(|l| l.starts_with("git ") && !l.contains("remote") && !l.contains("status") && !l.contains("branch --format") && !l.contains("symbolic-ref")).collect();
-    assert_eq!(git, ["git check-ref-format --branch 12-login-times-out", "git fetch origin main", "git switch --no-track -c 12-login-times-out origin/main"]);
+    assert_eq!(git, ["git check-ref-format --branch 12-login-times-out", "git fetch --no-recurse-submodules --end-of-options origin refs/heads/main", "git switch --no-track -c 12-login-times-out --end-of-options origin/main"]);
+    let fetch = h.fake.process("git fetch").unwrap();
+    assert!(fetch.cmd.env.contains(&("GIT_ALLOW_PROTOCOL".to_string(), "https:http:ssh:git".to_string())), "no ext:: or file:// for a fetch: {:?}", fetch.cmd.env);
     assert!(h.screen(page).contains("on 12-login-times-out now"));
 
     // Another repository's issue: nothing made, and why.
@@ -313,6 +362,32 @@ fn a_branch_from_an_issue_is_made_only_in_its_repository_and_says_what_comes_alo
     assert!(!h.fake.spawned().iter().any(|(_, l)| l.starts_with("git switch")));
     let said = h.ext.pages[&page].status.clone().unwrap();
     assert_eq!(said, ("this project is github.com/acme/web, not acme/rocket -- open a clone of acme/rocket to start a branch for acme/rocket#12".to_string(), Role::Warn));
+}
+
+#[test]
+fn a_remote_default_branch_named_like_an_option_never_reaches_git() {
+    // The review's probe: a remote whose HEAD is an option.
+    let f = fake();
+    f.on_spawn("git symbolic-ref", Ran::ok("refs/remotes/origin/--upload-pack=touch${IFS}/tmp/PWNED;false"));
+    f.on_prompt("Branch for acme/rocket#12", "12-x");
+    let mut h = harness(f);
+    h.command("github-issues.open").unwrap();
+    let page = h.page(KIND);
+    h.key(page, Key::Char('b'));
+    let lines: Vec<String> = h.fake.spawned().into_iter().map(|(_, l)| l).collect();
+    assert!(!lines.iter().any(|l| l.contains("upload-pack") || l.starts_with("git fetch")), "{lines:?}");
+    assert!(lines.contains(&"git switch -c 12-x".to_string()), "made from what's checked out: {lines:?}");
+    assert!(lines.iter().filter(|l| l.starts_with("git ")).all(|l| h.fake.process(l).is_none_or(|p| p.cmd.env.iter().any(|(k, _)| k == "GIT_ALLOW_PROTOCOL"))));
+    // A name you type that git would read as an option: its dashes go.
+    let f = fake();
+    f.on_prompt("Branch for acme/rocket#12", "--orphan");
+    let mut h = harness(f);
+    h.command("github-issues.open").unwrap();
+    let page = h.page(KIND);
+    h.key(page, Key::Char('b'));
+    let lines: Vec<String> = h.fake.spawned().into_iter().map(|(_, l)| l).collect();
+    assert!(!lines.iter().any(|l| l.contains("--orphan")), "{lines:?}");
+    assert!(lines.contains(&"git switch --no-track -c orphan --end-of-options origin/main".to_string()), "{lines:?}");
 }
 
 #[test]

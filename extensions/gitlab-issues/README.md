@@ -54,6 +54,15 @@ what's checked out. Changes you haven't committed are named in the
 prompt before you press Enter. GitLab's own "create a branch or merge
 request from this issue" isn't used: the branch is made here.
 
+Nothing that came from a remote reaches git as an option: a remote's
+name, or the default branch its server named, is used only when it's a
+name git takes as a branch (never one starting with `-`), and goes after
+`--end-of-options`; the fetch is from the issue's own remote alone, asks
+for `refs/heads/<branch>`, and may use only https, http, ssh and git
+(`GIT_ALLOW_PROTOCOL`) -- never `file://` or `ext::`. A remote that
+isn't on the network (a path, `file://`) is never the issue's
+repository.
+
 ## For the agenda
 
 The agenda finds it by itself (`fenix.gitlab-issues.tracker.*`, the

@@ -82,39 +82,75 @@ fn server() -> Option<String> {
 
 /// What to do to sign in, with the keys of the scheme in use.
 fn not_ready() -> String {
-    format!("Sign GitHub in: gh auth login, or GitHub's token in {} (Forges) -- the one Review uses", keys::settings())
+    match enterprise() {
+        None => format!("Sign GitHub in: gh auth login, or GitHub's token in {} (Forges) -- the one Review uses", keys::settings()),
+        Some(host) => format!("Sign in to {host}: gh auth login --hostname {host} -- Fenix's GitHub token is github.com's, and isn't sent to another server"),
+    }
+}
+
+/// The GitHub Enterprise Server in use, when it isn't github.com. The
+/// setting is yours alone: a project can't set it (Fenix applies a
+/// project's `.fenix/settings.toml` only to settings marked `project`).
+fn enterprise() -> Option<String> {
+    let host = fenix_forge::issues::github::server_host(server().as_deref());
+    (host != "github.com").then_some(host)
 }
 
 // -- The token, and a client ------------------------------------------------
 
+/// How long a `gh` that gave no token isn't asked again.
+const GH_RETRY: std::time::Duration = std::time::Duration::from_secs(60);
+
 thread_local! {
-    /// The GitHub CLI's token, once asked for: `gh` isn't run for each
-    /// request. Forgotten when GitHub refuses it.
-    static GH: RefCell<Option<String>> = const { RefCell::new(None) };
+    /// The GitHub CLI's token, once asked for, and the host it's for: `gh`
+    /// isn't run for each request. Forgotten when GitHub refuses it.
+    static GH: RefCell<Option<(String, String)>> = const { RefCell::new(None) };
+    /// When `gh` last gave none, and for which host.
+    static GH_FAILED: RefCell<Option<(String, std::time::Instant)>> = const { RefCell::new(None) };
 }
 
-/// The token: Fenix's `github.token`, else the GitHub CLI's, asked of
-/// `gh` for the server in use.
+/// The GitHub CLI's token for `host`, when it's been given.
+fn gh_cached(host: &str) -> Option<String> {
+    GH.with(|g| g.borrow().as_ref().filter(|(h, _)| h == host).map(|(_, t)| t.clone()))
+}
+
+/// The token for the server in use. For github.com: Fenix's
+/// `github.token`, else the GitHub CLI's. For an Enterprise Server: the
+/// GitHub CLI's for that host only -- never Fenix's, which is
+/// github.com's. `gh` runs with fixed arguments, its `--hostname` the
+/// host of your own setting; one that gave none isn't asked again for a
+/// minute.
 async fn token() -> Option<String> {
-    if let Some(t) = api::secret(TOKEN).filter(|t| !t.trim().is_empty()) {
-        return Some(t.trim().to_string());
+    let host = fenix_forge::issues::github::server_host(server().as_deref());
+    if host == "github.com" {
+        if let Some(t) = api::secret(TOKEN).filter(|t| !t.trim().is_empty()) {
+            return Some(t.trim().to_string());
+        }
     }
-    if let Some(t) = GH.with(|g| g.borrow().clone()) {
+    if let Some(t) = gh_cached(&host) {
         return Some(t);
     }
-    let host = fenix_forge::issues::github::server_host(server().as_deref());
-    let out = jobs::run(Command::new("gh").args(["auth", "token", "--hostname", host.as_str()])).await.ok().filter(|o| o.ok)?;
-    let t = out.stdout.trim().to_string();
-    (!t.is_empty()).then(|| {
-        GH.with(|g| *g.borrow_mut() = Some(t.clone()));
-        t
-    })
+    let failed_lately = GH_FAILED.with(|f| f.borrow().as_ref().is_some_and(|(h, at)| *h == host && at.elapsed() < GH_RETRY));
+    if failed_lately {
+        return None;
+    }
+    let out = jobs::run(Command::new("gh").args(["auth", "token", "--hostname", host.as_str()])).await.ok().filter(|o| o.ok);
+    let t = out.map(|o| o.stdout.trim().to_string()).filter(|t| !t.is_empty() && !t.contains(char::is_whitespace));
+    match &t {
+        Some(t) => GH.with(|g| *g.borrow_mut() = Some((host, t.clone()))),
+        None => GH_FAILED.with(|f| *f.borrow_mut() = Some((host, std::time::Instant::now()))),
+    }
+    t
 }
 
-/// Signed in, as far as is known without asking anything: Fenix's token,
-/// or the GitHub CLI's once `gh` has given it. `about` says this.
+/// Signed in, as far as is known without asking anything: Fenix's token
+/// (github.com only), or the GitHub CLI's for the server in use once `gh`
+/// has given it. `about` says this.
 fn ready_now() -> bool {
-    api::secret(TOKEN).is_some_and(|t| !t.trim().is_empty()) || GH.with(|g| g.borrow().is_some())
+    match enterprise() {
+        None => api::secret(TOKEN).is_some_and(|t| !t.trim().is_empty()) || gh_cached("github.com").is_some(),
+        Some(host) => gh_cached(&host).is_some(),
+    }
 }
 
 /// Fenix's HTTP client, for the forge's.
@@ -122,7 +158,11 @@ pub struct Fetch;
 
 impl Http for Fetch {
     async fn request(&self, method: &str, url: &str, headers: &[(&str, String)], body: Option<String>) -> Result<Response, String> {
-        let req = HttpRequest { method: method.into(), url: url.into(), headers: headers.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(), body: body.map(String::into_bytes).unwrap_or_default(), options: Default::default() };
+        // A write never follows a redirect: Fenix would follow a 301 or
+        // 302 of a PATCH as a GET with no body, and the change would seem
+        // made. The forge's client takes the 3xx as the error it is.
+        let options = if method == "GET" { Default::default() } else { api::HttpOptions::new().no_redirects() };
+        let req = HttpRequest { method: method.into(), url: url.into(), headers: headers.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(), body: body.map(String::into_bytes).unwrap_or_default(), options };
         let r = jobs::fetch(req).await?;
         if r.status == 401 {
             GH.with(|g| *g.borrow_mut() = None);
@@ -181,7 +221,16 @@ fn done(f: impl FnOnce(&mut IssuesExt) + 'static) {
 
 /// `git args` in the project: what it printed, or why it failed.
 async fn git(args: &[&str]) -> Result<String, String> {
-    let cmd = Command::new("git").args(args.iter().copied()).cwd(PROJECT).env("GIT_TERMINAL_PROMPT", "0").env("GIT_EDITOR", "true");
+    // Never a prompt, an editor, or a protocol that runs something or
+    // reads this machine (`ext::`, `file://`), whatever the project's git
+    // config says its remotes are.
+    let cmd = Command::new("git")
+        .args(args.iter().copied())
+        .cwd(PROJECT)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_EDITOR", "true")
+        .env("GIT_ALLOW_PROTOCOL", branch::ALLOWED_PROTOCOLS)
+        .env("GIT_PROTOCOL_FROM_USER", "0");
     let out = jobs::run(cmd).await?;
     if out.ok {
         Ok(out.stdout)
@@ -447,8 +496,8 @@ impl IssuesExt {
         self.say(page, "looking at the repository...", Role::Muted);
         jobs::spawn(async move {
             let mut seen = branch::Seen { remotes: git(&["remote", "-v"]).await.unwrap_or_default(), status: git(&["status", "--porcelain"]).await.unwrap_or_default(), branches: git(&["branch", "--format=%(refname:short)"]).await.unwrap_or_default(), heads: Vec::new() };
-            for (name, _) in branch::remotes(&seen.remotes) {
-                if let Ok(head) = git(&["symbolic-ref", &format!("refs/remotes/{name}/HEAD")]).await {
+            for (name, _) in branch::remotes(&seen.remotes).into_iter().filter(|(n, _)| branch::remote_name_ok(n)) {
+                if let Ok(head) = git(&["symbolic-ref", "--quiet", "--end-of-options", &format!("refs/remotes/{name}/HEAD")]).await {
                     seen.heads.push((name, head));
                 }
             }
@@ -476,10 +525,14 @@ impl IssuesExt {
         if name.is_empty() {
             return self.say(page, "no branch name -- nothing made", Role::Warn);
         }
+        let commands = match branch::commands(&plan, &name) {
+            Ok(c) => c,
+            Err(why) => return self.say(page, &format!("{why} -- nothing made"), Role::Warn),
+        };
         jobs::spawn(async move {
             let result = async {
                 git(&["check-ref-format", "--branch", &name]).await.map_err(|_| format!("git won't take \"{name}\" as a branch name"))?;
-                for args in branch::commands(&plan, &name) {
+                for args in commands {
                     let args: Vec<&str> = args.iter().map(String::as_str).collect();
                     // A fetch that fails (offline) leaves the branch made
                     // from what's known of the remote.

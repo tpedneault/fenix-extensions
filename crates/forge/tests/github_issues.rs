@@ -355,3 +355,21 @@ fn an_issue_asked_by_its_id_is_found_where_it_lives_now() {
     assert_eq!(found.missing, ["I_gone"]);
     token_only_to_github(&http, API);
 }
+
+#[test]
+fn a_write_goes_where_the_issue_is_now_and_never_by_a_redirect() {
+    let (seam, http) = world();
+    // acme/web#3 was transferred: reading it (a GET, which may follow)
+    // answers the issue where it lives now, acme/rocket#12.
+    http.fixture(&dir(), "GET", "/repos/acme/web/issues/3", "issue-acme-rocket-12.json");
+    call(&seam, "comment", serde_json::json!({"seam": 1, "ref": "acme/web#3", "body": "Still here?", "op": "agenda:3:1"})).unwrap();
+    assert_eq!(http.last().unwrap().line(), format!("POST {API}/repos/acme/rocket/issues/12/comments"), "written at its new place, not by the old path's redirect");
+
+    // A write answered with a redirect wasn't done, and says so.
+    http.on_with("PATCH", "/repos/", 301, &[("Location", "https://api.github.com/repositories/9/issues/12")], "");
+    let e = err(call(&seam, "update", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "set": {"title": "T"}, "op": "agenda:3:2"})));
+    assert_eq!((e.code.as_str(), e.message.as_str()), (code::REFUSED, "HTTP 301 (Moved Permanently): sent on to https://api.github.com/repositories/9/issues/12 -- nothing was changed"));
+    // A timeout is transient: tried again, never dropped.
+    http.on("PATCH", "/repos/", 408, "");
+    assert_eq!(err(call(&seam, "update", serde_json::json!({"seam": 1, "ref": "acme/rocket#12", "set": {"title": "T"}}))).code, code::OFFLINE);
+}

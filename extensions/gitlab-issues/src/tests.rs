@@ -42,7 +42,7 @@ fn fake() -> Fake {
     f.on_spawn("git remote -v", Ran::ok("origin\tgit@gitlab.example.com:acme/platform/api.git (fetch)\norigin\tgit@gitlab.example.com:acme/platform/api.git (push)"))
         .on_spawn("git status --porcelain", Ran::ok(""))
         .on_spawn("git branch --format=%(refname:short)", Ran::ok("main"))
-        .on_spawn("git symbolic-ref refs/remotes/origin/HEAD", Ran::ok("refs/remotes/origin/main"))
+        .on_spawn("git symbolic-ref", Ran::ok("refs/remotes/origin/main"))
         .on_spawn("git check-ref-format", Ran::ok(""))
         .on_spawn("git fetch", Ran::ok(""))
         .on_spawn("git switch", Ran::ok(""));
@@ -87,6 +87,11 @@ fn the_manifest_serves_every_seam_call_and_asks_only_for_your_gitlab() {
     let perms = &manifest["permissions"];
     assert_eq!(perms["network"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>(), ["${setting:gitlab.base_url}"]);
     assert_eq!(perms["secrets"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>(), ["gitlab.token"]);
+    // No setting a project could set: none chooses a server, a branch
+    // name or what the agenda may write from a cloned repository.
+    for setting in manifest["contributes"]["settings"].as_array().unwrap() {
+        assert!(setting.get("project").is_none(), "{setting:?}");
+    }
     for tool in manifest["contributes"]["agent_tools"].as_array().unwrap() {
         assert_eq!(tool["class"].as_str(), Some("read"));
     }
@@ -208,6 +213,27 @@ fn a_branch_is_made_only_in_the_issues_project_by_whatever_name_it_was_cloned() 
     let prompt = h.fake.prompts().into_iter().last().unwrap();
     assert_eq!((prompt.label.as_str(), prompt.initial.as_str()), ("Branch for acme/platform/api#4, from what's checked out:", "4-rate-limiter-drops-bursts"));
     assert!(h.fake.spawned().iter().any(|(_, l)| l == "git switch -c 4-rate-limiter"));
+
+    // The review's probe, on GitLab, which takes a remote by any host:
+    // a file:// remote is never the issue's project, and an option-shaped
+    // default branch never reaches git.
+    let f = fake();
+    f.on_spawn("git remote -v", Ran::ok("origin\tfile:///srv/evil/acme/platform/api.git (fetch)"));
+    let mut h = harness(f);
+    h.command("gitlab-issues.open").unwrap();
+    let page = h.page(KIND);
+    h.key(page, Key::Char('b'));
+    assert!(!h.fake.spawned().iter().any(|(_, l)| l.starts_with("git fetch") || l.starts_with("git switch")));
+    let f = fake();
+    f.on_spawn("git symbolic-ref", Ran::ok("refs/remotes/origin/--upload-pack=touch${IFS}/tmp/PWNED;false"));
+    f.on_prompt("Branch for acme/platform/api#4", "4-x");
+    let mut h = harness(f);
+    h.command("gitlab-issues.open").unwrap();
+    let page = h.page(KIND);
+    h.key(page, Key::Char('b'));
+    let lines: Vec<String> = h.fake.spawned().into_iter().map(|(_, l)| l).collect();
+    assert!(!lines.iter().any(|l| l.contains("upload-pack") || l.starts_with("git fetch")), "{lines:?}");
+    assert!(lines.contains(&"git switch -c 4-x".to_string()));
 
     let f = fake();
     f.on_spawn("git remote -v", Ran::ok("origin\tgit@gitlab.example.com:acme/platform.git (fetch)"));

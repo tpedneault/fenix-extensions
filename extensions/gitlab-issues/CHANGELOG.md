@@ -20,6 +20,12 @@ Fenix, on gitlab.com or your own instance.
 - Changes the agenda (or any extension) asks for through the seam are
   asked about once a session first (`gitlab-issues.seam_writes`); what
   you do on its page never is.
+- A branch from an issue takes nothing from a remote as an option to
+  git, fetches only from the issue's own remote, and never over
+  `file://` or `ext::`.
+- A change sent through the seam goes to the issue where it is now
+  (moved or transferred), never by following a redirect, and a timeout
+  is tried again rather than dropped.
 - Two agent tools that read: an issue with its comments, and your open
   issues.
 - Signed in as Review is: Fenix's GitLab server and token.
