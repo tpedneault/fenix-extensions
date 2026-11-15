@@ -80,6 +80,8 @@ such as `jo/eng-12-fix-the-login-timeout`), or your own, with
 - Already on it: nothing happens.
 - Not a git repository (or no project open): nothing is run; it says so and
   copies the name.
+- Every `git` it runs, exactly (in the project's folder; nothing else from Linear or a project's settings is ever an argument):
+  `rev-parse --show-toplevel`; `check-ref-format refs/heads/<name>`; `status --porcelain`; `symbolic-ref --short -q HEAD`; `show-ref --verify --quiet -- refs/heads/<name>`; then `switch --end-of-options <name>` (it exists) or `switch -c <name> --` (it doesn't). A name is never where `git` could read it as an option. (The repository's own `post-checkout` hook runs, as for any switch.)
 - The name is checked before `git` sees it: nothing starting with `-`, no
   spaces, control characters or `..`; then `git check-ref-format` has the
   last word.
@@ -102,6 +104,18 @@ Linear asks ("Agenda wants to change issues in Linear for you -- allow for
 this session?"); `linear.seam_writes` says for good. Reads aren't asked about,
 and neither are your own changes on Linear's page. A change sent twice (the
 same `op`) is done once.
+
+## Errors
+
+Linear's errors are read by what it says, whatever the HTTP status. A change
+the agenda queued is dropped only if Linear can never accept it; what depends
+on how things are now (a state or person that's gone, an archived issue) is
+shown and waits for `r`. `crates/linear/src/gql.rs` has the table.
+
+**`linear.team`** is the only setting a project may set. It names the team the
+project belongs to, for the agenda's "this project only"; only a team key
+(letters and digits) is passed on, and it is never sent to Linear or used as an
+argument.
 
 ## Coding agents
 

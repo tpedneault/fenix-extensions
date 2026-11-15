@@ -133,7 +133,7 @@ impl Seam {
                 let people = self.linear.people(&one.key).await?;
                 json(&seam::People { people, none: Some("no one to assign to -- this issue's team has no active members".into()) }.cleaned())
             }
-            seam::call::PROJECT => json(&seam::Project { project: self.settings.team.clone().filter(|t| !t.trim().is_empty()) }),
+            seam::call::PROJECT => json(&seam::Project { project: self.settings.team.as_deref().and_then(team_key) }),
             other => Err(SeamError::new(code::UNSUPPORTED, format!("no service {}", seam::service(ID, other)))),
         }
     }
@@ -206,6 +206,17 @@ impl Seam {
         self.linear.change(&req.key, &change).await?;
         json(&seam::Said::default())
     }
+}
+
+/// A team's key as `project` names it: what a project's setting says, held
+/// to what a Linear team key is (letters and digits, a letter first, at most
+/// 12), in capitals, or none. That setting can be set by the project you
+/// open, so nothing else of it is ever passed on, and it's never sent to
+/// Linear at all.
+pub fn team_key(setting: &str) -> Option<String> {
+    let t = setting.trim();
+    let ok = !t.is_empty() && t.len() <= 12 && t.as_bytes()[0].is_ascii_alphabetic() && t.bytes().all(|b| b.is_ascii_alphanumeric());
+    ok.then(|| t.to_ascii_uppercase())
 }
 
 /// `ENG-12` for what the agenda calls an issue: its identifier, or an

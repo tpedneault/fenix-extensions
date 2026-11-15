@@ -370,7 +370,8 @@ impl Linear {
     }
 
     /// The ids of the labels called `names` (any case) in the issue's team;
-    /// one that isn't there is a `bad_request`, not made up.
+    /// one that isn't there (removed meanwhile, say) is `refused`, said and
+    /// kept for a retry or a revert, not made up and never dropped.
     async fn label_ids(&self, r: &str, names: &[String]) -> Result<Vec<String>, SeamError> {
         let named = refs::parse(r).ok_or_else(|| SeamError::new(code::NOT_FOUND, format!("\"{}\" isn't an issue's identifier or address", clean::line(r, 60))))?;
         let data = self.client.run(queries::ISSUE_LABELS, json!({ "id": named.text() })).await?;
@@ -382,7 +383,7 @@ impl Linear {
                 have.iter()
                     .find(|l| l.name.eq_ignore_ascii_case(n.trim()))
                     .map(|l| l.id.clone())
-                    .ok_or_else(|| SeamError::new(code::BAD_REQUEST, format!("this issue's team has no label called \"{}\"", clean::line(n, 60))))
+                    .ok_or_else(|| SeamError::new(code::REFUSED, format!("this issue's team has no label called \"{}\"", clean::line(n, 60))))
             })
             .collect()
     }
