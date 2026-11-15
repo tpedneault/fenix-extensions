@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LaTeX · Fenix extensions</title>
+<meta name="description" content="LaTeX and BibTeX: their grammars, texlab, tex-fmt, chktex, a build with latexmk, Tectonic or an engine whose log becomes problems, the PDF it makes opened in the PDF reader, the project&#39;s checks with fixes that install the tools, snippets, and templates">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>LaTeX</h1>
+<p class="id"><code>fenix.latex</code></p>
+<p class="lead">LaTeX and BibTeX: their grammars, texlab, tex-fmt, chktex, a build with latexmk, Tectonic or an engine whose log becomes problems, the PDF it makes opened in the PDF reader, the project&#39;s checks with fixes that install the tools, snippets, and templates</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>637 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/latex">extensions/latex</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>LaTeX</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/latex-v1.0.0/fenix.latex-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.latex-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>latexmk</code></li><li><code>tectonic</code></li><li><code>pdflatex</code></li><li><code>xelatex</code></li><li><code>lualatex</code></li><li><code>texlab</code></li><li><code>tex-fmt</code></li><li><code>latexindent</code></li><li><code>chktex</code></li><li><code>texcount</code></li><li><code>synctex</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>LaTeX and BibTeX in Fenix: their grammars (Fenix has none of its own), texlab
+as the language server, tex-fmt (or latexindent) as the formatter, chktex on
+save, a build with whatever you have -- latexmk, Tectonic, or an engine -- whose
+log becomes problems, the PDF it makes opened in the PDF reader, a forward
+search to the PDF&#39;s page, the project doctor&#39;s checks with fixes that install
+texlab, tex-fmt and Tectonic, snippets, and an article, a Beamer presentation
+and a thesis for the new-project wizard. Built on lang-kit
+(<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It starts with Fenix. The server and the formatter are set whenever the
+programs are found; the tasks and the checks are for a project with <code>.tex</code>
+files. It needs Fenix 1.5 or later (extension API 1.5). It installs no TeX
+distribution (TeX Live, MiKTeX and MacTeX are several gigabytes, and yours to
+choose); with none, the doctor&#39;s fix installs Tectonic. The PDF is shown by
+the PDF reader (<code>fenix.pdf</code>), a separate extension: without it the pack still
+builds, and says what to install.</p>
+<h3 id="readme-the-grammars">The grammars</h3>
+<p><code>*.tex</code>, <code>*.sty</code> and <code>*.cls</code> files are read with tree-sitter-latex 0.6.0,
+<code>*.bib</code> files with tree-sitter-bibtex (<code>grammars/</code>, MIT, the commits the
+README there names). Highlighted (commands, sectioning, environments, labels,
+references and citations, packages and files, math, verbatim), folded
+(sections down to the paragraph, environments), with Enter indenting inside
+an environment or a group, and the breadcrumbs and <code>SPC c s</code> listing the
+sections and a database&#39;s entries. <code>%</code> comments a line. tree-sitter-latex
+ships no queries and the pack&#39;s own are in <code>queries/latex/</code>.</p>
+<h3 id="readme-the-server">The server</h3>
+<p>texlab, latex-lsp&#39;s: completion for commands, labels, citations and files,
+hover, go to definition and references, rename, the outline, and its own
+diagnostics. It&#39;s started as <code>texlab</code> for <code>.tex</code>, <code>.sty</code>, <code>.cls</code> and <code>.bib</code>
+files. The pack builds, not texlab (texlab&#39;s own build is left at its default,
+off); chktex is the pack&#39;s, not texlab&#39;s.</p>
+<h3 id="readme-building">Building</h3>
+<p><code>SPC m b</code> (<code>latex.build</code>) builds the document with the first of these that
+applies:</p>
+<ol class="tight">
+<li><p>a <code>Tectonic.toml</code> at the top, and Tectonic: <code>tectonic -X build --keep-logs</code>;</p></li>
+<li><p>a <code>.latexmkrc</code> (or <code>latexmkrc</code>), and latexmk: it decides the engine;</p></li>
+<li><p>a magic comment in the document, <code>% !TEX program = xelatex</code> (or
+<code>pdflatex</code>, <code>lualatex</code>; TeXstudio&#39;s <code>% !TeX TS-program =</code> too): latexmk with
+that engine, else the engine by itself, when it&#39;s found;</p></li>
+<li><p>latexmk, with pdflatex: <code>latexmk -pdf -interaction=nonstopmode -file-line-error -synctex=1 main.tex</code>;</p></li>
+<li><p>Tectonic: <code>tectonic -X compile --keep-logs --synctex main.tex</code>;</p></li>
+<li><p>an engine by itself, pdflatex then xelatex then lualatex. It runs <strong>once</strong>:
+it doesn&#39;t run BibTeX or again for the references, so the first build says
+&quot;undefined references&quot; until you build again. latexmk or Tectonic do that
+for you.</p></li>
+</ol>
+<p>Tectonic runs BibTeX itself but not biber (BibLaTeX with <code>backend=biber</code>
+needs a TeX distribution and latexmk). It downloads the packages a document
+uses the first time it builds, from the internet, and keeps them.</p>
+<p><strong>The document</strong> is, in this order: the root the file you&#39;re in names
+(<code>% !TEX root = ../main.tex</code>), or that file if it has a <code>\documentclass</code>; the
+<code>latex.main</code> setting; <code>main.tex</code> at the top; the one <code>.tex</code> file at the top
+with a <code>\documentclass</code>. The PDF is beside it. A document in a folder is
+built there (<code>latexmk -cd</code>, <code>-output-directory=</code>).</p>
+<p><strong>The log is read, not what the builder printed.</strong> After a build the pack reads
+the <code>.log</code> the engine wrote (<code>main.log</code>; Tectonic keeps one with
+<code>--keep-logs</code>), and shows in the problems:</p>
+<ul class="tight">
+<li><p><strong>errors</strong>, in the file and line TeX says (<code>l.12</code>, or the file and line
+<code>-file-line-error</code> prints); an undefined control sequence says which;</p></li>
+<li><p><strong>warnings</strong>: undefined references and citations, every other <code>LaTeX Warning</code> and package or class warning, a font warning, a missing character,
+and <strong>overfull boxes</strong> with the lines they cover;</p></li>
+<li><p><strong>underfull boxes</strong> as info.</p></li>
+</ul>
+<p>Which file a message is about comes from the parentheses TeX opens a file
+with in the log, the way every tool that reads it does -- a heuristic, and the
+README&#39;s last section says what it can&#39;t do. An error in a package or the class
+is put on the project file that read it, at its top, with the file&#39;s name in the
+message. The summary &quot;There were undefined references&quot; isn&#39;t repeated. Without
+a log, what the builder printed is read the same way.</p>
+<ul class="tight">
+<li><p><code>SPC m w</code> (<code>latex.watch</code>): builds once, then runs <code>latexmk -pvc -view=none</code>
+as a background task, which builds again whenever a file changes, and opens
+the PDF. Again stops it. Only latexmk watches; with anything else the
+command says so. While it runs, <code>latex.build_on_save</code> does nothing.</p></li>
+<li><p><code>latex.build_on_save</code>: saving a <code>.tex</code>, <code>.sty</code>, <code>.cls</code> or <code>.bib</code> file builds
+the document.</p></li>
+<li><p><code>SPC m c</code> (<code>latex.clean</code>) is <code>latexmk -c</code>, the auxiliary files; <code>latex.clean_all</code>
+is <code>-C</code>, the PDF too. Only latexmk knows what it left: with another builder
+the command says so (Tectonic leaves none beside the document).</p></li>
+<li><p><code>SPC m n</code> (<code>latex.word_count</code>): <code>texcount -brief -inc -utf8</code> on the document,
+when texcount is there (it comes with TeX Live and MiKTeX).</p></li>
+</ul>
+<h3 id="readme-the-preview">The preview</h3>
+<p>The first successful build opens the PDF in the PDF reader, through the
+reader&#39;s <code>pdf.open</code> service, in the pane you&#39;re in; the reader reloads a PDF
+when it&#39;s written again, keeping its place, so every build after that shows
+in it and the pack doesn&#39;t ask again. <code>SPC m p</code> (<code>latex.preview</code>) opens it
+again, building first if there&#39;s no PDF; <code>latex.preview</code> off keeps the
+automatic opening off.</p>
+<p>Without the reader (not installed, or one with no <code>pdf.open</code>) the pack says so
+in a notification -- where the PDF is, and that <code>fenix.pdf</code> from the Extensions
+page shows it -- and each build tries again. Fenix has no call for the system&#39;s
+viewer (<code>open_url</code> takes http(s) only), so the pack doesn&#39;t offer one.</p>
+<p><strong>Forward search</strong>: <code>SPC m s</code> (<code>latex.forward_search</code>) asks <code>synctex view</code> which
+page the cursor&#39;s line is on in the PDF and opens the reader on that page. It
+needs the <code>synctex</code> program (it comes with TeX Live, MiKTeX and MacTeX;
+Tectonic doesn&#39;t ship it) and a PDF built with SyncTeX data (every build the
+pack makes asks for it). The reader&#39;s <code>pdf.open</code> takes a page and no place on
+it, so it&#39;s the page, not the line: the PDF doesn&#39;t scroll to or mark the
+text. A reader that took a position (the <code>x</code> and <code>y</code> SyncTeX prints, which the
+pack reads) would get it. There&#39;s no reverse search (a click in the PDF to the
+source).</p>
+<h3 id="readme-formatting-and-checks">Formatting and checks</h3>
+<ul class="tight">
+<li><p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <strong>tex-fmt</strong>, a single
+program with no Perl, installed by the doctor, reading the file on its input
+(<code>tex-fmt --stdin</code>); it indents environments and wraps long lines at 80 (a
+<code>tex-fmt.toml</code> in the folder it runs in changes that, as in a terminal:
+checked with 0.5.7; Fenix&#39;s folder for a formatter isn&#39;t something this
+pack could check). That&#39;s why it&#39;s
+the default. <strong>latexindent</strong> (Perl, and in practice a TeX distribution) is
+used when tex-fmt isn&#39;t found, or when <code>latex.formatter</code> says so
+(<code>latexindent -g /dev/null -</code>, <code>nul</code> on Windows, so it should leave no
+<code>indent.log</code>: not run here, there&#39;s no Perl latexindent on the machine this
+was written on).
+<code>.bib</code> files aren&#39;t formatted.</p></li>
+<li><p>On save: <strong>chktex</strong> on the saved <code>.tex</code>, <code>.sty</code> or <code>.cls</code> file when it&#39;s
+found (<code>latex.chktex</code>), its warnings shown with texlab&#39;s, with its message
+number as the code.</p></li>
+</ul>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>, each in the project, for the document:</p>
+<div class="table"><table>
+<thead><tr><th>Task</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td><code>build</code></td><td>what builds it (above)</td></tr>
+<tr><td><code>clean</code></td><td><code>latexmk -c main.tex</code>: latexmk only</td></tr>
+<tr><td><code>clean (all)</code></td><td><code>latexmk -C main.tex</code>: the PDF too; latexmk only</td></tr>
+<tr><td><code>word count</code></td><td><code>texcount -brief -inc -utf8 main.tex</code>: when texcount is found</td></tr>
+</tbody>
+</table></div>
+<p>Every task is started by you, from the picker or <code>SPC p T</code> (rerun the last).
+A task of the same name in <code>.fenix/tools.json</code> wins. Building continuously is
+a command, not a task: a task holds the task pane while it runs.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>LaTeX build</td><td>what will build the document, or that nothing does: needed in a project with <code>.tex</code> files, a warning in any other</td><td><strong>Install Tectonic</strong> (it downloads packages on first build)</td></tr>
+<tr><td>texlab</td><td><code>texlab --version</code>; optional</td><td>texlab 5.26.0</td></tr>
+<tr><td>tex-fmt</td><td><code>tex-fmt --version</code>; optional</td><td>tex-fmt 0.5.7</td></tr>
+<tr><td>chktex, texcount, synctex</td><td>their versions; optional</td><td>none: a TeX distribution&#39;s</td></tr>
+</tbody>
+</table></div>
+<p>The fix rows (Linux, macOS and Windows; x86_64 and arm64, Tectonic not on
+Windows ARM, which has no release) download the release from GitHub for this
+machine (<code>github.com</code>, and where GitHub sends the file), check it against the
+SHA-256 the pack knows, unpack it into the pack&#39;s tools folder, and use it at
+once. Starting is said in the message line; how it ended is a notification:
+&quot;Installed Tectonic 0.17.0&quot;, or &quot;Couldn&#39;t install Tectonic 0.17.0&quot; with which
+step failed and why, and <em>Try again</em>. The Tectonic fix&#39;s text says what the
+first build does: it downloads the packages a document uses from the internet
+(Tectonic&#39;s bundle), and keeps them. One you installed yourself is used
+instead: the pack looks on <code>PATH</code>, and in <code>~/.local/bin</code>, <code>~/.cargo/bin</code>,
+Homebrew&#39;s, Snap&#39;s, MacTeX&#39;s <code>/Library/TeX/texbin</code>, MiKTeX&#39;s, Scoop&#39;s and
+winget&#39;s.</p>
+<p><strong>Where the checksums come from.</strong> None of the three projects publishes a
+checksum file with a release (<code>.sha256</code>, <code>SHA256SUMS</code> and the like are not
+among the assets). Each SHA-256 in <code>src/tools.rs</code> was computed from the asset
+downloaded from the release&#39;s own URL, for the tags <code>v5.26.0</code> (texlab),
+<code>tectonic@0.17.0</code> and <code>v0.5.7</code> (tex-fmt); it pins those exact bytes, so Fenix
+refuses a file that isn&#39;t them. It doesn&#39;t prove the release is what the author
+meant: that is as far as the upstream goes.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<p>LaTeX (<code>.tex</code>, <code>.sty</code>, <code>.cls</code>):</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>doc</code></td><td>a document: class, packages, title, <code>document</code></td></tr>
+<tr><td><code>sec</code>, <code>ssec</code>, <code>sssec</code>, <code>chap</code></td><td>a section, subsection, subsubsection, chapter, with a label</td></tr>
+<tr><td><code>env</code>, <code>ite</code>, <code>enu</code>, <code>desc</code></td><td>an environment (its name mirrored on <code>\end</code>); itemize, enumerate, description</td></tr>
+<tr><td><code>fig</code>, <code>tab</code></td><td>a figure with an image, caption and label; a table with <code>booktabs</code> rules</td></tr>
+<tr><td><code>eq</code>, <code>ali</code>, <code>mat</code>, <code>frac</code>, <code>im</code></td><td>an equation with a label; <code>align</code>; a matrix; a fraction; inline math</td></tr>
+<tr><td><code>thm</code>, <code>pf</code>, <code>nthm</code>, <code>abs</code></td><td>a theorem; a proof; <code>\newtheorem</code>; an abstract</td></tr>
+<tr><td><code>frame</code>, <code>fitem</code>, <code>cols</code></td><td>a Beamer frame; one with a list; two columns</td></tr>
+<tr><td><code>pkg</code>, <code>pkgo</code>, <code>cmd</code></td><td><code>\usepackage</code>, with options; <code>\newcommand</code></td></tr>
+<tr><td><code>lst</code>, <code>verb</code>, <code>tikz</code></td><td>a listing; verbatim; a TikZ picture</td></tr>
+<tr><td><code>cite</code>, <code>ref</code>, <code>eqref</code>, <code>href</code>, <code>foot</code></td><td>a citation; a reference; an equation reference; a link; a footnote</td></tr>
+<tr><td><code>bib</code>, <code>bbl</code>, <code>toc</code>, <code>inp</code>, <code>incl</code>, <code>root</code></td><td>the BibTeX bibliography; BibLaTeX&#39;s; the contents; <code>\input</code>; <code>\include</code>; the <code>% !TEX root</code> comment</td></tr>
+</tbody>
+</table></div>
+<p>BibTeX (<code>.bib</code>): <code>art</code>, <code>book</code>, <code>inp</code> (conference paper), <code>thesis</code>, <code>online</code>,
+<code>misc</code> and <code>str</code> (<code>@string</code>).</p>
+<h3 id="readme-new-projects">New projects</h3>
+<p><em>LaTeX · article</em> in the new-project wizard: a title block, an abstract,
+sections, a figure, a table and an equation with labels you can reference, a
+BibTeX bibliography (<code>refs.bib</code>), a <code>.latexmkrc</code> (which names the engine, and
+makes it a LaTeX project for Fenix 1.6) and a <code>.gitignore</code> for what a build
+leaves. <em>LaTeX · Beamer presentation</em>: a title frame, an outline, frames, two
+columns and a block. <em>LaTeX · thesis</em>: a title page, an abstract, contents and
+lists of figures and tables, chapters in files of their own (each starts with
+<code>% !TEX root = ../main.tex</code>, so <code>SPC m b</code> in a chapter builds the thesis), an
+appendix, and the bibliography. None runs anything when it&#39;s made. They were
+formatted with tex-fmt 0.5.7 and checked against its output; <strong>none was
+compiled</strong>: there&#39;s no TeX distribution where they were written, and Tectonic
+couldn&#39;t fetch its bundle. They use standard packages only (<code>amsmath</code>,
+<code>graphicx</code>, <code>booktabs</code>, <code>hyperref</code>, <code>setspace</code>, and Beamer&#39;s own).</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>latex.main</code></td><td>empty (found)</td><td>The document, in the project, when it isn&#39;t <code>main.tex</code>; a project&#39;s own (<code>.fenix/settings.toml</code>)</td></tr>
+<tr><td><code>latex.preview</code></td><td>on</td><td>The first build that works opens the PDF in the reader</td></tr>
+<tr><td><code>latex.build_on_save</code></td><td>off</td><td>Saving a <code>.tex</code>, <code>.sty</code>, <code>.cls</code> or <code>.bib</code> file builds the document</td></tr>
+<tr><td><code>latex.chktex</code></td><td>on</td><td>chktex on a saved file</td></tr>
+<tr><td><code>latex.formatter</code></td><td>auto</td><td><code>auto</code> (tex-fmt, else latexindent), <code>tex-fmt</code> or <code>latexindent</code></td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-project-kind">Project kind</h3>
+<p>Fenix 1.6 and later know a LaTeX project (<code>TEX</code>): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a <code>.latexmkrc</code>, <code>latexmkrc</code> or <code>Tectonic.toml</code> at its top, and opened on <code>main.tex</code> when you&#39;ve had none of its files open. <code>kind = &quot;latex&quot;</code> in <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;latex&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Your home folder is never a project, whatever dotfiles it holds. A folder with only <code>.tex</code> files and none of those markers stays a plain folder (wildcards aren&#39;t allowed in a kind&#39;s markers): the pack still loads for its files and its commands work; add a <code>.latexmkrc</code> (the templates have one) to make it a project. Earlier Fenix ignores this and the pack works there as before. The kind is declared in <code>extension.toml</code> (<code>[[contributes.project_kinds]]</code>); the pack&#39;s context markers say when the pack applies, and are not the same list.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a LaTeX project or file (<code>C-k m</code> with standard keys):</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>b</code></td><td><code>latex.build</code></td><td>build the document and show its PDF</td></tr>
+<tr><td><code>w</code></td><td><code>latex.watch</code></td><td>build continuously (again to stop)</td></tr>
+<tr><td><code>p</code></td><td><code>latex.preview</code></td><td>open the document&#39;s PDF</td></tr>
+<tr><td><code>s</code></td><td><code>latex.forward_search</code></td><td>this line&#39;s page in the PDF (synctex)</td></tr>
+<tr><td><code>c</code></td><td><code>latex.clean</code></td><td>clean the auxiliary files</td></tr>
+<tr><td><code>n</code></td><td><code>latex.word_count</code></td><td>count the words</td></tr>
+<tr><td><code>d</code></td><td><code>latex.doctor</code></td><td>check the project again</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run</strong> <code>latexmk</code>, <code>tectonic</code>, <code>pdflatex</code>, <code>xelatex</code> and <code>lualatex</code>
+(<code>permissions.process</code>) to build, as commands and tasks you start; <code>texlab</code>
+as the server; <code>tex-fmt</code> or <code>latexindent</code> as the formatter; <code>chktex</code> on
+save; <code>texcount</code> and <code>synctex</code> for the word count and the forward search;
+and each tool&#39;s <code>--version</code> for the doctor. <code>/tools/*</code> is where the pack
+installs texlab, Tectonic and tex-fmt. No other program.</p></li>
+<li><p><strong>Reach <code>github.com</code>, <code>objects.githubusercontent.com</code> and
+<code>release-assets.githubusercontent.com</code></strong> (<code>permissions.network</code>): to
+download a release when you run a fix row. What a builder reaches for
+packages (Tectonic&#39;s bundle, a TeX distribution&#39;s <code>tlmgr</code>) is the builder&#39;s,
+as in a terminal, not the pack&#39;s.</p></li>
+<li><p><strong>Read the project</strong> (<code>filesystem = &quot;project-read&quot;</code>): to find the document
+(<code>main.tex</code>, <code>.latexmkrc</code>, <code>Tectonic.toml</code>, the <code>.tex</code> files at the top and
+the first lines of the document for magic comments), and to read the log and
+see the PDF a build made. It writes nothing: the build&#39;s files are the
+builder&#39;s.</p></li>
+<li><p><strong>Know where you are</strong> (<code>editor = &quot;read&quot;</code>): the project&#39;s folder as the
+machine has it, which the PDF reader needs for a full path; the file you&#39;re
+in, which names its document; and its line, for the forward search.</p></li>
+<li><p>It calls the PDF reader&#39;s <code>pdf.open</code> service. That is not a permission:
+an extension may ask another&#39;s service, and the pack depends on none.</p></li>
+</ul>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>A position in the PDF</strong>, and a reverse search (a click in the PDF to the
+source): the reader&#39;s <code>pdf.open</code> takes a page or a heading, not a place on the
+page, and the pack has no call from the reader back. That&#39;s the reader&#39;s to add.</p></li>
+<li><p><strong>Latexmk&#39;s <code>-pvc</code> messages as problems</strong>, the build&#39;s log when it&#39;s
+watching, and biber&#39;s and BibTeX&#39;s own logs (<code>.blg</code>).</p></li>
+<li><p><strong>A log it can&#39;t follow</strong>: the file a message is about is found from the
+parentheses TeX opens files with, so a log whose lines are cut differently
+(an engine with another <code>max_print_line</code>), or a file name with spaces, is
+read less well; a message the pack can&#39;t place is on the document, at its top.</p></li>
+<li><p><strong><code>.latexmkrc</code>&#39;s own <code>$out_dir</code>/<code>$aux_dir</code></strong>: the pack reads the log beside
+the PDF; a latexmkrc that moves them leaves it reading what the builder
+printed.</p></li>
+<li><p>A thesis class&#39;s own template, <code>biber</code>, glossaries, and <code>texlab</code>&#39;s own
+build and forward-search settings.</p></li>
+</ul>
+<h3 id="readme-building-1">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/latex dist
+cargo xtask install extensions/latex
+cargo test --locked --manifest-path extensions/latex/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> runs the pack on the test kit&#39;s fake host: its server, formatter,
+tasks and checks are set; a build&#39;s log is read into problems where they are
+and cleared when fixed; the builder is chosen from what&#39;s there, a magic
+comment, a <code>.latexmkrc</code> and a <code>Tectonic.toml</code>; the PDF reader&#39;s <code>pdf.open</code> is
+called once with a full path and not again, and is told about when the service
+is there and when nothing offers it; the forward search asks synctex and opens
+the page it says; the continuous build starts and stops; and the fix rows&#39;
+downloads name the release and its SHA-256 (<code>src/lib.rs</code>). Each piece on its
+own: the install table for each platform (<code>src/tools.rs</code>), the builder&#39;s
+command lines (<code>build.rs</code>), the log parser (<code>log.rs</code>), chktex&#39;s lines
+(<code>chktex.rs</code>), synctex&#39;s output (<code>synctex.rs</code>), the doctor, the document
+(<code>project.rs</code>), the preview, the tasks. And the data as Fenix reads it
+(<code>src/data.rs</code>): the language files, the grammars loaded and their queries run
+on a sample, the snippets, the three templates planned, and the manifest
+against the code. What is real and what is written from the shape of real
+output in <code>src/samples/</code> is in <code>src/samples/README.md</code>: the <code>--version</code>s are
+recorded from texlab 5.26.0 and tex-fmt 0.5.7; <strong>the build logs, chktex&#39;s lines and
+synctex&#39;s output are not recordings</strong>.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>637 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/latex-v1.0.0/fenix.latex-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 359dc09460302f165c9abbc6a6c0bd345ed3e71be417c73d34319ca64cd2f553">359dc09460…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.5 (extension API 1.5): LaTeX and BibTeX. Their
+grammars (<code>.tex</code>, <code>.sty</code>, <code>.cls</code> and <code>.bib</code> files: highlighted, folded,
+indented, with their sections and entries as the scopes <code>SPC c s</code> and the
+breadcrumbs list), texlab as the language server, tex-fmt (or latexindent) as
+the formatter, chktex on save, and a build: <code>SPC m b</code> builds the document with
+what you have -- latexmk, Tectonic or an engine, a <code>.latexmkrc</code>, a
+<code>Tectonic.toml</code> or a <code>% !TEX program</code> comment deciding, a <code>% !TEX root</code>
+comment naming the document from a chapter -- and reads the log into
+problems: errors, undefined references and citations, overfull boxes. <code>SPC m w</code>
+builds continuously with latexmk; <code>SPC m c</code> cleans; <code>SPC m n</code> counts words
+(texcount). The PDF opens in the PDF reader (the <code>fenix.pdf</code> extension) the
+first time and the reader reloads it after each build, and without the reader
+the pack says what to install; <code>SPC m s</code> goes to the PDF page of the cursor&#39;s
+line with synctex. The project doctor checks what builds, texlab, tex-fmt,
+chktex, texcount and synctex, with fixes that install texlab, tex-fmt and
+Tectonic (which downloads packages on its first build) from their GitHub
+releases, checked against their SHA-256. Snippets, an article, a Beamer
+presentation and a thesis for the new-project wizard, and a lesson in the
+tutorial.</p></li>
+<li><p>Fenix 1.6 and later show a project with a <code>.latexmkrc</code>, <code>latexmkrc</code> or
+<code>Tectonic.toml</code> at its top as a LaTeX project (<code>TEX</code>), in the project hub, on
+Home, in the modeline and in the doctor, and open it on <code>main.tex</code> when you&#39;ve
+had none of its files open; <code>kind = &quot;latex&quot;</code> in a project&#39;s
+<code>.fenix/settings.toml</code> says it by hand. A folder of <code>.tex</code> files with none of
+those stays a plain folder. Fenix&#39;s own kinds come first: a project Fenix
+already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that
+one until <code>kind = &quot;latex&quot;</code> says otherwise. Fenix 1.5 ignores this and the pack
+works there as before: it&#39;s only data in the manifest.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-15">2026-11-15</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
