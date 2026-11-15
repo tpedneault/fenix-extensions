@@ -51,6 +51,15 @@ the prompt before you press Enter (they come along, as `git switch`
 carries them; git refuses when they'd be overwritten). A branch of that
 name already there is switched to.
 
+Nothing that came from a remote reaches git as an option: a remote's
+name, or the default branch its server named, is used only when it's a
+name git takes as a branch (never one starting with `-`), and goes after
+`--end-of-options`; the fetch is from the issue's own remote alone, asks
+for `refs/heads/<branch>`, and may use only https, http, ssh and git
+(`GIT_ALLOW_PROTOCOL`) -- never `file://` or `ext::`. A remote that
+isn't on the network (a path, `file://`) is never the issue's
+repository.
+
 ## For the agenda
 
 The agenda finds it by itself (`fenix.github-issues.tracker.*`, the
@@ -86,7 +95,7 @@ Fenix's own, under Forges (`SPC ,`, `Ctrl+,` with standard keys):
 
 | Setting | What it does |
 | --- | --- |
-| `github-issues.server` | Your GitHub Enterprise Server's address; empty for github.com |
+| `github-issues.server` | Your GitHub Enterprise Server's address; empty for github.com. Its token is the GitHub CLI's for that host (`gh auth login --hostname <host>`): Fenix's `github.token` is github.com's and is never sent to another server |
 | `github-issues.repositories` | Repositories whose open issues the page lists |
 | `github-issues.queries` | Saved searches, by name |
 | `github-issues.branch_pattern` | A branch's name: `{number}`, `{title}`, `{project}` (`{number}-{title}`) |
@@ -96,7 +105,8 @@ Fenix's own, under Forges (`SPC ,`, `Ctrl+,` with standard keys):
 ## What it may do
 
 - Reach GitHub's API, `api.github.com`, and your Enterprise Server when
-  you set one -- nothing else.
+  you set one -- nothing else. A project can't set the server: it's
+  yours alone.
 - Read Fenix's GitHub token, `github.token`, the one Review reads. It
   never writes or copies it: the token goes to GitHub's API in a
   header, and nowhere else -- not to the agenda, an agent, a
