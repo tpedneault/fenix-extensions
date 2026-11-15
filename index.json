@@ -2741,6 +2741,57 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.latex",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/latex-v1.0.0/fenix.latex-1.0.0.fenixext",
+          "sha256": "359dc09460302f165c9abbc6a6c0bd345ed3e71be417c73d34319ca64cd2f553",
+          "size": 636866,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "latexmk",
+              "tectonic",
+              "pdflatex",
+              "xelatex",
+              "lualatex",
+              "texlab",
+              "tex-fmt",
+              "latexindent",
+              "chktex",
+              "texcount",
+              "synctex",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "LaTeX",
+      "description": "LaTeX and BibTeX: their grammars, texlab, tex-fmt, chktex, a build with latexmk, Tectonic or an engine whose log becomes problems, the PDF it makes opened in the PDF reader, the project's checks with fixes that install the tools, snippets, and templates",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.logs",
       "versions": [
         {
