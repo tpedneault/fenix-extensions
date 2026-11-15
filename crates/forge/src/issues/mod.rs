@@ -162,6 +162,9 @@ pub struct Issue {
     pub updated: String,
     /// How many comments it has.
     pub comments: u64,
+    /// GitLab: the global id of the issue it was moved to; a moved issue
+    /// stays behind, closed.
+    pub moved_to: Option<String>,
     pub confidential: bool,
 }
 
@@ -542,6 +545,13 @@ pub(crate) async fn send<H: Http>(http: &H, host: Host, method: &str, url: &str,
     let response = http.request(method, url, headers, body).await.map_err(ApiError::offline)?;
     if response.status >= 400 {
         return Err(api_error(host, &response));
+    }
+    // A write answered with a redirect wasn't done: Fenix's client, asked
+    // not to follow one for a write, hands it back -- and one that did
+    // would have made the PATCH a bodiless GET.
+    if method != "GET" && (300..400).contains(&response.status) {
+        let to = header(&response, "location").unwrap_or("elsewhere");
+        return Err(ApiError::status(response.status, format!("HTTP {} ({}): sent on to {to} -- nothing was changed", response.status, crate::reason(response.status))));
     }
     Ok(response)
 }

@@ -87,11 +87,17 @@ pub fn with_query(url: &str, query: &[(&str, &str)]) -> String {
 /// A status's reason, as a server says it.
 pub fn reason(status: u16) -> &'static str {
     match status {
+        301 => "Moved Permanently",
+        302 => "Found",
+        303 => "See Other",
+        307 => "Temporary Redirect",
+        308 => "Permanent Redirect",
         400 => "Bad Request",
         401 => "Unauthorized",
         403 => "Forbidden",
         404 => "Not Found",
         405 => "Method Not Allowed",
+        408 => "Request Timeout",
         409 => "Conflict",
         422 => "Unprocessable Entity",
         429 => "Too Many Requests",

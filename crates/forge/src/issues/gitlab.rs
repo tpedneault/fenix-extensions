@@ -149,6 +149,7 @@ pub fn parse_issue(v: &Value, base: &str) -> Option<Issue> {
         updated: text(v, "updated_at"),
         comments: v.get("user_notes_count").and_then(Value::as_u64).unwrap_or(0),
         confidential: v.get("confidential").and_then(Value::as_bool).unwrap_or(false),
+        moved_to: v.get("moved_to_id").and_then(Value::as_u64).map(|i| i.to_string()),
     })
 }
 
