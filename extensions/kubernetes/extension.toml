@@ -131,14 +131,14 @@ project = true
 key = "kubernetes.protected"
 kind = "list"
 label = "Always protected"
-description = "Contexts or clusters protected even when named like a local cluster or listed in kubernetes.unprotected: names, * for any characters, ? for one, case ignored. Every context is protected anyway unless its name or its cluster's is a local cluster's or listed in kubernetes.unprotected."
+description = "Contexts or clusters protected whatever else is true of them: names, * for any characters, ? for one, case ignored. Every context is protected anyway unless it's listed in kubernetes.unprotected, or is named as a local cluster (kind-*, minikube, docker-desktop...) and its server is local too."
 default = ""
 
 [[contributes.settings]]
 key = "kubernetes.unprotected"
 kind = "list"
 label = "Not protected"
-description = "Contexts or clusters where a change needs only y: a dev cluster of your own, by name (dev-*). Every other context needs the object's name typed, unless its name or its cluster's is a local cluster's (kind-*, minikube, docker-desktop, rancher-desktop, k3d-*, colima, orbstack). A server on localhost doesn't count: a tunnel to production is there too."
+description = "Contexts or clusters where a change needs only y: a dev cluster of your own, by name (dev-*). Every other context needs the object's name typed, unless both its name (or its cluster's) is a local cluster's -- kind-*, minikube, docker-desktop, rancher-desktop, k3d-*, colima, orbstack -- and its server is local: this machine, *.docker.internal, or minikube's default subnets. Neither alone is enough."
 default = ""
 
 [[contributes.settings]]

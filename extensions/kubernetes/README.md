@@ -135,13 +135,26 @@ since it was asked.
 change in a protected context needs the object's name **typed** in place
 of `y` (`kubernetes.protected_mode = "type-name"`), or isn't made at all
 (`"refuse"`; kubectl in a terminal still can). A context is unprotected
-only when its name, or its cluster's name in kubeconfig, is a local
-cluster's -- `kind-*`, `minikube`, `docker-desktop`, `docker-for-desktop`,
-`rancher-desktop`, `k3d-*`, `colima`, `colima-*`, `orbstack` -- or you
-list it in `kubernetes.unprotected`. **Where its API server is doesn't
-count**: a tunnel or a port-forward to a production API server is on
-`localhost` too, so a server on `localhost`, `127.x.x.x` or `::1` is
-protected like any other unless it's named as above. Why: production contexts often say
+when you list it in `kubernetes.unprotected`, or when **both** of these
+hold, as kubeconfig says:
+
+1. its name, or its cluster's, is one local clusters' tools give --
+   `kind-*`, `minikube`, `docker-desktop`, `docker-for-desktop`,
+   `rancher-desktop`, `k3d-*`, `colima`, `colima-*`, `orbstack`;
+2. its cluster's server is where those tools put it: this machine
+   (`localhost`, `127.0.0.0/8`, `::1`, `0.0.0.0` as k3d writes it),
+   Docker Desktop's `*.docker.internal`, or one of the subnets minikube
+   gives its first cluster -- `192.168.49.0/24` (docker and podman
+   drivers), `192.168.39.0/24` (kvm2), `192.168.59.0/24` and
+   `192.168.99.0/24` (VirtualBox, now and before), `192.168.64.0/24`
+   (HyperKit and vfkit's vmnet), `192.168.105.0/24` (QEMU's
+   socket_vmnet), as minikube's source and docs give them.
+
+Neither alone is enough: `kind-prod` can point anywhere, and a tunnel or
+a port-forward to a production API server is on `localhost` too. A
+second minikube cluster (on `192.168.58.0` and on), and Docker's own
+bridge range `172.17.0.0/16` (common on company networks too), stay
+protected: name them in `kubernetes.unprotected`. Why: production contexts often say
 nothing about it -- EKS names them by ARN, GKE as
 `gke_<project>_<zone>_<cluster>` -- so a pattern like `*prod*` misses
 them, and the costs aren't even: typing a name on a cluster that didn't
@@ -153,8 +166,9 @@ need it costs seconds, a stray `y` on production costs an outage.
   production context someone named `kind-something`, say.
 
 A protected context is red on the page and says `protected`; the context
-picker says which are, and why one isn't (a local cluster's name, or
-`kubernetes.unprotected`).
+picker says why each is or isn't -- `kubernetes.protected`, a local name
+on a server that isn't local, a local cluster on this machine,
+`kubernetes.unprotected`.
 
 ## Secrets
 
@@ -201,7 +215,7 @@ arguments.
 | `kubernetes_pod` | One pod: phase, conditions, owners, and each container's image, readiness, restarts, state and last state |
 | `kubernetes_events` | The namespace's events, or one object's, newest first, at most 200, each message at most 1 KiB |
 | `kubernetes_logs` | **Off unless `kubernetes.agent_logs` is on.** A pod's last lines (200, up to 2000; one container or all; or the previous run's), at most 64 KiB, a line at most 2 KiB; never followed |
-| `kubernetes_describe` | **Off unless `kubernetes.agent_logs` is on.** One object in the namespace -- pod, deployment, statefulset, daemonset, replicaset, job, cronjob, service, ingress, PVC, HPA; never a Secret or ConfigMap -- as the API has it (not `kubectl describe`'s text), with every `env` value, every `command` and `args` (probes and hooks too), annotations' values and managed fields taken out; at most 64 KiB |
+| `kubernetes_describe` | **Off unless `kubernetes.agent_logs` is on.** One object in the namespace -- pod, deployment, statefulset, daemonset, replicaset, job, cronjob, service, ingress, PVC, HPA; never a Secret or ConfigMap -- as the API has it (not `kubectl describe`'s text), with every `env` value, every `command` and `args` (probes and hooks too), probes' HTTP header values, a terminated container's message, annotations' values and managed fields taken out; at most 64 KiB |
 
 - **Logs and descriptions are off by default** because a log can hold
   whatever a program printed -- tokens, passwords -- and both are written
@@ -211,8 +225,13 @@ arguments.
   nothing.
 - **What comes back from the cluster** -- a log, an event's message, a
   reason -- is returned as data in a field of the answer, with a note
-  saying so, its terminal escapes, control characters and bidi and
-  zero-width characters taken out.
+  saying so. Its terminal escapes and control characters are taken out,
+  and so is every format character (bidi controls, zero-width
+  characters, the tag characters U+E0000-E007F that can spell ASCII no
+  one sees) and every variation selector (which can encode bytes);
+  combining marks are cut to four a character. Log pages and
+  notifications get the same, but keep the ZWNJ, ZWJ, LRM and RLM and
+  one variation selector a character that real scripts and emoji need.
 - **Rate limits**: one call at a time per tool, three at once in all,
   thirty a minute; past them an agent is told it's busy.
 - Names an agent gives are held to what Kubernetes allows a name to be,

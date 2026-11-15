@@ -3,6 +3,30 @@
 //! person typed can ever be part of it) and its variables (where all of
 //! that text goes), and the answer read as the seam's errors.
 //!
+//! **How an error is classed.** By what Linear says, whatever the HTTP status
+//! (`extensions.code`, and `extensions.type`, whose values are those of the
+//! SDK's `LinearErrorType`), else by the status. The agenda **drops** a
+//! queued change answered `bad_request` or `unsupported` -- it will never be
+//! accepted -- and only waits for `r` on the rest, so `bad_request` is only
+//! for a request that can never be right, and what depends on the state of
+//! things (a state, label or person that's gone; an archived issue) is
+//! `refused` or `not_found`, which tell you and can be retried or reverted.
+//!
+//! | Linear says | Seam code | Why |
+//! |---|---|---|
+//! | `ratelimited` (`RATELIMITED`), a "rate limit" message | `rate_limited`, `retry_after` | transient |
+//! | `authentication error` (`AUTHENTICATION_ERROR`) | `signed_out` | the key |
+//! | `forbidden`, `feature not accessible`, `usage limit exceeded` | `refused` | what you may do, or your plan allows, can change |
+//! | `lock timeout`, `network error` | `offline` | transient: not done, try again |
+//! | an entity (issue, state, label, person) "not found" | `not_found` | gone now: said, retried or reverted |
+//! | `invalid input`, `user error`, `userError: true`, `BAD_USER_INPUT`, `INVALID_INPUT` | `refused` | validation depends on current state |
+//! | `GRAPHQL_VALIDATION_FAILED`, `GRAPHQL_PARSE_FAILED` | `bad_request` | our own query isn't valid: never |
+//! | `internal error`, `bootstrap error`, `unknown`, `other`, `graphql error`, anything else | `failed` | waits for `r` |
+//! | no GraphQL `errors`: 401 `signed_out`; 403 `refused`; 404 and 410 `not_found`; 429 `rate_limited`; other 4xx `refused`; 502 to 504 `offline`; other `failed` | | |
+//!
+//! Several errors in one answer: the worst is said (rate limit, key,
+//! forbidden, transient, not found, refused, bad request, other).
+//!
 //! How it reaches Linear is a [`Transport`]: the extension's own HTTP,
 //! with your key, or a recorded one in tests. The key is the transport's:
 //! nothing here has it, so nothing here can write it into a message.
@@ -106,10 +130,11 @@ impl Client {
             Kind::RateLimited => 0,
             Kind::SignedOut => 1,
             Kind::Forbidden => 2,
-            Kind::NotFound => 3,
-            Kind::BadRequest => 4,
+            Kind::Transient => 3,
+            Kind::NotFound => 4,
             Kind::Refused => 5,
-            Kind::Other => 6,
+            Kind::BadRequest => 6,
+            Kind::Other => 7,
         };
         let worst = errors.iter().min_by_key(|e| rank(e)).unwrap_or(&errors[0]);
         let message = message_of(worst);
@@ -117,6 +142,7 @@ impl Client {
             Kind::RateLimited => (code::RATE_LIMITED, true),
             Kind::SignedOut => (code::SIGNED_OUT, false),
             Kind::Forbidden | Kind::Refused => (code::REFUSED, false),
+            Kind::Transient => (code::OFFLINE, false),
             Kind::NotFound => (code::NOT_FOUND, false),
             Kind::BadRequest => (code::BAD_REQUEST, false),
             Kind::Other if reply.status == 401 => (code::SIGNED_OUT, false),
@@ -159,6 +185,9 @@ enum Kind {
     SignedOut,
     Forbidden,
     NotFound,
+    /// Not done, and worth trying again: a lock timeout, the network.
+    Transient,
+    /// Our query itself isn't valid: it can never be accepted.
     BadRequest,
     /// The change was refused: Linear's "invalid input".
     Refused,
@@ -172,17 +201,20 @@ fn kind_of(e: &Value) -> Kind {
     let field = |name: &str| ext.and_then(|x| x.get(name)).and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
     let (c, t) = (field("code"), field("type"));
     let message = e.get("message").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
+    let user_error = ext.and_then(|x| x.get("userError")).and_then(Value::as_bool) == Some(true);
     if c == "ratelimited" || t == "ratelimited" || t == "rate limited" || message.contains("rate limit") {
         Kind::RateLimited
     } else if c == "authentication_error" || t == "authentication error" || message.starts_with("authentication required") {
         Kind::SignedOut
-    } else if c == "forbidden" || t == "forbidden" || message.starts_with("forbidden") {
+    } else if c == "forbidden" || t == "forbidden" || message.starts_with("forbidden") || t == "feature not accessible" || t == "usage limit exceeded" {
         Kind::Forbidden
+    } else if c == "lock_timeout" || t == "lock timeout" || t == "network error" {
+        Kind::Transient
     } else if c == "not_found" || message.contains("entity not found") || message.contains("could not find") || message.contains("not found") {
         Kind::NotFound
-    } else if c == "graphql_validation_failed" || c == "bad_user_input" || t == "graphql validation failed" {
+    } else if c == "graphql_validation_failed" || c == "graphql_parse_failed" || t == "graphql validation failed" {
         Kind::BadRequest
-    } else if c == "invalid_input" || t == "invalid input" || ext.and_then(|x| x.get("userError")).and_then(Value::as_bool) == Some(true) {
+    } else if c == "invalid_input" || c == "bad_user_input" || t == "invalid input" || t == "user error" || user_error {
         Kind::Refused
     } else {
         Kind::Other
@@ -238,6 +270,31 @@ mod tests {
         // The worst of several is the one that's said.
         let e = fails(200, &[], r#"{"errors": [{"message": "odd"}, {"message": "slow down", "extensions": {"code": "RATELIMITED"}}]}"#);
         assert_eq!(e.code, "rate_limited");
+    }
+
+    #[test]
+    fn only_what_can_never_be_accepted_is_bad_request() {
+        let one = |ext: &str, message: &str| fails(200, &[], &format!(r#"{{"errors": [{{"message": "{message}", "extensions": {ext}}}]}}"#));
+        // Situational validation: a state or person that's gone, an archived issue. Said, and kept for `r`.
+        for ext in [r#"{"code": "BAD_USER_INPUT"}"#, r#"{"code": "INVALID_INPUT", "userError": true}"#, r#"{"type": "invalid input"}"#, r#"{"type": "user error"}"#, r#"{"userError": true}"#] {
+            assert_eq!(one(ext, "Argument Validation Error").code, "refused", "{ext}");
+        }
+        // Transient: never dropped.
+        assert_eq!(one(r#"{"type": "lock timeout"}"#, "Lock timeout").code, "offline");
+        assert_eq!(one(r#"{"type": "network error"}"#, "x").code, "offline");
+        assert_eq!(one(r#"{"type": "ratelimited"}"#, "x").code, "rate_limited");
+        assert_eq!(one(r#"{"type": "internal error"}"#, "x").code, "failed");
+        assert_eq!(one(r#"{"type": "usage limit exceeded"}"#, "x").code, "refused");
+        assert_eq!(one(r#"{"type": "feature not accessible"}"#, "x").code, "refused");
+        // Our own query not being valid is the one thing that never is accepted.
+        assert_eq!(one(r#"{"code": "GRAPHQL_VALIDATION_FAILED"}"#, "x").code, "bad_request");
+        // And a rate limit beside a validation error is the rate limit.
+        let both = fails(200, &[], r#"{"errors": [{"message": "v", "extensions": {"code": "BAD_USER_INPUT"}}, {"message": "slow", "extensions": {"code": "RATELIMITED"}}]}"#);
+        assert_eq!(both.code, "rate_limited");
+        // No code anywhere, 5xx and 4xx.
+        for (status, want) in [(500, "failed"), (503, "offline"), (400, "refused"), (422, "refused")] {
+            assert_eq!(fails(status, &[], "{}").code, want, "{status}");
+        }
     }
 
     #[test]

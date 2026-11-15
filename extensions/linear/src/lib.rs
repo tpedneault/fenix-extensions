@@ -1222,6 +1222,25 @@ mod tests {
         assert!(h.fake.notifications().iter().any(|n| n == "Created ENG-21"), "{:?}", h.fake.notifications());
     }
 
+    /// What a project's own settings can reach: one setting, and it only names a team.
+    #[test]
+    fn a_projects_settings_can_only_name_a_team_for_the_agenda() {
+        let manifest = include_str!("../extension.toml");
+        let keys: Vec<&str> = manifest.split("[[contributes.settings]]").skip(1).filter(|block| block.contains("project = true")).map(|block| block.lines().find(|l| l.starts_with("key = ")).unwrap().trim_start_matches("key = ").trim_matches('"')).collect();
+        assert_eq!(keys, ["linear.team"], "the only setting a project may set; the key, the branch pattern and the gate are yours");
+        // Whatever it holds: never sent anywhere, never an argument, and `project` is a team key or none.
+        let mut h = linear_with(true);
+        h.fake.setting("linear.team", "https://evil.example/\n--upload-pack=x");
+        let p: fenix_tracker::Project = serde_json::from_str(&ask(&mut h, &service("project"), json!({})).unwrap()).unwrap();
+        assert_eq!(p.project, None);
+        let _ = ask(&mut h, &service("assigned"), json!({})).unwrap();
+        for (_, r) in h.fake.requests() {
+            assert_eq!(r.url, "https://api.linear.app/graphql");
+            assert!(!String::from_utf8_lossy(&r.body).contains("evil.example"));
+        }
+        assert!(h.fake.spawned().is_empty(), "no program run");
+    }
+
     #[test]
     fn project_is_the_team_a_project_sets() {
         let mut h = linear_with(true);
@@ -1350,7 +1369,7 @@ mod tests {
         let page = page_on_issue(&mut h);
         h.keys(page, "b");
         let line = h.fake.spawned().into_iter().map(|(_, l)| l).collect::<Vec<_>>();
-        assert!(line.iter().any(|l| l == "git switch -c jo/eng-12-fix-the-login-timeout"), "{line:?}");
+        assert!(line.iter().any(|l| l == "git switch -c jo/eng-12-fix-the-login-timeout --"), "{line:?}");
         assert!(h.fake.notifications().iter().any(|n| n == "Created jo/eng-12-fix-the-login-timeout and switched to it"), "{:?}", h.fake.notifications());
     }
 
@@ -1367,7 +1386,7 @@ mod tests {
         let page = page_on_issue(&mut h);
         h.fake.on_pick("ENG-12: the tree has uncommitted changes", "Make the branch here, with the 1 changed file(s) coming along");
         h.keys(page, "b");
-        assert!(h.fake.spawned().iter().any(|(_, l)| l == "git switch -c jo/eng-12-fix-the-login-timeout"));
+        assert!(h.fake.spawned().iter().any(|(_, l)| l == "git switch -c jo/eng-12-fix-the-login-timeout --"));
     }
 
     #[test]
@@ -1386,6 +1405,6 @@ mod tests {
         h.fake.setting("linear.branch_pattern", "feature/{id}-{slug}");
         let page = page_on_issue(&mut h);
         h.keys(page, "b");
-        assert!(h.fake.spawned().iter().any(|(_, l)| l == "git switch -c feature/eng-12-fix-the-login-timeout"), "{:?}", h.fake.spawned());
+        assert!(h.fake.spawned().iter().any(|(_, l)| l == "git switch -c feature/eng-12-fix-the-login-timeout --"), "{:?}", h.fake.spawned());
     }
 }

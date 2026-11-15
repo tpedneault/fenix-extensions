@@ -16,6 +16,24 @@
 //!   first, saying how many files changed, and only an answer of yes
 //!   (`confirmed`) goes on.
 //!
+//! **Every `git` this runs, exactly** (`name` is checked by [`check_name`]
+//! first, and nothing else from the network or a project's settings is ever
+//! an argument; the working folder is the project's, `/project`):
+//!
+//! ```text
+//! git rev-parse --show-toplevel
+//! git check-ref-format refs/heads/<name>
+//! git status --porcelain
+//! git symbolic-ref --short -q HEAD
+//! git show-ref --verify --quiet -- refs/heads/<name>
+//! git switch --end-of-options <name>        (the branch exists)
+//! git switch -c <name> --                   (it doesn't)
+//! ```
+//!
+//! A name is only ever after `refs/heads/`, after `--end-of-options`, or
+//! the value of `-c`, which git takes whole, so none can be read as an
+//! option, as well as never starting with `-` (`check_name`).
+//!
 //! The host runs the programs; this is the logic around them, over any
 //! way of running `git` ([`Run`]).
 
@@ -135,12 +153,12 @@ pub fn decide(name: &str, facts: &Facts, confirmed: bool) -> Result<Vec<String>,
         if facts.changed > 0 {
             return Err(Outcome::Said(format!("{name} exists, and the tree has {} -- commit or stash them, then try again", files(facts.changed))));
         }
-        return Ok(vec!["switch".into(), name.into()]);
+        return Ok(vec!["switch".into(), "--end-of-options".into(), name.into()]);
     }
     if facts.changed > 0 && !confirmed {
         return Err(Outcome::Confirm { changed: facts.changed });
     }
-    Ok(vec!["switch".into(), "-c".into(), name.into()])
+    Ok(vec!["switch".into(), "-c".into(), name.into(), "--".into()])
 }
 
 /// Asks the repository what's true of it, for `name`. `run` runs `git`
@@ -155,7 +173,8 @@ where
         return Ok(Facts::default());
     }
     // Git has the last word on a name.
-    if !git(&["check-ref-format", "--branch", name]).await.is_ok_and(|r| r.ok) {
+    // The full ref, never the bare name: `refs/heads/...` can't be read as an option.
+    if !git(&["check-ref-format", &format!("refs/heads/{name}")]).await.is_ok_and(|r| r.ok) {
         return Err(format!("git won't take \"{}\" as a branch name", name.chars().take(60).collect::<String>()));
     }
     let status = git(&["status", "--porcelain"]).await?;
@@ -163,7 +182,7 @@ where
         return Err(first_line(&status.stderr, "git status failed"));
     }
     let current = git(&["symbolic-ref", "--short", "-q", "HEAD"]).await?;
-    let exists = git(&["show-ref", "--verify", "--quiet", &format!("refs/heads/{name}")]).await?;
+    let exists = git(&["show-ref", "--verify", "--quiet", "--", &format!("refs/heads/{name}")]).await?;
     Ok(Facts { is_repo: true, changed: status.stdout.lines().filter(|l| !l.trim().is_empty()).count(), current: Some(current.stdout.trim().to_string()).filter(|c| current.ok && !c.is_empty()), exists: exists.ok })
 }
 
@@ -241,6 +260,48 @@ mod tests {
         futures_executor::block_on(start(move |args| std::future::ready(Ok(run_in(&dir, args))), name, "", "ENG-12", "Fix the login", confirmed))
     }
 
+    /// Runs `git` in the repository and writes every argv down.
+    fn recording(dir: &Path, seen: &std::cell::RefCell<Vec<Vec<String>>>, args: Vec<String>) -> std::future::Ready<Result<Ran, String>> {
+        seen.borrow_mut().push(args.clone());
+        std::future::ready(Ok(run_in(dir, args)))
+    }
+
+    #[test]
+    fn every_git_call_has_its_exact_argv_and_a_name_is_never_an_option() {
+        let repo = Repo::new("argv");
+        let seen = std::cell::RefCell::new(Vec::new());
+        let dir = repo.0.clone();
+        let out = futures_executor::block_on(start(|a| recording(&dir, &seen, a), "jo/eng-12-x", "", "ENG-12", "t", false));
+        assert_eq!(out, Ok(Outcome::Switched { name: "jo/eng-12-x".into(), created: true }));
+        let argv: Vec<String> = seen.borrow().iter().map(|a| a.join(" ")).collect();
+        assert_eq!(
+            argv,
+            [
+                "rev-parse --show-toplevel",
+                "check-ref-format refs/heads/jo/eng-12-x",
+                "status --porcelain",
+                "symbolic-ref --short -q HEAD",
+                "show-ref --verify --quiet -- refs/heads/jo/eng-12-x",
+                "switch -c jo/eng-12-x --"
+            ]
+        );
+        repo.git(&["switch", "-q", "main"]);
+        seen.borrow_mut().clear();
+        futures_executor::block_on(start(|a| recording(&dir, &seen, a), "jo/eng-12-x", "", "ENG-12", "t", false)).unwrap();
+        assert_eq!(seen.borrow().last().unwrap().join(" "), "switch --end-of-options jo/eng-12-x");
+        // A name that could be an option never reaches git at all, from Linear or from a pattern.
+        for (suggested, pattern) in [("-D", ""), ("--force", ""), ("", "--{id}"), ("", "-c{slug}")] {
+            seen.borrow_mut().clear();
+            let out = futures_executor::block_on(start(|a| recording(&dir, &seen, a), suggested, pattern, "ENG-12", "-x", false));
+            assert!(out.is_err() && seen.borrow().is_empty(), "{suggested:?} {pattern:?}: {out:?} {:?}", seen.borrow());
+        }
+        // Whatever a name is, every argv that holds it puts it where git can't read an option.
+        for argv in [decide("n", &Facts { is_repo: true, ..Default::default() }, false).unwrap(), decide("n", &Facts { is_repo: true, exists: true, ..Default::default() }, false).unwrap()] {
+            let at = argv.iter().position(|a| a == "n").unwrap();
+            assert!(argv[..at].iter().any(|a| a == "--end-of-options") || argv[at - 1] == "-c", "{argv:?}");
+        }
+    }
+
     #[test]
     fn names_come_from_linear_or_a_pattern() {
         assert_eq!(name_for("jo/eng-12-fix-the-login", "", "ENG-12", "Fix the login").unwrap(), "jo/eng-12-fix-the-login");
@@ -269,11 +330,11 @@ mod tests {
         let repo = |changed, current: Option<&str>, exists| Facts { is_repo: true, changed, current: current.map(Into::into), exists };
         assert!(matches!(decide("b", &Facts::default(), true), Err(Outcome::Said(s)) if s.contains("isn't a git repository")));
         assert_eq!(decide("b", &repo(0, Some("b"), true), false), Err(Outcome::Said("already on b".into())));
-        assert_eq!(decide("b", &repo(0, Some("main"), true), false), Ok(vec!["switch".into(), "b".into()]));
+        assert_eq!(decide("b", &repo(0, Some("main"), true), false), Ok(vec!["switch".into(), "--end-of-options".into(), "b".into()]));
         assert!(matches!(decide("b", &repo(2, Some("main"), true), true), Err(Outcome::Said(s)) if s.contains("2 changed files") && s.contains("stash")), "even confirmed: an existing branch isn't switched to over changes");
-        assert_eq!(decide("b", &repo(0, Some("main"), false), false), Ok(vec!["switch".into(), "-c".into(), "b".into()]));
+        assert_eq!(decide("b", &repo(0, Some("main"), false), false), Ok(vec!["switch".into(), "-c".into(), "b".into(), "--".into()]));
         assert_eq!(decide("b", &repo(3, Some("main"), false), false), Err(Outcome::Confirm { changed: 3 }));
-        assert_eq!(decide("b", &repo(3, None, false), true), Ok(vec!["switch".into(), "-c".into(), "b".into()]));
+        assert_eq!(decide("b", &repo(3, None, false), true), Ok(vec!["switch".into(), "-c".into(), "b".into(), "--".into()]));
     }
 
     #[test]

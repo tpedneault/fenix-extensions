@@ -317,10 +317,10 @@ fn manifest() -> toml::Table {
 fn the_manifest_lists_the_commands_the_kit_the_keymap_and_the_fix_rows_use() {
     let m = manifest();
     let commands: Vec<String> = m["contributes"]["commands"].as_array().unwrap().iter().map(|c| c["id"].as_str().unwrap().to_string()).collect();
-    for want in ["nix.doctor", "nix.install-help", "nix.server.dev-shell", "nix.server.nixpkgs", "nix.flake.build", "nix.flake.run", "nix.flake.develop", "nix.develop"] {
+    for want in ["nix.doctor", "nix.install-help", "nix.server.dev-shell", "nix.server.nixpkgs", "nix.server.forget", "nix.flake.build", "nix.flake.run", "nix.flake.develop", "nix.develop"] {
         assert!(commands.iter().any(|c| c == want), "{want}");
     }
-    assert_eq!(commands.len(), 8, "{commands:?}");
+    assert_eq!(commands.len(), 9, "{commands:?}");
     for (file, text) in files("keymaps", "toml") {
         let keymap: toml::Table = toml::from_str(&text).unwrap();
         let mut keys = Vec::new();
@@ -378,11 +378,15 @@ fn the_manifest_asks_for_what_the_pack_runs_and_nothing_it_downloads() {
     let defaults = crate::choose::Settings::default();
     let by = |key: &str| settings.iter().find(|s| s["key"].as_str() == Some(key)).unwrap();
     assert_eq!(by("nix.server_runner")["default"].as_str(), Some("path"), "nothing starts through Nix until it's set");
-    assert_eq!(by("nix.server_runner")["project"].as_bool(), Some(true));
+    assert_eq!(defaults.runner, crate::choose::Runner::Path);
+    // A project's own settings file is applied without a question: the settings it may
+    // set are those that can only choose among fixed names of programs found on PATH.
+    let per_project: Vec<&str> = settings.iter().filter(|s| s.get("project").and_then(|p| p.as_bool()) == Some(true)).map(|s| s["key"].as_str().unwrap()).collect();
+    assert_eq!(per_project, ["nix.formatter"], "nix.server_runner is yours alone: a dev shell runs the project's code");
     assert_eq!((defaults.runner, defaults.statix, defaults.deadnix), (crate::choose::Runner::Path, true, true));
     assert_eq!(strings_of(by("nix.formatter")["choices"].as_array().unwrap()), ["auto", "nixfmt", "alejandra", "nixpkgs-fmt", "off"]);
     assert_eq!(strings_of(by("nix.server")["choices"].as_array().unwrap()), ["auto", "nixd", "nil"]);
-    assert_eq!(strings_of(by("nix.server_runner")["choices"].as_array().unwrap()), ["path", "dev-shell", "nixpkgs"]);
+    assert_eq!(strings_of(by("nix.server_runner")["choices"].as_array().unwrap()), ["path", "nixpkgs"], "the dev shell is never a value: it's remembered per project, by the doctor's fix");
     // Its context loads it for the language, and for a project with one of these.
     let context = &m["contributes"]["contexts"].as_array().unwrap()[0];
     assert_eq!(strings_of(context["languages"].as_array().unwrap()), ["nix"]);

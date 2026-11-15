@@ -55,7 +55,8 @@ left open:
 
 - **Kubernetes** 1.0.0, in the Lab bundle: `kubectl` in a pane, the
   context per project and never kubeconfig's, every change asked and its
-  context named, every context protected but a clearly local one, Secret
+  context named, every context protected but a local one (a local name
+  and a local server, both), Secret
   values never shown, read-only agent tools kept to one namespace. Apply
   was built, reviewed and taken out: it comes back after a run against a
   real cluster.

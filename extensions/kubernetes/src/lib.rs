@@ -258,8 +258,13 @@ impl Kube {
     }
 
     fn protected(&self, context: &str) -> bool {
-        let (cluster, _) = self.cluster_of(context);
-        Protection { extra: list_setting("kubernetes.protected"), exempt: list_setting("kubernetes.unprotected") }.protects(context, cluster.as_deref())
+        self.verdict(context).protected()
+    }
+
+    /// Whether `context` is protected, and why.
+    fn verdict(&self, context: &str) -> kubectl::Verdict {
+        let (cluster, server) = self.cluster_of(context);
+        Protection { extra: list_setting("kubernetes.protected"), exempt: list_setting("kubernetes.unprotected") }.verdict(context, cluster.as_deref(), server.as_deref())
     }
 
     /// The context, or a refusal said: nothing runs without one.
@@ -532,7 +537,7 @@ impl Kube {
             }
             Job::Change { what } => {
                 if ok {
-                    let said = out.iter().map(|l| agent::plain(l.trim())).find(|l| !l.is_empty()).unwrap_or_else(|| "done".into());
+                    let said = out.iter().map(|l| agent::shown(l.trim())).find(|l| !l.is_empty()).unwrap_or_else(|| "done".into());
                     api::notify(&format!("{what}: {said}"));
                 } else {
                     api::notify(&format!("Couldn't {what}: {}", why()));
@@ -799,13 +804,7 @@ impl Kube {
                 if current.as_deref() == Some(c.name.as_str()) {
                     detail.push("in use here".into());
                 }
-                detail.push(if self.protected(&c.name) {
-                    "protected".into()
-                } else if kubectl::local_name(&c.name, Some(&c.cluster)) {
-                    "unprotected: a local cluster's name".into()
-                } else {
-                    "unprotected: kubernetes.unprotected".into()
-                });
+                detail.push(self.verdict(&c.name).label().into());
                 PickerItem::new(c.name.clone(), c.name.clone()).detail(detail.join(" · "))
             })
             .collect();
@@ -1111,7 +1110,8 @@ impl Kube {
         let Some(c) = self.agent_calls.remove(&call) else { return };
         let text = out.join("\n");
         let answer = if !ok && !(cut && c.ask == Ask::Workloads) {
-            Err(why)
+            // kubectl's words, as cleaned for an agent.
+            Err(agent::plain(&why))
         } else {
             match &c.ask {
                 Ask::Workloads => Ok(agent::workloads_answer(&c.context, &c.namespace, &model::workload_lines(&out), cut, now()).to_string()),
