@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kubernetes · Fenix extensions</title>
+<meta name="description" content="kubectl in a pane: the context and namespace per project, workloads and their pods, services, ingresses, live logs, a shell in a pod, port-forwards, YAML and describe, and changes asked about first">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Kubernetes</h1>
+<p class="id"><code>fenix.kubernetes</code></p>
+<p class="lead">kubectl in a pane: the context and namespace per project, workloads and their pods, services, ingresses, live logs, a shell in a pod, port-forwards, YAML and describe, and changes asked about first</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>276 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/kubernetes">extensions/kubernetes</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Kubernetes</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/kubernetes-v1.0.0/fenix.kubernetes-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.kubernetes-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>kubectl</code></li><li><code>${setting:kubernetes.kubectl}</code> <span class="gloss">the program the setting kubernetes.kubectl names</span></li></ul></dd></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Your clusters through <code>kubectl</code>, in a pane: the workloads and their pods,
+services and ingresses, Secrets by name, live logs, a shell in a pod,
+port-forwards that keep running, an object&#39;s YAML and <code>describe</code> in a
+buffer -- and the changes you make, each one asked about first.</p>
+<p><code>SPC o k k</code> opens it (with standard keys, <code>Ctrl+K o k k</code>). It drives
+<code>kubectl</code>, which has to be installed: the extension never talks to the
+API server itself, never reads kubeconfig&#39;s credentials, and <strong>never
+changes kubeconfig</strong> -- kubectl does the talking, as it does in your
+terminal, with your kubeconfig, your <code>KUBECONFIG</code> and your login plugins.</p>
+<p>The tutorial (<code>SPC h T</code>) has a lesson on it, under <strong>Kubernetes</strong>: the
+page, choosing a context, a pod&#39;s log, and how a change is asked. Without
+a cluster, <code>s</code> on the tutorial page skips the steps that need one.</p>
+<h3 id="readme-contexts-and-namespaces">Contexts and namespaces</h3>
+<p>The page&#39;s top line says where you are: the context, where it comes from,
+whether it&#39;s protected (below), and the namespace.</p>
+<p><strong>Every kubectl call names its context</strong> (<code>--context=&lt;it&gt;</code>) and
+namespace. Until you choose, the context is kubeconfig&#39;s current one as
+read when the page last asked (<code>kubeconfig&#39;s current, read 12:04</code>; <code>r</code>
+reads kubeconfig again). With no current context -- or a kubeconfig
+kubectl can&#39;t read -- <strong>nothing runs</strong>: no list, log, shell, forward,
+describe or agent tool; the page says so and <code>c</code> chooses one. If
+kubeconfig, or <code>kubernetes.kubectl</code>, changes which cluster that is,
+everything listed goes and any question with it, so nothing of the old
+cluster is shown under the new name.</p>
+<p><strong>Choosing a context here changes nothing anywhere else.</strong> <code>c</code> (or
+<code>Kubernetes: choose the context</code>) picks one of kubeconfig&#39;s contexts for
+this project; kubeconfig isn&#39;t written, so your terminal, your other
+projects and every other tool stay where they were. The choice is kept
+with the page&#39;s state for the project&#39;s session. Names are read from
+<code>kubectl config view -o json</code> and used exactly as written: <code>&quot;prod &quot;</code> and
+<code>&quot;prod&quot;</code> are two contexts. One whose name holds a tab or a newline is left
+out, and said.</p>
+<p>There&#39;s no command to switch kubeconfig&#39;s own current context: <code>kubectl config use-context</code> in a terminal does that.</p>
+<p><strong>Suggested contexts.</strong> <code>kubernetes.context</code> and <code>kubernetes.namespace</code>
+suggest a context and namespace for a project, and a project may set them
+in its <code>.fenix/settings.toml</code>. Fenix doesn&#39;t tell an extension whether a
+value is yours or the project&#39;s, nor whether the project is trusted, so a
+suggestion is only shown -- <em>u uses the suggested context …</em> -- and
+nothing uses it, agents included, until you press <code>u</code>. A repository you
+clone can&#39;t point the page, or your agents, at one of your clusters.</p>
+<p><code>n</code> picks a namespace, or <strong>All namespaces</strong>; if your account may not
+list namespaces, it asks you to type one.</p>
+<h3 id="readme-the-page">The page</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>1</code>-<code>5</code>, <code>]</code>, <code>[</code></td><td>Workloads, Pods, Network, Secrets, Forwards</td></tr>
+<tr><td><code>j</code> <code>k</code> <code>g</code> <code>G</code>, <code>J</code> <code>K</code></td><td>Move a row, to the top or the end, a screen</td></tr>
+<tr><td><code>Enter</code></td><td>Open or close a group or a workload (its pods under it); on an object, its menu</td></tr>
+<tr><td><code>m</code></td><td>The object&#39;s menu: everything below that applies to it</td></tr>
+<tr><td><code>l</code></td><td>Its log (a pod&#39;s, or what kubectl picks of a workload&#39;s pods)</td></tr>
+<tr><td><code>!</code></td><td>A shell in the pod: <code>kubectl exec -it</code>, in a terminal; which container, when it has several</td></tr>
+<tr><td><code>f</code></td><td>A port-forward to the pod or the service (<code>local:remote</code>)</td></tr>
+<tr><td><code>i</code></td><td>Its YAML, read-only, in a buffer</td></tr>
+<tr><td><code>D</code></td><td><code>kubectl describe</code>, in a buffer</td></tr>
+<tr><td><code>y</code></td><td>Copy its name</td></tr>
+<tr><td><code>x</code></td><td>Delete the pod -- asked first</td></tr>
+<tr><td><code>R</code></td><td>Restart a deployment, statefulset or daemonset (<code>rollout restart</code>) -- asked first</td></tr>
+<tr><td><code>S</code></td><td>Scale a deployment or statefulset -- how many, then asked</td></tr>
+<tr><td><code>c</code>, <code>n</code>, <code>u</code></td><td>The context, the namespace; take the suggested ones</td></tr>
+<tr><td><code>/</code></td><td>Filter by name</td></tr>
+<tr><td><code>+</code></td><td>List more of a kind cut at its cap</td></tr>
+<tr><td><code>r</code></td><td>Ask again: kubeconfig, whether the cluster answers, the tab</td></tr>
+</tbody>
+</table></div>
+<p>On the Forwards tab: <code>s</code> stops the one under the cursor, <code>o</code> opens
+<code>http://localhost:&lt;port&gt;/</code>, <code>Enter</code> shows its output.</p>
+<p>The keys are Containers&#39; where they do the same thing: <code>l</code> a log, <code>!</code> a
+shell, <code>m</code> a menu, <code>R</code> restart, <code>x</code> remove (here <code>x</code>, then <code>y</code> to the
+question, where Containers takes <code>x x</code>), <code>o</code> open a port, <code>y</code> copy,
+<code>1</code>-<code>5</code> the tabs, <code>r</code> reload, <code>/</code> filter. <code>q</code> and <code>Esc</code> close the page,
+as on any page.</p>
+<p><strong>Refreshing</strong>: while the page is in view, the tab in view is asked for
+again every <code>kubernetes.refresh_seconds</code> (10); when it&#39;s hidden or
+closed, nothing is asked. A failure -- an expired login, a cluster that
+doesn&#39;t answer -- is shown with kubectl&#39;s own words (and a hint when they
+make one plain), and <strong>nothing is asked again until you press <code>r</code></strong>: no
+retry storm, no login plugin started every ten seconds.</p>
+<p><strong>A watchdog</strong> stops any kubectl call that isn&#39;t a stream after 20 to 30
+seconds without an answer -- most often a login plugin waiting for you
+in a browser or on a device code, which kubectl&#39;s own
+<code>--request-timeout</code> doesn&#39;t bound -- and says what was waiting. <code>r</code>
+always works: it gives up whatever is still being waited for and asks
+again.</p>
+<h3 id="readme-logs">Logs</h3>
+<p><code>l</code> opens a log page, following the pod&#39;s log as it&#39;s written (the last
+200 lines, then what comes; the last 5,000 kept, each cut at 16 KiB). On
+it:</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>s</code></td><td>Stop the stream; again, start it from where it stopped (<code>--since-time</code>)</td></tr>
+<tr><td><code>p</code></td><td>The previous run&#39;s log, before the last restart (read once); again, back</td></tr>
+<tr><td><code>S</code></td><td>Since a while ago: <code>10m</code>, <code>2h</code> (empty: the last 200 lines)</td></tr>
+<tr><td><code>c</code>, <code>a</code></td><td>Another container; all of them, each line saying which</td></tr>
+<tr><td><code>t</code></td><td>Times</td></tr>
+<tr><td><code>/</code></td><td>Filter</td></tr>
+<tr><td><code>o</code></td><td>Open what&#39;s shown in a buffer</td></tr>
+<tr><td><code>j</code> <code>k</code> <code>g</code> <code>G</code></td><td>Scroll; <code>G</code> (or <code>F</code>) follows the end again</td></tr>
+</tbody>
+</table></div>
+<p>Changing how it&#39;s read starts a new stream; the old one is stopped and
+whatever it still says goes nowhere. Closing the page stops kubectl. A
+stream that ends by itself (the pod went) says why and isn&#39;t started
+again.</p>
+<h3 id="readme-changes">Changes</h3>
+<p>Nothing that changes the cluster is one key, and nothing happens without
+a question that names <strong>the context and the namespace</strong>: <code>x</code> on a pod
+shows <em>Delete pod web-1? context kind-dev, namespace shop</em>, and only
+<code>y</code> does it -- any other key is no. <code>S</code> asks how many replicas, then asks;
+the scale goes with <code>--current-replicas</code>, so if someone changed it in
+between, it fails rather than overwrites. A question goes when the
+context changes, and <code>y</code> is refused if the context became protected
+since it was asked.</p>
+<p><strong>Every context is protected by default, except clearly local ones.</strong> A
+change in a protected context needs the object&#39;s name <strong>typed</strong> in place
+of <code>y</code> (<code>kubernetes.protected_mode = &quot;type-name&quot;</code>), or isn&#39;t made at all
+(<code>&quot;refuse&quot;</code>; kubectl in a terminal still can). A context is unprotected
+when you list it in <code>kubernetes.unprotected</code>, or when <strong>both</strong> of these
+hold, as kubeconfig says:</p>
+<ol class="tight">
+<li><p>its name, or its cluster&#39;s, is one local clusters&#39; tools give --
+<code>kind-*</code>, <code>minikube</code>, <code>docker-desktop</code>, <code>docker-for-desktop</code>,
+<code>rancher-desktop</code>, <code>k3d-*</code>, <code>colima</code>, <code>colima-*</code>, <code>orbstack</code>;</p></li>
+<li><p>its cluster&#39;s server is where those tools put it: this machine
+(<code>localhost</code>, <code>127.0.0.0/8</code>, <code>::1</code>, <code>0.0.0.0</code> as k3d writes it),
+Docker Desktop&#39;s <code>*.docker.internal</code>, or one of the subnets minikube
+gives its first cluster -- <code>192.168.49.0/24</code> (docker and podman
+drivers), <code>192.168.39.0/24</code> (kvm2), <code>192.168.59.0/24</code> and
+<code>192.168.99.0/24</code> (VirtualBox, now and before), <code>192.168.64.0/24</code>
+(HyperKit and vfkit&#39;s vmnet), <code>192.168.105.0/24</code> (QEMU&#39;s
+socket_vmnet), as minikube&#39;s source and docs give them.</p></li>
+</ol>
+<p>Neither alone is enough: <code>kind-prod</code> can point anywhere, and a tunnel or
+a port-forward to a production API server is on <code>localhost</code> too. A
+second minikube cluster (on <code>192.168.58.0</code> and on), and Docker&#39;s own
+bridge range <code>172.17.0.0/16</code> (common on company networks too), stay
+protected: name them in <code>kubernetes.unprotected</code>. Why: production contexts often say
+nothing about it -- EKS names them by ARN, GKE as
+<code>gke_&lt;project&gt;_&lt;zone&gt;_&lt;cluster&gt;</code> -- so a pattern like <code>*prod*</code> misses
+them, and the costs aren&#39;t even: typing a name on a cluster that didn&#39;t
+need it costs seconds, a stray <code>y</code> on production costs an outage.</p>
+<ul class="tight">
+<li><p><code>kubernetes.unprotected</code> exempts your own dev clusters by name
+(context or cluster: <code>dev-*</code>).</p></li>
+<li><p><code>kubernetes.protected</code> protects by name whatever else matches -- a
+production context someone named <code>kind-something</code>, say.</p></li>
+</ul>
+<p>A protected context is red on the page and says <code>protected</code>; the context
+picker says why each is or isn&#39;t -- <code>kubernetes.protected</code>, a local name
+on a server that isn&#39;t local, a local cluster on this machine,
+<code>kubernetes.unprotected</code>.</p>
+<h3 id="readme-secrets">Secrets</h3>
+<p>The Secrets tab lists them from kubectl&#39;s own table -- name, type, how
+many keys, age -- so their data is never fetched to be listed. <code>i</code> shows
+one&#39;s YAML with <strong>its keys and not their values</strong>: each value under
+<code>data</code> and <code>stringData</code>, and <strong>every annotation&#39;s and label&#39;s value</strong>
+(any of them can copy the data, as <code>last-applied-configuration</code> does),
+replaced by its length. There&#39;s no reveal key: <code>kubectl get secret</code> in a
+terminal is where you see a value, deliberately. No agent tool reads
+Secrets, and nothing of theirs is written to the extension&#39;s log.</p>
+<h3 id="readme-large-clusters">Large clusters</h3>
+<p>A list is capped <strong>by the API server</strong>: the page asks <code>kubectl get --raw /api/v1/namespaces/&lt;ns&gt;/pods?limit=500</code>, the server stops at 500 and says
+how many more there are, and the page says <em>… 4500 more pods not listed
+(the first 500): + lists more</em>. <code>+</code> raises that kind&#39;s cap by
+<code>kubernetes.max_items</code>, up to 5,000; a namespace (<code>n</code>) or a filter is the
+better way into a big cluster. Secrets, listed as kubectl&#39;s table, are
+cut at the cap as they come.</p>
+<p>Parsing pods as the API returns them, natively (<code>cargo test --release -- --ignored measure</code>): 500 pods (0.9 MB) in about 2 ms, 5,000 (9 MB) in
+about 25 ms; pods with fuller specs, 15 MB for 5,000, took about 33 ms.
+An unoptimised build takes several times as long (one review measured
+205 ms for 5,000). In Fenix&#39;s WebAssembly it&#39;s slower
+again, and an extension has 128 MiB and should answer each event in a
+few milliseconds, so 500 is the default and 5,000 the most.</p>
+<h3 id="readme-for-coding-agents">For coding agents</h3>
+<p>Six tools in the <code>kubernetes</code> toolset, all class <code>read</code>. <strong>They work in
+the context and the one namespace you chose on the page</strong>: an agent can
+name neither, and with <strong>All namespaces</strong> chosen, or no context, they
+refuse. None deletes, scales, restarts, execs or forwards; none reads a
+Secret; none ever returns an environment value, a command or its
+arguments.</p>
+<div class="table"><table>
+<thead><tr><th>Tool</th><th>What it answers</th></tr></thead>
+<tbody>
+<tr><td><code>kubernetes_workloads</code></td><td>Deployments, statefulsets, daemonsets, jobs and cronjobs: readiness or state, replicas, age; at most 500 of each, from one kubectl call cut at 2,500 objects</td></tr>
+<tr><td><code>kubernetes_pods</code></td><td>Pods: status as kubectl shows it, ready containers, restarts, age, node; at most 500</td></tr>
+<tr><td><code>kubernetes_pod</code></td><td>One pod: phase, conditions, owners, and each container&#39;s image, readiness, restarts, state and last state</td></tr>
+<tr><td><code>kubernetes_events</code></td><td>The namespace&#39;s events, or one object&#39;s, newest first, at most 200, each message at most 1 KiB</td></tr>
+<tr><td><code>kubernetes_logs</code></td><td><strong>Off unless <code>kubernetes.agent_logs</code> is on.</strong> A pod&#39;s last lines (200, up to 2000; one container or all; or the previous run&#39;s), at most 64 KiB, a line at most 2 KiB; never followed</td></tr>
+<tr><td><code>kubernetes_describe</code></td><td><strong>Off unless <code>kubernetes.agent_logs</code> is on.</strong> One object in the namespace -- pod, deployment, statefulset, daemonset, replicaset, job, cronjob, service, ingress, PVC, HPA; never a Secret or ConfigMap -- as the API has it (not <code>kubectl describe</code>&#39;s text), with every <code>env</code> value, every <code>command</code> and <code>args</code> (probes and hooks too), probes&#39; HTTP header values, a terminated container&#39;s message, annotations&#39; values and managed fields taken out; at most 64 KiB</td></tr>
+</tbody>
+</table></div>
+<ul class="tight">
+<li><p><strong>Logs and descriptions are off by default</strong> because a log can hold
+whatever a program printed -- tokens, passwords -- and both are written
+by whatever runs in the cluster. Fenix offers an extension&#39;s tools from
+its manifest and can&#39;t hide one behind a setting, so with the setting
+off the two are listed but answer that they&#39;re turned off, and run
+nothing.</p></li>
+<li><p><strong>What comes back from the cluster</strong> -- a log, an event&#39;s message, a
+reason -- is returned as data in a field of the answer, with a note
+saying so. Its terminal escapes and control characters are taken out,
+and so is every format character (bidi controls, zero-width
+characters, the tag characters U+E0000-E007F that can spell ASCII no
+one sees) and every variation selector (which can encode bytes);
+combining marks are cut to four a character. Log pages and
+notifications get the same, but keep the ZWNJ, ZWJ, LRM and RLM and
+one variation selector a character that real scripts and emoji need.</p></li>
+<li><p><strong>Rate limits</strong>: one call at a time per tool, three at once in all,
+thirty a minute; past them an agent is told it&#39;s busy.</p></li>
+<li><p>Names an agent gives are held to what Kubernetes allows a name to be,
+so one can&#39;t become an option, a path or a second argument.</p></li>
+<li><p>Agents&#39; tools can start kubectl -- and so a login plugin -- without the
+page ever opened. To be asked first, give <code>agents.mcp.allow</code> a rule
+(<code>&quot;toolset:kubernetes&quot; = &quot;ask&quot;</code>).</p></li>
+</ul>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>kubernetes.kubectl</code></td><td></td><td>Where kubectl is, when it isn&#39;t on the PATH</td></tr>
+<tr><td><code>kubernetes.context</code></td><td></td><td>A context to suggest (a project may set it); used once you press <code>u</code></td></tr>
+<tr><td><code>kubernetes.namespace</code></td><td></td><td>A namespace to suggest, <code>*</code> for all</td></tr>
+<tr><td><code>kubernetes.protected</code></td><td></td><td>Contexts or clusters always protected, even if they look local</td></tr>
+<tr><td><code>kubernetes.unprotected</code></td><td></td><td>Contexts or clusters where a change needs only <code>y</code></td></tr>
+<tr><td><code>kubernetes.protected_mode</code></td><td><code>type-name</code></td><td><code>type-name</code>, or <code>refuse</code></td></tr>
+<tr><td><code>kubernetes.agent_logs</code></td><td><code>false</code></td><td>Whether agents may read logs and descriptions</td></tr>
+<tr><td><code>kubernetes.refresh_seconds</code></td><td>10</td><td>Between refreshes while the page is in view; 0: only <code>r</code></td></tr>
+<tr><td><code>kubernetes.max_items</code></td><td>500</td><td>How many of each kind are listed at first (50 to 5,000)</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-keys">Keys</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>SPC o k k</code></td><td><code>kubernetes.open</code></td><td>The page</td></tr>
+<tr><td><code>SPC o k c</code></td><td><code>kubernetes.context</code></td><td>The context, for this project</td></tr>
+<tr><td><code>SPC o k n</code></td><td><code>kubernetes.namespace</code></td><td>The namespace</td></tr>
+<tr><td><code>SPC o k f</code></td><td><code>kubernetes.forwards</code></td><td>Stop a port-forward</td></tr>
+</tbody>
+</table></div>
+<p>With standard keys, <code>SPC</code> is <code>Ctrl+K</code>.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run <code>kubectl</code></strong> (<code>process</code>), or the one <code>kubernetes.kubectl</code> names:
+to list, read logs and YAML, describe, open a shell and port-forward
+as you ask on its pages, and to make the changes you confirm; for
+agents, only the reads above. kubectl talks to your cluster with your
+kubeconfig; the extension sends nothing anywhere itself.</p></li>
+</ul>
+<p>Every argument goes to kubectl as an argument of its own -- no shell
+reads any of them -- and a context, namespace or container is given as
+<code>--flag=value</code>, so a context called <code>x; rm -rf ~</code> or <code>--as=admin</code> is
+still just a context&#39;s name; path segments of <code>get --raw</code> are
+percent-encoded. Port-forwards listen on 127.0.0.1 only. Fenix runs at
+most four background tasks of an extension&#39;s at once, so at most four
+port-forwards.</p>
+<p>It reads no files, writes none, and keeps nothing between sessions but
+the page&#39;s context, namespace and tab.</p>
+<h3 id="readme-limits">Limits</h3>
+<ul class="tight">
+<li><p><strong>No editing and applying YAML.</strong> YAML buffers are read-only views.
+Applying an edited buffer back was left out of 1.0.0: <code>kubectl apply</code>
+of <code>get -o yaml</code>&#39;s text writes the whole live object into
+<code>last-applied-configuration</code>, which a later <code>apply</code> from git then prunes
+against. Bringing it back needs <code>kubectl replace</code> (a strict
+<code>resourceVersion</code> conflict, no annotation rewrite) or server-side apply
+with its own field manager and the server&#39;s fields stripped, one
+checked generation from the dry run to the apply, the API group checked
+as well as kind and name -- and a run against a real cluster first.</p></li>
+<li><p><strong>No reveal for a Secret&#39;s values</strong>, by design.</p></li>
+<li><p>On Windows, <code>!</code> needs <code>sh</code> in the container; distroless images and
+Windows containers have none, and kubectl says so.</p></li>
+</ul>
+<h3 id="readme-not-tried-against-a-cluster-yet">Not tried against a cluster yet</h3>
+<p>Its tests run on the test kit&#39;s fake host. kubectl&#39;s own output -- <code>config view -o json</code>, the versions, the one-call workload columns, its error
+texts -- was recorded from kubectl 1.37.2 against a fake API server; the
+lists, a pod and a Secret are hand-written from the API&#39;s documented
+objects (<code>tests/fixtures/README.md</code> says which is which). What only a real
+cluster shows -- <code>remainingItemCount</code> on your server, the Secrets table
+as a server prints it, <code>kubectl exec</code> in Fenix&#39;s terminal, a login plugin
+that wants a browser -- hasn&#39;t been seen. There&#39;s no screenshot yet for
+the same reason.</p>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/kubernetes dist
+cargo test --manifest-path extensions/kubernetes/Cargo.toml
+</code></pre>
+<p>It needs Rust&#39;s <code>wasm32-wasip2</code> target. The tests need no cluster. Most
+fakes answer at once; those for what waits on a process (kubeconfig, the
+server&#39;s version, lists, namespaces, YAML, logs, agents&#39; calls) answer
+late and out of order, to show that an answer to an earlier request is
+never taken for a newer one&#39;s.</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>276 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/kubernetes-v1.0.0/fenix.kubernetes-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 c3f52761336d475a9daf984056d84997590edcc674d907d086371b08ab820ba7">c3f5276133…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.5 (extension API 1.5): Kubernetes
+through kubectl. A page of workloads with their pods, pods, services
+and ingresses, and Secrets by name, capped by the API server with how
+many more there are; the context and namespace chosen for the project,
+every call naming its context and nothing run without one -- kubeconfig
+is never changed; live logs (a container or all, the previous run,
+since a while ago, stopped and started again); a shell in a pod;
+port-forwards as background tasks, listed and stopped; YAML and
+<code>describe</code> in a read-only buffer, a Secret&#39;s without its values;
+deleting a pod, restarting and scaling, each asked about naming the
+context and the namespace, and every context protected -- a change
+there needing the object&#39;s name typed -- unless it&#39;s named as a local
+cluster and its server is local too, or you exempt it. Read-only
+tools for coding agents in the namespace you chose, logs and
+descriptions only when you allow them, and the cluster&#39;s text given to
+them without format characters, tag characters or variation
+selectors. A doctor row for kubectl, and a
+lesson in the tutorial.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-15">2026-11-15</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>

@@ -58,7 +58,8 @@
 <section class="doc" aria-labelledby="readme">
 <h2 id="readme">About</h2>
 <p>Your tasks on a board, a clock for your time, and a week&#39;s timesheet --
-each task linked to a Jira issue when the Jira extension is there. Its
+each task linked to an issue when a tracker extension is there: Jira
+today, and GitHub Issues, GitLab Issues and Linear as they come. Its
 keys are under <code>SPC A</code>, and your tasks are kept in <code>agenda.json</code>.</p>
 <p><code>SPC A a</code> opens it where it was left; <code>SPC A b</code>, <code>SPC A l</code> and <code>SPC A r</code>
 open the board, the list and this week&#39;s time. <code>SPC A n</code> adds a task,
@@ -80,14 +81,14 @@ Fenix 1.5 or later.</p>
 <tr><td><code>s</code> <code>p</code> <code>c</code> <code>u</code></td><td>Status, priority, category, due date</td></tr>
 <tr><td><code>e</code> <code>E</code></td><td>Title, description</td></tr>
 <tr><td><code>t</code> <code>T</code></td><td>Start or stop its clock, log time</td></tr>
-<tr><td><code>N</code> <code>C</code></td><td>A private note, a Jira comment</td></tr>
-<tr><td><code>I</code> <code>A</code></td><td>Link it to Jira, assign it</td></tr>
+<tr><td><code>N</code> <code>C</code></td><td>A private note, a comment on its issue</td></tr>
+<tr><td><code>I</code> <code>A</code></td><td>Link it to an issue, assign it</td></tr>
 <tr><td><code>x</code> <code>D</code></td><td>Archive, delete</td></tr>
 <tr><td><code>/</code> <code>f</code> <code>P</code></td><td>Search, filters, this project only</td></tr>
 <tr><td><code>?</code></td><td>Every key</td></tr>
 </tbody>
 </table></div>
-<h3 id="readme-with-jira">With Jira</h3>
+<h3 id="readme-with-jira-or-another-tracker">With Jira, or another tracker</h3>
 <p>With the Jira extension installed and set up, a linked task&#39;s edits go to
 Jira, and Jira&#39;s come back every <code>jira.sync_minutes</code>:</p>
 <ul class="tight">
@@ -98,19 +99,90 @@ Jira, and Jira&#39;s come back every <code>jira.sync_minutes</code>:</p>
 <p>A sync you asked for ends in a notification: how many issues it brought
 up to date, or why it failed. One that finds a conflict says so, even a
 timed one; Enter on it opens the agenda. Each replaces the last.</p>
+<p>Moving a linked card takes the one step in the issue&#39;s workflow that gets
+there; when there are several it asks, and Esc puts the card back. What
+Blocked means in a Jira project -- a status, the Flagged field, or the
+agenda only -- is asked the first time and remembered.</p>
+<p>Any tracker extension that serves the agenda works the same way, and
+several at once: GitHub Issues, GitLab Issues and Linear are found when
+they&#39;re installed. Each is synced on its own schedule, and each has its
+own queue of changes: one that&#39;s slow to answer holds up only its own.
+Changes go to an issue by its id, so one that moved to another project
+since the last sync still gets them. Where issues from two are listed
+together, each says whose it is; words that said &quot;Jira&quot; name the task&#39;s
+tracker. A tracker built elsewhere is found once its name is in
+<code>agenda.trackers</code>.</p>
+<p>When a change doesn&#39;t go through:</p>
+<ul class="tight">
+<li><p><strong>No answer came</strong> (a slow tracker): it may have been made, so it isn&#39;t
+sent again by itself. The task says so, and <code>r</code> asks whether to send it
+again -- with the same <code>op</code>, so a tracker that took it doesn&#39;t make it
+twice -- or to forget it. A worklog with no answer is marked &quot;may have
+been logged&quot; in the review: <code>W</code> leaves it out, <code>s</code> sends it again (the
+same <code>op</code>) and <code>x</code> says it was logged.</p></li>
+<li><p><strong>Refused</strong> (signed out, a value it didn&#39;t accept): the task says why,
+and <code>r</code> sends it again once you&#39;ve put it right.</p></li>
+<li><p><strong>Never taken</strong> (the tracker has no such field): it&#39;s taken off the
+queue, so the task&#39;s other changes go, and the task is marked &quot;not
+taken&quot; until you choose with <code>r</code>: send it again, take the tracker&#39;s
+value back, or keep yours here only.</p></li>
+</ul>
+<p>What a tracker sends is kept as it sent it, byte for byte, so what goes
+back is the tracker&#39;s own text; it&#39;s shown cleaned -- control
+characters, bidirectional overrides and invisible characters removed,
+the joiners and marks living scripts and emoji need kept. A title or
+description too long to keep whole isn&#39;t written back.</p>
+<p>Links to trackers other than Jira are kept in <code>agenda.json</code> under
+<code>&quot;link&quot;</code>, which agenda 1.2 drops when it saves the file; they&#39;re also
+kept beside it, in <code>agenda-links.json</code>, which 1.2 never touches, and
+put back when this agenda reads the file again. A change left waiting
+for a task whose link was lost is dropped, with a note on the task.</p>
 <h3 id="readme-settings">Settings</h3>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
 <tbody>
 <tr><td><code>agenda.categories</code></td><td>Categories offered when you file a task</td></tr>
-<tr><td><code>agenda.worklog_round</code></td><td>Time sent to Jira is rounded to this many minutes</td></tr>
+<tr><td><code>agenda.worklog_round</code></td><td>Time sent as worklogs is rounded to this many minutes</td></tr>
 <tr><td><code>agenda.idle_minutes</code></td><td>With the clock running, how long without a key before it asks what time to keep</td></tr>
+<tr><td><code>agenda.trackers</code></td><td>Tracker extensions built elsewhere to ask for issues, by the name their services start with</td></tr>
 </tbody>
 </table></div>
 <h3 id="readme-outside-fenix">Outside Fenix</h3>
 <p>The control channel&#39;s <code>fenix/agenda.tasks</code>, <code>fenix/agenda.clockIn</code> and
 <code>fenix/agenda.clockOut</code>, and the clock in <code>fenix/state</code>, are answered by
 this extension.</p>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<p>Read where you are in the editor (<code>editor = &quot;read&quot;</code>), for the file and
+line <code>SPC A h</code> makes a task about. Nothing else: it holds no token and
+reaches no server -- each tracker extension holds its own sign-in and
+talks to its own server, and the agenda only asks it.</p>
+<h3 id="readme-writing-a-tracker">Writing a tracker</h3>
+<p>A tracker extension serves the agenda the <strong>tracker seam</strong>: a few JSON
+services under its own full id, <code>&lt;id&gt;.tracker.about</code>, <code>.assigned</code>,
+<code>.issues</code>, <code>.transitions</code>, <code>.transition</code> (<code>fenix.jira.tracker.about</code>),
+and the writes it chooses to take. The contract -- every call, field,
+limit and error, how the agenda finds trackers, the gate on writes, and
+a checklist -- is <a href="https://github.com/tpedneault/fenix-extensions/blob/main/plans/tracker-seam.md"><code>plans/tracker-seam.md</code></a>.
+The shapes, the cleaning of untrusted text, the gate and a fake tracker
+are the shared crate <a href="https://github.com/tpedneault/fenix-extensions/blob/main/crates/tracker"><code>crates/tracker</code></a>
+(<code>fenix-tracker</code>); Jira&#39;s is <code>crates/jira</code>&#39;s <code>tracker</code> module.</p>
+<p>To see the agenda drive yours, from your own crate:</p>
+<pre><code class="language-toml">[dev-dependencies]
+fenix-agenda = { path = &quot;../agenda&quot;, features = [&quot;testing&quot;] }
+</code></pre>
+<p><code>fenix_agenda::testing::world_with</code> starts the agenda on the test kit&#39;s
+fake host with the services you wire -- <code>serve</code> puts a <code>FakeTracker</code>
+behind <code>&lt;id&gt;.tracker.*</code>; wire your own answers the same way -- and
+<code>World</code> adds issues, moves cards and tells you what the agenda said.
+The agenda&#39;s own <code>src/tests.rs</code> is a full set of examples.</p>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/agenda dist
+cargo test --manifest-path extensions/agenda/Cargo.toml
+</code></pre>
+<p>The tests cover the model (sync, conflicts, worklogs, <code>agenda.json</code> from
+1.2), the page as text, and the agenda on the test kit with fake
+trackers, the Jira extension 1.3&#39;s seam on recorded Jira responses, and
+the Jira extension 1.2&#39;s old services.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -125,6 +197,55 @@ this extension.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-130">1.3.0</h3>
+<p>If you use Jira, your linked tasks, their moves, what Blocked means in
+each project, comments, worklogs and the new-issue form work as they
+did, with the Jira extension 1.2 or 1.3 -- except that, with Jira 1.3,
+the first change asks you to allow it (below).</p>
+<ul class="tight">
+<li><p>The agenda now talks to Jira the way it will talk to every tracker,
+so GitHub Issues, GitLab Issues and Linear can link your tasks too
+once their extensions are out, several at once. Where issues from two
+trackers are listed together, each says whose it is.</p></li>
+<li><p><code>agenda.trackers</code> names trackers built elsewhere, for the agenda to
+ask too.</p></li>
+<li><p>What a tracker sends is kept as it sent it, byte for byte, capped in
+size, and shown cleaned of control characters, bidirectional overrides
+and invisible characters -- keeping the joiners and marks Persian,
+Hebrew, Arabic, Hindi and emoji need. A title or description too long
+to keep isn&#39;t written back over the tracker&#39;s.</p></li>
+<li><p>A linked task whose issue was deleted is marked &quot;not found&quot; instead of
+failing the sync; one whose issue moved follows it to its new key.</p></li>
+<li><p>A change whose answer never came (a slow tracker) isn&#39;t sent again by
+itself, so a comment or a worklog can&#39;t go twice: the task says it may
+have been made, and <code>r</code> asks whether to send it again, with the same
+<code>op</code>. A worklog with no answer is marked &quot;may have been logged&quot;: <code>W</code>
+leaves it out, <code>s</code> in the review sends it again with the same <code>op</code>
+(made of the task, the day and its time, never the clock), <code>x</code> says it
+was logged.</p></li>
+<li><p>A change the tracker will never take (it has no such field) leaves
+the queue, so the task&#39;s other changes still go, and marks the task
+&quot;not taken&quot; until <code>r</code> sends it again, takes the tracker&#39;s value back,
+or keeps yours here only. One it refused for now (a value it didn&#39;t
+accept) waits for <code>r</code>.</p></li>
+<li><p>Changes, moves, priorities and people go to an issue by its id, so an
+issue that moved since the last sync still gets them.</p></li>
+<li><p>Each tracker has its own queue: one slow to answer holds up only its
+own changes; a tracker that&#39;s ready is used without waiting for a slow
+one to say who it is; a key you type is asked of every tracker at once.</p></li>
+<li><p>Links to trackers other than Jira survive agenda 1.2 saving
+<code>agenda.json</code> (which drops them): they&#39;re kept in <code>agenda-links.json</code>
+too, and put back.</p></li>
+<li><p>The first change it sends Jira (or another tracker), the tracker asks
+you to allow -- Fenix doesn&#39;t tell it who&#39;s asking, so it says an
+extension asks; allowing lets changes through until Fenix restarts,
+and &quot;not now&quot; refuses them for 10 minutes. <code>jira.seam_writes = always</code>
+stops it asking.</p></li>
+<li><p>A tracker you&#39;ve just set up is ready at once; the agenda only wakes
+the trackers your tasks are linked to when Fenix starts.</p></li>
+<li><p><code>A</code> on a linked task offers &quot;Nobody (unassign)&quot;.</p></li>
+<li><p>Command names say &quot;your tracker&quot; where they said Jira.</p></li>
+</ul>
 <h3 id="changelog-120">1.2.0</h3>
 <p>For Fenix 1.5 (extension API 1.5):</p>
 <ul class="tight">
@@ -154,7 +275,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-15">2026-11-15</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

@@ -59,7 +59,7 @@
 </section>
 <section class="doc" aria-labelledby="readme">
 <h2 id="readme">About</h2>
-<p>Your Jira Server or Data Center in Fenix. Its page (<code>SPC j j</code>) lists your
+<p>Your Jira Cloud, Server or Data Center in Fenix. Its page (<code>SPC j j</code>) lists your
 searches on the left -- assigned to you, reported by you, watching,
 recently updated, each tracked project&#39;s open issues and sprint, each
 tracked person&#39;s, and your saved JQL -- with the selected search&#39;s issues
@@ -85,23 +85,128 @@ keys -- <code>C-,</code> with standard keys, <code>SPC ,</code> with Vim keys.</
 </tbody>
 </table></div>
 <h3 id="readme-setting-it-up">Setting it up</h3>
-<p>Its server is <code>jira.base_url</code> and its token <code>jira.token</code>, both on the
-settings page (<code>SPC ,</code>, or <code>Ctrl+,</code> with standard keys); <code>FENIX_JIRA_TOKEN</code> overrides the token. The
-token is a personal access token, sent as a bearer token.</p>
+<p>Its site is <code>jira.base_url</code> and its token <code>jira.token</code>, both on the
+settings page (<code>SPC ,</code>, or <code>Ctrl+,</code> with standard keys);
+<code>FENIX_JIRA_TOKEN</code> overrides the token. The token is kept in your
+system&#39;s keychain, never in the settings file, and never sent to the
+agenda or written to a log.</p>
+<p>Which Jira it is comes from the address: <code>*.atlassian.net</code> (and the
+older <code>*.jira.com</code>) is Jira Cloud, anything else Server or Data Center.
+The first time it reaches the site it asks it (<code>serverInfo</code>, without
+your token), so a Cloud site on its own domain is found too; the page
+says which it is beside the address. <code>jira.kind</code> says it yourself.</p>
+<h4 id="readme-jira-server-or-data-center">Jira Server or Data Center</h4>
+<p>The token is a personal access token (your profile, <strong>Personal Access
+Tokens</strong>), sent as a bearer token.</p>
+<h4 id="readme-jira-cloud">Jira Cloud</h4>
+<p>Cloud signs you in with your Atlassian account&#39;s email and an API
+token:</p>
+<ol class="tight">
+<li><p>Go to <a href="https://id.atlassian.com/manage-profile/security/api-tokens">https://id.atlassian.com/manage-profile/security/api-tokens</a>
+(your Atlassian account, <strong>Security</strong>, <strong>API tokens</strong>) and choose
+<strong>Create API token</strong>. Name it (<code>Fenix</code>), pick when it expires, and
+copy it: it&#39;s shown once.</p></li>
+<li><p>On the settings page, under Jira: <strong>Jira server</strong> is your site,
+<code>https://your-site.atlassian.net</code>; <strong>Jira token</strong> is the API token;
+<strong>Jira email</strong> is the email you sign in to Atlassian with.</p></li>
+<li><p>Open the Jira page (<code>SPC j j</code>): it says <code>Jira Cloud</code> beside your site.</p></li>
+</ol>
+<p>A token made with <strong>Create API token with scopes</strong> is taken only through
+Atlassian&#39;s gateway, <code>api.atlassian.com</code>: turn on <strong>Scoped API token</strong>
+(<code>jira.scoped_token</code>) too. It needs the scopes <code>read:jira-work</code>,
+<code>write:jira-work</code> and <code>read:jira-user</code>. Signing in through your browser
+(OAuth) isn&#39;t offered: Atlassian&#39;s OAuth needs a client secret, which an
+open-source extension can&#39;t keep secret.</p>
+<p>What Cloud doesn&#39;t do here yet, that Server does:</p>
+<ul class="tight">
+<li><p><strong>A description isn&#39;t edited from Fenix</strong>, from the page (<code>E</code>) or the
+agenda: Cloud keeps it as rich text, which Fenix shows as plain text
+(lists, code, tables, links and mentions as you&#39;d read them; colours,
+bold and pictures left out), and writing that back would lose the
+rest. A description you change on a linked task stays on the task.
+Comments and a new issue&#39;s description are sent as paragraphs and
+line breaks. Everything else the agenda changes -- moves, title,
+priority, due date, assignee (or nobody), labels, comments, worklogs
+-- goes to Jira Cloud as to Server, after the same question once a
+session (<code>jira.seam_writes</code>).</p></li>
+<li><p><strong>People</strong> (<code>jira.users</code>, and those added with <code>a</code> on the page) are
+account ids on Cloud, not usernames: add someone from an issue they&#39;re
+assigned. The agenda&#39;s assignee picker lists who Jira says can be
+assigned the issue.</p></li>
+</ul>
 <div class="table"><table>
 <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
 <tbody>
+<tr><td><code>jira.email</code></td><td>Jira Cloud: your Atlassian account&#39;s email</td></tr>
+<tr><td><code>jira.kind</code></td><td><code>auto</code>, <code>cloud</code> or <code>server</code></td></tr>
+<tr><td><code>jira.scoped_token</code></td><td>Jira Cloud: the API token is a scoped one</td></tr>
 <tr><td><code>jira.projects</code></td><td>Projects whose open issues and sprint are listed</td></tr>
 <tr><td><code>jira.users</code></td><td>People whose issues are listed</td></tr>
 <tr><td><code>jira.queries</code></td><td>Saved searches</td></tr>
 <tr><td><code>jira.blocked</code></td><td>Per project, what Blocked means: a status, the Flagged field, or nothing</td></tr>
 <tr><td><code>jira.priorities</code></td><td>How Jira&#39;s priorities map onto the agenda&#39;s</td></tr>
-<tr><td><code>jira.sync_minutes</code></td><td>How often the agenda&#39;s linked tasks are brought up to date</td></tr>
+<tr><td><code>jira.sync_minutes</code></td><td>How often the agenda&#39;s linked tasks are brought up to date (every 5 minutes at most)</td></tr>
+<tr><td><code>jira.seam_writes</code></td><td>Whether extensions may change your issues through Jira: <code>ask</code> (the default), <code>always</code>, or <code>never</code></td></tr>
+<tr><td><code>jira.allow_http</code></td><td>Server or Data Center over <code>http://</code>: send your token in clear anyway (off by default)</td></tr>
 </tbody>
 </table></div>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p>Reach your Jira, the site in <code>jira.base_url</code>, and <code>api.atlassian.com</code>
+-- Atlassian&#39;s gateway to a Cloud site, used only with a scoped API
+token (<code>jira.scoped_token</code>).</p></li>
+<li><p>Read and keep your token, <code>jira.token</code>, in the system&#39;s keychain.</p></li>
+<li><p>Read where you are in the editor, for the project&#39;s Jira key in
+<code>.fenix/project.toml</code>.</p></li>
+</ul>
 <h3 id="readme-for-the-agenda">For the agenda</h3>
-<p>The agenda extension reaches Jira through this one&#39;s services:
-<code>jira.request</code>, <code>jira.config</code>, <code>jira.set_blocked</code> and <code>jira.new_issue</code>.</p>
+<p>The agenda reaches Jira through the tracker seam
+(<a href="https://github.com/tpedneault/fenix-extensions/blob/main/plans/tracker-seam.md"><code>plans/tracker-seam.md</code></a>) that this
+extension serves, <code>fenix.jira.tracker.*</code>: the issues assigned to you, the
+issues linked to tasks, their workflow&#39;s moves, and the agenda&#39;s edits,
+comments and worklogs. What Blocked means in a project (<code>jira.blocked</code>)
+and how priorities map (<code>jira.priorities</code>) are kept here, and the agenda
+holds neither your server nor your token.</p>
+<p>Fenix doesn&#39;t tell an extension who&#39;s calling it, so any installed
+extension could use the seam, and Jira can&#39;t say which one asks. The
+first change the seam brings in a session asks you: <em>&quot;An extension asks
+to change issues in Jira for you (Fenix can&#39;t tell which; usually the
+Agenda) -- allow?&quot;</em></p>
+<ul class="tight">
+<li><p><strong>Allow every extension&#39;s changes through Jira until Fenix restarts</strong>
+lets every change through, whoever sends it, until you restart Fenix.</p></li>
+<li><p><strong>Not now</strong> (or Esc) refuses the changes that waited, and any other
+for 10 minutes without asking again; <code>r</code> on the task tries again after
+that. Changing <code>jira.seam_writes</code> ends the 10 minutes at once.</p></li>
+<li><p>A question no one answers within a minute (or that Fenix replaced
+with another picker) refuses what waited, and the next change asks
+again. At most 50 changes wait for your answer; more are refused.</p></li>
+</ul>
+<p><code>jira.seam_writes</code> says it for good: <code>always</code> or <code>never</code>. A change sent
+twice (the agenda gave up waiting, and you said send it again) is made
+once in a session.</p>
+<p>The agenda 1.2, from before the seam, uses <code>jira.request</code>,
+<code>jira.config</code>, <code>jira.set_blocked</code> and <code>jira.new_issue</code>, which this one
+still answers; they go at 2.0. <strong><code>jira.request</code> is deprecated</strong>: it
+sends whatever request it&#39;s given to your Jira as you, for any extension
+that asks, without asking you. It&#39;s refused for Jira Cloud, whose API
+token is account-wide (the agenda 1.2 never worked with Cloud).</p>
+<h3 id="readme-your-token-over-http">Your token over http</h3>
+<p>Your token isn&#39;t sent in clear by default. Jira Cloud is only reached
+over <code>https://</code>. A Server or Data Center address starting <code>http://</code> is
+refused unless you turn on <strong>Allow a Server over http</strong> (<code>jira.allow_http</code>), which
+sends your token unencrypted -- use it only on a network you trust.</p>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/jira dist
+cargo test --manifest-path extensions/jira/Cargo.toml
+cargo test --manifest-path crates/jira/Cargo.toml
+</code></pre>
+<p>The seam&#39;s Jira side is tested in <code>crates/jira</code> on recorded Jira Server
+responses (<code>tests/fixtures</code>), and on Jira Cloud responses written from
+the shapes Atlassian documents (<code>tests/fixtures/cloud</code>: not recordings);
+<code>tests/server_unchanged.rs</code> holds every request Server and Data Center
+are sent to what they were before Cloud. Here, the services the agenda
+1.2 and 1.3 call, and Cloud&#39;s sign-in, on the test kit.</p>
 </section>
 <section aria-labelledby="versions">
 <h2 id="versions">Versions</h2>
@@ -116,6 +221,64 @@ token is a personal access token, sent as a bearer token.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-140">1.4.0</h3>
+<p>Jira Cloud, in the same extension. Nothing changes for Server and Data
+Center.</p>
+<ul class="tight">
+<li><p>Set the address of your <code>*.atlassian.net</code> site, your Atlassian
+account&#39;s email (the new <strong>Jira email</strong> setting) and an API token, and
+the page, the new-issue form and the agenda work with Jira Cloud. The
+README says where to make the token, step by step.</p></li>
+<li><p>Which Jira it is comes from the address, and the site itself says for
+sure the first time it&#39;s reached; the page shows it beside the
+address. <strong>Which Jira</strong> (<code>jira.kind</code>) says it yourself.</p></li>
+<li><p>A scoped API token works too, through Atlassian&#39;s gateway: turn on
+<strong>Scoped API token</strong>. So it may reach <code>api.atlassian.com</code> as well as
+your site.</p></li>
+<li><p>On Cloud, descriptions and comments are shown as plain text, and a
+description isn&#39;t edited from Fenix -- its rich text would be lost.
+Everything else the agenda sends goes to Jira Cloud as to Server:
+moves, title, priority, due date, assignee (or nobody), labels,
+comments and worklogs. Comments and new issues are sent as paragraphs
+and line breaks.</p></li>
+<li><p>The agenda&#39;s changes to a Cloud site are asked about once a session,
+as for Server (<code>jira.seam_writes</code>), and a change sent twice is made
+once.</p></li>
+<li><p>When Jira says to slow down, the agenda is told how long to wait.</p></li>
+<li><p>The question before the agenda&#39;s changes says what it can know: an
+extension asks (Fenix can&#39;t tell which; usually the Agenda), and
+allowing lets every extension&#39;s changes through until Fenix restarts.
+Not now (or Esc) refuses for 10 minutes without asking again; a
+question left unanswered for a minute, or replaced by another picker,
+refuses what waited, and the next change asks again. At most 50
+changes wait.</p></li>
+<li><p>A change is known by its call and <code>op</code> together: a move sent with the
+<code>op</code> of an earlier comment is still made.</p></li>
+<li><p><code>jira.request</code> (the agenda 1.2&#39;s) is refused for Jira Cloud.</p></li>
+<li><p><strong>Changed:</strong> your token isn&#39;t sent over <code>http://</code>. Jira Cloud is
+https only; for Server and Data Center, turn on the new <strong>Allow a Server over http</strong>
+setting (<code>jira.allow_http</code>) to send it in clear anyway.</p></li>
+<li><p>Issue text reaches the agenda as Jira has it, byte for byte, so what
+is written back is Jira&#39;s own; the agenda cleans it to show it.</p></li>
+</ul>
+<h3 id="changelog-130">1.3.0</h3>
+<p>Nothing changes for you: the agenda&#39;s linked tasks, their moves, what
+Blocked means in each project, comments and worklogs work as they did.</p>
+<ul class="tight">
+<li><p>It serves the agenda the tracker seam, the way every tracker will, so
+the agenda knows nothing of Jira itself any more. The agenda 1.2 keeps
+working with it as it did.</p></li>
+<li><p>The first change the agenda sends in a session asks whether to allow
+it: Fenix doesn&#39;t say which extension is asking, so Jira asks you.
+<code>jira.seam_writes</code> (ask, always, never) says it for good.</p></li>
+<li><p>A deleted issue no longer fails the agenda&#39;s whole sync: its task is
+marked not found. A moved issue is followed to its new key.</p></li>
+<li><p>Jira&#39;s maintenance pages (502, 503, 504) are retried by the next sync.</p></li>
+<li><p>Changing Jira&#39;s server forgets who you were on the old one.</p></li>
+<li><p><code>jira.request</code>, which the agenda 1.2 uses, is deprecated: it lets any
+extension send any request to your Jira as you, without asking. It
+goes at 2.0, with the agenda 1.2&#39;s other three services.</p></li>
+</ul>
 <h3 id="changelog-120">1.2.0</h3>
 <ul class="tight">
 <li><p>For Fenix 1.5 (extension API 1.5): what it says names the keys of the
@@ -140,7 +303,7 @@ the screenshots&#39; scripts do.</p></li>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-15">2026-11-15</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>

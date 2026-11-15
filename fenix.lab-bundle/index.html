@@ -60,13 +60,14 @@
 </section>
 <section class="doc" aria-labelledby="readme">
 <h2 id="readme">About</h2>
-<p>The bench: Arduino sketches, Docker and Podman containers, and the
-remote desktops you list. One install on the welcome (<code>SPC h w</code>) or the
+<p>The bench: Arduino sketches, Docker and Podman containers, Kubernetes
+clusters through kubectl, and the remote desktops you list. One install on the welcome (<code>SPC h w</code>) or the
 Extensions page&#39;s Bundles (<code>SPC h x</code>) brings them all.</p>
 <div class="table"><table>
 <thead><tr><th>Extension</th><th>What</th></tr></thead>
 <tbody>
 <tr><td><code>fenix.containers</code></td><td>Docker, Podman and wslc</td></tr>
+<tr><td><code>fenix.kubernetes</code></td><td>Kubernetes through kubectl: workloads, pods, logs, shells, port-forwards</td></tr>
 <tr><td><code>fenix.arduino</code></td><td>Arduino sketches: build, upload, the serial monitor</td></tr>
 <tr><td><code>fenix.vnc</code></td><td>Remote desktops in a pane</td></tr>
 </tbody>
@@ -85,6 +86,14 @@ own or another extension needs it.</p>
 </section>
 <section class="doc" aria-labelledby="changelog">
 <h2 id="changelog">Changelog</h2>
+<h3 id="changelog-110">1.1.0</h3>
+<p>For Fenix 1.5 and later: an older Fenix keeps 1.0.0, without Kubernetes,
+which has no release for it.</p>
+<ul class="tight">
+<li><p>Kubernetes (<code>fenix.kubernetes</code>) joins the bundle: workloads, pods,
+services and logs through kubectl, a shell in a pod, port-forwards,
+and changes asked about first.</p></li>
+</ul>
 <h3 id="changelog-100">1.0.0</h3>
 <ul class="tight">
 <li><p>The first release, for Fenix 1.0: arduino, containers, VNC.</p></li>
@@ -95,7 +104,7 @@ own or another extension needs it.</p>
 </main>
 <footer class="foot">
 <div class="wrap">
-<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-14">2026-11-14</time>.</p>
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-15">2026-11-15</time>.</p>
 <p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
 </div>
 </footer>
