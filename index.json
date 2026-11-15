@@ -5475,10 +5475,33 @@
             "fenix.containers",
             "fenix.vnc"
           ]
+        },
+        {
+          "version": "1.1.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "bundle",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/lab-bundle-v1.1.0/fenix.lab-bundle-1.1.0.fenixext",
+          "sha256": "433f842ab1118af37b9843ebcb39f002a908f15eda2f7f7795f1d3d237e2780e",
+          "size": 1310,
+          "dependencies": {
+            "fenix.arduino": "^1",
+            "fenix.containers": "^1",
+            "fenix.kubernetes": "^1",
+            "fenix.vnc": "^1"
+          },
+          "categories": [
+            "tools"
+          ],
+          "bundle": [
+            "fenix.arduino",
+            "fenix.containers",
+            "fenix.kubernetes",
+            "fenix.vnc"
+          ]
         }
       ],
       "name": "Lab",
-      "description": "Arduino, containers, VNC",
+      "description": "Arduino, containers, Kubernetes, VNC",
       "categories": [
         "tools"
       ],
