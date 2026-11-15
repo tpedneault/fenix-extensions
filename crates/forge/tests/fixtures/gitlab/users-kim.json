@@ -1,0 +1,11 @@
+[
+  {
+    "id": 12,
+    "username": "kim.park",
+    "name": "Kim Park",
+    "state": "active",
+    "locked": false,
+    "avatar_url": null,
+    "web_url": "https://gitlab.example.com/kim.park"
+  }
+]
