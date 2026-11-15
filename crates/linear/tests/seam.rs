@@ -242,7 +242,7 @@ fn update_changes_one_field_priorities_both_ways() {
     let err = ask::<Value>(&s, call::UPDATE, json!({ "ref": "ENG-12", "set": { "priority": "Blocker" } })).unwrap_err();
     assert_eq!(err.code, "bad_request");
     let err = ask::<Value>(&s, call::UPDATE, json!({ "ref": "ENG-12", "set": { "labels": ["no such label"] } })).unwrap_err();
-    assert_eq!(err.code, "bad_request", "a label that isn't there isn't made up");
+    assert_eq!(err.code, "refused", "a label that isn't there (it may have been removed) isn't made up, and isn't dropped");
     let err = ask::<Value>(&s, call::UPDATE, json!({ "ref": "ENG-12", "set": { "colour": "red" } })).unwrap_err();
     assert_eq!(err.code, "unsupported", "a field the seam doesn't have");
 }
@@ -406,5 +406,16 @@ fn maintenance_is_offline_and_a_gone_issue_is_not_found() {
     for (status, want) in [(502, "offline"), (503, "offline"), (504, "offline"), (410, "not_found"), (500, "failed")] {
         r.on("AssignedIssues", err_reply(status, json!(null)));
         assert_eq!(ask::<Page>(&s, call::ASSIGNED, json!({})).unwrap_err().code, want, "{status}");
+    }
+}
+
+#[test]
+fn a_projects_team_setting_is_a_team_key_or_nothing() {
+    for (setting, want) in [("eng", Some("ENG")), (" OPS2 ", Some("OPS2")), ("", None), ("1ENG", None), ("ENG\n--upload-pack=x", None), ("https://evil.example", None), ("E\u{202e}NG", None), ("ABCDEFGHIJKLM", None), ("a b", None)] {
+        let r = Rc::new(Recorded::workspace(fixtures()));
+        let s = Seam::new(linear(&r), Settings { team: Some(setting.into()), ..Default::default() });
+        let p: tracker::Project = ask(&s, call::PROJECT, json!({})).unwrap();
+        assert_eq!(p.project.as_deref(), want, "{setting:?}");
+        assert!(r.sent().is_empty(), "never sent to Linear");
     }
 }
