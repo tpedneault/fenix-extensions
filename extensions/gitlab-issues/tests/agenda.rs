@@ -32,7 +32,9 @@ fn gitlab_issues_seam_drives_the_agenda() {
         .fixture(&d, "GET", &format!("{project}/issues/4"), "issue-acme-platform-api-4.json")
         .fixture(&d, "GET", &format!("{project}/issues/4/notes"), "notes-acme-platform-api-4.json")
         .fixture(&d, "GET", &format!("{project}/labels"), "labels-acme-platform-api.json")
-        .on("PUT", "/issues/", 200, "{}");
+        .on("PUT", "/issues/", 200, "{}")
+        // The agenda names the issue by its id: GitLab's GraphQL says where it is now.
+        .on("POST", "/api/graphql", 200, r#"{"data": {"issue": {"iid": "4", "reference": "acme/platform/api#4"}}}"#);
     let settings = Settings { ready: true, ..Settings::default() };
     let tracker = Rc::new(Seam::new(GitLabIssues::new(http.clone(), "https://gitlab.example.com", TOKEN), settings, Rc::new(RefCell::new(Learned::default()))));
     let mut w = world_with("gitlab-issues", &[ID], |fake| {
@@ -60,6 +62,7 @@ fn gitlab_issues_seam_drives_the_agenda() {
     w.h.fake.on_pick("acme/platform/api#4", "Close  ->  Closed");
     w.set_status(id, Status::Done);
     assert_eq!(http.last().unwrap().body.as_deref(), Some(r#"{"state_event":"close"}"#));
+    assert!(http.sent.borrow().iter().any(|s| s.url.ends_with("/graphql") && s.body.as_deref().is_some_and(|b| b.contains("\"id\""))), "written to the issue by its id");
     w.no_secrets();
     for s in w.h.fake.services() {
         assert!(!s.payload.contains(TOKEN));
