@@ -22,8 +22,12 @@ SPC u b   a breakpoint on this line
 SPC m b   debug the file you're in with Metals: it starts the program under
           its debug adapter, and the launch Scala: Metals' debug session
           (SPC u U) connects to it
-SPC ,     the settings: editor.format_on_save, scala.jdk, scala.auto_import
+SPC ,     the settings: editor.format_on_save, scala.jdk, scala.run_metals
 SPC c F   format the file (Metals runs scalafmt)
+
+Metals starts in a project once you've said Import to its question: a build is
+the project's own code, so the pack asks first (the doctor's row Metals and the
+build says where you are).
 
 A program to try it on, if you have none; put it in Main.scala of a folder of
 its own with a build.sbt (or run it as a script), and open the folder as a
@@ -57,7 +61,7 @@ hint = "Type test to narrow the list, then Enter; or Esc."
 picker = "none"
 
 [[step]]
-say = "Open the file above, put the cursor on a line of the loop and SPC u b for a breakpoint. Then SPC m b: Metals starts the program under its debug adapter. SPC u U: the launches."
+say = "Open the file above, put the cursor on a line of the loop and SPC u b for a breakpoint. Then SPC m b: Metals (allowed with Import when it asked) starts the program under its debug adapter. SPC u U: the launches."
 hint = "SPC u, then b. Then SPC m, then b: Metals needs to have read the build (its first start takes a while). Then SPC u, then U. Without Metals, `s` on the tutorial page skips this and the next."
 picker = "any"
 

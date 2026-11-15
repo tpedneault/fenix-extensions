@@ -91,6 +91,15 @@ impl Launch {
     }
 }
 
+/// The project's full path in an `initialize` message, when it is one.
+pub fn initialize_root(message: &str) -> Option<String> {
+    let msg: Value = serde_json::from_str(message).ok()?;
+    if msg.get("method").and_then(Value::as_str) != Some("initialize") {
+        return None;
+    }
+    msg.pointer("/params/rootUri").and_then(Value::as_str).map(uri_path)
+}
+
 /// One message framed as LSP's stdio has it.
 pub fn frame(message: &str) -> Vec<u8> {
     let mut out = format!("Content-Length: {}\r\n\r\n", message.len()).into_bytes();

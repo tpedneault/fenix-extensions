@@ -16,6 +16,7 @@ pub mod lsp;
 pub mod project;
 pub mod tasks;
 pub mod tools;
+pub mod trust;
 
 #[cfg(test)]
 mod data;
@@ -25,12 +26,14 @@ use fenix_extension_api as api;
 #[cfg(test)]
 use fenix_test_kit::api;
 
-use api::{export, Command, Event, Extension, Key, MouseEvent, Page};
+use api::{export, Command, Event, Extension, Key, MouseEvent, Page, PickerItem};
 use fenix_lang_kit::serde_json::Value;
 use fenix_lang_kit::{Fenix, Host, Kit};
 
 use lsp::{Ask, Launch, Out, Proxy};
+use doctor::Allowed;
 use project::Project;
+use trust::Decision;
 use tools::{Platform, Tools};
 
 /// The project, as the extension sees it.
@@ -53,11 +56,15 @@ pub struct Settings {
     /// `scala.auto_import`: `all`, `initial` or `off` -- Metals' own
     /// `autoImportBuilds`.
     pub auto_import: String,
+    /// `scala.run_metals`: `always` runs Metals, importing the build, in every
+    /// project without asking -- for someone who opens only their own code. Yours
+    /// only: no project's `.fenix/settings.toml` can set it.
+    pub always: bool,
 }
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { jdk: None, auto_import: "all".into() }
+        Settings { jdk: None, auto_import: "all".into(), always: false }
     }
 }
 
@@ -67,7 +74,8 @@ impl Settings {
     pub fn read() -> Settings {
         let jdk = api::setting("scala.jdk").map(|j| j.trim().to_string()).filter(|j| !j.is_empty());
         let auto_import = api::setting("scala.auto_import").map(|a| a.trim().to_string()).filter(|a| ["all", "initial", "off"].contains(&a.as_str())).unwrap_or_else(|| "all".into());
-        Settings { jdk, auto_import }
+        let always = api::setting("scala.run_metals").is_some_and(|v| v.trim() == "always");
+        Settings { jdk, auto_import, always }
     }
 
     /// The chosen JDK's home: what the setting names -- `java`, its `bin`
@@ -112,6 +120,14 @@ pub struct Scala {
     watching: Option<u64>,
     /// The formatter set in Fenix, so it's set again only when it changes.
     set_formatter: Option<Command>,
+    /// The pack's own data folder, where what you said of each project is kept.
+    pub data: String,
+    /// The project's full path, from Fenix's `initialize`.
+    project_path: Option<String>,
+    /// The question about a project's build, while it's open, and the paths
+    /// asked this session.
+    asking: Option<u64>,
+    asked: Vec<String>,
 }
 
 impl Default for Scala {
@@ -142,6 +158,10 @@ impl Scala {
             installing_metals: None,
             watching: None,
             set_formatter: None,
+            data: "/data".into(),
+            project_path: None,
+            asking: None,
+            asked: Vec::new(),
         };
         s.configure();
         s
@@ -156,7 +176,10 @@ impl Scala {
             self.kit.doctor.program(program);
         }
         let native = self.kit.installer.installed("scalafmt");
-        self.kit.doctor.extra = doctor::formatting(&self.project, native, self.platform.scalafmt().is_some()).into_iter().collect();
+        let mut extra: Vec<api::Check> = doctor::formatting(&self.project, native, self.platform.scalafmt().is_some()).into_iter().collect();
+        extra.extend(doctor::wrapper_checks(&self.project, &self.tools));
+        extra.extend(doctor::build_check(&self.project, self.allowed()));
+        self.kit.doctor.extra = extra;
     }
 
     /// The tasks set again.
@@ -192,11 +215,52 @@ impl Scala {
         }
     }
 
+    /// Whether Metals may run in this project: you said Import, or `scala.run_metals`
+    /// is `always`.
+    fn allowed(&self) -> Allowed {
+        if self.settings.always {
+            return Allowed::Yes;
+        }
+        match self.project_path.as_deref().and_then(|p| trust::get(&self.data, p)) {
+            Some(Decision::Allow) => Allowed::Yes,
+            Some(Decision::Never) => Allowed::Never,
+            None => Allowed::Unasked,
+        }
+    }
+
+    /// What's said of the project, and Metals started or stopped for it.
+    fn decide(&mut self, decision: Option<Decision>) -> Result<(), String> {
+        let path = self.project_path.clone().or_else(|| self.kit.host.here().and_then(|h| h.1)).ok_or("open a Scala file first: the project isn't known yet")?;
+        trust::set(&self.data, &path, decision)?;
+        self.project_path = Some(path);
+        self.configure();
+        self.kit.doctor.run(self.kit.host.as_mut());
+        self.restart_server();
+        Ok(())
+    }
+
+    /// The question: Metals isn't started until it's answered Import.
+    fn ask_allow(&mut self) {
+        let Some(path) = self.project_path.clone().filter(|p| !self.asked.contains(p)) else { return };
+        self.asked.push(path);
+        let items = [
+            PickerItem::new("Import", "import").detail("Run Metals here and import the build: its code runs"),
+            PickerItem::new("Not now", "later").detail("No Metals in this project for now; asked again next time"),
+            PickerItem::new("Never for this project", "never").detail("Scala: forget what's decided about this project undoes it"),
+        ];
+        self.asking = Some(self.kit.host.pick("Import this project's build? This runs its build definition (build.sbt / build.mill / ...), which is code from this project.", &items));
+    }
+
     /// How Metals starts, or why it can't.
     fn launch(&self) -> Result<Launch, String> {
         let Some(metals) = &self.tools.metals else {
             return Err(metals_missing(self.tools.coursier.is_some(), &keys("project.doctor", "SPC p h")));
         };
+        match self.allowed() {
+            Allowed::Yes => {}
+            Allowed::Unasked => return Err("Metals isn't started in this project until you allow it: it connects to the project's build, which runs the build's own code. Say Import (the project doctor, or Scala: allow Metals in this project)".into()),
+            Allowed::Never => return Err("Metals isn't started in this project: you said Never (Scala: forget what's decided about this project undoes it)".into()),
+        }
         Ok(Launch { command: Command::new(metals), auto_import: self.settings.auto_import.clone(), jdk_home: self.settings.jdk_home() })
     }
 
@@ -220,6 +284,10 @@ impl Scala {
     fn follow(&mut self) {
         let mut tools = self.tools.clone();
         for program in &self.kit.doctor.programs {
+            // A project's wrapper was found and not asked: it stays what runs the tasks.
+            if tools.is_wrapper(&program.name) {
+                continue;
+            }
             if let Some(slot) = tools.slot(&program.name) {
                 *slot = self.kit.doctor.found.get(&program.name).cloned();
             }
@@ -341,6 +409,11 @@ impl Scala {
                 let name = format!("scala-cli {verb} {}", file.rsplit(['/', '\\']).next().unwrap_or(&file));
                 self.kit.host.run_task(&name, &cmd).map(|_| ())
             }
+            doctor::ALLOW => self.decide(Some(Decision::Allow)),
+            "scala.forget-project" => {
+                self.asked.clear();
+                self.decide(None)
+            }
             "scala.import-build" => {
                 let outs = self.proxy.ask(Ask::Import)?;
                 self.act(outs);
@@ -371,6 +444,20 @@ impl Extension for Scala {
 
     fn handle(&mut self, event: Event) {
         match &event {
+            Event::Picked((id, value)) if self.asking == Some(*id) => {
+                self.asking = None;
+                let said = match value.as_deref() {
+                    Some("import") => Some(Decision::Allow),
+                    Some("never") => Some(Decision::Never),
+                    _ => None,
+                };
+                if let Some(d) = said {
+                    if let Err(why) = self.decide(Some(d)) {
+                        self.kit.host.notify(&format!("Scala: {why}"));
+                    }
+                }
+                return;
+            }
             Event::ProcessBytes((p, bytes)) if self.proxy.process == Some(*p) => {
                 let outs = self.proxy.from_metals(bytes);
                 self.act(outs);
@@ -431,7 +518,17 @@ impl Extension for Scala {
     }
 
     fn lsp_message(&mut self, server: u64, message: &str) {
+        if let Some(root) = lsp::initialize_root(message) {
+            if self.project_path.as_deref() != Some(&root) {
+                self.project_path = Some(root);
+                self.configure();
+                self.kit.doctor.run(self.kit.host.as_mut());
+            }
+        }
         let launch = self.launch();
+        if lsp::initialize_root(message).is_some() && self.tools.metals.is_some() && self.allowed() == Allowed::Unasked {
+            self.ask_allow();
+        }
         let outs = self.proxy.from_fenix(server, message, launch.as_ref().map_err(String::as_str));
         self.act(outs);
     }
@@ -475,6 +572,7 @@ mod tests {
     fn pack(dir: &std::path::Path, fake: &Fake, settings: fn() -> Settings) -> Harness<Scala> {
         let mut s = Scala::new(fake.host(), &dir.to_string_lossy(), settings, Platform::new("linux", "x86_64"));
         s.kit.installer.tools = dir.join(".tools").to_string_lossy().into_owned();
+        s.data = dir.join(".data").to_string_lossy().into_owned();
         Harness::wrap(fake.clone(), s)
     }
 
@@ -509,6 +607,11 @@ mod tests {
         fake
     }
 
+    /// Settings that run Metals without asking, for the tests of what Metals does.
+    fn always() -> Settings {
+        Settings { always: true, ..Settings::default() }
+    }
+
     fn init(root: &str) -> String {
         format!(r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"processId":7,"rootUri":"file://{root}","capabilities":{{}}}}}}"#)
     }
@@ -522,9 +625,10 @@ mod tests {
         let calls = fake.take();
         assert!(calls.iter().any(|c| c == "tasks compile, test, run, clean, run core, test core, run cli, test cli, run docs, test docs"), "{calls:?}");
         assert!(!calls.iter().any(|c| c.starts_with("server") || c.starts_with("formatter")), "Metals is the pack's, and formats through the language server: {calls:?}");
-        for want in ["/usr/lib/jvm/java-21/bin/javac -version", "/t/metals --version", "/t/sbt --version"] {
+        for want in ["/usr/lib/jvm/java-21/bin/javac -version", "/t/metals --version"] {
             assert!(spawned(&fake).iter().any(|l| l == want), "{want}: {:?}", spawned(&fake));
         }
+        assert!(!spawned(&fake).iter().any(|l| l.starts_with("/t/sbt")), "sbt reads the project's own files: found, not run");
         assert!(!spawned(&fake).iter().any(|l| l.starts_with("/t/cs") || l.starts_with("/t/scala-cli")), "Coursier isn't asked when Metals is there; scala-cli isn't this project's");
         let checks: Vec<(String, Health, String)> = fake.checks().iter().map(|c| (c.label.clone(), c.health, c.detail.clone())).collect();
         assert_eq!(
@@ -532,8 +636,9 @@ mod tests {
             [
                 ("JDK".into(), Health::Ok, "21.0.12.1 (/usr/lib/jvm/java-21/bin/javac)".into()),
                 ("Metals".into(), Health::Ok, "1.6.9 (/t/metals)".into()),
-                ("sbt".into(), Health::Ok, "1.12.15 (/t/sbt)".into()),
+                ("sbt".into(), Health::Ok, "/t/sbt".into()),
                 ("scalafmt".into(), Health::Ok, "3.8.3, dialect scala3 (.scalafmt.conf): formatted by Metals, which runs that version; on save only 3.11.5's native scalafmt can".into()),
+                ("Metals and the build".into(), Health::Warn, "Metals isn't started until you allow it: it connects to this project's build and imports it, which runs the build's own code (build.sbt, build.mill, ...)".into()),
             ]
         );
         std::fs::remove_dir_all(&dir).unwrap();
@@ -556,6 +661,7 @@ mod tests {
                 ("Metals".into(), Health::Warn, None),
                 ("sbt".into(), Health::Bad, None),
                 ("scalafmt".into(), Health::Ok, None),
+                ("Metals and the build".into(), Health::Warn, Some("scala.allow-project".into())),
             ]
         );
         assert_eq!(s.command("scala.install-metals"), Err("Coursier isn't installed: install it first (its row in the project doctor)".into()));
@@ -617,7 +723,7 @@ mod tests {
         let fake = installed();
         let raw = include_bytes!("samples/metals-stdout.bin");
         fake.on_spawn("/t/metals", Ran::running("").raw(raw.to_vec()));
-        let mut s = pack(&dir, &fake, || Settings { jdk: Some("/opt/jdk21/bin/java".into()), auto_import: "initial".into() });
+        let mut s = pack(&dir, &fake, || Settings { jdk: Some("/opt/jdk21/bin/java".into()), auto_import: "initial".into(), always: true });
         s.activate().unwrap();
         fake.take();
 
@@ -655,7 +761,7 @@ mod tests {
     fn without_metals_fenix_is_answered_and_installing_it_starts_the_server_again() {
         let dir = sbt("no-server");
         let fake = Fake::new();
-        let mut s = pack(&dir, &fake, Settings::default);
+        let mut s = pack(&dir, &fake, always);
         s.activate().unwrap();
         fake.take();
         s.ext.lsp_message(4, &init("/home/u/orbit"));
@@ -682,7 +788,7 @@ mod tests {
         let dir = sbt("no-start");
         let fake = installed();
         fake.on_spawn_error("/t/metals", "permission denied");
-        let mut s = pack(&dir, &fake, Settings::default);
+        let mut s = pack(&dir, &fake, always);
         s.activate().unwrap();
         fake.take();
         s.ext.lsp_message(4, &init("/home/u/orbit"));
@@ -692,12 +798,161 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    /// A project that's just been cloned: its wrappers, its build, its `.bloop` and
+    /// `.bsp` are its own code, and nothing of them runs, or is imported, before you say so.
+    fn cloned(name: &str) -> std::path::PathBuf {
+        let dir = sbt(name);
+        for file in ["mill", "sbt", "gradlew", "mvnw", "millw"] {
+            write(&dir, file, "#!/bin/sh\necho ran > ran-$0\n");
+        }
+        write(&dir, "build.mill", include_str!("samples/build.mill"));
+        write(&dir, "project.scala", "//> using scala 3.7.3\n");
+        write(&dir, ".bloop/orbit.json", "{}");
+        write(&dir, ".bsp/scala-cli.json", "{\"argv\": [\"/tmp/evil\", \"bsp\"]}");
+        write(&dir, ".fenix/settings.toml", "[scala]\nrun_metals = \"always\"\njdk = \"/tmp/evil-jdk\"\nauto_import = \"all\"\n");
+        dir
+    }
+
+    fn project_files_found(fake: &Fake, dir: &std::path::Path) {
+        let d = dir.display();
+        fake.program("javac", "/usr/lib/jvm/java-21/bin/javac").program("metals", "/t/metals").program("cs", "/t/cs").program("scala-cli", "/t/scala-cli");
+        // What the project has of its own, as finding a program there says it.
+        fake.program("mill", &format!("{d}/mill")).program("sbt", &format!("{d}/sbt")).program("gradle", &format!("{d}/gradlew")).program("mvn", &format!("{d}/mvnw"));
+        fake.on_spawn("javac -version", Ran::ok("javac 21.0.12.1\n")).on_spawn("metals --version", Ran::ok("metals 1.6.9\n")).on_spawn("cs version", Ran::ok("2.1.26\n")).on_spawn("scala-cli version", Ran::ok("Scala CLI version: 1.19.0\n"));
+    }
+
+    #[test]
+    fn opening_focusing_and_saving_in_a_cloned_project_runs_nothing_of_its_own_and_imports_nothing() {
+        let dir = cloned("cloned");
+        let fake = Fake::new();
+        project_files_found(&fake, &dir);
+        let mut s = pack(&dir, &fake, Settings::default);
+        s.activate().unwrap();
+        let root = "/home/u/cloned";
+        s.ext.lsp_message(4, &init(root));
+        s.settle();
+        s.event(Event::FocusChanged(Some(format!("{}/src/Main.scala", dir.display()))));
+        s.event(Event::Saved("build.sbt".into()));
+        s.event(Event::Saved("src/Main.scala".into()));
+        s.event(Event::TaskFinished((3, true)));
+        s.ext.lsp_message(4, r#"{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{}}"#);
+        s.ext.lsp_message(4, r#"{"jsonrpc":"2.0","id":9,"method":"textDocument/hover","params":{}}"#);
+
+        let ran = spawned(&fake);
+        assert!(!ran.iter().any(|l| l.starts_with(&dir.to_string_lossy().to_string())), "a file of the project's ran: {ran:?}");
+        assert!(ran.iter().all(|l| ["javac", "/usr/lib/jvm/java-21/bin/javac", "/t/metals --version", "/t/cs", "/t/scala-cli"].iter().any(|ok| l.starts_with(ok))), "{ran:?}");
+        let calls = fake.calls();
+        assert!(!calls.iter().any(|c| c.starts_with("spawn-raw")), "Metals runs the build's own code when it connects: {calls:?}");
+        assert!(!calls.iter().any(|c| c.starts_with("background") || c.starts_with("task ") || c.starts_with("terminal")), "{calls:?}");
+        assert!(calls.iter().any(|c| c.starts_with("pick ") && c.contains("Import this project's build? This runs its build definition (build.sbt / build.mill / ...), which is code from this project.: Import, Not now, Never for this project")), "{calls:?}");
+        // Fenix is answered, and told why there's no Metals; the project's own settings file changed nothing.
+        assert!(calls.iter().any(|c| c.starts_with("lsp 4 ") && c.contains("Metals isn't started in this project until you allow it")), "{calls:?}");
+        assert_eq!(fake.calls().iter().filter(|c| c.starts_with("pick ")).count(), 1, "asked once");
+        let row = fake.checks().into_iter().find(|c| c.label == "Metals and the build").unwrap();
+        assert_eq!((row.health, row.fix.map(|f| f.1)), (Health::Warn, Some("scala.allow-project".into())));
+        assert!(!dir.join(".data").exists(), "nothing was remembered");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Import is kept for that project's path only; Never is kept and undone by a command.
+    #[test]
+    fn what_you_say_is_kept_for_that_path_and_never_can_be_undone() {
+        let dir = cloned("said");
+        let fake = Fake::new();
+        fake.on_spawn("/t/metals", Ran::running(""));
+        project_files_found(&fake, &dir);
+        let mut s = pack(&dir, &fake, Settings::default);
+        s.activate().unwrap();
+        fake.on_pick("Import this project's build", "Import");
+        s.ext.lsp_message(4, &init("/home/u/orbit"));
+        s.settle();
+        let calls = fake.take();
+        assert!(calls.iter().any(|c| c == "server-restart"), "Fenix starts the server again: {calls:?}");
+        assert_eq!(trust::get(&s.ext.data, "/home/u/orbit"), Some(trust::Decision::Allow));
+        assert_eq!(trust::get(&s.ext.data, "/home/u/orbit-copy"), None);
+        // Started again: Metals runs, with no more questions.
+        s.ext.lsp_message(4, &init("/home/u/orbit"));
+        s.settle();
+        let calls = fake.take();
+        assert!(calls.iter().any(|c| c.starts_with("spawn-raw") && c.ends_with(" /t/metals")), "{calls:?}");
+        assert!(!calls.iter().any(|c| c.starts_with("pick ")));
+        assert_eq!(fake.checks().into_iter().find(|c| c.label == "Metals and the build").unwrap().health, Health::Ok);
+
+        // A later session of the pack, the same project: no question.
+        let mut later = pack(&dir, &fake, Settings::default);
+        later.activate().unwrap();
+        fake.take();
+        later.ext.lsp_message(4, &init("/home/u/orbit"));
+        later.settle();
+        assert!(fake.take().iter().any(|c| c.starts_with("spawn-raw")));
+
+        // A copy at another path asks again, and runs nothing.
+        let mut copy = pack(&dir, &fake, Settings::default);
+        copy.activate().unwrap();
+        fake.take();
+        copy.ext.lsp_message(4, &init("/home/u/orbit-copy"));
+        copy.settle();
+        let calls = fake.take();
+        assert!(calls.iter().any(|c| c.starts_with("pick ")) && !calls.iter().any(|c| c.starts_with("spawn-raw")), "{calls:?}");
+
+        // Never: kept, so Metals isn't started and it isn't asked again; a command undoes it.
+        let never = temp("said-never");
+        let mut n = pack(&dir, &fake, Settings::default);
+        n.ext.data = never.to_string_lossy().into_owned();
+        n.activate().unwrap();
+        fake.on_pick("Import this project's build", "Never for this project");
+        n.ext.lsp_message(4, &init("/home/u/never"));
+        n.settle();
+        assert_eq!(trust::get(&n.ext.data, "/home/u/never"), Some(trust::Decision::Never));
+        fake.take();
+        n.ext.lsp_message(4, &init("/home/u/never"));
+        n.settle();
+        n.ext.lsp_message(4, r#"{"jsonrpc":"2.0","id":2,"method":"textDocument/hover","params":{}}"#);
+        let calls = fake.take();
+        assert!(!calls.iter().any(|c| c.starts_with("pick ") || c.starts_with("spawn-raw")), "{calls:?}");
+        assert!(calls.iter().any(|c| c.starts_with("lsp 4 ") && c.contains("you said Never")), "{calls:?}");
+        assert!(fake.checks().iter().any(|c| c.label == "Metals and the build" && c.detail.contains("you said Never")));
+        n.command("scala.forget-project").unwrap();
+        assert_eq!(trust::get(&n.ext.data, "/home/u/never"), None);
+        fake.on_pick("Import this project's build", "Not now");
+        n.ext.lsp_message(4, &init("/home/u/never"));
+        n.settle();
+        assert!(fake.take().iter().any(|c| c.starts_with("pick ")), "asked again");
+        // Not now keeps nothing, and the question isn't repeated in the same session.
+        assert_eq!(trust::get(&n.ext.data, "/home/u/never"), None);
+        n.ext.lsp_message(4, &init("/home/u/never"));
+        assert!(!fake.take().iter().any(|c| c.starts_with("pick ")));
+        // The command that allows, from the doctor's row.
+        n.command("scala.allow-project").unwrap();
+        assert_eq!(trust::get(&n.ext.data, "/home/u/never"), Some(trust::Decision::Allow));
+        std::fs::remove_dir_all(&never).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn only_your_own_setting_runs_metals_without_asking() {
+        let dir = cloned("always");
+        let fake = Fake::new();
+        fake.on_spawn("/t/metals", Ran::running(""));
+        project_files_found(&fake, &dir);
+        // scala.run_metals is yours: read from Fenix's own settings, which a project's .fenix/settings.toml doesn't reach for it.
+        let mut s = pack(&dir, &fake, always);
+        s.activate().unwrap();
+        fake.take();
+        s.ext.lsp_message(4, &init("/home/u/mine"));
+        s.settle();
+        let calls = fake.take();
+        assert!(calls.iter().any(|c| c.starts_with("spawn-raw")) && !calls.iter().any(|c| c.starts_with("pick ")), "{calls:?}");
+        assert_eq!(trust::get(&s.ext.data, "/home/u/mine"), None, "nothing is kept for it");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn debugging_asks_metals_for_its_adapter_and_connects_to_it() {
         let dir = sbt("debug");
         let fake = installed();
         fake.on_spawn("/t/metals", Ran::running(""));
-        let mut s = pack(&dir, &fake, Settings::default);
+        let mut s = pack(&dir, &fake, always);
         s.activate().unwrap();
         s.ext.lsp_message(4, &init("/home/u/orbit"));
         s.settle();
@@ -772,7 +1027,7 @@ mod tests {
     fn a_saved_build_file_reads_the_project_again_and_a_setting_changes_what_metals_is_given() {
         let dir = temp("reload");
         let fake = installed();
-        let mut s = pack(&dir, &fake, Settings::default);
+        let mut s = pack(&dir, &fake, always);
         s.activate().unwrap();
         assert!(!fake.take().iter().any(|c| c.starts_with("tasks")), "not a Scala project");
         assert!(fake.checks().iter().all(|c| c.label != "sbt"));
@@ -792,7 +1047,7 @@ mod tests {
         s.settle();
         fake.take();
         fake.state_mut().settings.insert("scala.jdk".into(), "/opt/jdk21".into());
-        s.ext.read_settings = || Settings { jdk: Some("/opt/jdk21".into()), auto_import: "off".into() };
+        s.ext.read_settings = || Settings { jdk: Some("/opt/jdk21".into()), auto_import: "off".into(), always: true };
         s.event(Event::SettingChanged("scala.jdk".into()));
         let calls = fake.take();
         assert!(calls.iter().any(|c| c == "server-restart"), "{calls:?}");

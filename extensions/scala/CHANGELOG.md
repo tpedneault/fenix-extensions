@@ -9,7 +9,7 @@
   installed from the project doctor through Coursier 2.1.26, whose download is
   checked against its SHA-256 -- run by the pack so that it answers what Metals
   asks of its client (importing the build, formatting with no
-  `.scalafmt.conf`) and starts Metals' debug adapter: *Scala: debug the file
+  `.scalafmt.conf`) and starts Metals' debug adapter -- but only in a project you've allowed: Metals connects to a project's build, which runs the build's own code, so it isn't started until you say Import to the pack's question (remembered by the project's path, undone by *Scala: forget what's decided about this project's build*, or skipped by your own setting `scala.run_metals`), and nothing of the project's, no wrapper, is run at activation or on opening, focusing or saving: *Scala: debug the file
   you're in* (`SPC m b`) and *debug the tests*, with the launch *Scala: Metals'
   debug session*. Formatting is Metals' (the format command), with the scalafmt
   `.scalafmt.conf` pins; on save, where the project pins scalafmt 3.11.5, a
