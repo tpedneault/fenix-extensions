@@ -57,13 +57,27 @@ where Nix puts things (`~/.nix-profile/bin`, `nix profile`'s folder under
 the doctor's row for it has a fix, *Try it in the project's dev shell*
 (`SPC p h`, `f`): a task that runs `nix develop --no-write-lock-file -c nixd
 --version` in the task pane, so you see the dev shell being built. When it
-works, `nix.server_runner` becomes `dev-shell` for this project and the server
-is started as `nix develop --no-write-lock-file -c nixd` (`nix-shell --run
-nixd` with a `shell.nix`). A second row, *Fetch it with nix shell*, does the
-same with `nix shell nixpkgs#nixd -c nixd --version`, which **downloads** nixd
-the first time, and sets `nixpkgs`. Neither is ever started when a file is
-opened: until you run the fix (or set `nix.server_runner` yourself), a
-project with no server on `PATH` starts none.
+works, **this project** is remembered and the server is started as `nix develop
+--no-write-lock-file -c nixd` (`nix-shell --run nixd` with a `shell.nix`). A second
+row, *Fetch it with nix shell*, does the same with `nix shell nixpkgs#nixd -c nixd
+--version`, which **downloads** nixd the first time, and sets `nix.server_runner`
+to `nixpkgs`. Neither is ever started when a file is opened: until you run a fix,
+a project with no server on `PATH` starts none.
+
+**Why the dev shell is remembered apart from the settings.** A dev shell runs the
+project's own code (its `shellHook`, what its flake evaluates), and Fenix applies
+a project's `.fenix/settings.toml` without asking, so a cloned repository could
+otherwise switch it on just by being opened. So `nix.server_runner` is yours
+alone (`path` or `nixpkgs`, never `dev-shell`, and not a per-project setting), and
+the dev shell is kept in the pack's own data folder (`/data/nix/dev-shell-projects.json`),
+by the project's **full path**, written only when you run the dev shell fix row and
+its task works. A copy of the project, or another clone, isn't that path and starts
+nothing. The path is trusted, not the files in it: after a `git pull` brings in a new
+`shellHook`, the dev shell still runs. *Stop using this project's dev shell* (the
+doctor's row, or `nix.server.forget`) takes the project out. The pack learns the
+project's full path from the file you have open, so the fix needs one open.
+`nixpkgs` runs nixd from the registry, none of the project's code, so it's a plain
+setting of yours (every project).
 
 Two cautions. A dev shell's `shellHook` that prints to stdout would reach the
 server's channel: print to stderr (`echo ... >&2`). And a server started
@@ -212,8 +226,8 @@ tracks: `git add` the files first.
 | Setting | Default | |
 |---|---|---|
 | `nix.server` | auto | `auto` (nixd, else nil), `nixd`, `nil` |
-| `nix.server_runner` | path | `path`, `dev-shell`, `nixpkgs`: where a server not on `PATH` comes from; set by the doctor's fix rows when they work; per project |
-| `nix.formatter` | auto | `auto`, `nixfmt`, `alejandra`, `nixpkgs-fmt`, `off`; per project |
+| `nix.server_runner` | path | `path` or `nixpkgs`: where a server not on `PATH` comes from; yours alone, never a project's; set by the nixpkgs fix row when it works. The dev shell is remembered per project by its fix row, not here |
+| `nix.formatter` | auto | `auto`, `nixfmt`, `alejandra`, `nixpkgs-fmt`, `off`; per project: it only chooses among those names, run from `PATH` or a profile, never a path the project gives |
 | `nix.statix` | on | statix on a saved file |
 | `nix.deadnix` | on | deadnix on a saved file |
 | `nix.deadnix_arguments` | on | report unused function arguments |

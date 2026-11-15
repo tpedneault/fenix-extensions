@@ -30,7 +30,8 @@ on_startup = true
 process = ["nix", "nix-build", "nix-shell", "nixos-rebuild", "home-manager", "nixd", "nil", "nixfmt", "alejandra", "nixpkgs-fmt", "statix", "deadnix"]
 # The flake.nix and its neighbours at the top (default.nix, shell.nix,
 # configuration.nix, home.nix), read to see what kind of project it is and
-# which formatter the flake names. It writes nothing.
+# which formatter the flake names. It writes nothing there; its own data
+# folder holds the projects you've allowed the dev shell for.
 filesystem = "project-read"
 # The file saved, for statix and deadnix.
 editor = "read"
@@ -79,6 +80,10 @@ id = "nix.server.nixpkgs"
 title = "Nix: fetch the language server with nix shell nixpkgs#nixd (a task that downloads it)"
 
 [[contributes.commands]]
+id = "nix.server.forget"
+title = "Nix: stop running this project's language server through its dev shell"
+
+[[contributes.commands]]
 id = "nix.flake.build"
 title = "Nix: build a flake output (picked from nix flake show)"
 
@@ -102,14 +107,17 @@ label = "Language server"
 description = "auto: nixd when it's found, else nil. Neither is installed by the pack: they come from Nix (a profile, the dev shell, nixpkgs)."
 default = "auto"
 
+# Yours only: not `project = true`, since a repository's own .fenix/settings.toml is
+# applied without a question, and a dev shell runs the project's code. The dev
+# shell is never a value of it: it's remembered per project, in the pack's own
+# data, when you run the doctor's fix row.
 [[contributes.settings]]
 key = "nix.server_runner"
 kind = "choice"
-choices = ["path", "dev-shell", "nixpkgs"]
+choices = ["path", "nixpkgs"]
 label = "Where the language server comes from"
-description = "path: only a server on PATH or in your profile. dev-shell: through the project's dev shell (nix develop -c nixd) when it isn't on PATH. nixpkgs: nix shell nixpkgs#nixd -c nixd, which downloads it the first time. The doctor's fix rows try each as a task and set this when it works; nothing is ever started through Nix until it's set."
+description = "path: only a server on PATH or in your profile. nixpkgs: nix shell nixpkgs#nixd -c nixd for every project, which downloads it the first time. The doctor's nixpkgs fix row tries it as a task and sets this when it works. Running the server through a project's dev shell isn't a setting: the doctor's dev shell fix row remembers it for that project alone."
 default = "path"
-project = true
 
 [[contributes.settings]]
 key = "nix.formatter"

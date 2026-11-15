@@ -19,6 +19,7 @@ pub mod lint;
 pub mod project;
 pub mod tasks;
 pub mod tools;
+pub mod trust;
 
 #[cfg(test)]
 mod data;
@@ -41,8 +42,15 @@ pub const PROJECT: &str = "/project";
 /// Fenix's name for the language.
 const LANGUAGES: &[&str] = &["nix"];
 
-/// The setting that remembers where the server comes from.
+/// Your setting for where the server comes from (`path` or `nixpkgs`).
 pub const RUNNER_SETTING: &str = "nix.server_runner";
+
+/// The pack's own folder under `/data`, where the projects you've allowed
+/// the dev shell for are kept.
+pub const DATA: &str = "/data/nix";
+
+/// The command that stops using a project's dev shell for the server.
+pub const FORGET: &str = doctor::SERVER_FORGET;
 
 pub struct Nix {
     pub kit: Kit,
@@ -51,6 +59,12 @@ pub struct Nix {
     tools: Tools,
     system: Option<String>,
     settings: Settings,
+    /// Where the allowed projects are kept.
+    data: String,
+    /// The project's full path, once Fenix has said it (a file in it is
+    /// focused); the dev shell is only ever used for a project in `data`.
+    full_root: Option<String>,
+    dev_shell: bool,
     /// What's set in Fenix, so it's set again only when it changes.
     set_server: Option<Command>,
     set_formatter: Option<Command>,
@@ -74,7 +88,14 @@ impl Default for Nix {
 
 impl Nix {
     /// The pack for the project in `root`, talking to `host`.
-    pub fn new(mut host: Box<dyn Host>, root: &str) -> Nix {
+    pub fn new(host: Box<dyn Host>, root: &str) -> Nix {
+        Nix::with_data(host, root, DATA)
+    }
+
+    /// The same, keeping what you've allowed in `data`.
+    pub fn with_data(mut host: Box<dyn Host>, root: &str, data: &str) -> Nix {
+        let full_root = host.here().and_then(|(_, r)| r).map(|r| trust::normal(&r));
+        let dev_shell = full_root.as_deref().is_some_and(|r| trust::contains(data, r));
         let tools = Tools::find(host.as_mut());
         let platform = host.platform();
         let extras: Rc<RefCell<Vec<Check>>> = Rc::default();
@@ -87,6 +108,9 @@ impl Nix {
             tools,
             system: tools::system(&platform.os, &platform.arch),
             settings: Settings::read(),
+            data: data.into(),
+            full_root,
+            dev_shell,
             set_server: None,
             set_formatter: None,
             extras,
@@ -99,12 +123,32 @@ impl Nix {
         nix
     }
 
+    /// The settings in force here: yours, and the dev shell too for a
+    /// project you've allowed it for. A project's own files never say so.
+    fn active(&self) -> Settings {
+        Settings { runner: if self.dev_shell { Runner::DevShell } else { self.settings.runner }, ..self.settings.clone() }
+    }
+
+    /// Where the project is, as Fenix says it, once a file in it is focused;
+    /// whether that changed what's in force.
+    fn learn_root(&mut self) -> bool {
+        let Some(root) = self.kit.host.here().and_then(|(_, r)| r).map(|r| trust::normal(&r)) else { return false };
+        if self.full_root.as_deref() == Some(root.as_str()) {
+            return false;
+        }
+        let dev_shell = trust::contains(&self.data, &root);
+        self.full_root = Some(root);
+        let changed = dev_shell != self.dev_shell;
+        self.dev_shell = dev_shell;
+        changed
+    }
+
     /// The kit's tasks, checks and linters, for the project, tools and
     /// settings as they are.
     fn configure(&mut self) {
         self.kit.tasks = tasks::tasks(&self.project, &self.tools);
         let decision = choose::formatter(&self.settings, &self.project, &self.tools);
-        let (programs, extra) = doctor::checks(&self.project, &self.tools, &self.settings, &decision);
+        let (programs, extra) = doctor::checks(&self.project, &self.tools, &self.active(), &decision);
         self.kit.doctor.programs.clear();
         for program in programs {
             self.kit.doctor.program(program);
@@ -124,7 +168,7 @@ impl Nix {
     /// The server and the formatter set in Fenix, where they changed.
     /// Nothing found leaves Nix files without them.
     fn apply(&mut self) {
-        let server = choose::server(&self.settings, &self.project, &self.tools).map(|s| s.command);
+        let server = choose::server(&self.active(), &self.project, &self.tools).map(|s| s.command);
         let decision = choose::formatter(&self.settings, &self.project, &self.tools);
         let formatter = choose::formatter_command(decision.want, &self.tools);
         let host = self.kit.host.as_mut();
@@ -195,6 +239,9 @@ impl Nix {
             Runner::DevShell => (format!("{name} in the dev shell"), "the project's dev shell (it's built first)"),
             _ => (format!("{name} from nixpkgs"), "nixpkgs (it's downloaded the first time)"),
         };
+        if runner == Runner::DevShell && self.full_root.is_none() {
+            return Err("open a file of the project first: the choice is kept for this project alone".into());
+        }
         let id = self.kit.host.run_task(&task, &cmd)?;
         self.trying = Some((id, runner));
         self.say(&format!("Trying {name} through {what}: see Task Output"));
@@ -208,12 +255,24 @@ impl Nix {
             self.say(&format!("{where_} {name}: see Task Output"));
             return;
         }
-        let value = if runner == Runner::DevShell { "dev-shell" } else { "nixpkgs" };
-        match crate::calls::set_setting(RUNNER_SETTING, value) {
+        if runner == Runner::DevShell {
+            // This project alone, kept here and not in a settings file a repository could ship.
+            let kept = self.full_root.clone().ok_or_else(|| "the project isn't known".to_string()).and_then(|r| trust::add(&self.data, &r));
+            match kept {
+                Ok(()) => {
+                    self.dev_shell = true;
+                    self.refresh();
+                    self.say(&format!("{name} will be started through this project's dev shell (SPC p h can stop that)"));
+                }
+                Err(why) => self.say(&format!("{name} works in the dev shell, but it couldn't be remembered: {why}")),
+            }
+            return;
+        }
+        match crate::calls::set_setting(RUNNER_SETTING, "nixpkgs") {
             Ok(()) => {
                 self.settings = Settings::read();
                 self.refresh();
-                self.say(&format!("{name} will be started through Nix ({RUNNER_SETTING} = {value})"));
+                self.say(&format!("{name} will be started through nix shell nixpkgs#{name} ({RUNNER_SETTING} = nixpkgs)"));
             }
             Err(why) => self.say(&format!("{name} works through Nix, but {RUNNER_SETTING} couldn't be set: {why}")),
         }
@@ -294,6 +353,9 @@ impl Extension for Nix {
     }
 
     fn run_command(&mut self, id: &str) -> Result<(), String> {
+        if self.learn_root() {
+            self.refresh();
+        }
         match id {
             doctor::INSTALL_HELP => {
                 self.kit.host.open_text_beside("Installing Nix", &doctor::install_help(), None);
@@ -301,6 +363,13 @@ impl Extension for Nix {
             }
             doctor::SERVER_DEV_SHELL => self.try_server(Runner::DevShell),
             doctor::SERVER_NIXPKGS => self.try_server(Runner::Nixpkgs),
+            doctor::SERVER_FORGET => {
+                let root = self.full_root.clone().ok_or("open a file of the project first")?;
+                trust::remove(&self.data, &root)?;
+                self.dev_shell = false;
+                self.refresh();
+                Ok(())
+            }
             "nix.flake.build" => self.show(Action::Build),
             "nix.flake.run" => self.show(Action::Run),
             "nix.flake.develop" => self.show(Action::Develop),
@@ -337,12 +406,15 @@ impl Extension for Nix {
             }
             _ => {}
         }
+        let moved = matches!(&event, Event::FocusChanged(_) | Event::Saved(_)) && self.learn_root();
         let project_file = matches!(&event, Event::Saved(name) if project::FILES.contains(&name.as_str()));
         let setting = matches!(&event, Event::SettingChanged(key) if key.starts_with("nix."));
         let task_ended = matches!(&event, Event::TaskFinished(_));
         self.kit.handle(&event);
         if project_file {
             self.reload();
+        } else if moved {
+            self.refresh();
         }
         if setting {
             self.settings = Settings::read();
@@ -394,8 +466,19 @@ mod tests {
 
     /// The pack for the project in `dir`, on `fake`.
     fn pack(dir: &std::path::Path, fake: &Fake) -> Harness<Nix> {
-        let nix = Nix::new(fake.host(), &dir.to_string_lossy());
+        pack_with(dir, fake, &dir.join(".nix-data"))
+    }
+
+    /// The same, keeping the projects you've allowed in `data`.
+    fn pack_with(dir: &std::path::Path, fake: &Fake, data: &std::path::Path) -> Harness<Nix> {
+        let nix = Nix::with_data(fake.host(), &dir.to_string_lossy(), &data.to_string_lossy());
         Harness::wrap(fake.clone(), nix)
+    }
+
+    /// A file of the project in `dir` is the one you're in, so Fenix says
+    /// where the project is.
+    fn focus(fake: &Fake, dir: &std::path::Path) {
+        fake.in_file(&format!("{}/flake.nix", dir.display()), "nix", "{ }\n").project("p", &dir.to_string_lossy());
     }
 
     /// The processes started, as lines, in order.
@@ -550,24 +633,59 @@ mod tests {
     }
 
     #[test]
-    fn the_dev_shell_fix_is_a_visible_task_and_when_it_works_the_server_runs_through_it() {
+    fn the_dev_shell_fix_is_a_visible_task_and_when_it_works_this_project_alone_is_remembered() {
         let dir = flake_project("dev-shell");
+        let other = flake_project("dev-shell-other");
         let fake = Fake::new();
         fake.platform("linux", "x86_64");
         with_nix(&fake);
         fake.on_task("nixd in the dev shell", true);
+        focus(&fake, &dir);
         let mut t = pack(&dir, &fake);
         t.activate().unwrap();
         fake.take();
         t.command("nix.server.dev-shell").unwrap();
         let calls = fake.take();
         assert!(calls.iter().any(|c| c.ends_with("nixd in the dev shell: /n/nix develop --no-write-lock-file -c nixd --version")), "a task in the task pane: {calls:?}");
-        assert!(calls.iter().any(|c| c == "set-setting nix.server_runner dev-shell") || fake.setting_value("nix.server_runner").as_deref() == Some("dev-shell"), "{calls:?}");
         assert!(calls.iter().any(|c| c == "server nix: /n/nix develop --no-write-lock-file -c nixd"), "{calls:?}");
+        assert_eq!(fake.setting_value("nix.server_runner"), None, "not a setting: a project's own settings file could say the same");
+        assert_eq!(trust::list(&dir.join(".nix-data").to_string_lossy()), [dir.to_string_lossy().to_string()]);
         let row = fake.checks().into_iter().find(|c| c.label == "Language server (nixd)").unwrap();
         assert_eq!(row.health, Health::Ok);
         assert!(row.detail.contains("nix develop -c nixd"), "{}", row.detail);
+        assert_eq!(row.fix.map(|f| f.1), Some("nix.server.forget".into()));
+
+        // The next start, in the same project: used from the start.
+        let again = Fake::new();
+        again.platform("linux", "x86_64");
+        with_nix(&again);
+        focus(&again, &dir);
+        let mut t2 = pack(&dir, &again);
+        t2.activate().unwrap();
+        assert!(again.take().iter().any(|c| c == "server nix: /n/nix develop --no-write-lock-file -c nixd"));
+
+        // Another project, the same data: nothing. A project is its full path.
+        let fake3 = Fake::new();
+        fake3.platform("linux", "x86_64");
+        with_nix(&fake3);
+        focus(&fake3, &other);
+        let mut t3 = pack_with(&other, &fake3, &dir.join(".nix-data"));
+        t3.activate().unwrap();
+        t3.event(Event::Saved("flake.nix".into()));
+        let calls = fake3.take();
+        assert!(!calls.iter().any(|c| c.starts_with("server")), "{calls:?}");
+        assert!(spawned(&fake3).iter().all(|l| !l.contains("develop")));
+        // Focus moves to the allowed project in the same window: it's used there.
+        focus(&fake3, &dir);
+        t3.event(Event::FocusChanged(Some("flake.nix".into())));
+        assert!(fake3.take().iter().any(|c| c == "server nix: /n/nix develop --no-write-lock-file -c nixd"), "the choice is for that path");
+
+        // Forgotten.
+        t2.command("nix.server.forget").unwrap();
+        assert!(trust::list(&dir.join(".nix-data").to_string_lossy()).is_empty());
+        assert!(again.take().iter().any(|c| c == "server nix: "), "no server again");
         std::fs::remove_dir_all(&dir).unwrap();
+        std::fs::remove_dir_all(&other).unwrap();
     }
 
     #[test]
@@ -577,14 +695,81 @@ mod tests {
         fake.platform("linux", "x86_64");
         with_nix(&fake);
         fake.on_task("nixd in the dev shell", false);
+        focus(&fake, &dir);
         let mut t = pack(&dir, &fake);
         t.activate().unwrap();
         fake.take();
         t.command("nix.server.dev-shell").unwrap();
         let calls = fake.take();
         assert!(!calls.iter().any(|c| c.starts_with("server")), "{calls:?}");
-        assert_eq!(fake.setting_value("nix.server_runner"), None);
+        assert!(trust::list(&dir.join(".nix-data").to_string_lossy()).is_empty());
         assert!(calls.iter().any(|c| c.contains("has no nixd")), "{calls:?}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn the_dev_shell_needs_to_know_which_project_before_it_runs_anything() {
+        let dir = flake_project("dev-shell-unknown");
+        let fake = Fake::new();
+        fake.platform("linux", "x86_64");
+        with_nix(&fake);
+        let mut t = pack(&dir, &fake);
+        t.activate().unwrap();
+        fake.take();
+        assert!(t.command("nix.server.dev-shell").unwrap_err().contains("open a file of the project"));
+        assert!(!fake.take().iter().any(|c| c.starts_with("task ")), "no task, since nothing could be remembered");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_project_that_asks_for_the_dev_shell_in_its_own_settings_starts_nothing() {
+        // A cloned repository: .fenix/settings.toml says dev-shell, and Fenix applies a
+        // project's settings as the setting's value, with no question asked.
+        let dir = flake_project("clone");
+        std::fs::create_dir_all(dir.join(".fenix")).unwrap();
+        std::fs::write(dir.join(".fenix/settings.toml"), "[nix]\nserver_runner = \"dev-shell\"\n").unwrap();
+        let fake = Fake::new();
+        fake.platform("linux", "x86_64");
+        with_nix(&fake);
+        fake.setting("nix.server_runner", "dev-shell");
+        focus(&fake, &dir);
+        let mut t = pack(&dir, &fake);
+        t.activate().unwrap();
+        t.event(Event::FocusChanged(Some("flake.nix".into())));
+        t.event(Event::Saved("flake.nix".into()));
+        t.saved(&format!("{}/flake.nix", dir.display()));
+        t.set_setting("nix.server_runner", Some("dev-shell"));
+        let calls = fake.calls();
+        assert!(!calls.iter().any(|c| c.starts_with("server") || c.starts_with("task ") || c.starts_with("terminal")), "{calls:?}");
+        assert!(spawned(&fake).iter().all(|l| !l.contains("develop") && !l.contains("nix-shell") && !l.contains("nixpkgs#")), "{:?}", spawned(&fake));
+        let row = fake.checks().into_iter().find(|c| c.label == "Language server (nixd)").unwrap();
+        assert_eq!(row.health, Health::Warn, "still missing, with its fix rows");
+        // The same for nix-shell.
+        std::fs::remove_file(dir.join("flake.nix")).unwrap();
+        std::fs::write(dir.join("shell.nix"), "{ }").unwrap();
+        t.event(Event::Saved("shell.nix".into()));
+        assert!(!fake.calls().iter().any(|c| c.starts_with("server")));
+        // nixpkgs is yours alone, and runs nothing of the project's.
+        assert!(trust::list(&dir.join(".nix-data").to_string_lossy()).is_empty());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_fresh_clone_spawns_nothing_through_nix_on_opening_or_saving() {
+        let dir = flake_project("fresh");
+        let fake2 = Fake::new();
+        fake2.platform("linux", "x86_64");
+        with_nix(&fake2);
+        focus(&fake2, &dir);
+        let mut t = pack(&dir, &fake2);
+        t.activate().unwrap();
+        for event in [Event::FocusChanged(Some("flake.nix".into())), Event::Saved("flake.nix".into()), Event::Saved("flake.lock".into())] {
+            t.event(event);
+        }
+        t.saved(&format!("{}/flake.nix", dir.display()));
+        let started = spawned(&fake2);
+        assert!(started.iter().all(|l| l.ends_with("--version") || l.ends_with("experimental-features")), "only versions are asked: {started:?}");
+        assert!(!fake2.calls().iter().any(|c| c.starts_with("task ") || c.starts_with("terminal")));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
