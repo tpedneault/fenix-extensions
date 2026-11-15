@@ -9,12 +9,13 @@ use fenix_extension_api::{Check, Health, Section};
 use fenix_lang_kit::{find_version, Fix, Output, Program, Version};
 
 use crate::project::{Project, Tool};
-use crate::tools::{coursier_hints, hints, hints_with, Platform, Tools, JDK_HINTS, METALS, METALS_JAVA, SCALAFMT};
+use crate::tools::{coursier_hints, hints, Platform, Tools, JDK_HINTS, METALS, METALS_JAVA, SCALAFMT};
 
 /// The fix rows' commands, in the manifest.
 pub const INSTALL_COURSIER: &str = "scala.install.coursier";
 pub const INSTALL_METALS: &str = "scala.install-metals";
 pub const INSTALL_SCALAFMT: &str = "scala.install.scalafmt";
+pub const ALLOW: &str = "scala.allow-project";
 
 /// `javac -version`, read: its version, from the line that's `javac <version>`
 /// (a JVM may print a `Picked up JAVA_TOOL_OPTIONS` line first).
@@ -67,17 +68,57 @@ fn metals(tools: &Tools) -> Program {
     p
 }
 
-/// A build tool the project uses, asked its version: needed, since its
-/// tasks run it. Gradle and Maven aren't asked: the Java pack checks their
-/// wrappers, and their tasks only run what's there.
-fn build_tool(tool: Tool) -> Option<Program> {
-    let (name, label, args, first): (&str, &str, &[&str], &[&str]) = match tool {
-        Tool::Sbt => ("sbt", "sbt", &["--version"], &[]),
-        Tool::Mill => ("mill", "Mill", &["--version"], &["./mill"]),
-        Tool::ScalaCli => ("scala-cli", "scala-cli", &["version"], &[]),
+/// A build tool the project uses. scala-cli is asked its version: it reads
+/// nothing of the project. sbt and Mill are only found, never run: both read the
+/// project's own files to choose their version (and a wrapper is the project's
+/// file), so their versions come from `project/build.properties` and the
+/// build's header, and they run when you run a task. The project's `./mill`
+/// isn't looked for here at all (see [`wrapper_checks`]). Gradle and Maven
+/// aren't checked: the Java pack does, and their tasks only run what's there.
+fn build_tool(tool: Tool, tools: &Tools) -> Option<Program> {
+    let (name, label, args): (&str, &str, &[&str]) = match tool {
+        Tool::Sbt => ("sbt", "sbt", &[]),
+        Tool::Mill if tools.is_wrapper("mill") => return None,
+        Tool::Mill => ("mill", "Mill", &[]),
+        Tool::ScalaCli => ("scala-cli", "scala-cli", &["version"]),
         Tool::Gradle | Tool::Maven => return None,
     };
-    Some(hints_with(first, name).into_iter().fold(Program::new(name, label), Program::hint).version_args(args.iter().copied()).timeout(30_000))
+    Some(hints(name).into_iter().fold(Program::new(name, label), Program::hint).version_args(args.iter().copied()).timeout(30_000))
+}
+
+/// The project's own wrappers, shown and not run.
+pub fn wrapper_checks(project: &Project, tools: &Tools) -> Vec<Check> {
+    let mut out = Vec::new();
+    if project.uses(Tool::Mill) && tools.is_wrapper("mill") {
+        out.push(Check::new(Section::Toolchain, "Mill", Health::Ok, "the project's own ./mill wrapper: it runs when you run a task, not before"));
+    }
+    out
+}
+
+/// Whether Metals is allowed to run in this project, as the doctor says it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Allowed {
+    /// You said Import (or `scala.run_metals` is `always`).
+    Yes,
+    /// Not asked yet, or *Not now*.
+    Unasked,
+    Never,
+}
+
+/// What the pack says of the project's build: Metals connects to it, and importing a
+/// build runs its definition -- `build.sbt`, `project/*.scala`, `build.mill`, a
+/// Gradle script, a `.bsp/*.json`'s command -- which is the project's own code, so
+/// Metals isn't started until it's allowed.
+pub fn build_check(project: &Project, allowed: Allowed) -> Option<Check> {
+    if !project.is_scala() {
+        return None;
+    }
+    let check = |health, detail: &str| Check::new(Section::Project, "Metals and the build", health, detail);
+    Some(match allowed {
+        Allowed::Yes => check(Health::Ok, "allowed: Metals runs here, and imports the build"),
+        Allowed::Unasked => check(Health::Warn, "Metals isn't started until you allow it: it connects to this project's build and imports it, which runs the build's own code (build.sbt, build.mill, ...)").fix("Allow Metals in this project", ALLOW),
+        Allowed::Never => check(Health::Warn, "you said Never: Metals isn't started in this project (Scala: forget what's decided about this project asks again)").fix("Allow Metals in this project", ALLOW),
+    })
 }
 
 /// The checks that run a program, for `project`: the JDK, Coursier and
@@ -89,7 +130,7 @@ pub fn programs(project: &Project, tools: &Tools, platform: &Platform, chosen: O
     }
     out.push(metals(tools));
     for tool in &project.tools {
-        out.extend(build_tool(*tool));
+        out.extend(build_tool(*tool, tools));
     }
     out
 }
@@ -211,17 +252,38 @@ mod tests {
             (c.health, c.detail)
         };
         // What each printed, recorded (src/samples/README.md).
-        assert_eq!(version("sbt", include_str!("samples/sbt-version.txt")), (Health::Ok, "1.12.15 (/t/sbt)".into()), "the project's, not the runner's");
-        assert_eq!(version("Mill", include_str!("samples/mill-version.txt")), (Health::Ok, "0.11.13 (/t/mill)".into()));
         assert_eq!(version("scala-cli", include_str!("samples/scala-cli-version.txt")), (Health::Ok, "1.19.0 (/t/scala-cli)".into()));
         assert_eq!(version("Metals", include_str!("samples/metals-version.txt")), (Health::Ok, "1.6.9 (/t/metals)".into()));
         assert_eq!(version("Coursier", include_str!("samples/cs-version.txt")), (Health::Ok, "2.1.26 (/t/cs)".into()));
         let args = |label: &str| p.iter().find(|p| p.label == label).unwrap().version_args.clone();
-        assert_eq!((args("sbt"), args("Mill"), args("scala-cli"), args("Metals")), (vec!["--version".to_string()], vec!["--version".to_string()], vec!["version".to_string()], vec!["--version".to_string()]));
-        assert_eq!(p.iter().find(|p| p.label == "Mill").unwrap().hints[0], "./mill", "the project's wrapper first");
+        // sbt and Mill are found, not run: they read the project's own files to choose their version.
+        assert_eq!((args("sbt"), args("Mill"), args("scala-cli"), args("Metals")), (Vec::<String>::new(), Vec::<String>::new(), vec!["version".to_string()], vec!["--version".to_string()]));
+        let found = p.iter().find(|p| p.label == "Mill").unwrap().evaluate(Some("/t/mill"), None);
+        assert_eq!((found.health, found.detail.as_str()), (Health::Ok, "/t/mill"));
+        assert!(p.iter().all(|p| !p.hints.iter().any(|h| h.starts_with("./"))), "no hint names a file of the project's");
+        // The project's own ./mill is shown, not run, and isn't a program the doctor asks.
+        let wrapped = Tools { wrapped: vec!["mill".into()], mill: Some("/p/mill".into()), ..Tools::default() };
+        let mill = Project { tools: vec![Tool::Mill], ..Project::default() };
+        assert!(!programs(&mill, &wrapped, &linux(), None).iter().any(|p| p.name == "mill"));
+        let rows = wrapper_checks(&mill, &wrapped);
+        assert_eq!((rows[0].label.as_str(), rows[0].health, rows[0].detail.as_str()), ("Mill", Health::Ok, "the project's own ./mill wrapper: it runs when you run a task, not before"));
+        assert!(wrapper_checks(&mill, &Tools::default()).is_empty());
         // A tool the project needs and doesn't have fails; Metals warns.
         assert_eq!(p[3].evaluate(None, None).health, Health::Bad);
+        assert_eq!(p[3].version_args, Vec::<String>::new());
         assert_eq!(p[2].evaluate(None, None).health, Health::Warn);
+    }
+
+    #[test]
+    fn the_build_row_says_why_metals_isnt_started_and_how_to_allow_it() {
+        let yes = build_check(&scala(), Allowed::Yes).unwrap();
+        assert_eq!((yes.health, yes.fix, yes.section), (Health::Ok, None, Section::Project));
+        for state in [Allowed::Unasked, Allowed::Never] {
+            let c = build_check(&scala(), state).unwrap();
+            assert_eq!((c.health, c.fix.map(|f| f.1)), (Health::Warn, Some("scala.allow-project".into())));
+            assert!(c.detail.contains("Metals isn't started"), "{}", c.detail);
+        }
+        assert!(build_check(&Project::default(), Allowed::Unasked).is_none());
     }
 
     #[test]

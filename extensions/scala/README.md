@@ -90,15 +90,36 @@ passes each message through, and does three things Fenix can't:
 
 - It tells Metals who its client is (no HTTP server for its doctor, no status
   bar, a debugger) and answers its user configuration: `autoImportBuilds`
-  (`scala.auto_import`, all by default), so a build is imported without a
-  question Fenix has no prompt for.
+  (`scala.auto_import`), once you've allowed the project (below).
 - It answers Metals' `window/showMessageRequest` questions where the answer
-  is the one you'd give: *Import build*; *Import changes*; with no
-  `.scalafmt.conf`, formatting *Run anyway* with scalafmt's defaults (Metals
-  would otherwise format nothing and wait); *Not now* to starting its HTTP
-  server. Any other question goes to Fenix, which has no prompt for it, as it
-  would without the pack.
+  is the one you'd give, in a project you've allowed: *Import build*; *Import
+  changes*; with no `.scalafmt.conf`, formatting *Run anyway* with scalafmt's
+  defaults (Metals would otherwise format nothing and wait); *Not now* to
+  starting its HTTP server. Any other question goes to Fenix, which has no
+  prompt for it, as it would without the pack.
 - It asks Metals for its debug adapter (below).
+
+**Metals isn't started until you allow the project.** A build is the
+project's own code: `build.sbt` and `project/*.scala`, `build.mill`, a Gradle
+script, a `.bsp/*.json`'s command. Metals connects to it as it starts --
+before any request, with no import question -- by running the command in
+`.bsp/*.json` or starting Bloop on `.bloop/`, and importing runs the build
+definition. (Seen in what Metals 1.6.9 logged on start, `src/samples/
+metals-stdout.bin`: "Attempting to connect to the build server...", "Running
+BSP server ...", "Imported build".) Metals has no mode that starts without a
+build server, so in a project you haven't allowed it isn't started at all: Fenix
+is answered that there is no server, and the pack asks once, when a Scala
+file opens: **Import this project's build? This runs its build definition
+(build.sbt / build.mill / ...), which is code from this project.** -- *Import*,
+*Not now* (asked again next time) or *Never for this project*. The answer
+is kept in the pack's own data folder by the project's full path, never from
+the project: a copy of it elsewhere is asked about again, and no
+`.fenix/settings.toml` can say it. Until then there is no completion or
+navigation from Metals (the grammar still highlights and folds); the doctor's
+*Metals and the build* row says so, and its fix row, *Scala: allow Metals in
+this project*, says Import. *Scala: forget what's decided about this
+project's build* undoes either answer. `scala.run_metals` set to `always`
+(yours alone) skips the question, for someone who opens only their own code.
 
 Without a Metals, Fenix is answered at once (no capabilities, and an error to
 what it asks that says to open the project doctor) so it doesn't wait, and the
@@ -149,7 +170,7 @@ A Gradle or Maven project counts as Scala when its build says so: the `scala`
 plugin, `scala-library`, `scala3-library`, `scala-maven-plugin`. The Java pack
 has those tools' own tasks, and its project kind has their files; these are the
 Scala ones. A Mill build is found by `build.mill`, `build.mill.scala` or
-`build.sc` (a `./mill` wrapper is used when there is one), scala-cli by
+`build.sc` (the project's `./mill` wrapper is used when you run a task, not before), scala-cli by
 `project.scala`, `.scala-build` or `.bsp/scala-cli.json` -- or, with no other
 build tool, by `.sc` and `.scala` files at the top.
 
@@ -167,7 +188,8 @@ end is a command (`SPC SPC`, or the keys below):
 | *Scala: compile as sources change* | in the background (one of Fenix's background tasks, its output in a buffer of its own): sbt's `~compile`, `scala-cli compile . --watch`, `mill -w __.compile`. The same command stops it |
 | *Scala: run the file you're in with scala-cli* | `scala-cli run <file>`: a script or a single source with its `//> using` directives, in any folder, build file or none |
 | *Scala: test the file you're in with scala-cli* | `scala-cli test <file>` |
-| *Scala: import the build into Metals again* | Metals' `build-import`: for `scala.auto_import` set to `initial` or `off` |
+| *Scala: import the build into Metals again* | Metals' `build-import`: for `scala.auto_import` set to `initial` or `off`, in an allowed project |
+| *Scala: allow Metals in this project*, *forget what's decided* | the answer to the question above, given or taken back |
 
 ## Debugging
 
@@ -203,7 +225,8 @@ debugger connecting to it.
 | JDK | `javac -version`, 17 or later (a warning below, saying Metals runs on 17); needed in a Scala project; which `javac` it found, and `scala.jdk` when that's the one | none: Temurin, your package manager, `cs java --jvm temurin:21` |
 | Coursier | `cs version`, shown while there's no Metals | Coursier 2.1.26 (Linux, macOS; x86_64 and arm64; Windows x86_64) |
 | Metals | `metals --version`, optional | Metals 1.6.9, with Coursier |
-| sbt, Mill, scala-cli | `sbt --version`, `mill --version`, `scala-cli version`, for each the project uses; Mill's `./mill` first | none: `cs install` them |
+| sbt, Mill, scala-cli | `scala-cli version`; sbt and Mill are found, not run (they read the project's own files to choose their version); the project's own `./mill` is shown ("runs when you run a task"), never run to ask | none: `cs install` them |
+| Metals and the build | whether the project is allowed (above) | *Allow Metals in this project* |
 | scalafmt | `.scalafmt.conf`'s version and dialect, and which formatter does what | scalafmt 3.11.5 (the native one), when the project pins that |
 
 Gradle and Maven aren't asked: the Java pack checks their wrappers. Starting
@@ -246,7 +269,8 @@ pack was written (below).
 | Setting | Default | |
 |---|---|---|
 | `scala.jdk` | none | the JDK to use -- its `java`, its `bin` folder or its home -- when it isn't `JAVA_HOME`'s or `PATH`'s: the doctor checks it, and Metals and the tasks run with it as `JAVA_HOME` |
-| `scala.auto_import` | `all` | when Metals imports the build by itself: `all` (the first time, and each time a build file changes), `initial`, or `off` |
+| `scala.auto_import` | `all` | in a project you've allowed, when Metals imports the build by itself: `all` (the first time, and each time a build file changes), `initial`, or `off` |
+| `scala.run_metals` | `ask` | `ask`, or `always`: run Metals and import every project's build without asking. Yours: no project's settings can set it, this or any other of the pack's |
 
 ## Project kind
 
@@ -259,6 +283,24 @@ checks the project again, `c` opens a REPL, `w` compiles as sources change
 (again to stop), `r` and `t` run and test the file you're in with scala-cli, `b`
 debugs it with Metals. Debugging the tests and importing the build again are
 commands to pick.
+
+## What runs, and when
+
+Nothing of the project's own runs at activation, when a file opens, on focus
+or on save: no `./mill`, `./sbt`, `./gradlew`, `./mvnw` or `.bsp` command, and
+the project's wrappers are looked for, never asked their version.
+
+| What | When | Whose file | Asked? |
+|---|---|---|---|
+| `javac -version`, `cs version`, `metals --version`, `scala-cli version` | the doctor, at activation and when it's run again | your `PATH`, `JAVA_HOME`, `scala.jdk`, Coursier's and the pack's folders | no: they read nothing of the project |
+| sbt, Mill | found by name (the doctor), not run | `PATH` and your tool folders; the project's `./mill` only noted | no run |
+| Metals (and what it starts: the build server from `.bsp/*.json` or Bloop from `.bloop/`, the build's definition, compiler plugins and macros) | when a Scala file opens, **once the project is allowed** | the project's build | yes: Import, remembered by path |
+| the build's tasks (`compile`, `test`, `run`, ... and the REPL, the watch) | when you pick one | the project's build and its wrapper | yes |
+| `scala-cli run` / `test` of the file you're in | the command | that file and its directives | yes |
+| debugging (`debug-adapter-start`) | the command | Metals' adapter, the program or tests | yes, and only in an allowed project |
+| the native scalafmt, on save | a save, with `editor.format_on_save`, once you installed it and `.scalafmt.conf` pins 3.11.5 | `.scalafmt.conf`, which is configuration (the native build runs only its own version: with another it stops with an error at once, and downloads nothing) | yes: you installed it and turned it on |
+| Coursier, scalafmt downloads; `cs install metals` | their fix rows | upstream's releases, checked by SHA-256 / Coursier | yes |
+| the launch file | never runs by itself | data | n/a |
 
 ## Not yet
 

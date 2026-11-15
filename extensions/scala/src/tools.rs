@@ -152,6 +152,10 @@ pub struct Tools {
     pub mill: Option<String>,
     pub gradle: Option<String>,
     pub maven: Option<String>,
+    /// Which of Mill, Gradle and Maven were found as the project's own wrapper
+    /// (`./mill`, `./gradlew`, `./mvnw`), not on `PATH`: a file of the project's,
+    /// which runs when you run a task and is never run to ask its version.
+    pub wrapped: Vec<String>,
 }
 
 impl Tools {
@@ -160,16 +164,28 @@ impl Tools {
         let javac = host.find_program("javac", &jdk);
         let coursier = host.find_program("cs", &coursier_hints()).or_else(|| host.find_program("coursier", &coursier_hints()));
         let mut find = |name: &str, first: &[&str]| host.find_program(name, &hints_with(first, name));
-        Tools {
-            javac,
-            coursier,
-            metals: find("metals", &[]),
-            scala_cli: find("scala-cli", &[]),
-            sbt: find("sbt", &[]),
-            mill: find("mill", &["./mill"]),
-            gradle: find("gradle", &["./gradlew"]),
-            maven: find("mvn", &["./mvnw"]),
+        let mut tools = Tools { javac, coursier, metals: find("metals", &[]), scala_cli: find("scala-cli", &[]), sbt: find("sbt", &[]), ..Tools::default() };
+        // The project's wrapper, for the tasks you run, is looked for -- never
+        // run: if finding it with its folder named gives something other than
+        // finding the program without, it's the project's file.
+        for (name, wrapper) in [("mill", "./mill"), ("gradle", "./gradlew"), ("mvn", "./mvnw")] {
+            let plain = find(name, &[]);
+            let task = find(name, &[wrapper]);
+            if task != plain {
+                tools.wrapped.push(name.to_string());
+            }
+            match name {
+                "mill" => tools.mill = task,
+                "gradle" => tools.gradle = task,
+                _ => tools.maven = task,
+            }
         }
+        tools
+    }
+
+    /// Whether `name` (`mill`, `gradle`, `mvn`) is the project's own wrapper.
+    pub fn is_wrapper(&self, name: &str) -> bool {
+        self.wrapped.iter().any(|w| w == name)
     }
 
     /// The slot each program found goes in, by its name.

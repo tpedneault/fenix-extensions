@@ -468,6 +468,7 @@ fn the_manifest_asks_for_what_the_pack_runs_and_downloads() {
         mill: Some("/t/mill".into()),
         gradle: Some("/t/gradle".into()),
         maven: Some("/t/mvn".into()),
+        wrapped: Vec::new(),
     };
     for tools in [&found, &Tools::default()] {
         for t in &crate::tasks::tasks(&all, tools, "/nowhere", None).tasks {
@@ -499,9 +500,11 @@ fn the_manifest_asks_for_what_the_pack_runs_and_downloads() {
     // The settings it reads are the manifest's, with their defaults as text.
     let settings = m["contributes"]["settings"].as_array().unwrap();
     let keys: Vec<(&str, &str)> = settings.iter().map(|s| (s["key"].as_str().unwrap(), s["default"].as_str().unwrap())).collect();
-    assert_eq!(keys, [("scala.jdk", ""), ("scala.auto_import", "all")]);
+    assert_eq!(keys, [("scala.jdk", ""), ("scala.auto_import", "all"), ("scala.run_metals", "ask")]);
+    // Yours alone: no project's .fenix/settings.toml can set one (`project = true`), so none can name the JDK that runs, or allow Metals.
+    assert!(settings.iter().all(|s| s.get("project").is_none()), "a setting a project can set");
     assert_eq!(settings[1]["choices"].as_array().unwrap().iter().map(|c| c.as_str().unwrap()).collect::<Vec<_>>(), ["all", "initial", "off"]);
-    assert_eq!(crate::Settings::default(), crate::Settings { jdk: None, auto_import: "all".into() });
+    assert_eq!(crate::Settings::default(), crate::Settings { jdk: None, auto_import: "all".into(), always: false });
     // It's Scala's language server, for the language the language file brings.
     let server = &m["contributes"]["language_servers"].as_array().unwrap()[0];
     assert_eq!((server["name"].as_str(), server["languages"][0].as_str()), (Some("metals"), Some("scala")));

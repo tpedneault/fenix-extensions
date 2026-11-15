@@ -81,6 +81,14 @@ id = "scala.install.scalafmt"
 title = "Scala: install scalafmt 3.11.5, the native formatter that formats on save"
 
 [[contributes.commands]]
+id = "scala.allow-project"
+title = "Scala: allow Metals in this project (it imports the build, which runs the build's own code)"
+
+[[contributes.commands]]
+id = "scala.forget-project"
+title = "Scala: forget what's decided about this project's build (it's asked again)"
+
+[[contributes.commands]]
 id = "scala.install-metals"
 title = "Scala: install Metals 1.6.9 with Coursier"
 
@@ -126,3 +134,11 @@ label = "Import builds"
 description = "When Metals imports the build (sbt, Mill, Gradle, Maven) by itself: all -- the first time and each time a build file changes -- initial -- the first time only -- or off. Fenix has no prompt for Metals to ask in, so with off the build is imported only by Scala: import the build."
 default = "all"
 choices = ["all", "initial", "off"]
+
+[[contributes.settings]]
+key = "scala.run_metals"
+kind = "choice"
+label = "Run Metals"
+description = "ask -- Metals isn't started in a project, and so doesn't import its build, until you've said Import to the question when a Scala file opens -- or always, which runs Metals and imports the build in every project without asking: a build is the project's own code, so choose always only if you open your own. This is yours: no project can set it."
+default = "ask"
+choices = ["ask", "always"]
