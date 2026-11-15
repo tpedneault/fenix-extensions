@@ -840,11 +840,26 @@ the agenda's fallback (§7) run the same code:
   4xx `refused`, other 5xx `failed`, no answer `offline`, no server or
   token `not_set_up`.
 
-**`jira.request` is deprecated.** It's still served, unchanged and
-ungated, for the agenda 1.2: it sends any REST request it's given to
-your Jira as you, for any extension that asks -- a much wider door than
-the seam's gated writes. It goes, with `jira.config`, `jira.set_blocked`
-and `jira.new_issue`, at Jira 2.0.
+**`jira.request` is deprecated.** It's still served, ungated, for the
+agenda 1.2: it sends any REST request it's given to your Jira as you,
+for any extension that asks -- a much wider door than the seam's gated
+writes. **It's refused for Jira Cloud** -- asked before the site has
+said which Jira it is and again once it has -- since a Cloud API token
+is account-wide and the agenda 1.2 never ran against Cloud. It goes,
+with `jira.config`, `jira.set_blocked` and `jira.new_issue`, at Jira
+2.0.
+
+**No credentials in clear.** Jira Cloud's email and API token never go
+to an `http://` address. A Server or Data Center token goes to one only
+when `jira.allow_http` is on (off by default): it's sent unencrypted,
+and some servers are reached that way on a private network, so it's
+your choice, said in the setting's words, rather than refused outright.
+Either refusal is said as such (`not_set_up`, with the reason), never
+as "not set up yet".
+
+**Refs by id.** Jira takes its numeric id wherever it takes a key, so
+the agenda's writes by id (§4.2) need nothing more -- except who can be
+assigned on Cloud, asked by `issueId` for an id.
 
 ## 7. Updating one at a time
 
@@ -943,9 +958,18 @@ Complete, for Jira Cloud, GitHub Issues, GitLab Issues and Linear.
 - [ ] List per field what you serve (`edit.title`, ...); answer an
       unknown or unserved field `unsupported`.
 - [ ] Gate every write with `fenix_tracker::gate::Gate` and a
-      `<name>.seam_writes` choice setting (`ask`, `always`, `never`).
-- [ ] Keep `op`s with `fenix_tracker::Dedupe`, and use a tracker-side
-      idempotency key where there is one (Linear's create takes an id).
+      `<name>.seam_writes` choice setting (`ask`, `always`, `never`):
+      hand it each write as a `gate::Write` (`caller: None` until Fenix
+      says who's calling), carry out the `Step`s it gives back (`Go`,
+      `Refuse`, `Ask` with its `Question` -- the picker's rows have the
+      values `gate::ALLOW` and `gate::DENY`), set a timer for
+      `deadline()` and call `expire` when it fires, `answered` with the
+      picked value (or `None` for Esc), `reset` when your
+      `seam_writes` changes, and ignore an answer to a question that
+      isn't the current one.
+- [ ] Keep `op`s with `fenix_tracker::Dedupe`, by call, `op` and
+      payload (`get` before the gate, `put` once done); a tracker-side
+      idempotency key where there is one.
 - [ ] Check every ref or id against your own form before it reaches a
       URL; percent-encode path segments.
 
@@ -994,11 +1018,13 @@ What each of the four needs beyond that:
   `viewer.assignedIssues`, paged by `pageInfo.endCursor`; one move per
   workflow state of the issue's team; stages per §4.2; `priority` from
   0 to 4 (`level` urgent, high, medium, low; 0 none); errors read from
-  `errors` under HTTP 200; `create` with a client-chosen `id` from `op`.
+  `errors` under HTTP 200; `create` opens Linear's own new-issue form on
+  its page and answers `opened` at once (no issue is made without you).
 
 ## As built
 
-Recorded after building, and after the review, on 14 November 2026.
+Recorded after building, and after the review, on 14 November 2026;
+the second review's changes on 15 November 2026.
 
 - `crates/tracker` (`fenix-tracker` 1.0.0): the shapes (`seam`), the
   cleaning (`clean`), errors (`SeamError`), the write gate (`gate`), the
@@ -1015,21 +1041,38 @@ Recorded after building, and after the review, on 14 November 2026.
   exports don't clash.
 - The agenda's service calls wait in `calls.rs`, its own small executor
   over `call_service` and `ServiceReply`, so the test kit answers them.
+- After the second review: `gate` gives `Step`s (`check`, `answered`,
+  `expire`, `deadline`, `reset`) and every tracker sets a timer for its
+  question; `Dedupe::get`/`put` take the call and payload; `Issue`
+  keeps the tracker's text (`title_cut`, `body_cut`) and
+  `clean::{line, text, name, message}` clean it to be shown; the agenda
+  draws its page from `AgendaStore::shown()`, writes by `link.asked()`,
+  keeps one queue per tracker (`Sync::in_flight` by tracker), marks a
+  dropped change (`IssueLink::dropped`, `retake`), keeps a worklog's
+  `op` when no answer came (`TimeEntry::maybe`), and writes
+  `agenda-links.json`. Jira: `jira.allow_http`, `jira.request` refused
+  for Cloud.
 
 **Not quite as before**, for Jira users:
 
-- A description's `\r\n` line ends arrive as `\n`. A base kept by 1.2
-  compares as cleaned, so the first sync after updating sees no change.
+- Text arrives as Jira has it, `\r\n` line ends and all, and is shown
+  cleaned; a base kept by 1.2 that differs only in what isn't shown is
+  no change, so the first sync after updating sees none.
 - A deleted linked issue marks its task "not found" instead of failing
   the sync -- with one linked issue or many.
 - **The first change sent to Jira after starting Fenix asks whether to
-  allow the agenda to change issues for this session** (the write gate,
-  §3.6); `jira.seam_writes = always` makes it as before.
+  allow an extension's changes until Fenix restarts** (the write gate,
+  §3.6); "not now" refuses for 10 minutes; `jira.seam_writes = always`
+  makes it as before.
+- A Server address starting `http://` needs `jira.allow_http` on.
 - A change whose answer never came (a slow Jira, past 180 s) isn't sent
   again by the next sync: the task says it may have been made, and `r`
   asks.
-- A change Jira can't take is dropped with a message instead of holding
-  up the task's later changes.
+- A change Jira can't take (`unsupported`) leaves the queue instead of
+  holding up the task's later changes, and marks the task until `r`;
+  one Jira refused as a bad request waits for `r`.
+- Changes go to the issue by its numeric id once known (the paths say
+  `issue/10201`, not `issue/PROJ-1`).
 - 502, 503 and 504 from Jira (maintenance) are retried by the next sync
   rather than waiting for `r`.
 - Out of Blocked while Flagged: the flag cleared and the transition are
@@ -1039,8 +1082,9 @@ Recorded after building, and after the review, on 14 November 2026.
   a request, so the card shows ↑ for that moment.
 - Changing `jira.blocked` re-files a linked card at the next sync.
 - Comments past the 100 most recent, and bodies past 64 KiB, aren't
-  kept; such a description isn't edited from the agenda. Invisible
-  characters in titles and names are removed.
+  kept; such a description (or title, past 500 characters) isn't edited
+  from the agenda. Invisible characters in titles and names are removed
+  from what's shown, never from what's kept.
 - Jira's sync runs on `jira.sync_minutes` but never more often than
   every 5 minutes; its first timed sync is shortly after Fenix starts,
   where 1.2's was `jira.sync_minutes` after.
