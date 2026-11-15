@@ -4945,6 +4945,49 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.typst",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/typst-v1.0.0/fenix.typst-1.0.0.fenixext",
+          "sha256": "4af9fdeeae5b776fe35258591bbc8a43f931ead3c02453819dca03779ee986e8",
+          "size": 442267,
+          "dependencies": {},
+          "categories": [
+            "languages",
+            "snippets",
+            "templates"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "editor": "read",
+            "filesystem": "project-read",
+            "network": [
+              "github.com",
+              "objects.githubusercontent.com",
+              "release-assets.githubusercontent.com"
+            ],
+            "process": [
+              "typst",
+              "tinymist",
+              "typstyle",
+              "/tools/*"
+            ]
+          }
+        }
+      ],
+      "name": "Typst",
+      "description": "Typst: its grammar, tinymist, typstyle, compile and watch with their errors as problems, the PDF it makes opened in the PDF reader, the project's checks with fixes that install the tools, snippets, and templates",
+      "categories": [
+        "languages",
+        "snippets",
+        "templates"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.vitesse-themes",
       "versions": [
         {
