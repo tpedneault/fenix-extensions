@@ -1,0 +1,3 @@
+{"kind":"IngressList","apiVersion":"networking.k8s.io/v1","metadata":{"resourceVersion":"48211"},"items":[
+{"metadata":{"name":"shop","namespace":"shop","creationTimestamp":"2026-11-12T09:00:00Z"},"spec":{"ingressClassName":"nginx","tls":[{"hosts":["shop.example.test"],"secretName":"shop-tls"}],"rules":[{"host":"shop.example.test","http":{"paths":[{"path":"/","pathType":"Prefix","backend":{"service":{"name":"web","port":{"number":80}}}}]}}]},"status":{"loadBalancer":{"ingress":[{"ip":"172.18.0.51"}]}}}
+]}

@@ -32,7 +32,7 @@ impl Recorded {
     }
 
     /// A Jira Server answering from the fixtures in `dir`: `/myself`,
-    /// `/field`, a search for linked issues and one for yours (two
+    /// `/field`, a search for linked issues (by key or id) and one for yours (two
     /// pages), `PROJ-1` and its transitions, the priorities, `NOPE-1`
     /// not there, and every write accepted.
     pub fn jira_server(dir: &Path) -> Recorded {
@@ -41,6 +41,7 @@ impl Recorded {
         r.on("GET", "/rest/api/2/myself", 200, read("myself.json"))
             .on("GET", "/rest/api/2/field", 200, read("field.json"))
             .on("GET", "/rest/api/2/search?jql=key%20IN", 200, read("search-linked.json"))
+            .on("GET", "/rest/api/2/search?jql=id%20IN", 200, read("search-linked.json"))
             .on("GET", "/rest/api/2/search?jql=assignee", 200, read("search-assigned-0.json"))
             .on("GET", "&startAt=2&", 200, read("search-assigned-2.json"))
             .on("GET", "/rest/api/2/issue/PROJ-1?", 200, read("issue-PROJ-1.json"))

@@ -1,0 +1,129 @@
+Content-Length: 154
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:44 INFO  logging to files /home/u/orbit/.metals/metals.log"}}Content-Length: 173
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:44 INFO  Started: Metals version 1.6.9 in folders \u0027/home/u/orbit\u0027 ."}}Content-Length: 2814
+
+{"jsonrpc":"2.0","id":1,"result":{"capabilities":{"textDocumentSync":{"openClose":true,"change":1,"save":{"includeText":false}},"hoverProvider":true,"completionProvider":{"resolveProvider":true,"triggerCharacters":[".","*","$","`"]},"signatureHelpProvider":{"triggerCharacters":["(","[",","]},"definitionProvider":true,"typeDefinitionProvider":true,"implementationProvider":true,"referencesProvider":true,"documentHighlightProvider":true,"documentSymbolProvider":true,"workspaceSymbolProvider":true,"codeActionProvider":{"resolveProvider":true},"codeLensProvider":{"resolveProvider":false},"documentFormattingProvider":true,"documentRangeFormattingProvider":true,"documentOnTypeFormattingProvider":{"firstTriggerCharacter":"\n","moreTriggerCharacter":["\"","{"]},"renameProvider":{"prepareProvider":true},"foldingRangeProvider":true,"executeCommandProvider":{"commands":["debug-adapter-start","new-scala-file","build-connect","reset-workspace","doctor-run","insert-inferred-type","insert-inferred-method","build-restart","explain-diagnostic","discover-jvm-run-command","generate-bsp-config","build-disconnect","copy-worksheet-output","presentation-compiler-restart","browser-open-url:https://github.com/scalameta/metals-feature-requests/issues/new?template\u003dfeature-request.yml","analyze-stacktrace","goto-log","build-disconnect-and-shutdown","show-reports-for-build-target","reset-choice","goto","module-status-bar-clicked","zip-reports","open-new-github-issue","new-scala-project","copy-fqn","compile-target","list-build-targets","scalafix-run","build-import","inline-value","sources-scan","bsp-switch","new-java-file","reset-notifications","extract-member-definition","compile-cancel","goto-super-method","goto-position","compile-cascade","resolve-stacktrace-location","discover-tests","scala-cli-stop","super-method-hierarchy","scala-cli-start","file-decode","compile-clean","scalafix-run-only"]},"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true},"fileOperations":{"willRename":{"filters":[{"pattern":{"glob":"**/*.scala","matches":"file"}},{"pattern":{"glob":"**/","matches":"folder"}}]}}},"typeHierarchyProvider":true,"callHierarchyProvider":true,"selectionRangeProvider":true,"semanticTokensProvider":{"legend":{"tokenTypes":["namespace","type","class","enum","interface","struct","typeParameter","parameter","variable","property","enumMember","event","function","method","macro","keyword","modifier","comment","string","number","regexp","operator","decorator"],"tokenModifiers":["declaration","definition","readonly","static","deprecated","abstract","async","modification","documentation","defaultLibrary"]},"range":false,"full":true},"inlayHintProvider":{"resolveProvider":true},"experimental":{"rangeHoverProvider":true}},"serverInfo":{"name":"Metals","version":"1.6.9"}}}Content-Length: 127
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:44 INFO  Memory monitor started"}}Content-Length: 138
+
+{"jsonrpc":"2.0","id":"1","method":"workspace/configuration","params":{"items":[{"scopeUri":"file:///home/u/orbit/","section":"metals"}]}}Content-Length: 165
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Database: jdbc:h2:file:/home/u/orbit/.metals/metals (H2 2.5)"}}Content-Length: 230
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 WARN  Using H2 2.5.250 which is newer than the version Flyway has been verified with. The latest verified version of H2 is 2.3.232."}}Content-Length: 181
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Schema history table \"PUBLIC\".\"flyway_schema_history\" does not exist yet"}}Content-Length: 168
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Successfully validated 7 migrations (execution time 00:00.010s)"}}Content-Length: 175
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Creating Schema History table \"PUBLIC\".\"flyway_schema_history\" ..."}}Content-Length: 181
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Current version of schema \"PUBLIC\": \u003c\u003c Empty Schema \u003e\u003e"}}Content-Length: 165
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Migrating schema \"PUBLIC\" to version \"1 - Create tables\""}}Content-Length: 168
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Migrating schema \"PUBLIC\" to version \"2 - Server discovery\""}}Content-Length: 163
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Migrating schema \"PUBLIC\" to version \"3 - Jar symbols\""}}Content-Length: 164
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Migrating schema \"PUBLIC\" to version \"4 - Fingerprints\""}}Content-Length: 170
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Migrating schema \"PUBLIC\" to version \"5 - Jar type hierarchy\""}}Content-Length: 166
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Migrating schema \"PUBLIC\" to version \"6 - Delete indices\""}}Content-Length: 168
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Migrating schema \"PUBLIC\" to version \"7 - Toplevel members\""}}Content-Length: 206
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Successfully applied 7 migrations to schema \"PUBLIC\", now at version v7 (execution time 00:00.026s)"}}Content-Length: 149
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Attempting to connect to the build server..."}}Content-Length: 447
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:45 INFO  Running BSP server List(/tmp/claude-0/-home-user/61419de0-c6d3-5f12-9814-ecf7298003a1/scratchpad/m6-scala/bin/scala-cli-jvm, bsp, --json-options, /home/u/orbit/.scala-build/ide-options-v2.json, --json-launcher-options, /home/u/orbit/.scala-build/ide-launcher-options.json, --envs-file, /home/u/orbit/.scala-build/ide-envs.json, /home/u/orbit)"}}Content-Length: 940
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:46 INFO  BSP server: Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore\u003d/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType\u003dJKS -Dhttps.proxyHost\u003d127.0.0.1 -Dhttps.proxyPort\u003d43107 -Dhttp.nonProxyHosts\u003dlocalhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes\u003d -Djdk.http.auth.proxying.disabledSchemes\u003d"}}Content-Length: 299
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:46 INFO  Tracing is disabled for protocol BSP. To enable tracing of incoming and outgoing JSON messages, create an empty file at /home/u/orbit/.metals/bsp.trace.json or /root/.cache/metals/bsp.trace.json"}}Content-Length: 129
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/u/orbit/hello.scala","diagnostics":[]}}Content-Length: 128
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/u/orbit/ugly.scala","diagnostics":[]}}Content-Length: 129
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/u/orbit/hello.scala","diagnostics":[]}}Content-Length: 128
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/u/orbit/ugly.scala","diagnostics":[]}}Content-Length: 145
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:49 INFO  time: Connected to build server in 3.14s"}}Content-Length: 149
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:49 INFO  Connected to Build server: scala-cli v1.19.0"}}Content-Length: 126
+
+{"jsonrpc":"2.0","id":"2","method":"window/workDoneProgress/create","params":{"token":"e511d8cb-3b4d-4894-bd0e-391b27e1c2c1"}}Content-Length: 148
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"e511d8cb-3b4d-4894-bd0e-391b27e1c2c1","value":{"kind":"begin","title":"Importing build"}}}Content-Length: 123
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"e511d8cb-3b4d-4894-bd0e-391b27e1c2c1","value":{"kind":"report"}}}Content-Length: 134
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:49 INFO  time: Imported build in 0.18s"}}Content-Length: 120
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"e511d8cb-3b4d-4894-bd0e-391b27e1c2c1","value":{"kind":"end"}}}Content-Length: 126
+
+{"jsonrpc":"2.0","id":"3","method":"window/workDoneProgress/create","params":{"token":"4f70c683-59ae-4fab-837f-a876e0587805"}}Content-Length: 141
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"4f70c683-59ae-4fab-837f-a876e0587805","value":{"kind":"begin","title":"Indexing"}}}Content-Length: 376
+
+{"jsonrpc":"2.0","id":"4","method":"window/showMessageRequest","params":{"actions":[{"title":"Start"},{"title":"Not now"},{"title":"Don\u0027t show again"}],"type":3,"message":"Http server is required for such features as Metals Doctor, do you want to start it now?To avoid this pop up start metals with -Dmetals.http\u003don property or isHttpEnabled initialization option"}}Content-Length: 170
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:49 WARN  Unable to run doctor. Make sure `isHttpEnabled` is set to `true`."}}Content-Length: 337
+
+{"jsonrpc":"2.0","id":"5","method":"window/showMessageRequest","params":{"actions":[{"title":"More information"},{"title":"Don\u0027t show again"}],"type":2,"message":"Metals might not work correctly for 2 build targets in this workspace due to mis-configuration.  Select \u0027More information\u0027 to learn how to fix this problem."}}Content-Length: 123
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"4f70c683-59ae-4fab-837f-a876e0587805","value":{"kind":"report"}}}Content-Length: 128
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/u/orbit/ugly.scala","diagnostics":[]}}Content-Length: 129
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/u/orbit/hello.scala","diagnostics":[]}}Content-Length: 138
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"4f70c683-59ae-4fab-837f-a876e0587805","value":{"kind":"report","message":"1s"}}}Content-Length: 451
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:51 WARN  Could not find java sources in /usr/lib/jvm/src.zip, /usr/lib/jvm/lib/src.zip, /usr/lib/jvm/java-21-openjdk-amd64/src.zip, /usr/lib/jvm/java-21-openjdk-amd64/lib/src.zip, /usr/lib/jvm/src.zip, /usr/lib/jvm/lib/src.zip, /usr/lib/jvm/java-21-openjdk-amd64/src.zip, /usr/lib/jvm/java-21-openjdk-amd64/lib/src.zip. Java symbols will not be available."}}Content-Length: 136
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:27:51 INFO  time: indexed workspace in 2.6s"}}Content-Length: 120
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"4f70c683-59ae-4fab-837f-a876e0587805","value":{"kind":"end"}}}Content-Length: 113
+
+{"jsonrpc":"2.0","method":"metals/status","params":{"text":"","level":"info","show":false,"statusType":"module"}}Content-Length: 231
+
+{"jsonrpc":"2.0","method":"metals/status","params":{"text":"proj-cli_abe8f16e90 ","level":"info","show":true,"tooltip":"No errors for the build target.","command":"doctor-run","commandTooltip":"Open doctor.","statusType":"module"}}Content-Length: 126
+
+{"jsonrpc":"2.0","id":"6","method":"window/workDoneProgress/create","params":{"token":"cac8a70a-1d7f-417f-9a6a-f9ccd694dd04"}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"cac8a70a-1d7f-417f-9a6a-f9ccd694dd04","value":{"kind":"begin","title":"Loading presentation compiler"}}}Content-Length: 120
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"cac8a70a-1d7f-417f-9a6a-f9ccd694dd04","value":{"kind":"end"}}}Content-Length: 248
+
+{"jsonrpc":"2.0","id":"7","method":"window/showMessageRequest","params":{"actions":[{"title":"Create .scalafmt.conf"},{"title":"Run anyway"},{"title":"Not now"}],"type":1,"message":"No .scalafmt.conf file detected. How would you like to proceed:"}}Content-Length: 111
+
+{"jsonrpc":"2.0","method":"window/showMessage","params":{"type":3,"message":"Created .metals/.scalafmt.conf."}}Content-Length: 140
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/u/orbit/.metals/.scalafmt.conf","diagnostics":[]}}Content-Length: 213
+
+{"jsonrpc":"2.0","id":2,"result":[{"range":{"start":{"line":0,"character":0},"end":{"line":4,"character":0}},"newText":"object Ugly {\n  def f(x: Int) \u003d x + 1\n  val y \u003d List(1, 2, 3).map(_ * 2)\n}\n"}]}Content-Length: 126
+
+{"jsonrpc":"2.0","id":"8","method":"window/workDoneProgress/create","params":{"token":"8cf31118-1d30-4cbc-9408-a7ca12f28a39"}}Content-Length: 173
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"8cf31118-1d30-4cbc-9408-a7ca12f28a39","value":{"kind":"begin","title":"Starting debug server","cancellable":true}}}Content-Length: 120
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"8cf31118-1d30-4cbc-9408-a7ca12f28a39","value":{"kind":"end"}}}Content-Length: 80
+
+{"jsonrpc":"2.0","id":3,"result":{"name":"hello","uri":"tcp://127.0.0.1:45007"}}Content-Length: 125
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:28:29 INFO  Shutting down server"}}Content-Length: 127
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:28:29 INFO  Memory monitor stopped"}}Content-Length: 125
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:28:29 INFO  shutting down Metals"}}Content-Length: 144
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:28:30 INFO  Shut down connection with build server."}}Content-Length: 320
+
+{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":4,"message":"2026.11.14 19:28:30 INFO  Tracing is disabled for protocol dap-server. To enable tracing of incoming and outgoing JSON messages, create an empty file at /home/u/orbit/.metals/dap-server.trace.json or /root/.cache/metals/dap-server.trace.json"}}

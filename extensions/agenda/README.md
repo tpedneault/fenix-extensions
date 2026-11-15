@@ -53,7 +53,9 @@ agenda only -- is asked the first time and remembered.
 
 Any tracker extension that serves the agenda works the same way, and
 several at once: GitHub Issues, GitLab Issues and Linear are found when
-they're installed. Where issues from two are listed together, each says
+they're installed. Each is synced on its own schedule. A change whose
+answer never came isn't sent again by itself: the task says it may have
+been made, and `r` asks. Where issues from two are listed together, each says
 whose it is; words that said "Jira" name the task's tracker. A tracker
 built elsewhere is found once its name is in `agenda.trackers`.
 
@@ -82,19 +84,27 @@ talks to its own server, and the agenda only asks it.
 ## Writing a tracker
 
 A tracker extension serves the agenda the **tracker seam**: a few JSON
-services under its own name, `<name>.tracker.about`, `.assigned`,
-`.issues`, `.transitions`, `.transition`, and the writes it chooses to
-take. The contract -- every call, field, limit and error, how the agenda
-finds trackers, and a checklist -- is
-[`plans/tracker-seam.md`](../../plans/tracker-seam.md). The shapes, the
-cleaning of untrusted text and a fake tracker are the shared crate
-[`crates/tracker`](../../crates/tracker) (`fenix-tracker`); Jira's is
-`crates/jira`'s `tracker` module.
+services under its own full id, `<id>.tracker.about`, `.assigned`,
+`.issues`, `.transitions`, `.transition` (`fenix.jira.tracker.about`),
+and the writes it chooses to take. The contract -- every call, field,
+limit and error, how the agenda finds trackers, the gate on writes, and
+a checklist -- is [`plans/tracker-seam.md`](../../plans/tracker-seam.md).
+The shapes, the cleaning of untrusted text, the gate and a fake tracker
+are the shared crate [`crates/tracker`](../../crates/tracker)
+(`fenix-tracker`); Jira's is `crates/jira`'s `tracker` module.
 
-To see the agenda drive yours, copy `src/tests.rs`: `world` starts the
-agenda on the test kit's fake host with trackers wired to
-`<name>.tracker.*`, and its tests run `FakeTracker` through import,
-paging, moves, errors and two trackers at once.
+To see the agenda drive yours, from your own crate:
+
+```toml
+[dev-dependencies]
+fenix-agenda = { path = "../agenda", features = ["testing"] }
+```
+
+`fenix_agenda::testing::world_with` starts the agenda on the test kit's
+fake host with the services you wire -- `serve` puts a `FakeTracker`
+behind `<id>.tracker.*`; wire your own answers the same way -- and
+`World` adds issues, moves cards and tells you what the agenda said.
+The agenda's own `src/tests.rs` is a full set of examples.
 
 ## Building
 

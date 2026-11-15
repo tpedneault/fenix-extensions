@@ -19,14 +19,20 @@ fenix-tracker = { path = "../../crates/tracker" }
 fenix-jira-client = { path = "../../crates/jira" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# `testing`: the agenda's test world, for a tracker's tests.
+fenix-test-kit = { path = "../../crates/test-kit", optional = true }
+
+[features]
+# The agenda on the test kit's fake host, `fenix_agenda::testing`: for a
+# tracker extension's tests of the agenda against its own answers. Never
+# packed: the extension is built without it.
+testing = ["dep:fenix-test-kit"]
 
 [dev-dependencies]
 # A fake host for its tests, and its pages as text.
 fenix-test-kit = { path = "../../crates/test-kit" }
 # The Jira seam run on recorded responses, beside the old path.
 futures-executor = "0.3"
-# GitHub's and GitLab's seams, run on written responses.
-fenix-forge = { path = "../../crates/forge", features = ["tracker"] }
 
 [profile.release]
 opt-level = "s"

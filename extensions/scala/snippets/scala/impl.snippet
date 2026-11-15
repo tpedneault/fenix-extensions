@@ -1,0 +1,8 @@
+# name: implicit class (Scala 2)
+# key: impl
+# scope: scala
+# --
+implicit class ${1:RichString}(val ${2:s}: ${3:String}) extends AnyVal {
+  def ${4:shout}: $3 = ${5:s.toUpperCase}
+}
+$0

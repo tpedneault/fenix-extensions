@@ -10,11 +10,11 @@
 //! once the job's answer has come (`Agenda::take_done`).
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::time::{Duration, Instant};
 
-use fenix_tracker::{self as seam, call, Issue, Move, Moves, SeamError};
+use fenix_tracker::{self as seam, call, code, Issue, Move, Moves, SeamError};
 
 use crate::calls;
 use crate::model::{self, OpKind, PendingOp, RemoteComment, RemoteSnapshot, RemoteUpdate, Status, TaskId, WorklogRow};
@@ -33,20 +33,22 @@ pub const STALE_AFTER: Duration = Duration::from_secs(120);
 /// again -- one installed while Fenix runs is found by then.
 pub const PROBE_AFTER: Duration = Duration::from_secs(300);
 
-/// One sync, across every tracker: what each said, told once the last
-/// has answered.
+/// One sync, across the trackers it asked: what each said, told once the
+/// last has answered.
 #[derive(Debug, Default)]
 pub struct Round {
     pub quiet: bool,
     /// Trackers still to answer.
     pub waiting: usize,
-    pub synced: usize,
+    /// (tracker, issues brought up to date), for each that synced.
+    pub synced: Vec<(String, usize)>,
     pub conflicts: usize,
-    /// The trackers asked.
-    pub trackers: Vec<String>,
     /// (tracker, why) for each that failed.
     pub failures: Vec<(String, String)>,
 }
+
+/// What a command waiting on the trackers' answer will do.
+pub type Then = Box<dyn FnOnce(&mut crate::Agenda)>;
 
 /// The sync's bookkeeping: none of it worth saving.
 #[derive(Default)]
@@ -54,9 +56,12 @@ pub struct Sync {
     pub trackers: Trackers,
     /// Whether the trackers have been asked, and when.
     pub probed: Option<Instant>,
-    pub probing: bool,
+    /// Asks under way, and what they've found so far, in the order asked.
+    pub probing: Vec<(String, Option<Found>)>,
     /// Asked again once the asking under way is done.
     pub probe_again: bool,
+    /// Commands waiting for the asking to be done.
+    pub waiting: Vec<Then>,
     /// The op being sent -- one at a time, in order, whichever tracker
     /// it's for, so a title change can't overtake the move queued before
     /// it.
@@ -66,10 +71,8 @@ pub struct Sync {
     pub pull_after_drain: bool,
     pub last_pull: Option<Instant>,
     pub sending_worklogs: bool,
-    /// The periodic sync's timer, and its minutes.
-    pub ticker: Option<(u64, u32)>,
-    /// Trackers speaking another seam, said once.
-    pub warned: Vec<String>,
+    /// Trackers said to be unusable, said once.
+    pub warned: HashSet<String>,
 }
 
 impl Sync {
@@ -85,6 +88,10 @@ impl Sync {
     /// A ready tracker, by id.
     pub fn ready(&self, id: &str) -> Option<&Tracker> {
         self.trackers.get(id).filter(|t| t.ready())
+    }
+
+    pub fn is_probing(&self) -> bool {
+        !self.probing.is_empty()
     }
 }
 
@@ -115,7 +122,11 @@ pub enum Pick {
     /// The "Blocked" row of a linked task's status picker.
     StartBlocked,
     Priority(seam::Priority),
-    Assignee(seam::Person),
+    /// Someone, or nobody.
+    Assignee(Option<seam::Person>),
+    /// A change that may have been made: send it again, or forget it.
+    SendAgain,
+    Forget,
 }
 
 /// What an issue fetch was for.
@@ -141,11 +152,10 @@ pub struct WorklogSent {
 /// A job's end, for the agenda to take in.
 #[derive(Debug)]
 pub enum Done {
-    /// The trackers that answered, in the order asked; and those that
-    /// speak another seam (id, name, its seam).
-    Probed { found: Vec<Tracker>, other: Vec<(String, String, u32)> },
+    /// What asking one tracker found.
+    Probed { id: String, found: Found },
     /// One tracker's part of a sync.
-    Pulled { tracker: String, keys: Vec<String>, result: Result<seam::Found, SeamError> },
+    Pulled { tracker: String, asked: Vec<String>, result: Result<seam::Found, SeamError> },
     OpDone { op_id: u64, key: String, tracker: String, what: String, result: Result<Option<String>, SeamError> },
     /// Issues to pick from, each with its tracker: those assigned to
     /// you, or the one asked for.
@@ -155,15 +165,29 @@ pub enum Done {
     People { task: TaskId, result: Result<seam::People, SeamError> },
     WorklogsSent(Vec<WorklogSent>),
     /// The tracker's new-issue form, filled in from a task: the ref it
-    /// made, or why not.
-    Created { task: TaskId, tracker: String, result: Result<Option<String>, SeamError> },
+    /// made, or what it said it opened, or why not.
+    Created { task: TaskId, tracker: String, result: Result<seam::Created, SeamError> },
     /// A choice a move carried, kept by the tracker.
     Remembered { tracker: String, result: Result<(), SeamError> },
+    /// The project you're in, as each tracker that can tell names it.
+    Projects(Vec<(String, String)>),
 }
 
 impl std::fmt::Debug for Tracker {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Tracker({})", self.id)
+    }
+}
+
+impl std::fmt::Debug for Found {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Found::Tracker(t) => write!(f, "Found({})", t.id),
+            Found::Other { id, .. } => write!(f, "Other({id})"),
+            Found::Impostor { id, .. } => write!(f, "Impostor({id})"),
+            Found::Broken { id, .. } => write!(f, "Broken({id})"),
+            Found::Absent => write!(f, "Absent"),
+        }
     }
 }
 
@@ -184,53 +208,73 @@ pub fn spawn(job: impl Future<Output = Done> + 'static) {
     });
 }
 
-/// Asks every tracker in `ids` who it is.
-pub fn probe(ids: Vec<String>) {
+/// Asks `id` who it is, beside the others: one that hangs holds up none.
+pub fn probe(id: String) {
     spawn(async move {
-        let mut found = Vec::new();
-        let mut other = Vec::new();
-        for id in ids {
-            match trackers::probe(id).await {
-                Found::Tracker(t) => found.push(t),
-                Found::Other { id, name, seam } => other.push((id, name, seam)),
-                Found::Absent => {}
-            }
-        }
-        Done::Probed { found, other }
+        let found = trackers::probe(id.clone()).await;
+        Done::Probed { id, found }
     });
 }
 
-/// One tracker's linked issues, in calls of 50.
-pub fn pull(via: Via, keys: Vec<String>) {
+/// Issues `asked` (ids, or refs for links that don't know theirs), one
+/// call each, merged.
+async fn one_by_one(via: &Via, asked: &[String]) -> Result<seam::Found, SeamError> {
+    let mut found = seam::Found::default();
+    for one in asked {
+        match via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(vec![one.clone()])).await {
+            Ok(part) => {
+                let part = part.cleaned();
+                found.issues.extend(part.issues);
+                found.missing.extend(part.missing);
+            }
+            Err(e) if e.is(code::NOT_FOUND) => found.missing.push(one.clone()),
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(found)
+}
+
+/// One tracker's linked issues, in calls of 50. A tracker that answers
+/// `not_found` for a whole call of several is asked one at a time.
+pub fn pull(via: Via, asked: Vec<String>) {
     spawn(async move {
         let mut found = seam::Found::default();
-        for chunk in keys.chunks(seam::Issues::MAX_REFS) {
-            match via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(chunk.to_vec())).await {
+        for chunk in asked.chunks(seam::Issues::MAX_REFS) {
+            let part = match via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(chunk.to_vec())).await {
+                Ok(part) => Ok(part.cleaned()),
+                Err(e) if e.is(code::NOT_FOUND) => one_by_one(&via, chunk).await,
+                Err(e) => Err(e),
+            };
+            match part {
                 Ok(part) => {
-                    let part = part.cleaned();
                     found.issues.extend(part.issues);
                     found.missing.extend(part.missing);
                 }
-                Err(err) => return Done::Pulled { tracker: via.id, keys, result: Err(err) },
+                Err(err) => return Done::Pulled { tracker: via.id, asked, result: Err(err) },
             }
         }
-        Done::Pulled { tracker: via.id, keys, result: Ok(found) }
+        Done::Pulled { tracker: via.id, asked, result: Ok(found) }
     });
 }
 
-/// One op from the outbox, sent.
+/// One op from the outbox, sent, with its `op`.
 pub fn send_op(via: Via, op: PendingOp, key: String) {
     spawn(async move {
-        let update = |change: seam::Change| seam::Update::new(&key, &change);
+        let uid = (!op.uid.is_empty()).then(|| op.uid.clone());
+        let update = |change: seam::Change| seam::Update::new(&key, &change, uid.clone());
+        let transition = |id: String| seam::Transition { seam: seam::SEAM, key: key.clone(), id, op: uid.clone() };
         let result = match &op.kind {
-            OpKind::SetSummary(s) => via.get::<seam::Said>(call::UPDATE, &update(seam::Change::Title(s.clone()))).await,
-            OpKind::SetDescription(s) => via.get::<seam::Said>(call::UPDATE, &update(seam::Change::Body(s.clone()))).await,
-            OpKind::SetPriority(p) => via.get::<seam::Said>(call::UPDATE, &update(seam::Change::Priority(p.clone()))).await,
-            OpKind::SetDue(due) => via.get::<seam::Said>(call::UPDATE, &update(seam::Change::Due(due.clone()))).await,
-            OpKind::SetAssignee { id, name } => via.get::<seam::Said>(call::UPDATE, &update(seam::Change::Assignee(seam::Person { id: id.clone(), name: name.clone() }))).await,
-            OpKind::AddComment(body) => via.get::<seam::Said>(call::COMMENT, &seam::NewComment { seam: seam::SEAM, key: key.clone(), body: body.clone() }).await,
-            OpKind::Transition { id, .. } => via.get::<seam::Said>(call::TRANSITION, &seam::Transition { seam: seam::SEAM, key: key.clone(), id: id.clone() }).await,
-            OpKind::SetFlag(on) => via.get::<seam::Said>(call::TRANSITION, &seam::Transition { seam: seam::SEAM, key: key.clone(), id: crate::legacy::flag_move(*on).into() }).await,
+            OpKind::SetSummary(s) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Title(s.clone()))).await,
+            OpKind::SetDescription(s) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Body(s.clone()))).await,
+            OpKind::SetPriority(p) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Priority(p.clone()))).await,
+            OpKind::SetDue(due) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Due(due.clone()))).await,
+            OpKind::SetAssignee { id, name } => {
+                let who = (!id.is_empty()).then(|| seam::Person { id: id.clone(), name: name.clone() });
+                via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Assignee(who))).await
+            }
+            OpKind::AddComment(body) => via.put::<seam::Said>(call::COMMENT, &seam::NewComment { seam: seam::SEAM, key: key.clone(), body: body.clone(), op: uid.clone() }).await,
+            OpKind::Transition { id, .. } => via.put::<seam::Said>(call::TRANSITION, &transition(id.clone())).await,
+            OpKind::SetFlag(on) => via.put::<seam::Said>(call::TRANSITION, &transition(crate::legacy::flag_move(*on).into())).await,
         };
         let result = result.map(|said| said.said.map(|s| fenix_tracker::clean::message(&s)));
         Done::OpDone { op_id: op.id, key, tracker: via.id, what: op.kind.describe(), result }
@@ -261,29 +305,35 @@ pub fn people(via: Via, task: TaskId, key: String) {
 }
 
 /// Every ready tracker's open issues assigned to you, up to `most` each,
-/// a page at a time.
+/// a page at a time; each issue once, however the pages drift.
 pub fn assigned(purpose: IssueFetch, vias: Vec<Via>, most: u32) {
     spawn(async move {
         let (mut found, mut failures) = (Vec::new(), Vec::new());
         for via in vias {
             let mut cursor: Option<String> = None;
+            let mut seen: HashSet<String> = HashSet::new();
             let mut got = 0u32;
             loop {
                 let limit = (most - got).min(seam::Assigned::MAX_LIMIT);
-                match via.get::<seam::Page>(call::ASSIGNED, &seam::Assigned::new(limit, cursor.clone())).await {
-                    Ok(page) => {
-                        let page = page.cleaned();
-                        got += page.issues.len() as u32;
-                        found.extend(page.issues.into_iter().map(|i| (via.id.clone(), i)));
-                        match page.next {
-                            Some(next) if got < most && cursor.as_ref() != Some(&next) => cursor = Some(next),
-                            _ => break,
-                        }
-                    }
+                let page = match via.get::<seam::Page>(call::ASSIGNED, &seam::Assigned::new(limit, cursor.clone())).await.and_then(seam::Page::cleaned) {
+                    Ok(page) => page,
                     Err(err) => {
                         failures.push((via.id.clone(), err));
                         break;
                     }
+                };
+                if page.issues.is_empty() {
+                    break;
+                }
+                got += page.issues.len() as u32;
+                for issue in page.issues {
+                    if seen.insert(issue.id.clone()) {
+                        found.push((via.id.clone(), issue));
+                    }
+                }
+                match page.next {
+                    Some(next) if got < most && cursor.as_ref() != Some(&next) => cursor = Some(next),
+                    _ => break,
                 }
             }
         }
@@ -301,7 +351,7 @@ pub fn issue(purpose: IssueFetch, vias: Vec<Via>, key: String) {
                     if let Some(issue) = found.cleaned().issues.into_iter().next() {
                         return Done::Issues { purpose, found: vec![(via.id, issue)], failures: Vec::new() };
                     }
-                    failures.push((via.id.clone(), SeamError::new(seam::code::NOT_FOUND, format!("{} returned no issue", via.name))));
+                    failures.push((via.id.clone(), SeamError::new(code::NOT_FOUND, format!("{} returned no issue", via.name))));
                 }
                 Err(err) => failures.push((via.id.clone(), err)),
             }
@@ -310,13 +360,13 @@ pub fn issue(purpose: IssueFetch, vias: Vec<Via>, key: String) {
     });
 }
 
-pub fn worklogs(rows: Vec<(Via, WorklogRow)>) {
+pub fn worklogs(rows: Vec<(Via, WorklogRow, String)>) {
     spawn(async move {
         let mut results = Vec::new();
-        for (via, row) in rows {
+        for (via, row, op) in rows {
             let started = row.started.to_rfc3339_opts(chrono::SecondsFormat::Millis, false);
-            let req = seam::Worklog { seam: seam::SEAM, key: row.key.clone(), seconds: row.minutes * 60, started };
-            let result = via.ask(call::WORKLOG, &req).await.map(|_| ());
+            let req = seam::Worklog { seam: seam::SEAM, key: row.key.clone(), seconds: row.minutes * 60, started, op: Some(op) };
+            let result = via.write(call::WORKLOG, &req).await.map(|_| ());
             results.push(WorklogSent { task: row.task, entries: row.entries, key: row.key, minutes: row.minutes, result });
         }
         Done::WorklogsSent(results)
@@ -324,12 +374,12 @@ pub fn worklogs(rows: Vec<(Via, WorklogRow)>) {
 }
 
 /// The tracker's new-issue form, filled in from a task: answered once
-/// you've made the issue.
-pub fn create(via: Via, task: TaskId, title: String, body: String) {
+/// you've made the issue, or at once with what it opened.
+pub fn create(via: Via, task: TaskId, title: String, body: String, op: String) {
     spawn(async move {
-        let req = seam::Create { seam: seam::SEAM, title, body };
+        let req = seam::Create { seam: seam::SEAM, title, body, op: Some(op) };
         let result = match via.ask_unbounded(call::CREATE, &req).await {
-            Ok(text) => serde_json::from_str::<seam::Created>(&text).map(|c| c.key.and_then(|k| fenix_tracker::clean::key(&k))).map_err(|e| SeamError::new(seam::code::FAILED, e.to_string())),
+            Ok(text) => via.read::<seam::Created>(call::CREATE, &text).map(|c| seam::Created { key: c.key.and_then(|k| fenix_tracker::clean::key(&k)), opened: c.opened.map(|o| fenix_tracker::clean::message(&o)) }),
             Err(err) => Err(err),
         };
         Done::Created { task, tracker: via.id, result }
@@ -337,10 +387,26 @@ pub fn create(via: Via, task: TaskId, title: String, body: String) {
 }
 
 /// A choice a move carried, for the tracker to keep.
-pub fn remember(via: Via, key: String, remember: String) {
+pub fn remember(via: Via, key: String, remember: String, op: String) {
     spawn(async move {
-        let result = via.ask(call::REMEMBER, &seam::Remember { seam: seam::SEAM, key, remember }).await.map(|_| ());
+        let result = via.write(call::REMEMBER, &seam::Remember { seam: seam::SEAM, key, remember, op: Some(op) }).await.map(|_| ());
         Done::Remembered { tracker: via.id, result }
+    });
+}
+
+/// The project you're in, asked of each of `vias` (those that list
+/// `project`).
+pub fn projects(vias: Vec<Via>) {
+    spawn(async move {
+        let mut found = Vec::new();
+        for via in vias {
+            if let Ok(p) = via.get::<seam::Project>(call::PROJECT, &seam::Hello::default()).await {
+                if let Some(project) = p.project.as_deref().map(fenix_tracker::clean::name).filter(|p| !p.is_empty()) {
+                    found.push((via.id, project));
+                }
+            }
+        }
+        Done::Projects(found)
     });
 }
 
@@ -366,7 +432,7 @@ pub fn remote_update(i: &Issue) -> RemoteUpdate {
             description_cut: i.body_cut,
         },
         status: model::link::status_for_column(&i.state.column),
-        priority: model::link::priority_for_level(i.priority.as_ref().map(|p| p.level.as_str())),
+        priority: model::link::priority_for_level(i.priority.as_ref().and_then(|p| p.level.as_deref())),
         mine: i.mine,
     }
 }

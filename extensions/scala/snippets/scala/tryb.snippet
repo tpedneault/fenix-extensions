@@ -1,0 +1,11 @@
+# name: try with braces (Scala 2 and 3)
+# key: tryb
+# scope: scala
+# --
+try {
+  ${1:body}
+} catch {
+  case e: ${2:Exception} => ${3:handle(e)}
+} finally {
+  ${4:cleanup()}
+}$0

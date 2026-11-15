@@ -1,0 +1,8 @@
+# The session *Scala: debug the file you're in* (SPC m b) or *debug the
+# tests* started in Metals: Metals runs the program or the tests under its
+# own debug adapter, on a port the pack connects to, and what to run is
+# what it was asked -- so the session sends no program.
+name = "Scala: Metals' debug session"
+languages = ["scala"]
+request = "launch"
+program = false

@@ -40,7 +40,8 @@ token is a personal access token, sent as a bearer token.
 | `jira.queries` | Saved searches |
 | `jira.blocked` | Per project, what Blocked means: a status, the Flagged field, or nothing |
 | `jira.priorities` | How Jira's priorities map onto the agenda's |
-| `jira.sync_minutes` | How often the agenda's linked tasks are brought up to date |
+| `jira.sync_minutes` | How often the agenda's linked tasks are brought up to date (every 5 minutes at most) |
+| `jira.seam_writes` | Whether the agenda may change your issues: `ask` once a session (the default), `always`, or `never` |
 
 ## What it may do
 
@@ -53,16 +54,24 @@ token is a personal access token, sent as a bearer token.
 
 The agenda reaches Jira through the tracker seam
 ([`plans/tracker-seam.md`](../../plans/tracker-seam.md)) that this
-extension serves, `jira.tracker.*`: the issues assigned to you, the
+extension serves, `fenix.jira.tracker.*`: the issues assigned to you, the
 issues linked to tasks, their workflow's moves, and the agenda's edits,
 comments and worklogs. What Blocked means in a project (`jira.blocked`)
 and how priorities map (`jira.priorities`) are kept here, and the agenda
 holds neither your server nor your token.
 
+Fenix doesn't tell an extension who's calling it, so any installed
+extension could use the seam. The first change the seam brings in a
+session asks you: *"Agenda wants to change issues in Jira for you --
+allow for this session?"*; `jira.seam_writes` says it for good. A change
+sent twice (the agenda gave up waiting, and you said send it again) is
+made once in a session.
+
 The agenda 1.2, from before the seam, uses `jira.request`,
 `jira.config`, `jira.set_blocked` and `jira.new_issue`, which this one
-still answers; they go at 2.0. `jira.request` sends what it's given to
-your Jira as you, so until then any extension may ask it to.
+still answers, unchanged; they go at 2.0. **`jira.request` is
+deprecated**: it sends whatever request it's given to your Jira as you,
+for any extension that asks, without asking you.
 
 ## Building
 

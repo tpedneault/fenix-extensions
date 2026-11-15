@@ -1,0 +1,8 @@
+# name: for comprehension with braces (Scala 2 and 3)
+# key: forb
+# scope: scala
+# --
+for {
+  ${1:x} <- ${2:xs}
+  if ${3:x > 0}
+} yield ${4:x}$0
