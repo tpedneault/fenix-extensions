@@ -33,9 +33,10 @@ process = ["git", "gh"]
 filesystem = "project-read"
 
 [contributes]
-# The tracker seam the agenda calls; and the agent tools' two.
+# The tracker seam the agenda calls, under the extension's full id;
+# and the agent tools' two.
 services = [
-    "github-issues.tracker.about", "github-issues.tracker.assigned", "github-issues.tracker.issues", "github-issues.tracker.transitions", "github-issues.tracker.transition", "github-issues.tracker.update", "github-issues.tracker.priorities", "github-issues.tracker.people", "github-issues.tracker.comment", "github-issues.tracker.worklog", "github-issues.tracker.create", "github-issues.tracker.remember",
+    "fenix.github-issues.tracker.about", "fenix.github-issues.tracker.assigned", "fenix.github-issues.tracker.issues", "fenix.github-issues.tracker.transitions", "fenix.github-issues.tracker.transition", "fenix.github-issues.tracker.update", "fenix.github-issues.tracker.priorities", "fenix.github-issues.tracker.people", "fenix.github-issues.tracker.comment", "fenix.github-issues.tracker.worklog", "fenix.github-issues.tracker.create", "fenix.github-issues.tracker.remember", "fenix.github-issues.tracker.project",
     "github-issues.read_issue", "github-issues.my_issues",
 ]
 
@@ -96,18 +97,12 @@ description = "The name proposed for a branch started from an issue: {number}, {
 default = "{number}-{title}"
 
 [[contributes.settings]]
-key = "github-issues.blocked_label"
-kind = "text"
-label = "Blocked label"
-description = "The label that says an issue is blocked: the agenda's Blocked column adds and removes it. Empty, Blocked stays in the agenda."
-default = "blocked"
-
-[[contributes.settings]]
-key = "github-issues.doing_label"
-kind = "text"
-label = "In-progress label"
-description = "The label that puts an open issue in the agenda's Doing column rather than To do."
-default = "in progress"
+key = "github-issues.seam_writes"
+kind = "choice"
+choices = ["ask", "always", "never"]
+label = "Changes from the agenda"
+description = "Whether the agenda (or any extension using the tracker seam) may change your GitHub issues: ask once a session, always, or never. Your own changes on this extension's page are never asked about."
+default = "ask"
 
 [[contributes.settings]]
 key = "github-issues.sync_minutes"

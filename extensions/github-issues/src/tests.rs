@@ -91,18 +91,25 @@ fn the_manifest_serves_every_seam_call_by_its_name_and_asks_only_for_githubs_hos
 }
 
 #[test]
-fn about_is_ready_with_fenixs_token_or_the_github_clis_and_says_how_otherwise() {
+fn about_is_answered_at_once_ready_with_fenixs_token_or_the_github_clis() {
     let mut h = harness(fake());
-    assert_eq!(h.serve("github-issues.tracker.about", r#"{"seam": 1}"#), None, "answered once it's looked");
-    let about: seam::About = serde_json::from_str(&answer(&h).unwrap()).unwrap();
-    assert!(about.ready && about.name == "GitHub");
+    let about: seam::About = serde_json::from_str(&h.serve("fenix.github-issues.tracker.about", r#"{"seam": 9}"#).unwrap().unwrap()).unwrap();
+    assert!(about.ready && about.name == "GitHub" && about.id == ID, "answered at once, whatever seam it's asked with");
+    assert_eq!(about.can, ["comments", "edit.title", "edit.body", "edit.assignee", "edit.labels", "comment", "create", "project"]);
+    assert!(!about.blocked && h.fake.requests().is_empty() && h.fake.spawned().is_empty(), "nothing asked of anyone");
 
-    // No token of Fenix's: the GitHub CLI's.
+    // No token of Fenix's: not ready yet -- then the GitHub CLI's is
+    // found, and the agenda told to ask again.
     let f = fake();
     f.state_mut().secrets.clear();
     f.on_spawn("gh auth token --hostname github.com", Ran::ok(format!("{TOKEN}\n")));
     let mut h = harness(f);
-    h.serve("github-issues.tracker.issues", r#"{"seam": 1, "refs": ["acme/rocket#12"]}"#);
+    let about: seam::About = serde_json::from_str(&h.serve("fenix.github-issues.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+    assert!(!about.ready);
+    assert_eq!(h.fake.services().iter().filter(|s| s.name == "agenda.tracker_changed").map(|s| s.payload.clone()).collect::<Vec<_>>(), [r#"{"tracker":"fenix.github-issues"}"#]);
+    let about: seam::About = serde_json::from_str(&h.serve("fenix.github-issues.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+    assert!(about.ready, "ready once gh gave its token");
+    h.serve("fenix.github-issues.tracker.issues", r#"{"seam": 1, "refs": ["acme/rocket#12"]}"#);
     let found: seam::Found = serde_json::from_str(&answer(&h).unwrap()).unwrap();
     assert_eq!(found.issues[0].key, "acme/rocket#12");
     assert_eq!(h.fake.spawned().iter().filter(|(_, l)| l.starts_with("gh ")).count(), 1, "asked once, then kept");
@@ -115,21 +122,90 @@ fn about_is_ready_with_fenixs_token_or_the_github_clis_and_says_how_otherwise() 
     f.state_mut().secrets.clear();
     f.on_spawn("gh auth token", Ran::fails(1, "not logged in"));
     let mut h = harness(f);
-    h.serve("github-issues.tracker.about", r#"{"seam": 1}"#);
-    let about: seam::About = serde_json::from_str(&answer(&h).unwrap()).unwrap();
+    let about: seam::About = serde_json::from_str(&h.serve("fenix.github-issues.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
     assert_eq!((about.ready, about.not_ready.as_deref()), (false, Some("Sign GitHub in: gh auth login, or GitHub's token in SPC , (Forges) -- the one Review uses")));
-    h.serve("github-issues.tracker.assigned", r#"{"seam": 1}"#);
+    assert!(!h.fake.services().iter().any(|s| s.name == "agenda.tracker_changed"));
+    h.serve("fenix.github-issues.tracker.assigned", r#"{"seam": 1}"#);
     assert_eq!(SeamError::from_err(&answer(&h).unwrap_err()).code, seam::code::NOT_SET_UP);
-    assert!(h.fake.requests().is_empty(), "nothing sent without a token");
+    let e = SeamError::from_err(&h.serve("fenix.github-issues.tracker.comment", r#"{"seam": 1, "ref": "acme/rocket#12", "body": "x"}"#).unwrap().unwrap_err());
+    assert_eq!(e.code, seam::code::NOT_SET_UP, "a write not set up: said at once, nothing asked");
+    assert!(h.fake.pickers().is_empty() && h.fake.requests().is_empty(), "nothing sent without a token");
+}
+
+#[test]
+fn the_project_youre_in_is_its_remotes_repository() {
+    let mut h = harness(fake());
+    assert_eq!(h.serve("fenix.github-issues.tracker.project", r#"{"seam": 1}"#), None);
+    assert_eq!(answer(&h), Ok(r#"{"project":"acme/rocket"}"#.into()));
+    let f = fake();
+    f.on_spawn("git remote -v", Ran::ok("origin\tgit@gitlab.example.com:acme/rocket.git (fetch)"));
+    let mut h = harness(f);
+    h.serve("fenix.github-issues.tracker.project", r#"{"seam": 1}"#);
+    assert_eq!(answer(&h), Ok(r#"{"project":null}"#.into()), "a remote that isn't on GitHub");
+}
+
+#[test]
+fn the_seams_writes_are_gated_and_the_pages_are_not() {
+    const COMMENT: &str = r#"{"seam": 1, "ref": "acme/rocket#12", "body": "From the agenda", "op": "agenda:1:1"}"#;
+    let comments = |h: &Harness<IssuesExt>| h.fake.requests().iter().filter(|(_, r)| r.method == "POST" && r.url.ends_with("/comments")).count();
+
+    // never: refused, nothing asked or sent.
+    let f = fake();
+    f.setting("github-issues.seam_writes", "never");
+    let mut h = harness(f);
+    let e = SeamError::from_err(&h.serve("fenix.github-issues.tracker.comment", COMMENT).unwrap().unwrap_err());
+    assert_eq!((e.code.as_str(), e.message.as_str()), (seam::code::REFUSED, "changes from the agenda are turned off in GitHub's settings"));
+    assert!(h.fake.pickers().is_empty() && comments(&h) == 0);
+    // ... while the page's own comment goes, unasked.
+    h.fake.on_prompt("Comment on acme/rocket#12", "Mine.");
+    h.command("github-issues.open").unwrap();
+    let page = h.page(KIND);
+    h.key(page, Key::Enter);
+    h.key(page, Key::Char('C'));
+    assert_eq!(comments(&h), 1);
+    assert!(h.fake.pickers().is_empty(), "the page never asks the gate");
+
+    // ask (the default): held while asking, then sent once allowed.
+    let mut h = harness(fake());
+    assert_eq!(h.serve("fenix.github-issues.tracker.comment", COMMENT), None, "held while asking");
+    let gate = h.fake.pickers().into_iter().last().unwrap();
+    assert_eq!(gate.title, "Agenda wants to change issues in GitHub for you -- allow for this session?");
+    assert_eq!(gate.items.iter().map(|i| i.label.as_str()).collect::<Vec<_>>(), [fenix_tracker::gate::ALLOW, fenix_tracker::gate::DENY]);
+    assert_eq!(comments(&h), 0, "nothing sent before you answer");
+    assert_eq!(h.serve("fenix.github-issues.tracker.update", r#"{"seam": 1, "ref": "acme/rocket#12", "set": {"title": "T"}, "op": "agenda:1:2"}"#), None, "a second write waits for the same answer");
+    assert_eq!(h.fake.pickers().len(), 1, "asked once");
+    h.event(api::Event::Picked((gate.id, Some("allow".into()))));
+    assert_eq!(comments(&h), 1);
+    let answers: Vec<Result<String, String>> = h.fake.state().answers.values().cloned().collect();
+    assert_eq!(answers, [Ok("{}".to_string()), Ok("{}".to_string())]);
+    // The same op again: answered as it was, not sent twice.
+    assert_eq!(h.serve("fenix.github-issues.tracker.comment", COMMENT), Some(Ok("{}".into())));
+    assert_eq!(comments(&h), 1, "a repeated op isn't done twice");
+    // Allowed for the session: no more questions.
+    h.serve("fenix.github-issues.tracker.comment", r#"{"seam": 1, "ref": "acme/rocket#12", "body": "Again", "op": "agenda:1:3"}"#);
+    assert_eq!((h.fake.pickers().len(), comments(&h)), (1, 2));
+
+    // Not now: refused, and asked again at the next write.
+    let mut h = harness(fake());
+    h.fake.on_pick("Agenda wants to change issues in GitHub", fenix_tracker::gate::DENY);
+    h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close", "op": "agenda:2:1"}"#);
+    let e = SeamError::from_err(&answer(&h).unwrap_err());
+    assert_eq!((e.code.as_str(), e.message.as_str()), (seam::code::REFUSED, "you didn't allow the agenda to change issues in GitHub -- r on the task asks again"));
+    assert!(h.fake.requests().iter().all(|(_, r)| r.method == "GET"));
+    h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close", "op": "agenda:2:2"}"#);
+    assert_eq!(h.fake.pickers().len(), 2);
+    no_token(&h);
 }
 
 #[test]
 fn the_seams_calls_answer_from_github() {
-    let mut h = harness(fake());
-    h.serve("github-issues.tracker.assigned", r#"{"seam": 1, "limit": 50}"#);
+    let f = fake();
+    f.setting("github-issues.seam_writes", "always");
+    let mut h = harness(f);
+    h.serve("fenix.github-issues.tracker.assigned", r#"{"seam": 1, "limit": 50}"#);
     let page: seam::Page = serde_json::from_str(&answer(&h).unwrap()).unwrap();
     assert_eq!(page.issues.iter().map(|i| i.key.as_str()).collect::<Vec<_>>(), ["acme/rocket#12", "acme/web#3"]);
-    h.serve("github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close:not_planned"}"#);
+    h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close:not_planned"}"#);
     assert_eq!(answer(&h), Ok(r#"{"said":"closed as not planned"}"#.into()));
     let (_, patch) = h.fake.requests().into_iter().last().unwrap();
     assert_eq!((patch.method.as_str(), String::from_utf8_lossy(&patch.body).into_owned()), ("PATCH", r#"{"state":"closed","state_reason":"not_planned"}"#.to_string()));
@@ -169,7 +245,7 @@ fn the_page_lists_opens_comments_and_moves_an_issue() {
     assert_eq!(patches, [r#"{"title":"Login times out after 5 min"}"#, r#"{"labels":["bug","auth"]}"#]);
     h.key(page, Key::Char('s'));
     let picker = h.fake.pickers().into_iter().last().unwrap();
-    assert_eq!(picker.items.iter().map(|i| i.label.as_str()).collect::<Vec<_>>(), ["Close as completed  ->  Closed", "Close as not planned  ->  Closed as not planned", "Block   (the blocked label)"]);
+    assert_eq!(picker.items.iter().map(|i| i.label.as_str()).collect::<Vec<_>>(), ["Close as completed  ->  Closed", "Close as not planned  ->  Closed as not planned"], "a move that's only the agenda's isn't offered here");
     let (_, last) = h.fake.requests().into_iter().rev().find(|(_, r)| r.method == "PATCH").unwrap();
     assert_eq!(String::from_utf8_lossy(&last.body), r#"{"state":"closed","state_reason":"completed"}"#);
     h.key(page, Key::Char('y'));
@@ -177,17 +253,17 @@ fn the_page_lists_opens_comments_and_moves_an_issue() {
     h.key(page, Key::Char('o'));
     assert!(h.fake.calls().contains(&"url https://github.com/acme/rocket/issues/12".to_string()));
     h.key(page, Key::Char('a'));
-    assert_eq!(h.fake.services().last().map(|s| (s.name.clone(), s.payload.clone())), Some(("agenda.add_issue".into(), r#"{"ref":"acme/rocket#12","tracker":"github-issues"}"#.into())));
+    assert_eq!(h.fake.services().last().map(|s| (s.name.clone(), s.payload.clone())), Some(("agenda.add_issue".into(), r#"{"ref":"acme/rocket#12","tracker":"fenix.github-issues"}"#.into())));
     no_token(&h);
 }
 
 #[test]
 fn a_new_issue_from_the_form_and_from_the_agendas_create() {
     let f = fake();
-    f.on_prompt("Assignees", "octocat");
+    f.on_prompt("Assignees", "octocat").on_pick("Agenda wants to change issues in GitHub", fenix_tracker::gate::ALLOW);
     let mut h = harness(f);
-    // The agenda asks for the form, filled in.
-    assert_eq!(h.serve("github-issues.tracker.create", r#"{"seam": 1, "title": "From a task\u001b[2J", "body": "Its notes"}"#), None);
+    // The agenda asks for the form, filled in -- past the gate.
+    assert_eq!(h.serve("fenix.github-issues.tracker.create", r#"{"seam": 1, "title": "From a task\u001b[2J", "body": "Its notes"}"#), None);
     let page = h.page(KIND);
     let screen = h.screen(page);
     assert!(screen.contains("Repository   acme/rocket") && screen.contains("Title        From a task[2J") && screen.contains("Template     1 to choose from"), "{screen}");
@@ -201,8 +277,10 @@ fn a_new_issue_from_the_form_and_from_the_agendas_create() {
     assert_eq!(answer(&h), Ok(r#"{"ref":"acme/rocket#12"}"#.into()));
 
     // Closed instead: nothing made, and the agenda told so.
-    let mut h = harness(fake());
-    h.serve("github-issues.tracker.create", r#"{"seam": 1, "title": "T"}"#);
+    let f = fake();
+    f.setting("github-issues.seam_writes", "always");
+    let mut h = harness(f);
+    h.serve("fenix.github-issues.tracker.create", r#"{"seam": 1, "title": "T"}"#);
     let page = h.page(KIND);
     h.key(page, Key::Escape);
     assert_eq!(answer(&h), Ok(r#"{"ref":null}"#.into()));

@@ -23,7 +23,7 @@ requests are never among them.
 | `C` | Comment, in a pane of its own |
 | `e`, `E` | Its title, its description |
 | `l`, `A` | Its labels, its assignees (commas between) |
-| `s` | Move it: close as completed, close as not planned, reopen, the blocked label on or off |
+| `s` | Move it: close as completed, close as not planned, reopen |
 | `b` | Start a branch for it |
 | `a` | Add it to the agenda |
 | `o`, `y`, `Y` | The browser; copy its ref (`owner/repo#12`), its address |
@@ -53,14 +53,24 @@ name already there is switched to.
 
 ## For the agenda
 
-The agenda finds it by itself (`github-issues.tracker.*`, the tracker
-seam): your open issues to import, linked tasks kept in step, and their
-moves -- close as completed, close as not planned, reopen. An open issue
-is To do, or Doing with the in-progress label; the blocked label is the
-Blocked column, and without one Blocked stays in your agenda. Title,
-description, assignee and comments go to GitHub; GitHub has no priority
-or due date, so those stay on the task. A task's new issue opens this
-page's form, filled in.
+The agenda finds it by itself (`fenix.github-issues.tracker.*`, the
+tracker seam): your open issues to import, linked tasks kept in step,
+and their moves -- close as completed, close as not planned, reopen. An
+open issue is To do and a closed one Done; GitHub has no Doing or
+Blocked, so a card moved there moves in your agenda and nothing is sent.
+Title, description, assignee, labels and comments go to GitHub; GitHub
+has no priority or due date, so those stay on the task. A task's new
+issue opens this page's form, filled in. The agenda's "this project
+only" knows your issues by the repository the project's remote is.
+
+**Changes from the agenda are asked about.** Any installed extension can
+call the tracker seam, and Fenix doesn't say which one did, so the first
+change that comes through it in a session -- a move, an edit, a comment,
+a new issue -- asks you first: *Agenda wants to change issues in GitHub
+for you -- allow for this session?* `github-issues.seam_writes` says it for
+good: `ask` (the default), `always` or `never`. What you do on this
+extension's own page is never asked about. A change sent twice (the
+agenda gave up waiting, and you said send it again) is done once.
 
 ## For agents
 
@@ -80,8 +90,7 @@ Fenix's own, under Forges (`SPC ,`, `Ctrl+,` with standard keys):
 | `github-issues.repositories` | Repositories whose open issues the page lists |
 | `github-issues.queries` | Saved searches, by name |
 | `github-issues.branch_pattern` | A branch's name: `{number}`, `{title}`, `{project}` (`{number}-{title}`) |
-| `github-issues.blocked_label` | The label that means blocked (`blocked`) |
-| `github-issues.doing_label` | The label that means under way (`in progress`) |
+| `github-issues.seam_writes` | Changes from the agenda: `ask` once a session, `always`, `never` |
 | `github-issues.sync_minutes` | How often the agenda's linked tasks are brought up to date |
 
 ## What it may do
