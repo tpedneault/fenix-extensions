@@ -92,18 +92,64 @@ pub fn clean_name(raw: &str) -> String {
     s
 }
 
+/// The protocols a fetch for a branch may use (`GIT_ALLOW_PROTOCOL`):
+/// never `file`, `ext` or `fd`, which run things or read this machine.
+pub const ALLOWED_PROTOCOLS: &str = "https:http:ssh:git";
+
+/// Whether git can take `name` as a branch, ref or remote-tracking name
+/// as given, and never read it as an option: what `git check-ref-format
+/// --branch` takes (no space or control character, none of `~^:?*[\`,
+/// no `..`, `@{`, `//`, no part starting with `.` or ending `.lock`, not
+/// ending in `/` or `.`, not `@`), and nothing starting with `-`. Git's
+/// own check still runs on a name you typed; this is for the names that
+/// come from elsewhere -- a remote's, its default branch's -- before they
+/// reach a command line at all.
+pub fn ref_ok(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 255
+        && name != "@"
+        && !name.starts_with(['-', '/'])
+        && !name.ends_with(['/', '.'])
+        && !name.contains("..")
+        && !name.contains("@{")
+        && !name.contains("//")
+        && !name.chars().any(|c| c.is_whitespace() || c.is_control() || "~^:?*[\\".contains(c))
+        && name.split('/').all(|part| !part.is_empty() && !part.starts_with('.') && !part.ends_with(".lock"))
+}
+
+/// A remote's name git can be handed: letters, digits, `.`, `_` and `-`,
+/// never first a `-`.
+pub fn remote_name_ok(name: &str) -> bool {
+    !name.is_empty() && name.len() <= 100 && !name.starts_with(['-', '.']) && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+}
+
 /// A remote's host and path: `git@github.com:acme/rocket.git`,
-/// `ssh://git@host:22/group/sub/project.git`, `https://host/a/b`.
+/// `ssh://git@host:22/group/sub/project.git`, `https://host/a/b`. Only a
+/// network remote: `file://`, a local path and `ext::` aren't one.
 pub fn remote_parts(url: &str) -> Option<(String, String)> {
     let url = url.trim();
-    let (host, path) = if let Some((_, rest)) = url.split_once("://") {
+    if url.starts_with('-') {
+        return None;
+    }
+    let (host, path) = if let Some((scheme, rest)) = url.split_once("://") {
+        if !["https", "http", "ssh", "git", "git+ssh", "ssh+git"].contains(&scheme.to_ascii_lowercase().as_str()) {
+            return None;
+        }
         let (authority, path) = rest.split_once('/')?;
         let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
         (host.split(':').next().unwrap_or(host), path)
     } else {
+        // scp-like, `user@host:path`: a host with no `/` before the colon
+        // and a path that doesn't start another (`ext::`), nor a drive.
         let (authority, path) = url.split_once(':')?;
+        if authority.contains('/') || path.starts_with(':') || authority.len() == 1 {
+            return None;
+        }
         (authority.rsplit_once('@').map_or(authority, |(_, h)| h), path)
     };
+    if host.starts_with('-') || host.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return None;
+    }
     let path = path.trim_matches('/').trim_end_matches(".git").trim_matches('/');
     (!host.is_empty() && path.contains('/')).then(|| (host.to_ascii_lowercase(), path.to_string()))
 }
@@ -196,7 +242,8 @@ pub struct Seen {
 /// Whether, where and how a branch for `issue` is made, from what git
 /// printed, or why not.
 pub fn plan(host: Host, web: &str, issue: &Issue, pattern: &str, seen: &Seen) -> Result<Plan, String> {
-    let remotes = remotes(&seen.remotes);
+    // A remote whose name git could take for an option is passed over.
+    let remotes: Vec<(String, String)> = remotes(&seen.remotes).into_iter().filter(|(n, _)| remote_name_ok(n)).collect();
     if remotes.is_empty() {
         return Err(format!("this project has no remote -- a branch for {} is made in a clone of {}", issue.key, issue.key.project));
     }
@@ -205,11 +252,18 @@ pub fn plan(host: Host, web: &str, issue: &Issue, pattern: &str, seen: &Seen) ->
         return Err(format!("this project is {}, not {} -- open a clone of {} to start a branch for {}", names.join(", "), issue.key.project, issue.key.project, issue.key));
     };
     let name = name(pattern, issue);
-    if name.is_empty() {
-        return Err("the branch pattern made an empty name -- set another in the settings".into());
+    if name.is_empty() || !ref_ok(&name) {
+        return Err("the branch pattern made no name git takes -- set another in the settings".into());
     }
     let exists = seen.branches.lines().any(|b| b.trim() == name);
-    let base = seen.heads.iter().find(|(r, _)| r == remote).and_then(|(_, head)| head.trim().strip_prefix("refs/remotes/").map(str::to_string));
+    // The remote's default branch is the remote's to name: kept only when
+    // it's a name git takes, and its own (`refs/remotes/<remote>/...`).
+    let base = seen
+        .heads
+        .iter()
+        .find(|(r, _)| r == remote)
+        .and_then(|(_, head)| head.trim().strip_prefix("refs/remotes/").map(str::to_string))
+        .filter(|b| b.strip_prefix(&format!("{remote}/")).is_some_and(ref_ok) && ref_ok(b));
     let t = tree(&seen.status);
     let warning = match (exists, t.changed) {
         (true, 0) => Some(format!("{name} is there already: Enter switches to it")),
@@ -222,19 +276,29 @@ pub fn plan(host: Host, web: &str, issue: &Issue, pattern: &str, seen: &Seen) ->
 
 /// The git commands that make the plan so, in order: a fetch of the
 /// remote's default branch, then the branch made from it (or switched
-/// to). `name` is what you confirmed.
-pub fn commands(plan: &Plan, name: &str) -> Vec<Vec<String>> {
+/// to); none when a name isn't one git takes safely. `name` is what you
+/// confirmed. Every name from outside goes after `--end-of-options`, and
+/// the fetch asks for `refs/heads/<branch>`, so nothing can be read as an
+/// option; the fetch is from the remote that is the issue's repository,
+/// no other, under [`ALLOWED_PROTOCOLS`] (the caller's environment).
+pub fn commands(plan: &Plan, name: &str) -> Result<Vec<Vec<String>>, String> {
+    if !ref_ok(name) {
+        return Err(format!("\"{name}\" isn't a branch name git takes"));
+    }
+    if !remote_name_ok(&plan.remote) {
+        return Err(format!("the remote \"{}\" isn't one to fetch from", plan.remote));
+    }
     let s = |v: &[&str]| v.iter().map(|a| a.to_string()).collect::<Vec<String>>();
     if plan.exists && name == plan.name {
-        return vec![s(&["switch", name])];
+        return Ok(vec![s(&["switch", "--end-of-options", name])]);
     }
-    match &plan.base {
-        Some(base) => {
-            let branch = base.split_once('/').map_or(base.as_str(), |(_, b)| b);
-            vec![s(&["fetch", &plan.remote, branch]), s(&["switch", "--no-track", "-c", name, base])]
-        }
+    Ok(match plan.base.as_deref().and_then(|b| Some((b, b.strip_prefix(&format!("{}/", plan.remote))?))).filter(|(b, br)| ref_ok(b) && ref_ok(br)) {
+        Some((base, branch)) => vec![
+            s(&["fetch", "--no-recurse-submodules", "--end-of-options", &plan.remote, &format!("refs/heads/{branch}")]),
+            s(&["switch", "--no-track", "-c", name, "--end-of-options", base]),
+        ],
         None => vec![s(&["switch", "-c", name])],
-    }
+    })
 }
 
 /// An issue's key, for the words: `acme/rocket#12`.
@@ -287,12 +351,42 @@ mod tests {
     }
 
     #[test]
+    fn nothing_from_a_remote_can_become_an_option_to_git() {
+        let i = issue("acme/platform/api", 4, "Rate limiter");
+        // A hostile remote's HEAD names an option (the review's probe).
+        let evil = "refs/remotes/origin/--upload-pack=touch${IFS}/tmp/PWNED;false";
+        let seen = Seen { remotes: "origin\tssh://git@gitlab.example.com/acme/platform/api.git (fetch)\n".into(), heads: vec![("origin".into(), evil.into())], ..Default::default() };
+        let p = plan(Host::GitLab, "https://gitlab.example.com", &i, "", &seen).unwrap();
+        assert_eq!(p.base, None, "the option-shaped default branch isn't kept");
+        let cmds = commands(&p, &p.name).unwrap();
+        assert_eq!(cmds, [vec!["switch", "-c", "4-rate-limiter"]], "and nothing is fetched by it");
+        // Even handed one, commands refuses rather than pass it on.
+        let forged = Plan { base: Some("origin/--upload-pack=x".into()), ..p.clone() };
+        assert_eq!(commands(&forged, &p.name).unwrap(), [vec!["switch", "-c", "4-rate-limiter"]]);
+        assert!(commands(&p, "--orphan").is_err() && commands(&p, "-b").is_err());
+        assert!(commands(&Plan { remote: "--upload-pack=x".into(), ..p.clone() }, &p.name).is_err());
+        for bad in ["-x", "a..b", "a b", "a:b", "x.lock", "a/.b", "", "@", "a@{1}", "a\u{1b}b"] {
+            assert!(!ref_ok(bad), "{bad:?}");
+        }
+        assert!(ref_ok("feature/4-rate-limiter") && ref_ok("origin/main"));
+
+        // A remote named like an option is passed over; one that isn't a
+        // network remote -- a path, file://, ext:: -- never matches.
+        let seen = Seen { remotes: "--upload-pack=x\tgit@gitlab.example.com:acme/platform/api.git (fetch)\n".into(), ..Default::default() };
+        assert!(plan(Host::GitLab, "https://gitlab.example.com", &i, "", &seen).unwrap_err().starts_with("this project has no remote"));
+        for url in ["file:///srv/git/acme/platform/api.git", "file://localhost/acme/platform/api.git", "/srv/acme/platform/api", "ext::sh -c touch% /tmp/x acme/platform/api", "C:/acme/platform/api", "fd::3/acme/platform/api", "-oProxyCommand=x:acme/platform/api"] {
+            assert!(!same_place(Host::GitLab, "https://gitlab.example.com", url, "acme/platform/api"), "{url}");
+        }
+        assert!(ALLOWED_PROTOCOLS.split(':').all(|p| !["file", "ext", "fd"].contains(&p)));
+    }
+
+    #[test]
     fn a_plan_says_where_and_what_comes_along() {
         let i = issue("acme/rocket", 12, "Login times out");
         let mut seen = Seen { remotes: "fork\tgit@github.com:me/rocket.git (fetch)\norigin\tgit@github.com:acme/rocket.git (fetch)\norigin\tgit@github.com:acme/rocket.git (push)\n".into(), heads: vec![("origin".into(), "refs/remotes/origin/main\n".into())], ..Default::default() };
         let p = plan(Host::GitHub, "https://github.com", &i, "", &seen).unwrap();
         assert_eq!((p.remote.as_str(), p.base.as_deref(), p.name.as_str(), p.warning.clone(), p.exists), ("origin", Some("origin/main"), "12-login-times-out", None, false));
-        assert_eq!(commands(&p, "12-login-times-out"), [vec!["fetch", "origin", "main"], vec!["switch", "--no-track", "-c", "12-login-times-out", "origin/main"]]);
+        assert_eq!(commands(&p, "12-login-times-out").unwrap(), [vec!["fetch", "--no-recurse-submodules", "--end-of-options", "origin", "refs/heads/main"], vec!["switch", "--no-track", "-c", "12-login-times-out", "--end-of-options", "origin/main"]]);
 
         seen.status = " M src/a.rs\n?? notes.txt\nA  src/b.rs\n".into();
         let p = plan(Host::GitHub, "https://github.com", &i, "", &seen).unwrap();
@@ -301,14 +395,14 @@ mod tests {
         seen.branches = "main\n12-login-times-out\n".into();
         let p = plan(Host::GitHub, "https://github.com", &i, "", &seen).unwrap();
         assert!(p.exists && p.warning.as_deref().unwrap().starts_with("12-login-times-out is there already"));
-        assert_eq!(commands(&p, "12-login-times-out"), [vec!["switch", "12-login-times-out"]]);
-        assert_eq!(commands(&p, "12-other"), [vec!["fetch", "origin", "main"], vec!["switch", "--no-track", "-c", "12-other", "origin/main"]], "a name you typed instead is a new branch");
+        assert_eq!(commands(&p, "12-login-times-out").unwrap(), [vec!["switch", "--end-of-options", "12-login-times-out"]]);
+        assert_eq!(commands(&p, "12-other").unwrap(), [vec!["fetch", "--no-recurse-submodules", "--end-of-options", "origin", "refs/heads/main"], vec!["switch", "--no-track", "-c", "12-other", "--end-of-options", "origin/main"]], "a name you typed instead is a new branch");
 
         let elsewhere = plan(Host::GitHub, "https://github.com", &issue("acme/web", 3, "x"), "", &seen).unwrap_err();
         assert_eq!(elsewhere, "this project is github.com/me/rocket, github.com/acme/rocket, not acme/web -- open a clone of acme/web to start a branch for acme/web#3");
         assert!(plan(Host::GitHub, "https://github.com", &i, "", &Seen::default()).unwrap_err().starts_with("this project has no remote"));
         let no_head = Seen { remotes: "origin\thttps://github.com/acme/rocket (fetch)\n".into(), ..Default::default() };
         let p = plan(Host::GitHub, "https://github.com", &i, "", &no_head).unwrap();
-        assert_eq!(commands(&p, &p.name), [vec!["switch", "-c", "12-login-times-out"]]);
+        assert_eq!(commands(&p, &p.name).unwrap(), [vec!["switch", "-c", "12-login-times-out"]]);
     }
 }
