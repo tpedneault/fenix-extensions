@@ -2711,6 +2711,36 @@
       "repository": "https://github.com/tpedneault/fenix-extensions"
     },
     {
+      "id": "fenix.kubernetes",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "fenix": ">=1.5, <2",
+          "runtime": "wasm",
+          "url": "https://github.com/tpedneault/fenix-extensions/releases/download/kubernetes-v1.0.0/fenix.kubernetes-1.0.0.fenixext",
+          "sha256": "c3f52761336d475a9daf984056d84997590edcc674d907d086371b08ab820ba7",
+          "size": 276341,
+          "dependencies": {},
+          "categories": [
+            "tools"
+          ],
+          "api": "1.5",
+          "permissions": {
+            "process": [
+              "kubectl",
+              "${setting:kubernetes.kubectl}"
+            ]
+          }
+        }
+      ],
+      "name": "Kubernetes",
+      "description": "kubectl in a pane: the context and namespace per project, workloads and their pods, services, ingresses, live logs, a shell in a pod, port-forwards, YAML and describe, and changes asked about first",
+      "categories": [
+        "tools"
+      ],
+      "repository": "https://github.com/tpedneault/fenix-extensions"
+    },
+    {
       "id": "fenix.logs",
       "versions": [
         {
