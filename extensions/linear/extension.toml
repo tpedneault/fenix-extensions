@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.linear"
 name = "Linear"
-version = "1.0.1"
+version = "1.0.0"
 description = "Your Linear issues: a team's cycle and backlog, an issue with its comments, a new-issue form, a branch started from an issue -- and Linear for the agenda and for coding agents"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
