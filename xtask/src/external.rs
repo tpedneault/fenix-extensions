@@ -339,6 +339,30 @@ fn unpack(bytes: &[u8], dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// A package from another publisher doesn't claim Fenix's names: not the
+/// `fenix` namespace or one under it, and no service named under `fenix.`.
+/// Fenix sends a call to the first extension that lists its name and checks
+/// no namespace's owner, so such a claim would take calls meant for the
+/// store's own extensions (the trackers' `fenix.<id>.tracker.*`, say).
+fn check_names(dir: &Path, id: &str) -> Result<(), String> {
+    if id.starts_with("fenix.") {
+        return Ok(());
+    }
+    let text = std::fs::read_to_string(dir.join("extension.toml")).map_err(|e| format!("extension.toml: {e}"))?;
+    let manifest: toml::Table = toml::from_str(&text).map_err(|e| format!("extension.toml: {}", e.message()))?;
+    let listed = |key: &str| -> Vec<String> {
+        manifest.get("contributes").and_then(|c| c.get(key)).and_then(|v| v.as_array()).into_iter().flatten().filter_map(|v| v.as_str()).map(str::to_ascii_lowercase).collect()
+    };
+    let fenixs = |name: &str| name == "fenix" || name.starts_with("fenix.");
+    if let Some(ns) = listed("namespaces").into_iter().find(|n| fenixs(n)) {
+        return Err(format!("the namespace {} is Fenix's own: a package of {id} names its own", shown(&ns)));
+    }
+    if let Some(service) = listed("services").into_iter().find(|n| fenixs(n)) {
+        return Err(format!("the service {} is under Fenix's name: a package of {id} serves its own", shown(&service)));
+    }
+    Ok(())
+}
+
 /// The oldest Fenix the folder's manifest admits, which its themes must
 /// be readable by; none when the manifest doesn't say.
 fn theme_floor(dir: &Path) -> Option<semver::Version> {
@@ -415,6 +439,7 @@ fn inspect(entry: &Entry, fetch: &dyn Fetch, known: Option<BTreeMap<String, Know
     check_chords(&scratch.0).map_err(tidy)?;
     check_agent_tools(&scratch.0).map_err(tidy)?;
     crate::kinds::check_pack(&scratch.0).map_err(tidy)?;
+    check_names(&scratch.0, &entry.id)?;
     check_contents(&scratch.0)?;
     if let Some(mut known) = known {
         let version = semver::Version::parse(&m.extension.version).map_err(|e| e.to_string())?;
@@ -799,6 +824,11 @@ mod tests {
         refused(b"not a zip".to_vec(), "isn't a zip");
         refused(zip_of(&[("extension.toml", m.as_bytes()), ("screenshots/hero.bmp", b"bmp")]), "a screenshot is one of");
         refused(zip_of(&[("extension.toml", m.as_bytes()), ("themes/x.toml", b"colour = 1")]), "themes/x.toml");
+        // Fenix's names aren't another publisher's to claim.
+        let claims = |rest: &str| manifest_text("acme.dusk", "1.0.0", "none", rest);
+        refused(zip_of(&[("extension.toml", claims("\n[contributes]\nnamespaces = [\"fenix\"]\n").as_bytes())]), "Fenix's own");
+        refused(zip_of(&[("extension.toml", claims("\n[contributes]\nnamespaces = [\"Fenix.jira\"]\n").as_bytes())]), "Fenix's own");
+        refused(zip_of(&[("extension.toml", claims("\n[contributes]\nservices = [\"fenix.jira.tracker.about\"]\n").as_bytes())]), "under Fenix's name");
 
         // Project kinds, held to the rules `validate` holds the store's to.
         let kinds = |fields: &str| manifest_text("acme.dusk", "1.0.0", "none", &format!("\n[[contributes.project_kinds]]\n{fields}\n"));
