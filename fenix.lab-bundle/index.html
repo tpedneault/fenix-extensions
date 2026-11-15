@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab · Fenix extensions</title>
-<meta name="description" content="Arduino, containers, VNC">
+<meta name="description" content="Arduino, containers, Kubernetes, VNC">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/style.css">
@@ -22,15 +22,15 @@
 <div class="head">
 <h1>Lab</h1>
 <p class="id"><code>fenix.lab-bundle</code> <span class="badge">Bundle</span></p>
-<p class="lead">Arduino, containers, VNC</p>
+<p class="lead">Arduino, containers, Kubernetes, VNC</p>
 <ul class="tags" aria-label="Categories"><li><a href="../index.html?category=tools">Tools</a></li></ul>
 </div>
 <div class="layout">
 <aside class="facts" aria-labelledby="facts-h">
 <h2 id="facts-h">At a glance</h2>
 <dl>
-<dt>Latest version</dt><dd>1.0.0</dd>
-<dt>Needs Fenix</dt><dd>1.0 or later, before 2 <code>&gt;=1.0, &lt;2</code></dd>
+<dt>Latest version</dt><dd>1.1.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
 <dt>What it is</dt><dd>A bundle: installs its members</dd>
 <dt>Download</dt><dd>1 KB</dd>
 <dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
@@ -44,7 +44,7 @@
 <li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page, and its Bundles tab.</li>
 <li>Search for <strong>Lab</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
 </ol>
-<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/lab-bundle-v1.0.0/fenix.lab-bundle-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.lab-bundle-1.0.0.fenixext</code>.</p>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/lab-bundle-v1.1.0/fenix.lab-bundle-1.1.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.lab-bundle-1.1.0.fenixext</code>.</p>
 </section>
 <section aria-labelledby="permissions">
 <h2 id="permissions">What it may do</h2>
@@ -55,6 +55,7 @@
 <ul class="members">
 <li><p class="member-name"><a href="../fenix.arduino/index.html">Arduino</a> <code>fenix.arduino</code> <span class="gloss">^1</span></p><p>Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server</p><p class="gloss">May use: runs programs, project files</p></li>
 <li><p class="member-name"><a href="../fenix.containers/index.html">Containers</a> <code>fenix.containers</code> <span class="gloss">^1</span></p><p>Docker, Podman and wslc: containers, Compose, live logs, performance, images, volumes and networks</p><p class="gloss">May use: runs programs, project files</p></li>
+<li><p class="member-name"><a href="../fenix.kubernetes/index.html">Kubernetes</a> <code>fenix.kubernetes</code> <span class="gloss">^1</span></p><p>kubectl in a pane: the context and namespace per project, workloads and their pods, services, ingresses, live logs, a shell in a pod, port-forwards, YAML and describe, and changes asked about first</p><p class="gloss">May use: runs programs</p></li>
 <li><p class="member-name"><a href="../fenix.vnc/index.html">VNC</a> <code>fenix.vnc</code> <span class="gloss">^1</span></p><p>Remote desktops in a pane: the VNC (RFB) machines you list, each kept connected while Fenix runs</p><p class="gloss">May use: network connections, folders of yours, the clipboard</p></li>
 </ul>
 </section>
@@ -80,6 +81,7 @@ own or another extension needs it.</p>
 <div class="table"><table>
 <thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
 <tbody>
+<tr><th scope="row">1.1.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>--</td><td>1 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/lab-bundle-v1.1.0/fenix.lab-bundle-1.1.0.fenixext">Download<span class="visually-hidden"> 1.1.0</span></a><code class="sha" title="SHA-256 433f842ab1118af37b9843ebcb39f002a908f15eda2f7f7795f1d3d237e2780e">433f842ab1…</code></td></tr>
 <tr><th scope="row">1.0.0</th><td><code>&gt;=1.0, &lt;2</code></td><td>--</td><td>1 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/lab-bundle-v1.0.0/fenix.lab-bundle-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 5cb05bc1a1f6bd93592bb538c840558fabec91c5c4dcc439db89b3d51ed62ba0">5cb05bc1a1…</code></td></tr>
 </tbody>
 </table></div>
