@@ -9,7 +9,7 @@ use std::collections::VecDeque;
 use fenix_ui_kit::text::fit;
 use fenix_ui_kit::{Canvas, Key, Role};
 
-use crate::agent::plain;
+use crate::agent::shown;
 use crate::kubectl::{self, LogOptions, Target};
 
 /// Lines a log page keeps.
@@ -101,7 +101,7 @@ impl LogView {
 
     /// A line the stream wrote.
     pub fn push(&mut self, line: &str) {
-        let mut line = plain(line);
+        let mut line = shown(line);
         if line.len() > MAX_LINE {
             line = crate::agent::cut_line(&line, MAX_LINE);
         }

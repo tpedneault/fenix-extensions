@@ -12,8 +12,11 @@
   port-forwards as background tasks, listed and stopped; YAML and
   `describe` in a read-only buffer, a Secret's without its values;
   deleting a pod, restarting and scaling, each asked about naming the
-  context and the namespace, and every context but a local cluster's
-  protected, a change there needing the object's name typed. Read-only
+  context and the namespace, and every context protected -- a change
+  there needing the object's name typed -- unless it's named as a local
+  cluster and its server is local too, or you exempt it. Read-only
   tools for coding agents in the namespace you chose, logs and
-  descriptions only when you allow them. A doctor row for kubectl, and a
+  descriptions only when you allow them, and the cluster's text given to
+  them without format characters, tag characters or variation
+  selectors. A doctor row for kubectl, and a
   lesson in the tutorial.

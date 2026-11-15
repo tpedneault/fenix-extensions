@@ -187,8 +187,12 @@ fn the_context_and_namespace_are_this_projects_and_kubeconfig_is_never_changed()
     let picker = fake.pickers().pop().unwrap();
     let names: Vec<&str> = picker.items.iter().map(|i| i.label.as_str()).collect();
     assert_eq!(names, ["fake", "gke_acme_europe-west1_prod", "kind-dev", "prod", "prod "], "exactly as kubeconfig has them; a tab or a newline left out");
-    assert!(picker.items[0].detail.ends_with("protected"), "fake's server is on 127.0.0.1, which says nothing: {}", picker.items[0].detail);
-    assert!(picker.items[1].detail.ends_with("protected") && picker.items[2].detail.ends_with("unprotected: a local cluster's name"));
+    let label = |i: usize| picker.items[i].detail.rsplit(" · ").next().unwrap().to_string();
+    assert_eq!(label(0), "protected", "fake's server is on 127.0.0.1, but its name says nothing");
+    assert_eq!(label(1), "protected");
+    assert_eq!(label(2), "unprotected: a local cluster on this machine", "kind-dev, on 127.0.0.1");
+    assert_eq!(label(3), "unprotected: a local cluster on this machine", "prod is a context on the kind-dev cluster");
+    assert_eq!(label(4), "protected", "prod  is on prod.example.test");
     let lines = spawned(&fake);
     assert!(!lines.is_empty() && lines.iter().all(|l| l.contains("--context=gke_acme_europe-west1_prod")), "{lines:#?}");
     assert!(lines.iter().any(|l| l.contains("/namespaces/payments/deployments")), "the context's own namespace");
