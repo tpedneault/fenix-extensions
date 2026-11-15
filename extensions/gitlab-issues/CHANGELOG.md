@@ -18,8 +18,10 @@ Fenix, on gitlab.com or your own instance.
   tasks kept in step, their moves, edits, due dates, comments, assignees
   and, when you turn it on, the time you log.
 - Changes the agenda (or any extension) asks for through the seam are
-  asked about once a session first (`gitlab-issues.seam_writes`); what
-  you do on its page never is.
+  asked about first (`gitlab-issues.seam_writes`): allowed until Fenix
+  restarts, or not now for 10 minutes; a question left unanswered for a
+  minute refuses what waited and asks again next time. What you do on its
+  page never is asked about.
 - Two agent tools that read: an issue with its comments, and your open
   issues.
 - Signed in as Review is: Fenix's GitLab server and token.

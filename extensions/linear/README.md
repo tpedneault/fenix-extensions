@@ -99,11 +99,17 @@ the agenda with `a` once it's made). Bodies are Markdown, as Linear has them.
 
 **What the agenda may change.** Fenix 1.5 doesn't tell an extension who is
 asking it, so any extension could ask Linear's tracker to change your issues
-as you. Before the first change that arrives through the seam each session,
-Linear asks ("Agenda wants to change issues in Linear for you -- allow for
-this session?"); `linear.seam_writes` says for good. Reads aren't asked about,
-and neither are your own changes on Linear's page. A change sent twice (the
-same `op`) is done once.
+as you. Before the first change that arrives through the seam,
+Linear asks: *An extension asks to change issues in Linear for you
+(Fenix can't tell which; usually the Agenda) -- allow?* **Allow** lets
+every extension's changes through Linear until Fenix restarts. **Not now**
+(or Esc) refuses them, and any other for 10 minutes without asking
+again; `r` on the task tries again after that, and changing the setting
+ends the 10 minutes. A question no one answers within a minute (or that
+Fenix replaced with another picker) refuses what waited, and the next
+change asks again; at most 50 changes wait. `linear.seam_writes` says for good.
+Reads aren't asked about, and neither are your own changes on Linear's page.
+A change sent twice (the same call and `op`) is done once.
 
 ## Errors
 

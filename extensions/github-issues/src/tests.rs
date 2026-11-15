@@ -154,7 +154,7 @@ fn the_seams_writes_are_gated_and_the_pages_are_not() {
     f.setting("github-issues.seam_writes", "never");
     let mut h = harness(f);
     let e = SeamError::from_err(&h.serve("fenix.github-issues.tracker.comment", COMMENT).unwrap().unwrap_err());
-    assert_eq!((e.code.as_str(), e.message.as_str()), (seam::code::REFUSED, "changes from the agenda are turned off in GitHub's settings"));
+    assert_eq!((e.code.as_str(), e.message.as_str()), (seam::code::REFUSED, "changes from extensions are turned off in GitHub's settings"));
     assert!(h.fake.pickers().is_empty() && comments(&h) == 0);
     // ... while the page's own comment goes, unasked.
     h.fake.on_prompt("Comment on acme/rocket#12", "Mine.");
@@ -169,8 +169,11 @@ fn the_seams_writes_are_gated_and_the_pages_are_not() {
     let mut h = harness(fake());
     assert_eq!(h.serve("fenix.github-issues.tracker.comment", COMMENT), None, "held while asking");
     let gate = h.fake.pickers().into_iter().last().unwrap();
-    assert_eq!(gate.title, "Agenda wants to change issues in GitHub for you -- allow for this session?");
-    assert_eq!(gate.items.iter().map(|i| i.label.as_str()).collect::<Vec<_>>(), [fenix_tracker::gate::ALLOW, fenix_tracker::gate::DENY]);
+    assert_eq!(gate.title, "An extension asks to change issues in GitHub for you (Fenix can't tell which; usually the Agenda) -- allow?");
+    assert_eq!(
+        gate.items.iter().map(|i| (i.label.as_str(), i.value.as_str())).collect::<Vec<_>>(),
+        [("Allow every extension's changes through GitHub until Fenix restarts", fenix_tracker::gate::ALLOW), ("Not now -- refuse them for 10 minutes", fenix_tracker::gate::DENY)]
+    );
     assert_eq!(comments(&h), 0, "nothing sent before you answer");
     assert_eq!(h.serve("fenix.github-issues.tracker.update", r#"{"seam": 1, "ref": "acme/rocket#12", "set": {"title": "T"}, "op": "agenda:1:2"}"#), None, "a second write waits for the same answer");
     assert_eq!(h.fake.pickers().len(), 1, "asked once");
@@ -185,16 +188,45 @@ fn the_seams_writes_are_gated_and_the_pages_are_not() {
     h.serve("fenix.github-issues.tracker.comment", r#"{"seam": 1, "ref": "acme/rocket#12", "body": "Again", "op": "agenda:1:3"}"#);
     assert_eq!((h.fake.pickers().len(), comments(&h)), (1, 2));
 
-    // Not now: refused, and asked again at the next write.
+    // Not now: refused, and not asked again for 10 minutes -- until the
+    // setting changes.
     let mut h = harness(fake());
-    h.fake.on_pick("Agenda wants to change issues in GitHub", fenix_tracker::gate::DENY);
+    h.fake.on_pick("asks to change issues in GitHub", fenix_tracker::gate::DENY);
     h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close", "op": "agenda:2:1"}"#);
     let e = SeamError::from_err(&answer(&h).unwrap_err());
-    assert_eq!((e.code.as_str(), e.message.as_str()), (seam::code::REFUSED, "you didn't allow the agenda to change issues in GitHub -- r on the task asks again"));
+    assert_eq!((e.code.as_str(), e.message.as_str()), (seam::code::REFUSED, "you didn't allow changes through GitHub -- refused for 10 minutes; r on the task tries again after that"));
     assert!(h.fake.requests().iter().all(|(_, r)| r.method == "GET"));
-    h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close", "op": "agenda:2:2"}"#);
-    assert_eq!(h.fake.pickers().len(), 2);
+    let e = SeamError::from_err(&h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close", "op": "agenda:2:2"}"#).unwrap().unwrap_err());
+    assert!(e.message.starts_with("you said not now to changes through GitHub"), "{}", e.message);
+    assert_eq!(h.fake.pickers().len(), 1, "not asked again");
+    h.set_setting("github-issues.seam_writes", Some("ask"));
+    h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close", "op": "agenda:2:3"}"#);
+    assert_eq!(h.fake.pickers().len(), 2, "asked once the setting changed");
     no_token(&h);
+}
+
+/// A question no one answers (or that Fenix replaced) runs out: what
+/// waited is refused, a late answer to it is nothing, the next write
+/// asks again. An op is a write's on its call.
+#[test]
+fn an_unanswered_question_runs_out_and_an_op_is_known_by_its_call() {
+    const COMMENT: &str = r#"{"seam": 1, "ref": "acme/rocket#12", "body": "Shipped.", "op": "agenda:1:1"}"#;
+    let posts = |h: &Harness<IssuesExt>| h.fake.requests().iter().filter(|(_, r)| r.method != "GET").count();
+    let mut h = harness(fake());
+    assert_eq!(h.serve("fenix.github-issues.tracker.comment", COMMENT), None);
+    let stale = h.fake.pickers()[0].id;
+    h.fire_timers();
+    let e = SeamError::from_err(&answer(&h).unwrap_err());
+    assert_eq!((e.code.as_str(), e.message.as_str()), (seam::code::REFUSED, "no answer came to whether to allow changes through GitHub -- r on the task asks again"));
+    h.event(api::Event::Picked((stale, Some("allow".into()))));
+    assert_eq!(posts(&h), 0, "a late answer to a question that ran out is nothing");
+    assert_eq!(h.serve("fenix.github-issues.tracker.comment", COMMENT), None);
+    assert_eq!(h.fake.pickers().len(), 2, "asked again");
+    let gate = h.fake.pickers().into_iter().last().unwrap();
+    h.event(api::Event::Picked((gate.id, Some("allow".into()))));
+    assert_eq!(posts(&h), 1);
+    h.serve("fenix.github-issues.tracker.transition", r#"{"seam": 1, "ref": "acme/rocket#12", "id": "close", "op": "agenda:1:1"}"#);
+    assert_eq!(posts(&h), 2, "a move with a comment's op is still made");
 }
 
 #[test]
@@ -260,7 +292,7 @@ fn the_page_lists_opens_comments_and_moves_an_issue() {
 #[test]
 fn a_new_issue_from_the_form_and_from_the_agendas_create() {
     let f = fake();
-    f.on_prompt("Assignees", "octocat").on_pick("Agenda wants to change issues in GitHub", fenix_tracker::gate::ALLOW);
+    f.on_prompt("Assignees", "octocat").on_pick("asks to change issues in GitHub", fenix_tracker::gate::ALLOW);
     let mut h = harness(f);
     // The agenda asks for the form, filled in -- past the gate.
     assert_eq!(h.serve("fenix.github-issues.tracker.create", r#"{"seam": 1, "title": "From a task\u001b[2J", "body": "Its notes"}"#), None);

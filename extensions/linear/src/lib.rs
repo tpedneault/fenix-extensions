@@ -271,16 +271,10 @@ pub struct LinearExt {
     asked: HashMap<u64, Asked>,
     /// Whether the seam may write this session, and what waits on it.
     gate: fenix_tracker::gate::Gate,
-    held: Vec<Held>,
-    /// The seam's writes done this session, by `op`.
+    /// The timer for the gate's question running out.
+    gate_timer: Option<u64>,
+    /// The seam's writes done this session, by call and `op`.
     done_ops: Rc<RefCell<fenix_tracker::Dedupe>>,
-}
-
-/// A seam write held while you're asked whether to allow it.
-struct Held {
-    call: u64,
-    seam_call: &'static str,
-    payload: String,
 }
 
 fn say(message: &str) {
@@ -709,7 +703,7 @@ impl LinearExt {
     /// and one already done this session (its `op`) is answered as it was.
     /// The page's own writes (`write`, `create`) don't come this way.
     fn serve_ours(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
-        use fenix_tracker::gate::{self, Verdict};
+        use fenix_tracker::gate;
         if name == TOOL_ISSUE || name == TOOL_MINE {
             let l = match linear() {
                 Ok(l) => l,
@@ -740,36 +734,69 @@ impl LinearExt {
             return Some(Err(SeamError::new(code::UNSUPPORTED, format!("no service {name}")).to_err()));
         }
         let op = op_of(payload);
-        if let Some(answer) = self.done_ops.borrow().get(op.as_deref()) {
+        if let Some(answer) = self.done_ops.borrow().get(seam_call, op.as_deref(), payload) {
             return Some(answer);
         }
-        let held = Held { call, seam_call, payload: payload.to_string() };
-        match self.gate.check(api::setting("linear.seam_writes").as_deref(), "Linear") {
-            Verdict::Go => self.serve_now(call, seam_call, payload),
-            Verdict::Refuse(why) => Some(Err(why.to_err())),
-            Verdict::Wait => {
-                self.held.push(held);
-                None
-            }
-            Verdict::Ask => {
-                self.held.push(held);
-                let rows = [PickerItem::new(gate::ALLOW, "allow"), PickerItem::new(gate::DENY, "deny")];
-                let id = api::pick(&gate::question("Linear"), &rows);
-                self.asked.insert(id, Asked::Gate);
-                None
-            }
-        }
+        let write = gate::Write { call, name: seam_call.to_string(), payload: payload.to_string(), caller: None };
+        let steps = self.gate.check(api::setting("linear.seam_writes").as_deref(), "Linear", std::time::Instant::now(), write);
+        self.gate_steps(steps, Some(call))
     }
 
-    /// You answered the gate: the writes held go through, or are refused.
-    fn gate_answered(&mut self, allow: bool) {
-        self.gate.answered(allow);
-        for Held { call, seam_call, payload } in std::mem::take(&mut self.held) {
-            let answer = if allow { self.serve_now(call, seam_call, &payload) } else { Some(Err(fenix_tracker::gate::Gate::denied("Linear").to_err())) };
-            if let Some(answer) = answer {
-                api::answer(call, answer);
+    /// What the gate says to do: writes done or refused, a question
+    /// asked. What's for `this` call, when it's answered now, comes back
+    /// rather than being answered.
+    fn gate_steps(&mut self, steps: Vec<fenix_tracker::gate::Step>, this: Option<u64>) -> Option<Result<String, String>> {
+        use fenix_tracker::gate::Step;
+        let mut mine = None;
+        for step in steps {
+            let (call, answer) = match step {
+                Step::Go(w) => match fenix_tracker::call::ALL.iter().find(|c| **c == w.name).copied() {
+                    Some(seam_call) => (w.call, self.serve_now(w.call, seam_call, &w.payload)),
+                    None => (w.call, Some(Err(format!("no service {}", w.name)))),
+                },
+                Step::Refuse(w, why) => (w.call, Some(Err(why.to_err()))),
+                Step::Ask(q) => {
+                    // A question asked before (Fenix replaced it, or it ran
+                    // out) is no longer this one: its late answer is ignored.
+                    self.asked.retain(|_, a| !matches!(a, Asked::Gate));
+                    let rows: Vec<PickerItem> = q.rows.iter().map(|(label, value)| PickerItem::new(label.clone(), value.to_string())).collect();
+                    let id = api::pick(&q.title, &rows);
+                    self.asked.insert(id, Asked::Gate);
+                    if let Some(t) = self.gate_timer.take() {
+                        host::cancel_timer(t);
+                    }
+                    if let Some(deadline) = self.gate.deadline() {
+                        let ms = deadline.saturating_duration_since(std::time::Instant::now()).as_millis().min(u32::MAX as u128) as u32;
+                        self.gate_timer = Some(host::set_timer(ms.max(1), false));
+                    }
+                    continue;
+                }
+            };
+            match answer {
+                Some(answer) if Some(call) == this => mine = Some(answer),
+                Some(answer) => api::answer(call, answer),
+                None => {}
             }
         }
+        mine
+    }
+
+    /// You answered the gate (`allow`, `deny`, or nothing: Esc).
+    fn gate_answered(&mut self, choice: Option<&str>) {
+        if let Some(t) = self.gate_timer.take() {
+            host::cancel_timer(t);
+        }
+        let steps = self.gate.answered(choice, "Linear", std::time::Instant::now());
+        self.gate_steps(steps, None);
+    }
+
+    /// The gate's question ran out: what waited is refused.
+    fn gate_expired(&mut self) {
+        self.gate_timer = None;
+        let now = self.gate.deadline().map_or_else(std::time::Instant::now, |d| d.max(std::time::Instant::now()));
+        self.asked.retain(|_, a| !matches!(a, Asked::Gate));
+        let steps = self.gate.expire("Linear", now);
+        self.gate_steps(steps, None);
     }
 
     /// A seam call, served now (past the gate, if it's a write): `Some`
@@ -791,7 +818,7 @@ impl LinearExt {
             }
             self.take_done();
             let answer = Ok(serde_json::json!({ "ref": null, "opened": format!("Opened a new-issue form on Linear's page ({}) -- add the issue to the agenda once it's made", page_keys()) }).to_string());
-            self.done_ops.borrow_mut().put(op.as_deref(), &answer);
+            self.done_ops.borrow_mut().put(seam_call, op.as_deref(), payload, &answer);
             return Some(answer);
         }
         let l = match linear() {
@@ -804,7 +831,7 @@ impl LinearExt {
         run::spawn(async move {
             let answer = tracker.serve(seam_call, &payload).await;
             if fenix_tracker::call::writes(seam_call) {
-                done_ops.borrow_mut().put(op.as_deref(), &answer);
+                done_ops.borrow_mut().put(seam_call, op.as_deref(), &payload, &answer);
             }
             api::answer(call, answer);
         });
@@ -858,7 +885,11 @@ impl Extension for LinearExt {
         self.take_done();
         let Some(event) = event else { return };
         match event {
-            Event::SettingChanged(_) => {
+            Event::Timer(t) if Some(t) == self.gate_timer => self.gate_expired(),
+            Event::SettingChanged(key) => {
+                if key == "linear.seam_writes" {
+                    self.gate.reset();
+                }
                 // The agenda asks again: the key, the team or the sync may have changed.
                 api::call_service("agenda.tracker_changed", &serde_json::json!({ "tracker": seam::ID }).to_string());
                 if let Some((_, p)) = &mut self.page {
@@ -909,7 +940,7 @@ impl Extension for LinearExt {
             Event::Picked((id, choice)) => {
                 match self.asked.remove(&id) {
                     Some(Asked::Dirty(key)) if choice.as_deref() == Some("yes") => self.start_branch(key, true),
-                    Some(Asked::Gate) => self.gate_answered(choice.as_deref() == Some("allow")),
+                    Some(Asked::Gate) => self.gate_answered(choice.as_deref()),
                     _ => {}
                 }
             }
@@ -1268,7 +1299,7 @@ mod tests {
     #[test]
     fn the_gate_asks_once_a_session_and_holds_writes_until_answered() {
         let mut h = linear_with(true);
-        h.fake.on_pick("Agenda wants to change issues in Linear", fenix_tracker::gate::ALLOW);
+        h.fake.on_pick("asks to change issues in Linear", fenix_tracker::gate::ALLOW);
         assert!(comment(&mut h, "op-1").unwrap().is_ok());
         assert_eq!(h.fake.pickers().len(), 1, "asked");
         assert_eq!(mutations(&h), 1);
@@ -1282,15 +1313,37 @@ mod tests {
     }
 
     #[test]
-    fn not_now_refuses_and_asks_again_next_time() {
+    fn not_now_refuses_and_cools_off_until_the_setting_changes() {
         let mut h = linear_with(true);
-        h.fake.on_pick("Agenda wants to change issues in Linear", fenix_tracker::gate::DENY);
+        h.fake.on_pick("asks to change issues in Linear", fenix_tracker::gate::DENY);
         let err = SeamError::from_err(&comment(&mut h, "op-1").unwrap().unwrap_err());
         assert_eq!(err.code, "refused");
-        assert!(err.message.contains("you didn't allow the agenda"));
+        assert_eq!(err.message, "you didn't allow changes through Linear -- refused for 10 minutes; r on the task tries again after that");
         assert_eq!(mutations(&h), 0, "nothing was written");
-        let _ = comment(&mut h, "op-2");
-        assert_eq!(h.fake.pickers().len(), 2, "asked again");
+        let err = SeamError::from_err(&comment(&mut h, "op-2").unwrap().unwrap_err());
+        assert!(err.message.starts_with("you said not now to changes through Linear"), "{}", err.message);
+        assert_eq!(h.fake.pickers().len(), 1, "not asked again");
+        h.set_setting("linear.seam_writes", Some("ask"));
+        let _ = comment(&mut h, "op-3");
+        assert_eq!(h.fake.pickers().len(), 2, "asked once the setting changed");
+    }
+
+    /// A question no one answers runs out: what waited is refused, and the
+    /// next write asks again.
+    #[test]
+    fn an_unanswered_question_runs_out_and_the_next_write_asks_again() {
+        let mut h = linear_with(true);
+        let call_id = Fake::with(|s| s.id());
+        let payload = json!({ "seam": 1, "ref": "ENG-12", "body": "x", "op": "op-1" }).to_string();
+        assert_eq!(h.ext.serve(call_id, &service("comment"), &payload), None, "held while asking");
+        assert!(h.fake.pickers()[0].title.contains("(Fenix can't tell which; usually the Agenda)"));
+        h.fire_timers();
+        let err = SeamError::from_err(&h.fake.state().answers.values().last().cloned().unwrap().unwrap_err());
+        assert_eq!(err.message, "no answer came to whether to allow changes through Linear -- r on the task asks again");
+        assert_eq!(mutations(&h), 0);
+        h.fake.on_pick("asks to change issues in Linear", fenix_tracker::gate::ALLOW);
+        assert!(comment(&mut h, "op-1").unwrap().is_ok());
+        assert_eq!((h.fake.pickers().len(), mutations(&h)), (2, 1));
     }
 
     #[test]
@@ -1322,7 +1375,7 @@ mod tests {
         h.keys(page, "p");
         h.keys(page, "1");
         assert_eq!(mutations(&h), 1, "your own pick wrote at once");
-        assert!(h.fake.pickers().iter().all(|p| !p.title.contains("Agenda wants")), "no gate question");
+        assert!(h.fake.pickers().iter().all(|p| !p.title.contains("asks to change issues")), "no gate question");
     }
 
     #[test]

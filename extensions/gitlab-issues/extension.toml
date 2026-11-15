@@ -110,7 +110,7 @@ key = "gitlab-issues.seam_writes"
 kind = "choice"
 choices = ["ask", "always", "never"]
 label = "Changes from the agenda"
-description = "Whether the agenda (or any extension using the tracker seam) may change your GitLab issues: ask once a session, always, or never. Your own changes on this extension's page are never asked about."
+description = "Whether the agenda (or any extension using the tracker seam) may change your GitLab issues: ask (allowed until Fenix restarts, or not now for 10 minutes), always, or never. Your own changes on this extension's page are never asked about."
 default = "ask"
 
 [[contributes.settings]]
