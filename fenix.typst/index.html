@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typst · Fenix extensions</title>
+<meta name="description" content="Typst: its grammar, tinymist, typstyle, compile and watch with their errors as problems, the PDF it makes opened in the PDF reader, the project&#39;s checks with fixes that install the tools, snippets, and templates">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+<div class="wrap bar">
+<a class="brand" href="../index.html"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><polygon points="8,45 16,45 16,7 8,11" fill="#D63A2F"/><polygon points="16,15 40,3 40,11 16,23" fill="#FF6A3D"/><polygon points="16,29 32,21 32,29 16,37" fill="#FFB547"/></svg><span class="word">fenix</span><span class="sub">extensions</span></a>
+<nav aria-label="Elsewhere"><a href="https://github.com/tpedneault/fenix">Fenix</a><a href="https://github.com/tpedneault/fenix-extensions">Source</a></nav>
+</div>
+</header>
+<main id="main" class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">All extensions</a></nav>
+<div class="head">
+<h1>Typst</h1>
+<p class="id"><code>fenix.typst</code></p>
+<p class="lead">Typst: its grammar, tinymist, typstyle, compile and watch with their errors as problems, the PDF it makes opened in the PDF reader, the project&#39;s checks with fixes that install the tools, snippets, and templates</p>
+<ul class="tags" aria-label="Categories"><li><a href="../index.html?category=languages">Languages</a></li><li><a href="../index.html?category=snippets">Snippets</a></li><li><a href="../index.html?category=templates">Templates</a></li></ul>
+</div>
+<div class="layout">
+<aside class="facts" aria-labelledby="facts-h">
+<h2 id="facts-h">At a glance</h2>
+<dl>
+<dt>Latest version</dt><dd>1.0.0</dd>
+<dt>Needs Fenix</dt><dd>1.5 or later, before 2 <code>&gt;=1.5, &lt;2</code></dd>
+<dt>Extension API</dt><dd>1.5 <span class="gloss">– a Fenix that offers it or a later 1.x runs it</span></dd>
+<dt>What it is</dt><dd>Code, run in Fenix&#39;s sandbox (WebAssembly)</dd>
+<dt>Download</dt><dd>442 KB</dd>
+<dt>Repository</dt><dd><a href="https://github.com/tpedneault/fenix-extensions">github.com/tpedneault/fenix-extensions</a></dd>
+<dt>Source</dt><dd><a href="https://github.com/tpedneault/fenix-extensions/tree/main/extensions/typst">extensions/typst</a></dd>
+</dl>
+</aside>
+<div class="content">
+<section aria-labelledby="install">
+<h2 id="install">Install</h2>
+<ol class="steps">
+<li>In Fenix, press <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd> to open the Extensions page.</li>
+<li>Search for <strong>Typst</strong>, and install it. Fenix shows what it may do before it installs anything.</li>
+</ol>
+<p class="aside">Or <a href="https://github.com/tpedneault/fenix-extensions/releases/download/typst-v1.0.0/fenix.typst-1.0.0.fenixext">download the package</a> and run <code>fenix --install-extension fenix.typst-1.0.0.fenixext</code>.</p>
+</section>
+<section aria-labelledby="permissions">
+<h2 id="permissions">What it may do</h2>
+<p>Fenix holds it to these, and shows them before installing it. Everything else is closed to it.</p>
+<dl class="perms">
+<div><dt>Runs these programs on your computer</dt><dd><ul class="chips"><li><code>typst</code></li><li><code>tinymist</code></li><li><code>typstyle</code></li><li><code>/tools/*</code> <span class="gloss">any it installed in its tools folder</span></li></ul></dd></div>
+<div><dt>Makes web (HTTP) requests to these hosts</dt><dd><ul class="chips"><li><code>github.com</code></li><li><code>objects.githubusercontent.com</code></li><li><code>release-assets.githubusercontent.com</code></li></ul></dd></div>
+<div><dt>Reads the files in your project</dt></div>
+<div><dt>Sees where you are in the editor – the file, the cursor, the selection – when its commands run</dt></div>
+</dl>
+</section>
+<section class="doc" aria-labelledby="readme">
+<h2 id="readme">About</h2>
+<p>Typst in Fenix: its grammar (Fenix has none of its own), tinymist as the
+language server, typstyle as the formatter, <code>typst compile</code> and <code>typst watch</code> with their errors as problems, the PDF it makes opened in the PDF
+reader, the project doctor&#39;s checks with fixes that install each tool,
+snippets, and an article and a package for the new-project wizard. Built on
+lang-kit (<code>crates/lang-kit</code>), as each language pack is.</p>
+<p>It starts with Fenix. The server and the formatter are set whenever the
+programs are found; the tasks and the checks are for a project with a
+<code>typst.toml</code> or <code>.typ</code> files. It needs Fenix 1.5 or later (extension API
+1.5). The PDF is shown by the PDF reader (<code>fenix.pdf</code>), a separate extension:
+without it the pack still compiles, and says what to install.</p>
+<h3 id="readme-the-grammar">The grammar</h3>
+<p><code>*.typ</code> files are read with uben0&#39;s tree-sitter-typst (<code>grammars/</code>, MIT, at
+the commit the README there names). Highlighted (headings, <code>*strong*</code>,
+<code>_emphasis_</code>, raw blocks, links, labels and references, <code>#let</code>, <code>#set</code>,
+<code>#show</code>, <code>#import</code>, calls, strings, numbers, math), folded (a heading&#39;s
+section, blocks, content, raw blocks), with Enter indenting inside a block
+or a call, and the breadcrumbs and <code>SPC c s</code> listing the sections. <code>//</code>
+comments a line. The grammar&#39;s repository ships queries in another editor&#39;s
+names; the pack&#39;s own are in <code>queries/typst/</code>.</p>
+<h3 id="readme-the-server">The server</h3>
+<p>tinymist, Myriad-Dreamin&#39;s: completion, hover, go to definition and
+references, rename, outline, diagnostics, and Typst&#39;s own packages. It&#39;s
+started with <code>tinymist lsp</code> for <code>.typ</code> files. It carries its own Typst, so
+it needs no <code>typst</code> on the machine; its diagnostics come from it as you
+type.</p>
+<h3 id="readme-formatting">Formatting</h3>
+<p><code>SPC c F</code>, and saving with <code>editor.format_on_save</code>: <code>typstyle</code>, the standalone
+formatter, reading the file on its input. tinymist can format too (it
+bundles typstyle), but only through the language server, and Fenix&#39;s save
+runs the formatter a pack gives as a command: so the standalone typstyle is
+the one path, and its doctor row has a fix.</p>
+<h3 id="readme-compile-and-preview">Compile and preview</h3>
+<ul class="tight">
+<li><p><code>SPC m c</code> (<code>typst.compile</code>): <code>typst compile --diagnostic-format short --root . main.typ main.pdf</code>, in the project. What it prints is read into
+problems, in whichever file they are (an error in a chapter the document
+imports is the chapter&#39;s), and a compile that works clears them. A line with
+no place (a document that isn&#39;t there) is the document&#39;s, at its top. The
+message line says how it went.</p></li>
+<li><p><strong>The document</strong> is, in this order: the <code>typst.main</code> setting; <code>main.typ</code>;
+<code>src/main.typ</code>; a <code>typst.toml</code>&#39;s <code>entrypoint</code>; the one <code>.typ</code> file at the
+top when there&#39;s only one. With none, the <code>.typ</code> file you&#39;re in is compiled.
+The PDF is beside it, <code>main.pdf</code>.</p></li>
+<li><p><strong>The preview</strong>: the first compile that works opens the PDF in the PDF
+reader, through the reader&#39;s <code>pdf.open</code> service, in the pane you&#39;re in; the
+reader reloads a PDF when it&#39;s written again, keeping its place, so every
+compile after that shows in it and the pack doesn&#39;t ask again. <code>SPC m p</code>
+(<code>typst.preview</code>) opens it again (it compiles first if there&#39;s no PDF), and
+<code>typst.preview</code> off keeps the automatic opening off.</p></li>
+<li><p>Without the reader (not installed, or one with no <code>pdf.open</code>) the pack says
+so in a notification -- where the PDF is, and that <code>fenix.pdf</code> from the
+Extensions page shows it -- and each compile tries again, in case you
+installed it. Fenix has no call for the system&#39;s viewer (<code>open_url</code> takes
+http(s) only), so the pack doesn&#39;t offer one.</p></li>
+<li><p><code>SPC m w</code> (<code>typst.watch</code>): compiles once, then runs <code>typst watch</code> as a
+background task, which compiles again whenever a file it read changes, and
+opens the PDF. Pressing it again stops it. Its output is in the task&#39;s
+buffer; its errors aren&#39;t read into problems (tinymist&#39;s are there as you
+type, and <code>SPC m c</code> reads a compile&#39;s). While it runs, <code>typst.compile_on_save</code>
+does nothing: it&#39;s the one compiling.</p></li>
+<li><p><code>typst.compile_on_save</code>: saving a <code>.typ</code> file compiles the document, with
+its problems and the PDF reloading.</p></li>
+</ul>
+<p>Typst&#39;s short format counts a line from 1 and a column <strong>from 0</strong>, in
+characters; the pack&#39;s parser knows (<code>src/compile.rs</code>, tested on recorded
+output). Hints aren&#39;t in that format, so the problems have the message only.</p>
+<h3 id="readme-tasks">Tasks</h3>
+<p><code>SPC p t</code>, each in the project:</p>
+<div class="table"><table>
+<thead><tr><th>Task</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td><code>compile</code></td><td><code>typst compile --diagnostic-format short --root . main.typ main.pdf</code></td></tr>
+<tr><td><code>compile (png)</code></td><td>the same, to <code>main-{p}.png</code>: a picture a page</td></tr>
+<tr><td><code>fonts</code></td><td><code>typst fonts</code>: the fonts Typst finds</td></tr>
+<tr><td><code>format -check</code></td><td><code>typstyle --check .</code>: the files that aren&#39;t formatted</td></tr>
+</tbody>
+</table></div>
+<p>Every task is started by you, from the picker or <code>SPC p T</code> (rerun the last).
+A task of the same name in <code>.fenix/tools.json</code> wins. <code>watch</code> is a command, not
+a task: a task holds the task pane while it runs.</p>
+<h3 id="readme-the-doctor">The doctor</h3>
+<div class="table"><table>
+<thead><tr><th>Check</th><th></th><th>Fix row</th></tr></thead>
+<tbody>
+<tr><td>Typst</td><td><code>typst --version</code>, 0.11 or later; needed in a project with Typst files, a warning in any other</td><td>Typst 0.15.1</td></tr>
+<tr><td>tinymist</td><td><code>tinymist --version</code>: the Typst it bundles (it prints no version of its own); optional</td><td>tinymist 0.15.12</td></tr>
+<tr><td>typstyle</td><td><code>typstyle --version</code>; optional</td><td>typstyle 0.15.2</td></tr>
+</tbody>
+</table></div>
+<p>Each fix row (Linux, macOS and Windows; x86_64 and arm64) downloads the
+release from GitHub for this machine (<code>github.com</code>, and where GitHub sends
+the file), checks it against the SHA-256 the pack knows, unpacks it into the
+pack&#39;s tools folder, and uses it at once. Starting is said in the message
+line; how it ended is a notification: &quot;Installed tinymist 0.15.12&quot;, or
+&quot;Couldn&#39;t install tinymist 0.15.12&quot; with which step failed and why, and
+<em>Try again</em>. One you installed yourself is used instead: the pack looks on
+<code>PATH</code>, and in <code>~/.local/bin</code>, <code>~/.cargo/bin</code>, Homebrew&#39;s, Snap&#39;s, Scoop&#39;s
+and winget&#39;s.</p>
+<p><strong>Where the checksums come from.</strong> None of the three projects publishes a
+checksum file with a release (<code>.sha256</code>, <code>SHA256SUMS</code> and the like are not
+among the assets). Each SHA-256 in <code>src/tools.rs</code> was computed from the asset
+downloaded from the release&#39;s own URL, for the tags <code>v0.15.12</code> (tinymist),
+<code>v0.15.1</code> (Typst) and <code>v0.15.2</code> (typstyle); it pins those exact bytes, so Fenix
+refuses a file that isn&#39;t them. It doesn&#39;t prove the release is what the
+author meant: that is as far as the upstream goes.</p>
+<h3 id="readme-snippets">Snippets</h3>
+<div class="table"><table>
+<thead><tr><th>Key</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>doc</code></td><td><code>#set</code> rules for a document: title, author, page, text, paragraphs, heading numbers</td></tr>
+<tr><td><code>h1</code>, <code>h2</code>, <code>h3</code></td><td>a heading</td></tr>
+<tr><td><code>fig</code>, <code>tab</code></td><td>a figure with an image; a table in a figure, each with a label to reference</td></tr>
+<tr><td><code>eq</code></td><td>an equation with a label</td></tr>
+<tr><td><code>let</code>, <code>fn</code>, <code>show</code>, <code>set</code></td><td>a binding, a function, a show rule, a set rule</td></tr>
+<tr><td><code>tmpl</code></td><td>a template function, applied with <code>#show: ...with(...)</code></td></tr>
+<tr><td><code>imp</code>, <code>pkg</code>, <code>incl</code></td><td>an import; a package from <code>@preview</code>; an include</td></tr>
+<tr><td><code>grid</code>, <code>cols</code>, <code>raw</code></td><td>a grid; columns; a code block</td></tr>
+<tr><td><code>bib</code>, <code>cite</code>, <code>ref</code></td><td>the bibliography; a citation; a reference</td></tr>
+<tr><td><code>for</code>, <code>if</code>, <code>ctx</code></td><td>a loop; a conditional; <code>context</code></td></tr>
+<tr><td><code>link</code>, <code>toc</code>, <code>lorem</code></td><td>a link; the outline; placeholder text</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-new-projects">New projects</h3>
+<p><em>Typst · article</em> in the new-project wizard: a title block, an abstract,
+numbered headings, a figure, an equation and a table with labels you can
+reference, and a bibliography (<code>main.typ</code>, <code>refs.bib</code>, a <code>.gitignore</code> that
+keeps the PDF out of Git). <em>Typst · package</em>: a <code>typst.toml</code> (name, version,
+entrypoint, authors, licence), a <code>lib.typ</code> with a documented function, a
+<code>main.typ</code> that imports it as an example, and a README. Both compile as they
+are (checked with Typst 0.15.1). Neither runs anything when it&#39;s made.</p>
+<h3 id="readme-settings">Settings</h3>
+<div class="table"><table>
+<thead><tr><th>Setting</th><th>Default</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>typst.main</code></td><td>empty (found)</td><td>The document, in the project, when it isn&#39;t <code>main.typ</code>; a project&#39;s own (<code>.fenix/settings.toml</code>)</td></tr>
+<tr><td><code>typst.preview</code></td><td>on</td><td>The first compile that works opens the PDF in the reader</td></tr>
+<tr><td><code>typst.compile_on_save</code></td><td>off</td><td>Saving a <code>.typ</code> file compiles the document</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-project-kind">Project kind</h3>
+<p>Fenix 1.6 and later know a Typst project (<code>TYP</code>): its tag in front of its name in the project hub, on Home, in the modeline and in the doctor, found by a <code>typst.toml</code> at its top, and opened on <code>main.typ</code> when you&#39;ve had none of its files open. <code>kind = &quot;typst&quot;</code> in <code>.fenix/settings.toml</code> says it by hand. Fenix&#39;s own kinds come first: a project Fenix already takes for Rust, Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;typst&quot;</code> says otherwise, so this kind names projects Fenix would otherwise call plain folders. Your home folder is never a project, whatever dotfiles it holds. A folder of <code>.typ</code> files and no <code>typst.toml</code> stays a plain folder (wildcards aren&#39;t allowed in a kind&#39;s markers): the pack still loads for its files, and the compile commands work. Earlier Fenix ignores this and the pack works there as before. The kind is declared in <code>extension.toml</code> (<code>[[contributes.project_kinds]]</code>); the pack&#39;s context markers say when the pack applies, and are not the same list.</p>
+<h3 id="readme-keys">Keys</h3>
+<p>After <code>SPC m</code> in a Typst project or file (<code>C-k m</code> with standard keys):</p>
+<div class="table"><table>
+<thead><tr><th>Key</th><th>Command</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>c</code></td><td><code>typst.compile</code></td><td>compile the document and show its PDF</td></tr>
+<tr><td><code>w</code></td><td><code>typst.watch</code></td><td>watch the document (again to stop)</td></tr>
+<tr><td><code>p</code></td><td><code>typst.preview</code></td><td>open the document&#39;s PDF</td></tr>
+<tr><td><code>d</code></td><td><code>typst.doctor</code></td><td>check the project again</td></tr>
+</tbody>
+</table></div>
+<h3 id="readme-what-it-may-do">What it may do</h3>
+<ul class="tight">
+<li><p><strong>Run <code>typst</code>, <code>tinymist</code> and <code>typstyle</code></strong> (<code>permissions.process</code>): to ask
+their versions for the doctor; <code>typst compile</code> and <code>typst watch</code>, as
+commands and tasks you start; typstyle as the formatter and <code>format -check</code>;
+tinymist as the server. <code>/tools/*</code> is where the pack installs them. No other
+program.</p></li>
+<li><p><strong>Reach <code>github.com</code>, <code>objects.githubusercontent.com</code> and
+<code>release-assets.githubusercontent.com</code></strong> (<code>permissions.network</code>): to
+download a release when you run a fix row. Typst itself reaches the package
+registry for an <code>@preview</code> import, as it does in a terminal; that&#39;s Typst&#39;s,
+not the pack&#39;s.</p></li>
+<li><p><strong>Read the project</strong> (<code>filesystem = &quot;project-read&quot;</code>): to find the document
+(<code>main.typ</code>, <code>typst.toml</code>, the <code>.typ</code> files at the top) and to see whether the
+PDF is there. It writes nothing: the PDF is Typst&#39;s.</p></li>
+<li><p><strong>Know where you are</strong> (<code>editor = &quot;read&quot;</code>): the project&#39;s folder as the
+machine has it, which the PDF reader needs for a full path, and the <code>.typ</code>
+file you&#39;re in when the project names no document.</p></li>
+<li><p>It calls the PDF reader&#39;s <code>pdf.open</code> service. That is not a permission:
+an extension may ask another&#39;s service, and the pack depends on none.</p></li>
+</ul>
+<h3 id="readme-not-yet">Not yet</h3>
+<ul class="tight">
+<li><p><strong>A position in the PDF.</strong> The reader&#39;s <code>pdf.open</code> takes a page or a
+heading, not a place on the page, so the PDF can&#39;t scroll to where the
+cursor is (tinymist&#39;s own preview does, in a browser). That&#39;s the reader&#39;s to
+add.</p></li>
+<li><p><strong><code>typst watch</code>&#39;s errors as problems</strong>, and a <em>typst query</em>, <em>typst init</em>
+from templates in the universe (<code>typst init @preview/...</code> runs fine in a
+terminal).</p></li>
+<li><p><strong>tinymist&#39;s browser preview</strong> (<code>tinymist preview</code>), exports other than PDF
+and PNG, and Typst&#39;s debug adapter.</p></li>
+</ul>
+<h3 id="readme-building">Building</h3>
+<pre><code class="language-text">cargo xtask pack extensions/typst dist
+cargo xtask install extensions/typst
+cargo test --locked --manifest-path extensions/typst/Cargo.toml
+</code></pre>
+<p><code>cargo test</code> runs the pack on the test kit&#39;s fake host: its server, formatter,
+tasks and checks are set; a compile&#39;s problems are set where they are and
+cleared when fixed; the PDF reader&#39;s <code>pdf.open</code> is called once with a full path
+(the fake service answers) and not again, and is told about when the service is
+there and when nothing offers it; <code>watch</code> starts and stops a background task;
+and the fix rows&#39; downloads name the release and its SHA-256 (<code>src/lib.rs</code>).
+Each piece on its own: the install table for each platform (<code>src/tools.rs</code>),
+the doctor (<code>doctor.rs</code>), the document (<code>project.rs</code>), the diagnostics parser
+(<code>compile.rs</code>), the preview (<code>preview.rs</code>), the tasks. And the data as Fenix
+reads it (<code>src/data.rs</code>): the language file, the grammar loaded and its
+queries run on a sample, the snippets, the two templates planned, and the
+manifest against the code. What <code>typst compile</code> and the <code>--version</code>s printed in
+<code>src/samples/</code> was recorded from the real binaries (see
+<code>src/samples/README.md</code>).</p>
+</section>
+<section aria-labelledby="versions">
+<h2 id="versions">Versions</h2>
+<div class="table"><table>
+<thead><tr><th scope="col">Version</th><th scope="col">Fenix</th><th scope="col">API</th><th scope="col">Size</th><th scope="col">Package</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.0.0</th><td><code>&gt;=1.5, &lt;2</code></td><td>1.5</td><td>442 KB</td><td><a href="https://github.com/tpedneault/fenix-extensions/releases/download/typst-v1.0.0/fenix.typst-1.0.0.fenixext">Download<span class="visually-hidden"> 1.0.0</span></a><code class="sha" title="SHA-256 4af9fdeeae5b776fe35258591bbc8a43f931ead3c02453819dca03779ee986e8">4af9fdeeae…</code></td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="doc" aria-labelledby="changelog">
+<h2 id="changelog">Changelog</h2>
+<h3 id="changelog-100">1.0.0</h3>
+<ul class="tight">
+<li><p>The first release, for Fenix 1.5 (extension API 1.5): Typst. Its grammar
+(<code>.typ</code> files: highlighted, folded, indented, with its sections as the
+scopes <code>SPC c s</code> and the breadcrumbs list), tinymist as the language
+server, typstyle as the formatter, and compile and watch: <code>SPC m c</code> runs
+<code>typst compile</code> and shows its errors as problems, in the file they&#39;re in;
+<code>SPC m w</code> compiles and then watches in the background; the PDF opens in the
+PDF reader (the <code>fenix.pdf</code> extension) the first time and the reader
+reloads it after each compile, and without the reader the pack says what to
+install. Tasks (<code>compile</code>, <code>compile (png)</code>, <code>fonts</code>, <code>format -check</code>), and
+the project doctor checks Typst, tinymist and typstyle, each with a fix that
+installs it from its GitHub release, checked against its SHA-256. Snippets,
+a <em>Typst · article</em> and a <em>Typst · package</em> for the new-project wizard, and
+a lesson in the tutorial.</p></li>
+<li><p>Fenix 1.6 and later show a project with a <code>typst.toml</code> at its top as a Typst
+project (<code>TYP</code>), in the project hub, on Home, in the modeline and in the
+doctor, and open it on <code>main.typ</code> when you&#39;ve had none of its files open;
+<code>kind = &quot;typst&quot;</code> in a project&#39;s <code>.fenix/settings.toml</code> says it by hand.
+Fenix&#39;s own kinds come first: a project Fenix already takes for Rust,
+Python, Go, JavaScript, C/C++, Tcl or Arduino stays that one until <code>kind = &quot;typst&quot;</code> says otherwise. Fenix 1.5 ignores this and the pack works there as
+before: it&#39;s only data in the manifest.</p></li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+<footer class="foot">
+<div class="wrap">
+<p>Every extension here installs from inside Fenix: <kbd>SPC</kbd> <kbd>h</kbd> <kbd>x</kbd>. Made from the registry's signed index. Index as of <time datetime="2026-11-15">2026-11-15</time>.</p>
+<p><a href="https://github.com/tpedneault/fenix-extensions">fenix-extensions</a> · MIT OR Apache-2.0</p>
+</div>
+</footer>
+</body>
+</html>
