@@ -107,7 +107,11 @@ pub struct Fetch;
 
 impl Http for Fetch {
     async fn request(&self, method: &str, url: &str, headers: &[(&str, String)], body: Option<String>) -> Result<Response, String> {
-        let req = HttpRequest { method: method.into(), url: url.into(), headers: headers.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(), body: body.map(String::into_bytes).unwrap_or_default(), options: Default::default() };
+        // A write never follows a redirect: Fenix would follow a 301 or
+        // 302 of a PUT as a GET with no body, and the change would seem
+        // made. The forge's client takes the 3xx as the error it is.
+        let options = if method == "GET" { Default::default() } else { api::HttpOptions::new().no_redirects() };
+        let req = HttpRequest { method: method.into(), url: url.into(), headers: headers.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(), body: body.map(String::into_bytes).unwrap_or_default(), options };
         let r = jobs::fetch(req).await?;
         Ok(Response { status: r.status, headers: r.headers, body: String::from_utf8_lossy(&r.body).into_owned() })
     }
@@ -164,7 +168,16 @@ fn done(f: impl FnOnce(&mut IssuesExt) + 'static) {
 
 /// `git args` in the project: what it printed, or why it failed.
 async fn git(args: &[&str]) -> Result<String, String> {
-    let cmd = Command::new("git").args(args.iter().copied()).cwd(PROJECT).env("GIT_TERMINAL_PROMPT", "0").env("GIT_EDITOR", "true");
+    // Never a prompt, an editor, or a protocol that runs something or
+    // reads this machine (`ext::`, `file://`), whatever the project's git
+    // config says its remotes are.
+    let cmd = Command::new("git")
+        .args(args.iter().copied())
+        .cwd(PROJECT)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_EDITOR", "true")
+        .env("GIT_ALLOW_PROTOCOL", branch::ALLOWED_PROTOCOLS)
+        .env("GIT_PROTOCOL_FROM_USER", "0");
     let out = jobs::run(cmd).await?;
     if out.ok {
         Ok(out.stdout)
@@ -424,8 +437,8 @@ impl IssuesExt {
         self.say(page, "looking at the repository...", Role::Muted);
         jobs::spawn(async move {
             let mut seen = branch::Seen { remotes: git(&["remote", "-v"]).await.unwrap_or_default(), status: git(&["status", "--porcelain"]).await.unwrap_or_default(), branches: git(&["branch", "--format=%(refname:short)"]).await.unwrap_or_default(), heads: Vec::new() };
-            for (name, _) in branch::remotes(&seen.remotes) {
-                if let Ok(head) = git(&["symbolic-ref", &format!("refs/remotes/{name}/HEAD")]).await {
+            for (name, _) in branch::remotes(&seen.remotes).into_iter().filter(|(n, _)| branch::remote_name_ok(n)) {
+                if let Ok(head) = git(&["symbolic-ref", "--quiet", "--end-of-options", &format!("refs/remotes/{name}/HEAD")]).await {
                     seen.heads.push((name, head));
                 }
             }
@@ -453,10 +466,14 @@ impl IssuesExt {
         if name.is_empty() {
             return self.say(page, "no branch name -- nothing made", Role::Warn);
         }
+        let commands = match branch::commands(&plan, &name) {
+            Ok(c) => c,
+            Err(why) => return self.say(page, &format!("{why} -- nothing made"), Role::Warn),
+        };
         jobs::spawn(async move {
             let result = async {
                 git(&["check-ref-format", "--branch", &name]).await.map_err(|_| format!("git won't take \"{name}\" as a branch name"))?;
-                for args in branch::commands(&plan, &name) {
+                for args in commands {
                     let args: Vec<&str> = args.iter().map(String::as_str).collect();
                     // A fetch that fails (offline) leaves the branch made
                     // from what's known of the remote.
