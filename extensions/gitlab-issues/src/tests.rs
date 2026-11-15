@@ -95,23 +95,21 @@ fn the_manifest_serves_every_seam_call_and_asks_only_for_your_gitlab() {
 #[test]
 fn about_is_ready_with_fenixs_server_and_token_and_says_how_otherwise() {
     let mut h = harness(fake());
-    h.serve("gitlab-issues.tracker.about", r#"{"seam": 1}"#);
-    let about: seam::About = serde_json::from_str(&answer(&h).unwrap()).unwrap();
-    assert!(about.ready && about.name == "GitLab" && !about.can("worklog"));
+    let about: seam::About = serde_json::from_str(&h.serve("fenix.gitlab-issues.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
+    assert!(about.ready && about.name == "GitLab" && about.id == ID && !about.can("worklog") && about.can("edit.due"));
+    assert!(h.fake.requests().is_empty(), "about asks nothing");
     let f = fake();
     f.setting("gitlab-issues.time_tracking", "true");
     let mut h = harness(f);
-    h.serve("gitlab-issues.tracker.about", r#"{"seam": 1}"#);
-    assert!(serde_json::from_str::<seam::About>(&answer(&h).unwrap()).unwrap().can("worklog"));
+    assert!(serde_json::from_str::<seam::About>(&h.serve("fenix.gitlab-issues.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap().can("worklog"));
 
     for (server, token) in [("", TOKEN), ("https://gitlab.example.com", "")] {
         let f = fake();
         f.setting("gitlab.base_url", server).secret("gitlab.token", token);
         let mut h = harness(f);
-        h.serve("gitlab-issues.tracker.about", r#"{"seam": 1}"#);
-        let about: seam::About = serde_json::from_str(&answer(&h).unwrap()).unwrap();
+        let about: seam::About = serde_json::from_str(&h.serve("fenix.gitlab-issues.tracker.about", r#"{"seam": 1}"#).unwrap().unwrap()).unwrap();
         assert_eq!(about.not_ready.as_deref(), Some("Set your GitLab server and token in SPC , (Forges) -- the ones Review uses; a personal access token with the api scope"));
-        h.serve("gitlab-issues.tracker.issues", r#"{"seam": 1, "refs": ["acme/platform/api#4"]}"#);
+        h.serve("fenix.gitlab-issues.tracker.issues", r#"{"seam": 1, "refs": ["acme/platform/api#4"]}"#);
         assert_eq!(SeamError::from_err(&answer(&h).unwrap_err()).code, seam::code::NOT_SET_UP);
         assert!(h.fake.requests().is_empty());
     }
@@ -120,14 +118,14 @@ fn about_is_ready_with_fenixs_server_and_token_and_says_how_otherwise() {
 #[test]
 fn the_seams_calls_answer_from_gitlab() {
     let f = fake();
-    f.setting("gitlab-issues.time_tracking", "true");
+    f.setting("gitlab-issues.time_tracking", "true").setting("gitlab-issues.seam_writes", "always");
     let mut h = harness(f);
-    h.serve("gitlab-issues.tracker.assigned", r#"{"seam": 1, "limit": 50}"#);
+    h.serve("fenix.gitlab-issues.tracker.assigned", r#"{"seam": 1, "limit": 50}"#);
     let page: seam::Page = serde_json::from_str(&answer(&h).unwrap()).unwrap();
     assert_eq!(page.issues.iter().map(|i| i.key.as_str()).collect::<Vec<_>>(), ["acme/platform/api#4", "acme/web#8"]);
-    h.serve("gitlab-issues.tracker.update", r#"{"seam": 1, "ref": "acme/platform/api#4", "set": {"due": "2026-12-01"}}"#);
+    h.serve("fenix.gitlab-issues.tracker.update", r#"{"seam": 1, "ref": "acme/platform/api#4", "set": {"due": "2026-12-01"}}"#);
     assert_eq!(answer(&h), Ok("{}".into()));
-    h.serve("gitlab-issues.tracker.worklog", r#"{"seam": 1, "ref": "acme/platform/api#4", "seconds": 5400, "started": "2026-11-12T09:15:00+01:00"}"#);
+    h.serve("fenix.gitlab-issues.tracker.worklog", r#"{"seam": 1, "ref": "acme/platform/api#4", "seconds": 5400, "started": "2026-11-12T09:15:00+01:00"}"#);
     assert_eq!(answer(&h), Ok(r#"{"said":"logged 1h30m"}"#.into()));
     let bodies: Vec<String> = h.fake.requests().iter().filter(|(_, r)| r.method != "GET").map(|(_, r)| String::from_utf8_lossy(&r.body).into_owned()).collect();
     assert_eq!(bodies, [r#"{"due_date":"2026-12-01"}"#, r#"{"body":"/spend 1h30m 2026-11-12"}"#]);
@@ -159,11 +157,35 @@ fn the_page_lists_opens_comments_and_moves_an_issue_through_its_workflow() {
 }
 
 #[test]
+fn the_seams_writes_are_gated_and_the_project_is_the_remotes() {
+    const COMMENT: &str = r#"{"seam": 1, "ref": "acme/platform/api#4", "body": "x", "op": "agenda:1:1"}"#;
+    let notes = |h: &Harness<IssuesExt>| h.fake.requests().iter().filter(|(_, r)| r.method == "POST").count();
+    let f = fake();
+    f.setting("gitlab-issues.seam_writes", "never");
+    let mut h = harness(f);
+    assert_eq!(SeamError::from_err(&h.serve("fenix.gitlab-issues.tracker.comment", COMMENT).unwrap().unwrap_err()).code, seam::code::REFUSED);
+    assert_eq!(notes(&h), 0);
+
+    let mut h = harness(fake());
+    assert_eq!(h.serve("fenix.gitlab-issues.tracker.comment", COMMENT), None, "held while asking");
+    let gate = h.fake.pickers().into_iter().last().unwrap();
+    assert_eq!(gate.title, "Agenda wants to change issues in GitLab for you -- allow for this session?");
+    assert_eq!(notes(&h), 0);
+    h.event(api::Event::Picked((gate.id, Some("allow".into()))));
+    assert_eq!((notes(&h), answer(&h)), (1, Ok("{}".to_string())));
+    assert_eq!(h.serve("fenix.gitlab-issues.tracker.comment", COMMENT), Some(Ok("{}".into())));
+    assert_eq!(notes(&h), 1, "a repeated op isn't done twice");
+
+    h.serve("fenix.gitlab-issues.tracker.project", r#"{"seam": 1}"#);
+    assert_eq!(answer(&h), Ok(r#"{"project":"acme/platform/api"}"#.into()));
+}
+
+#[test]
 fn a_new_issue_with_a_template_and_the_agendas_create() {
     let f = fake();
-    f.on_pick("Issue template", "Bug");
+    f.on_pick("Issue template", "Bug").on_pick("Agenda wants to change issues in GitLab", fenix_tracker::gate::ALLOW);
     let mut h = harness(f);
-    h.serve("gitlab-issues.tracker.create", r#"{"seam": 1, "title": "From a task", "body": ""}"#);
+    h.serve("fenix.gitlab-issues.tracker.create", r#"{"seam": 1, "title": "From a task", "body": ""}"#);
     let page = h.page(KIND);
     assert!(h.screen(page).contains("Project      acme/platform/api"), "{}", h.screen(page));
     h.key(page, Key::Char('t'));
@@ -206,7 +228,7 @@ fn the_agent_tools_read_capped_data_with_a_note() {
     assert!(text.contains("Linked: acme/platform/api!11 (opened) Burst-friendly limiter"));
     assert!(!text.contains("added ~workflow::Doing"), "the forge's narration left out");
     h.serve("gitlab-issues.my_issues", r#"{"limit": 50}"#);
-    assert!(answer(&h).unwrap().contains("- acme/web#8  Docs: setup page [blocked]"));
+    assert!(answer(&h).unwrap().contains("- acme/web#8  Docs: setup page [workflow::Blocked]"));
     assert!(h.fake.requests().iter().all(|(_, r)| r.method == "GET"));
     no_token(&h);
 }

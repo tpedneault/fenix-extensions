@@ -34,9 +34,10 @@ process = ["git"]
 filesystem = "project-read"
 
 [contributes]
-# The tracker seam the agenda calls; and the agent tools' two.
+# The tracker seam the agenda calls, under the extension's full id;
+# and the agent tools' two.
 services = [
-    "gitlab-issues.tracker.about", "gitlab-issues.tracker.assigned", "gitlab-issues.tracker.issues", "gitlab-issues.tracker.transitions", "gitlab-issues.tracker.transition", "gitlab-issues.tracker.update", "gitlab-issues.tracker.priorities", "gitlab-issues.tracker.people", "gitlab-issues.tracker.comment", "gitlab-issues.tracker.worklog", "gitlab-issues.tracker.create", "gitlab-issues.tracker.remember",
+    "fenix.gitlab-issues.tracker.about", "fenix.gitlab-issues.tracker.assigned", "fenix.gitlab-issues.tracker.issues", "fenix.gitlab-issues.tracker.transitions", "fenix.gitlab-issues.tracker.transition", "fenix.gitlab-issues.tracker.update", "fenix.gitlab-issues.tracker.priorities", "fenix.gitlab-issues.tracker.people", "fenix.gitlab-issues.tracker.comment", "fenix.gitlab-issues.tracker.worklog", "fenix.gitlab-issues.tracker.create", "fenix.gitlab-issues.tracker.remember", "fenix.gitlab-issues.tracker.project",
     "gitlab-issues.read_issue", "gitlab-issues.my_issues",
 ]
 
@@ -91,13 +92,6 @@ description = "The name proposed for a branch started from an issue: {number}, {
 default = "{number}-{title}"
 
 [[contributes.settings]]
-key = "gitlab-issues.blocked_label"
-kind = "text"
-label = "Blocked label"
-description = "The label that says an issue is blocked: the agenda's Blocked column adds and removes it. Empty, Blocked stays in the agenda."
-default = "blocked"
-
-[[contributes.settings]]
 key = "gitlab-issues.workflow_scope"
 kind = "text"
 label = "Workflow labels"
@@ -110,6 +104,14 @@ kind = "bool"
 label = "Log the agenda's time"
 description = "The agenda's worklogs go to the issue's time tracking (/spend), on the day the time was spent."
 default = "false"
+
+[[contributes.settings]]
+key = "gitlab-issues.seam_writes"
+kind = "choice"
+choices = ["ask", "always", "never"]
+label = "Changes from the agenda"
+description = "Whether the agenda (or any extension using the tracker seam) may change your GitLab issues: ask once a session, always, or never. Your own changes on this extension's page are never asked about."
+default = "ask"
 
 [[contributes.settings]]
 key = "gitlab-issues.sync_minutes"

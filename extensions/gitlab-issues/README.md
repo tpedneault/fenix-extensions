@@ -27,7 +27,7 @@ and words searched for in titles and descriptions.
 | `C` | Comment, in a pane of its own |
 | `e`, `E` | Its title, its description |
 | `l`, `A` | Its labels, its assignees (usernames, commas between) |
-| `s` | Move it: close, reopen, a step of the project's `workflow::` labels, the blocked label on or off |
+| `s` | Move it: close, reopen, a step of the project's `workflow::` labels |
 | `b` | Start a branch for it |
 | `a` | Add it to the agenda |
 | `o`, `y`, `Y` | The browser; copy its ref (`group/project#12`), its address |
@@ -56,15 +56,27 @@ request from this issue" isn't used: the branch is made here.
 
 ## For the agenda
 
-The agenda finds it by itself (`gitlab-issues.tracker.*`, the tracker
-seam): your open issues to import, linked tasks kept in step, and their
-moves -- close, reopen, and a step of the `workflow::` scoped labels when
-the project uses them (how far along each step is, To do, Doing or
-Done, is read from its name). The blocked label is the Blocked column;
-without one, Blocked stays in your agenda. Title, description, due date,
-assignee and comments go to GitLab; with `gitlab-issues.time_tracking`
-on, the time you log goes to the issue's time tracking on the day you
-spent it (`/spend`). GitLab has no priority, so that stays on the task.
+The agenda finds it by itself (`fenix.gitlab-issues.tracker.*`, the
+tracker seam): your open issues to import, linked tasks kept in step,
+and their moves -- close, reopen, and a step of the `workflow::` scoped
+labels when the project uses them (how far along each step is, To do,
+Doing, Blocked or Done, is read from its name: `workflow::Blocked` is
+the Blocked column). A column no step reaches moves in your agenda only,
+and nothing is sent. Title, description, due date, assignee, labels and
+comments go to GitLab; with `gitlab-issues.time_tracking` on, the time
+you log goes to the issue's time tracking on the day you spent it
+(`/spend`). GitLab has no priority, so that stays on the task. The
+agenda's "this project only" knows your issues by the project the
+project's remote is.
+
+**Changes from the agenda are asked about.** Any installed extension can
+call the tracker seam, and Fenix doesn't say which one did, so the first
+change that comes through it in a session -- a move, an edit, a comment,
+a new issue -- asks you first: *Agenda wants to change issues in GitLab
+for you -- allow for this session?* `gitlab-issues.seam_writes` says it for
+good: `ask` (the default), `always` or `never`. What you do on this
+extension's own page is never asked about. A change sent twice (the
+agenda gave up waiting, and you said send it again) is done once.
 
 ## For agents
 
@@ -84,7 +96,7 @@ access token with the `api` scope (`read_api` is enough for reading).
 | `gitlab-issues.projects` | Projects whose open issues the page lists |
 | `gitlab-issues.queries` | Saved filters, by name |
 | `gitlab-issues.branch_pattern` | A branch's name: `{number}`, `{title}`, `{project}` (`{number}-{title}`) |
-| `gitlab-issues.blocked_label` | The label that means blocked (`blocked`) |
+| `gitlab-issues.seam_writes` | Changes from the agenda: `ask` once a session, `always`, `never` |
 | `gitlab-issues.workflow_scope` | The scoped labels that are the workflow (`workflow`, for `workflow::Doing`) |
 | `gitlab-issues.time_tracking` | The agenda's logged time goes to the issue (off) |
 | `gitlab-issues.sync_minutes` | How often the agenda's linked tasks are brought up to date |

@@ -38,8 +38,11 @@ use fenix_issues::page::{Action, Detail, Field, Page};
 use fenix_tracker::{self as seam, SeamError};
 use fenix_ui_kit::Role;
 
-/// The tracker's id: its services start with it.
-pub const ID: &str = "gitlab-issues";
+/// The extension's full id: the tracker seam's services start with it
+/// (`fenix_tracker::service`).
+pub const ID: &str = "fenix.gitlab-issues";
+/// The setting that says whether the seam may write (`fenix_tracker::gate`).
+const SEAM_WRITES: &str = "gitlab-issues.seam_writes";
 const HOST: Host = Host::GitLab;
 const KIND: &str = "issues";
 /// Fenix's own: the server and the token Review reads.
@@ -51,7 +54,6 @@ mod setting {
     pub const REPOSITORIES: &str = "gitlab-issues.projects";
     pub const QUERIES: &str = "gitlab-issues.queries";
     pub const BRANCH: &str = "gitlab-issues.branch_pattern";
-    pub const BLOCKED: &str = "gitlab-issues.blocked_label";
     pub const WORKFLOW: &str = "gitlab-issues.workflow_scope";
     pub const TIME: &str = "gitlab-issues.time_tracking";
     pub const SYNC: &str = "gitlab-issues.sync_minutes";
@@ -95,6 +97,11 @@ async fn token() -> Option<String> {
     api::secret(TOKEN).map(|t| t.trim().to_string()).filter(|t| !t.is_empty())
 }
 
+/// Signed in: Fenix's server and token are both set. `about` says this.
+fn ready_now() -> bool {
+    server().is_some() && api::secret(TOKEN).is_some_and(|t| !t.trim().is_empty())
+}
+
 /// Fenix's HTTP client, for the forge's.
 pub struct Fetch;
 
@@ -120,8 +127,6 @@ fn tracker_settings(ready: bool) -> forge_seam::Settings {
         ready,
         not_ready: not_ready(),
         sync_minutes: setting(setting::SYNC).and_then(|m| m.parse().ok()).unwrap_or(10),
-        blocked_label: api::setting(setting::BLOCKED).unwrap_or_else(|| "blocked".into()).trim().to_string(),
-        doing_label: String::new(),
         workflow_scope: api::setting(setting::WORKFLOW).unwrap_or_else(|| "workflow".into()).trim().to_string(),
         worklog: setting(setting::TIME).is_some_and(|t| t == "true"),
     }
@@ -137,6 +142,11 @@ async fn tracker(learned: Rc<RefCell<Learned>>) -> Seam<Client> {
 
 fn web() -> String {
     server().unwrap_or_default().trim_end_matches('/').to_string()
+}
+
+/// Tells the agenda to ask this tracker again (fire and forget).
+fn tracker_changed() {
+    api::call_service("agenda.tracker_changed", &serde_json::json!({ "tracker": ID }).to_string());
 }
 
 // -- What jobs leave to be done ------------------------------------------
@@ -186,6 +196,20 @@ enum Ask {
     Branch { page: u64, plan: branch::Plan },
     Form { page: u64, field: Field },
     Template { page: u64 },
+    /// The write gate's question (`fenix_tracker::gate`).
+    Gate,
+}
+
+/// A seam write held while you're asked whether to allow it.
+struct Held {
+    call: u64,
+    name: String,
+    payload: String,
+}
+
+/// A write's `op`, when it carries one.
+fn op_of(payload: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string))
 }
 
 #[derive(Default)]
@@ -196,8 +220,16 @@ pub struct IssuesExt {
     here: Option<String>,
     learned: Rc<RefCell<Learned>>,
     /// A form opened by the seam's `create`: the page, and the call to
-    /// answer once it's sent or closed.
-    creating: HashMap<u64, u64>,
+    /// answer once it's sent or closed, with its `op`.
+    creating: HashMap<u64, (u64, Option<String>)>,
+    /// The gate on the seam's writes, this session's, and the writes
+    /// held while it asks.
+    gate: fenix_tracker::gate::Gate,
+    held: Vec<Held>,
+    /// The seam's writes done this session, by `op`.
+    done_ops: Rc<RefCell<fenix_tracker::Dedupe>>,
+    /// Whether a sign-in found after `about` said not ready was looked for.
+    looked: bool,
 }
 
 impl IssuesExt {
@@ -482,8 +514,10 @@ impl IssuesExt {
                 Err(e) => Err(e),
             };
             done(move |ext| {
-                if let (Ok(issue), Some(call)) = (&result, ext.creating.remove(&page)) {
-                    api::answer(call, Ok(serde_json::json!({ "ref": issue.key.key() }).to_string()));
+                if let (Ok(issue), Some((call, op))) = (&result, ext.creating.remove(&page)) {
+                    let answer = Ok(serde_json::json!({ "ref": issue.key.key() }).to_string());
+                    ext.done_ops.borrow_mut().put(op.as_deref(), &answer);
+                    api::answer(call, answer);
                 }
                 if let Some(p) = ext.page_mut(page) {
                     p.submitted(result);
@@ -495,7 +529,7 @@ impl IssuesExt {
 
     /// The seam's `create` answered: nothing made.
     fn create_closed(&mut self, page: u64) {
-        if let Some(call) = self.creating.remove(&page) {
+        if let Some((call, _)) = self.creating.remove(&page) {
             api::answer(call, Ok(r#"{"ref":null}"#.into()));
         }
     }
@@ -591,6 +625,9 @@ impl IssuesExt {
     /// A prompt, pane or picker came back.
     fn answered(&mut self, id: u64, text: Option<String>) {
         let Some(ask) = self.asks.remove(&id) else { return };
+        if let Ask::Gate = ask {
+            return self.gate_answered(text.as_deref() == Some("allow"));
+        }
         let Some(text) = text else { return };
         let split = |t: &str| t.split(',').map(|s| s.trim().trim_start_matches('@').to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>();
         match ask {
@@ -627,8 +664,69 @@ impl IssuesExt {
 
     // -- Services ---------------------------------------------------------
 
-    /// `gitlab-issues.tracker.<call>`.
+    /// `fenix.gitlab-issues.tracker.<call>`: `about` at once, from what's known
+    /// here; `project` from the git remote; reads over the forge; and every
+    /// write -- `create` too -- through the gate (`fenix_tracker::gate`)
+    /// and the session's `op` memory first. The page's own writes never
+    /// come this way.
     fn serve_seam(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        use fenix_tracker::gate::{self, Verdict};
+        if name == seam::call::ABOUT {
+            let ready = ready_now();
+            if !ready {
+                self.look_for_sign_in();
+            }
+            return Some(serde_json::to_string(&forge_seam::about(HOST, &tracker_settings(ready))).map_err(|e| e.to_string()));
+        }
+        if name == seam::call::PROJECT {
+            jobs::spawn(async move {
+                let project = here_repository().await;
+                api::answer(call, Ok(serde_json::json!({ "project": project }).to_string()));
+            });
+            return None;
+        }
+        if !seam::call::writes(name) {
+            return self.serve_seam_now(call, name, payload);
+        }
+        // Not set up: said at once, nothing asked.
+        if !ready_now() {
+            return Some(Err(SeamError::new(seam::code::NOT_SET_UP, not_ready()).to_err()));
+        }
+        if let Some(answer) = self.done_ops.borrow().get(op_of(payload).as_deref()) {
+            return Some(answer);
+        }
+        let held = Held { call, name: name.to_string(), payload: payload.to_string() };
+        match self.gate.check(api::setting(SEAM_WRITES).as_deref(), HOST.name()) {
+            Verdict::Go => self.serve_seam_now(call, name, payload),
+            Verdict::Refuse(why) => Some(Err(why.to_err())),
+            Verdict::Wait => {
+                self.held.push(held);
+                None
+            }
+            Verdict::Ask => {
+                self.held.push(held);
+                let rows = [PickerItem::new(gate::ALLOW, "allow"), PickerItem::new(gate::DENY, "deny")];
+                let id = api::pick(&gate::question(HOST.name()), &rows);
+                self.asks.insert(id, Ask::Gate);
+                None
+            }
+        }
+    }
+
+    /// You answered the gate: the writes held go through, or are refused.
+    fn gate_answered(&mut self, allow: bool) {
+        self.gate.answered(allow);
+        for Held { call, name, payload } in std::mem::take(&mut self.held) {
+            let answer = if allow { self.serve_seam_now(call, &name, &payload) } else { Some(Err(fenix_tracker::gate::Gate::denied(HOST.name()).to_err())) };
+            if let Some(answer) = answer {
+                api::answer(call, answer);
+            }
+        }
+    }
+
+    /// A seam call, past the gate: answered later, once the forge has.
+    fn serve_seam_now(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        let op = op_of(payload);
         if name == seam::call::CREATE {
             let req: seam::Create = match serde_json::from_str(payload) {
                 Ok(r) => r,
@@ -637,15 +735,31 @@ impl IssuesExt {
             let page = self.open_page();
             self.create_closed(page);
             self.new_issue(page, fenix_tracker::clean::line(&req.title, fenix_tracker::clean::TITLE), fenix_tracker::clean::text(&req.body, fenix_tracker::clean::BODY_BYTES).0);
-            self.creating.insert(page, call);
+            self.creating.insert(page, (call, op));
             return None;
         }
-        let (name, payload, learned) = (name.to_string(), payload.to_string(), self.learned.clone());
+        let (name, payload, learned, done_ops) = (name.to_string(), payload.to_string(), self.learned.clone(), self.done_ops.clone());
         jobs::spawn(async move {
             let answer = tracker(learned).await.serve(&name, &payload).await;
+            if seam::call::writes(&name) {
+                done_ops.borrow_mut().put(op.as_deref(), &answer);
+            }
             api::answer(call, answer);
         });
         None
+    }
+
+    /// The agenda's told when a sign-in it was told isn't there turns
+    /// up (the GitHub CLI's, found by asking `gh`), so it asks again.
+    fn look_for_sign_in(&mut self) {
+        if std::mem::replace(&mut self.looked, true) {
+            return;
+        }
+        jobs::spawn(async move {
+            if token().await.is_some() && ready_now() {
+                tracker_changed();
+            }
+        });
     }
 
     /// The agent tools: an issue with its comments, and yours. They read.
@@ -701,6 +815,10 @@ impl Extension for IssuesExt {
         match event {
             Some(Event::Prompted((id, text)) | Event::Composed((id, text)) | Event::Picked((id, text))) => self.answered(id, text),
             Some(Event::SettingChanged(_)) => {
+                // What was learned of the old server goes; the agenda asks
+                // again.
+                *self.learned.borrow_mut() = Learned::default();
+                tracker_changed();
                 for (&page, p) in &mut self.pages {
                     let current = p.search().cloned();
                     let mut searches = fenix_issues::page::searches(HOST, &list(setting::REPOSITORIES), &map(setting::QUERIES));
