@@ -116,7 +116,7 @@ pub fn failure(err: &[String], out: &[String]) -> String {
     if text.is_empty() {
         return "kubectl failed and said nothing".into();
     }
-    let text = crate::agent::plain(&text);
+    let text = crate::agent::shown(&text);
     if text.chars().count() > 400 {
         format!("{}…", text.chars().take(399).collect::<String>())
     } else {
