@@ -9,7 +9,9 @@
 //! two for the language server are tasks, in the task pane, that run the
 //! server's `--version` through the dev shell or `nix shell nixpkgs#...` --
 //! which build or download it, so they're only ever started by you -- and,
-//! when one works, remember the runner in `nix.server_runner`.
+//! when one works, remember it: the dev shell for this project alone, in the
+//! pack's own data (`trust`), since it runs the project's code; nixpkgs in
+//! your `nix.server_runner`.
 
 use fenix_extension_api::{Check, Health, Section};
 use fenix_lang_kit::{Fix, Output, Program};
@@ -23,6 +25,8 @@ pub const INSTALL_HELP: &str = "nix.install-help";
 /// The two that try the language server through Nix, as tasks.
 pub const SERVER_DEV_SHELL: &str = "nix.server.dev-shell";
 pub const SERVER_NIXPKGS: &str = "nix.server.nixpkgs";
+/// Stops running this project's server through its dev shell.
+pub const SERVER_FORGET: &str = "nix.server.forget";
 
 /// The oldest Nix with flakes.
 pub const FLAKES_FROM: &str = "2.4";
@@ -121,7 +125,13 @@ pub fn checks(project: &Project, tools: &Tools, settings: &Settings, decision: &
     let label = format!("Language server ({name})");
     match &server {
         Some(s) if tools.get(s.name).is_some() => programs.push(program(s.name, &label).judge(said_version)),
-        Some(s) => extra.push(Check::new(Section::Toolchain, &label, Health::Ok, format!("not on PATH: started through Nix, `{}` (nix.server_runner)", s.how))),
+        Some(s) => {
+            let mut c = Check::new(Section::Toolchain, &label, Health::Ok, format!("not on PATH: started through Nix, `{}`", s.how));
+            if settings.runner == crate::choose::Runner::DevShell {
+                c = c.fix("Stop using this project's dev shell", SERVER_FORGET);
+            }
+            extra.push(c);
+        }
         None => {
             let mut p = program(name, &label);
             if tools.nix.is_some() {
@@ -283,6 +293,7 @@ mod tests {
     fn a_server_run_through_nix_is_said_so() {
         let dev = Settings { runner: choose::Runner::DevShell, ..Settings::default() };
         let (p, extra) = rows(&flake(), &tools(&["nix"]), &dev);
+        assert_eq!(extra.iter().find(|c| c.label == "Language server (nixd)").and_then(|c| c.fix.clone()).map(|f| f.1), Some(SERVER_FORGET.into()));
         assert!(!p.iter().any(|p| p.label.starts_with("Language server")), "no program to ask");
         let c = extra.iter().find(|c| c.label == "Language server (nixd)").unwrap();
         assert_eq!(c.health, Health::Ok);

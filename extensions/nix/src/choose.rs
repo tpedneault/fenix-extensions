@@ -16,8 +16,10 @@ pub enum Pref {
     Nil,
 }
 
-/// `nix.server_runner`: where the language server comes from when it isn't
-/// on `PATH` or in a profile.
+/// Where the language server comes from when it isn't on `PATH` or in a
+/// profile. `nix.server_runner` (yours, never a project's) can say
+/// `path` or `nixpkgs`; `DevShell` is only ever chosen for a project you
+/// said it for (`trust`), because it runs that project's own code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Runner {
     /// Only the programs found.
@@ -75,7 +77,7 @@ impl Settings {
                 _ => Pref::Auto,
             },
             runner: match text("nix.server_runner").as_str() {
-                "dev-shell" => Runner::DevShell,
+                // Never from a setting: a repository's own settings file could say it.
                 "nixpkgs" => Runner::Nixpkgs,
                 _ => Runner::Path,
             },
