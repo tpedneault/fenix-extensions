@@ -78,16 +78,21 @@ pub enum TimeSource {
     Manual,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeEntry {
     pub start: DateTime<Local>,
     pub end: DateTime<Local>,
     pub source: TimeSource,
-    /// Already sent to Jira as (part of) a worklog -- or dismissed from
+    /// Already sent to its tracker as (part of) a worklog -- or dismissed from
     /// the worklog review without sending. Only meaningful on a linked
     /// task.
     #[serde(default)]
     pub sent: bool,
+    /// Sent as a worklog with this `op` and no answer came: it may have
+    /// been logged. Left out of `W` until you send it again (with the
+    /// same `op`) or say it was logged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maybe: Option<String>,
 }
 
 impl TimeEntry {
@@ -107,6 +112,7 @@ pub struct Subtask {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "TaskFile", into = "TaskFile")]
 pub struct Task {
     pub id: TaskId,
     pub title: String,
@@ -137,10 +143,11 @@ pub struct Task {
     /// Manual position within its status column; lower sorts first. Only
     /// meaningful relative to other tasks sharing the same `status`.
     pub order: i64,
-    /// The Jira issue this task tracks, if any -- see `crate::model::jira`.
-    #[serde(default)]
-    pub jira: Option<crate::model::jira::JiraLink>,
-    /// When it's due, if ever. On a linked task, Jira's own due date.
+    /// The issue this task tracks, if any -- see `crate::model::link`.
+    /// On disk (`TaskFile`), a Jira link under `"jira"` as agenda 1.2
+    /// wrote it, any other tracker's under `"link"`, which 1.2 ignores.
+    pub link: Option<crate::model::link::IssueLink>,
+    /// When it's due, if ever. On a linked task, the issue's own due date.
     #[serde(default)]
     pub due: Option<chrono::NaiveDate>,
     /// The code it's about, when it was made from a selection.
@@ -157,24 +164,109 @@ pub struct CodeRef {
 }
 
 impl Task {
-    pub fn jira_key(&self) -> Option<&str> {
-        self.jira.as_ref().map(|link| link.key.as_str())
+    /// Its issue's `ref`, when it's linked.
+    pub fn issue_key(&self) -> Option<&str> {
+        self.link.as_ref().map(|link| link.key.as_str())
     }
 
-    /// Whether the task belongs to a project called `name` whose Jira key
-    /// is `jira_key`. Categories double as projects: a task filed under a
-    /// category named like the project is in it, and so is a linked task
-    /// whose issue is in the project's Jira project.
-    pub fn in_project(&self, name: &str, jira_key: Option<&str>) -> bool {
+    /// Whether the task belongs to a project called `name` whose
+    /// trackers' projects are `issues` (tracker, project). Categories
+    /// double as projects: a task filed under a category named like the
+    /// project is in it, and so is a linked task whose issue is in one of
+    /// the project's trackers' projects.
+    pub fn in_project(&self, name: &str, issues: &[(String, String)]) -> bool {
         let by_category = self.category.as_deref().is_some_and(|c| c.eq_ignore_ascii_case(name));
-        let by_issue = match (jira_key, &self.jira) {
-            (Some(key), Some(link)) => link.project().eq_ignore_ascii_case(key),
-            _ => false,
-        };
+        let by_issue = self.link.as_ref().is_some_and(|link| {
+            issues.iter().any(|(tracker, project)| link.tracker == *tracker && link.project().is_some_and(|p| p.eq_ignore_ascii_case(project)))
+        });
         by_category || by_issue
     }
 
     pub fn total_time(&self) -> chrono::Duration {
         self.time_entries.iter().fold(chrono::Duration::zero(), |acc, e| acc + e.duration())
+    }
+}
+
+/// A task as `agenda.json` keeps it. Agenda 1.2 reads `"jira"` as a Jira
+/// link and ignores `"link"`: so a Jira link stays under `"jira"`, where
+/// going back to 1.2 keeps it, and every other tracker's goes under
+/// `"link"`, where 1.2 can't mistake a Linear `ENG-12` for Jira's.
+#[derive(Serialize, Deserialize)]
+struct TaskFile {
+    id: TaskId,
+    title: String,
+    description: String,
+    status: Status,
+    priority: Priority,
+    category: Option<String>,
+    notes: Vec<NoteEntry>,
+    time_entries: Vec<TimeEntry>,
+    subtasks: Vec<Subtask>,
+    depends_on: Vec<TaskId>,
+    created_at: DateTime<Local>,
+    updated_at: DateTime<Local>,
+    done_at: Option<DateTime<Local>>,
+    archived: bool,
+    order: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    jira: Option<crate::model::link::IssueLink>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    link: Option<crate::model::link::IssueLink>,
+    #[serde(default)]
+    due: Option<chrono::NaiveDate>,
+    #[serde(default)]
+    code: Option<CodeRef>,
+}
+
+impl From<TaskFile> for Task {
+    fn from(f: TaskFile) -> Task {
+        Task {
+            id: f.id,
+            title: f.title,
+            description: f.description,
+            status: f.status,
+            priority: f.priority,
+            category: f.category,
+            notes: f.notes,
+            time_entries: f.time_entries,
+            subtasks: f.subtasks,
+            depends_on: f.depends_on,
+            created_at: f.created_at,
+            updated_at: f.updated_at,
+            done_at: f.done_at,
+            archived: f.archived,
+            order: f.order,
+            link: f.link.or(f.jira),
+            due: f.due,
+            code: f.code,
+        }
+    }
+}
+
+impl From<Task> for TaskFile {
+    fn from(t: Task) -> TaskFile {
+        let jira = t.link.as_ref().is_some_and(|l| l.tracker == crate::legacy::ID);
+        let (jira, link) = if jira { (t.link, None) } else { (None, t.link) };
+        TaskFile {
+            id: t.id,
+            title: t.title,
+            description: t.description,
+            status: t.status,
+            priority: t.priority,
+            category: t.category,
+            notes: t.notes,
+            time_entries: t.time_entries,
+            subtasks: t.subtasks,
+            depends_on: t.depends_on,
+            created_at: t.created_at,
+            updated_at: t.updated_at,
+            done_at: t.done_at,
+            archived: t.archived,
+            order: t.order,
+            jira,
+            link,
+            due: t.due,
+            code: t.code,
+        }
     }
 }

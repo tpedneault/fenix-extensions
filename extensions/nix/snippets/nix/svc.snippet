@@ -1,0 +1,13 @@
+# name: systemd service
+# key: svc
+# scope: nix
+# --
+systemd.services.${1:name} = {
+  description = "${2:What it does}";
+  wantedBy = [ "multi-user.target" ];
+  serviceConfig = {
+    ExecStart = "${3:\${pkgs.hello\}/bin/hello}";
+    Restart = "on-failure";
+  };
+};
+$0

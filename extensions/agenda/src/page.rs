@@ -8,13 +8,14 @@
 //!
 //! Like the settings page this is pure: it reads the store through a
 //! `Ctx` the host builds, and answers a key with an `Action` the host
-//! carries out (saving, syncing with Jira, opening a compose pane).
+//! carries out (saving, syncing with a tracker, opening a compose pane).
 
 use std::collections::BTreeSet;
 
 use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveTime, Weekday};
 use crate::clock::Local;
 use crate::model::{AgendaStore, Priority, Status, SyncField, Task, TaskId, WorklogRow};
+use crate::trackers::Trackers;
 
 use fenix_extension_api::grid::{fit, fit_tail, frame, wrap, Grid, Popup};
 use fenix_extension_api::{Canvas as Page, Key, Role};
@@ -45,11 +46,12 @@ impl Tab {
 }
 
 /// The project the page was opened from: tasks filed under a category
-/// of its name, and issues in its Jira project, are its tasks.
+/// of its name, and issues in its trackers' projects, are its tasks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Project {
     pub name: String,
-    pub jira_key: Option<String>,
+    /// Its project in each tracker: (tracker, project).
+    pub issues: Vec<(String, String)>,
 }
 
 /// What the page reads, built by the host for each key and layout.
@@ -60,11 +62,13 @@ pub struct Ctx<'a> {
     /// The worklog review's rows: unsent time, as it would be sent.
     pub worklogs: &'a [WorklogRow],
     pub round: u32,
-    /// "synced 3m ago", "syncing", or empty when Jira isn't set up.
+    /// "synced 3m ago", "syncing", or empty when no tracker is ready.
     pub sync: String,
-    /// The keys that bring in Jira issues (`agenda.import`), as the key
+    /// The keys that bring in your issues (`agenda.import`), as the key
     /// scheme in use has them.
     pub import_keys: String,
+    /// The trackers there are: their names, what each can do.
+    pub trackers: &'a Trackers,
 }
 
 impl Ctx<'_> {
@@ -75,6 +79,16 @@ impl Ctx<'_> {
     fn task(&self, id: TaskId) -> Option<&Task> {
         self.store.task(id)
     }
+
+    /// The name of the tracker `t` is linked to.
+    fn tracker_of(&self, t: &Task) -> String {
+        t.link.as_ref().map_or_else(|| self.trackers.label(), |l| self.trackers.name(&l.tracker))
+    }
+
+    /// Whether `t`'s tracker takes `capability` from the agenda.
+    fn can(&self, t: &Task, capability: &str) -> bool {
+        t.link.as_ref().is_some_and(|l| self.trackers.can(&l.tracker, capability))
+    }
 }
 
 /// What narrows every tab, besides the search.
@@ -82,7 +96,7 @@ impl Ctx<'_> {
 pub struct Filter {
     /// High and Urgent only.
     pub pressing: bool,
-    /// `Some(true)` linked to Jira only, `Some(false)` local only.
+    /// `Some(true)` linked to an issue only, `Some(false)` local only.
     pub linked: Option<bool>,
     /// Due within a week, or overdue.
     pub due_soon: bool,
@@ -183,7 +197,7 @@ pub struct NewTask {
     pub due: Option<NaiveDate>,
     pub status: Status,
     pub clock: bool,
-    /// A Jira key typed in the title: link the task to it.
+    /// An issue's key typed in the title: link the task to it.
     pub link: Option<String>,
 }
 
@@ -192,11 +206,11 @@ pub enum Action {
     None,
     Close,
     SetStatus(TaskId, Status),
-    /// A linked task's status: its real transitions, from Jira.
-    JiraStatus(TaskId),
+    /// A linked task's status: the moves its tracker offers.
+    TrackerStatus(TaskId),
     SetPriority(TaskId, Priority),
-    /// A linked task's priority: the instance's own names.
-    JiraPriority(TaskId),
+    /// A linked task's priority: its tracker's own names.
+    TrackerPriority(TaskId),
     SetCategory(TaskId, Option<String>),
     /// A category that doesn't exist yet: add it, and file the task.
     AddCategory(TaskId, String),
@@ -206,9 +220,9 @@ pub enum Action {
     AddNote(TaskId, String),
     EditNote(TaskId, usize, String),
     RemoveNote(TaskId, usize),
-    /// Write a Jira comment in a compose pane.
+    /// Write a comment on the linked issue in a compose pane.
     Comment(TaskId),
-    /// Post a private note as a Jira comment.
+    /// Post a private note as a comment on the linked issue.
     PostNote(TaskId, usize),
     /// Start the task's clock, or stop it if it's this one running.
     Clock(TaskId),
@@ -237,6 +251,8 @@ pub enum Action {
     WorklogMinutes(TaskId, NaiveDate, i64),
     WorklogDrop(TaskId, NaiveDate),
     WorklogDismiss(TaskId, NaiveDate),
+    /// A worklog that may have been logged, sent again with its `op`.
+    WorklogResend(TaskId, NaiveDate),
     SendWorklogs,
     /// The week as text, for the clipboard.
     Copy(String),
@@ -468,7 +484,7 @@ impl AgendaPage {
             return false;
         }
         if let Some(needle) = self.search.as_deref().map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty()) {
-            let hay = [t.title.as_str(), t.description.as_str(), t.category.as_deref().unwrap_or(""), t.jira_key().unwrap_or("")];
+            let hay = [t.title.as_str(), t.description.as_str(), t.category.as_deref().unwrap_or(""), t.issue_key().unwrap_or("")];
             let hit = hay.iter().any(|h| h.to_lowercase().contains(&needle)) || t.notes.iter().any(|n| n.text.to_lowercase().contains(&needle));
             if !hit {
                 return false;
@@ -479,7 +495,7 @@ impl AgendaPage {
             return false;
         }
         if let Some(linked) = f.linked {
-            if t.jira.is_some() != linked {
+            if t.link.is_some() != linked {
                 return false;
             }
         }
@@ -490,7 +506,7 @@ impl AgendaPage {
             return false;
         }
         if let Some(p) = self.project.as_ref().filter(|_| self.only_project) {
-            if !t.in_project(&p.name, p.jira_key.as_deref()) {
+            if !t.in_project(&p.name, &p.issues) {
                 return false;
             }
         }
@@ -546,7 +562,7 @@ impl AgendaPage {
 
         let mut needs: Vec<Row> = tasks
             .iter()
-            .filter(|t| t.jira.as_ref().is_some_and(|l| !l.conflicts.is_empty() || l.error.is_some()))
+            .filter(|t| t.link.as_ref().is_some_and(|l| !l.conflicts.is_empty() || l.error.is_some() || !l.dropped.is_empty()))
             .map(|t| Row::Task(t.id))
             .collect();
         if ctx.worklogs.iter().any(|r| r.minutes > 0) {
@@ -650,7 +666,7 @@ impl AgendaPage {
         if t.code.is_some() {
             rows.push(Row::Code(id));
         }
-        if let Some(link) = &t.jira {
+        if let Some(link) = &t.link {
             rows.extend(link.conflicts.iter().map(|c| Row::Conflict(id, c.field)));
         }
         rows.push(Row::Description(id));
@@ -887,17 +903,17 @@ impl AgendaPage {
     /// The keys a task answers wherever it is.
     fn task_key(&mut self, key: Key, t: &Task, row: Option<Row>, ctx: &Ctx) -> Action {
         let id = t.id;
-        let linked = t.jira.is_some();
+        let linked = t.link.is_some();
         match key {
             Key::Char('s') => {
                 if linked {
-                    return Action::JiraStatus(id);
+                    return Action::TrackerStatus(id);
                 }
                 self.status_menu(t);
             }
             Key::Char('p') => {
-                if linked {
-                    return Action::JiraPriority(id);
+                if linked && ctx.can(t, fenix_tracker::can::EDIT_PRIORITY) {
+                    return Action::TrackerPriority(id);
                 }
                 self.priority_menu(t);
             }
@@ -913,7 +929,11 @@ impl AgendaPage {
                     }
                 }
                 if !linked {
-                    self.note = Some(("C posts a Jira comment -- link this task with I first, or N for a private note".into(), true));
+                    let what = match ctx.trackers.one() {
+                        Some(name) => format!("a {name} comment"),
+                        None => "a comment on its issue".to_string(),
+                    };
+                    self.note = Some((format!("C posts {what} -- link this task with I first, or N for a private note"), true));
                     return Action::None;
                 }
                 return Action::Comment(id);
@@ -933,8 +953,8 @@ impl AgendaPage {
                 let target = Row::Task(id);
                 if self.armed != Some(target) {
                     self.armed = Some(target);
-                    let jira = t.jira_key().map(|k| format!(" ({k} in Jira isn't touched)")).unwrap_or_default();
-                    self.note = Some((format!("D again deletes \"{}\"{jira}", fit(&t.title, 40)), true));
+                    let issue = t.issue_key().map(|k| format!(" ({k} in {} isn't touched)", ctx.tracker_of(t))).unwrap_or_default();
+                    self.note = Some((format!("D again deletes \"{}\"{issue}", fit(&t.title, 40)), true));
                     return Action::None;
                 }
                 self.armed = None;
@@ -979,7 +999,7 @@ impl AgendaPage {
                 let to = if key == Key::Char('L') { col + 1 } else { col.wrapping_sub(1) };
                 let Some(&status) = Status::ALL.get(to) else { return Some(Action::None) };
                 self.col = to;
-                // A linked card's move goes through Jira's transitions.
+                // A linked card's move goes through its tracker's moves.
                 return Some(Action::SetStatus(id, status));
             }
             Key::Char('J') | Key::Char('K') => {
@@ -1002,7 +1022,7 @@ impl AgendaPage {
         let row = row?;
         let id = row.task()?;
         let t = ctx.task(id)?;
-        let linked = t.jira.is_some();
+        let linked = t.link.is_some();
         let action = match (key, row) {
             (Key::Enter, Row::Field(_, Field::Title)) => {
                 self.type_line(Typing::Title(id), &t.title);
@@ -1042,7 +1062,7 @@ impl AgendaPage {
                 Action::None
             }
             (Key::Enter, Row::Conflict(_, field)) => {
-                self.conflict_menu(t, field);
+                self.conflict_menu(t, field, ctx);
                 Action::None
             }
             (Key::Enter | Key::Char('e'), Row::Note(_, i)) => {
@@ -1079,7 +1099,7 @@ impl AgendaPage {
                 }
             }
             (Key::Char('d'), Row::Comment(..)) => {
-                self.note = Some(("a Jira comment isn't yours to delete from here".into(), true));
+                self.note = Some((format!("a {} comment isn't yours to delete from here", ctx.tracker_of(t)), true));
                 Action::None
             }
             (Key::Char('o'), _) if !linked && t.code.is_some() => Action::OpenCode(id),
@@ -1091,12 +1111,12 @@ impl AgendaPage {
     /// `h`/`l` on a field: the value one step along.
     fn step_field(&mut self, t: &Task, field: Field, forward: bool, ctx: &Ctx) -> Action {
         let id = t.id;
-        let linked = t.jira.is_some();
+        let linked = t.link.is_some();
         let step = |i: usize, n: usize| if forward { (i + 1).min(n - 1) } else { i.saturating_sub(1) };
         match field {
             Field::Title => Action::None,
-            Field::Status if linked => Action::JiraStatus(id),
-            Field::Priority if linked => Action::JiraPriority(id),
+            Field::Status if linked => Action::TrackerStatus(id),
+            Field::Priority if linked && ctx.can(t, fenix_tracker::can::EDIT_PRIORITY) => Action::TrackerPriority(id),
             Field::Status => {
                 let i = Status::ALL.iter().position(|s| *s == t.status).unwrap_or(0);
                 let to = Status::ALL[step(i, 4)];
@@ -1175,12 +1195,12 @@ impl AgendaPage {
         self.open_menu("Waits on".into(), t.id, items, None);
     }
 
-    fn conflict_menu(&mut self, t: &Task, field: SyncField) {
-        let Some(conflict) = t.jira.as_ref().and_then(|l| l.conflicts.iter().find(|c| c.field == field)) else { return };
+    fn conflict_menu(&mut self, t: &Task, field: SyncField, ctx: &Ctx) {
+        let Some(conflict) = t.link.as_ref().and_then(|l| l.conflicts.iter().find(|c| c.field == field)) else { return };
         let clip = |s: String| fit(s.lines().next().unwrap_or_default(), 50);
         let items = vec![
             (format!("Keep mine: {}", clip(t.sync_value(field))), Pick::Keep(true)),
-            (format!("Take Jira's: {}", clip(conflict.their_value())), Pick::Keep(false)),
+            (format!("Take {}'s: {}", ctx.tracker_of(t), clip(conflict.their_value())), Pick::Keep(false)),
         ];
         self.open_menu(format!("Both changed the {}", field.label()), t.id, items, None);
         if let Some(m) = &mut self.menu {
@@ -1412,6 +1432,11 @@ impl AgendaPage {
                     return Action::WorklogDismiss(r.task, r.date);
                 }
             }
+            Key::Char('s') => {
+                if let Some(r) = row.filter(|r| r.maybe.is_some()) {
+                    return Action::WorklogResend(r.task, r.date);
+                }
+            }
             Key::Char('W') => return Action::SendWorklogs,
             _ => {}
         }
@@ -1425,7 +1450,8 @@ impl AgendaPage {
             chips.push((format!("only {} (P)", p.name), self.only_project));
         }
         chips.push(("High and Urgent".to_string(), self.filter.pressing));
-        chips.push(("linked to Jira".to_string(), self.filter.linked == Some(true)));
+        let linked = ctx.trackers.one().map(|name| format!("linked to {name}")).unwrap_or_else(|| "linked to a tracker".to_string());
+        chips.push((linked, self.filter.linked == Some(true)));
         chips.push(("local only".to_string(), self.filter.linked == Some(false)));
         chips.push(("due within a week".to_string(), self.filter.due_soon));
         for c in ctx.categories {
@@ -1500,23 +1526,24 @@ enum Activity {
     Comment(usize),
 }
 
-/// A task's notes and its Jira comments, oldest first.
+/// A task's notes and its issue's comments, oldest first.
 fn activity(t: &Task) -> Vec<Activity> {
     let mut items: Vec<(Option<DateTime<Local>>, Activity)> = t.notes.iter().enumerate().map(|(i, n)| (Some(n.at), Activity::Note(i))).collect();
-    if let Some(link) = &t.jira {
-        items.extend(link.base.comments.iter().enumerate().map(|(i, c)| (parse_jira_time(&c.created), Activity::Comment(i))));
+    if let Some(link) = &t.link {
+        items.extend(link.base.comments.iter().enumerate().map(|(i, c)| (parse_time(&c.created), Activity::Comment(i))));
     }
     items.sort_by_key(|(at, _)| *at);
     items.into_iter().map(|(_, a)| a).collect()
 }
 
-fn parse_jira_time(raw: &str) -> Option<DateTime<Local>> {
-    DateTime::parse_from_str(raw, "%Y-%m-%dT%H:%M:%S%.3f%z").ok().map(|t| t.with_timezone(&crate::clock::here()))
+/// A tracker's time stamp: RFC 3339, or the `+hhmm` offset Jira writes.
+fn parse_time(raw: &str) -> Option<DateTime<Local>> {
+    DateTime::parse_from_rfc3339(raw).or_else(|_| DateTime::parse_from_str(raw, "%Y-%m-%dT%H:%M:%S%.f%z")).ok().map(|t| t.with_timezone(&crate::clock::here()))
 }
 
 /// "KEY title", or the title.
 fn keyed(t: &Task) -> String {
-    match t.jira_key() {
+    match t.issue_key() {
         Some(key) => format!("{key} {}", t.title),
         None => t.title.clone(),
     }
@@ -1638,7 +1665,7 @@ pub fn parse_span(text: &str, today: NaiveDate, now: DateTime<Local>) -> Result<
 }
 
 /// What a new task's title line says besides the title: `!high`,
-/// `#category`, `due:fri`, and a Jira key to link.
+/// `#category`, `due:fri`, and an issue's key to link.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Parsed {
     pub title: String,
@@ -1676,7 +1703,8 @@ pub fn parse_title(text: &str) -> Parsed {
     p
 }
 
-/// `PROJ-12`: capitals, a dash, digits.
+/// `PROJ-12`: capitals, a dash, digits -- a key as Jira and Linear write
+/// them.
 fn is_issue_key(word: &str) -> bool {
     let Some((project, number)) = word.rsplit_once('-') else { return false };
     !project.is_empty()
@@ -1719,12 +1747,15 @@ fn due_label(due: NaiveDate, today: NaiveDate, done: bool) -> (String, Role) {
 
 /// The sync mark on a linked task: what needs you first.
 fn sync_mark(ctx: &Ctx, t: &Task) -> Option<(String, Role)> {
-    let link = t.jira.as_ref()?;
+    let link = t.link.as_ref()?;
     if !link.conflicts.is_empty() {
         return Some((format!("⚠ {} changed in both", link.conflicts[0].field.label()), Role::Bad));
     }
     if let Some(err) = &link.error {
         return Some((format!("⚠ not synced: {}", fit(err, 40)), Role::Bad));
+    }
+    if let Some(d) = link.dropped.first() {
+        return Some((format!("⚠ not taken: {}", fit(&d.kind.describe(), 30)), Role::Bad));
     }
     if link.resolving || ctx.store.pending_for(t.id).next().is_some() {
         return Some(("↑".to_string(), Role::Warn));
@@ -1735,9 +1766,9 @@ fn sync_mark(ctx: &Ctx, t: &Task) -> Option<(String, Role)> {
     None
 }
 
-/// Jira's status name, when it says more than the column.
-fn jira_status(t: &Task) -> Option<&str> {
-    let name = t.jira.as_ref()?.base.status_name.as_str();
+/// The tracker's status name, when it says more than the column.
+fn tracker_status(t: &Task) -> Option<&str> {
+    let name = t.link.as_ref()?.base.status_name.as_str();
     (!name.is_empty() && !name.eq_ignore_ascii_case(t.status.label())).then_some(name)
 }
 
@@ -1752,7 +1783,7 @@ fn task_line(g: &mut Grid, y: usize, x: usize, width: usize, t: &Task, ctx: &Ctx
     if let Some((text, role)) = sync_mark(ctx, t) {
         right.push((text, role));
     }
-    if let Some(name) = jira_status(t) {
+    if let Some(name) = tracker_status(t) {
         right.push((name.to_string(), Role::Muted));
     } else if show_status {
         right.push((t.status.label().to_string(), Role::Muted));
@@ -1769,7 +1800,7 @@ fn task_line(g: &mut Grid, y: usize, x: usize, width: usize, t: &Task, ctx: &Ctx
     }
     let right_w: usize = right.iter().map(|(s, _)| s.chars().count() + 3).sum();
     let mut cx = g.put(y, x, mark, role) + 1;
-    if let Some(key) = t.jira_key() {
+    if let Some(key) = t.issue_key() {
         cx = g.put(y, cx, key, Role::Accent) + 1;
     }
     let cat = t.category.as_ref().map(|c| format!("  #{c}")).unwrap_or_default();
@@ -1901,7 +1932,8 @@ fn layout_today(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, sel: Option<Row>, le
                     let minutes: i64 = ctx.worklogs.iter().map(|r| r.minutes).sum();
                     let issues: BTreeSet<&str> = ctx.worklogs.iter().map(|r| r.key.as_str()).collect();
                     let plural = if issues.len() == 1 { "issue" } else { "issues" };
-                    g.put(*y, left + 1, &format!("⚠ {} unsent to Jira across {} {plural}", format_minutes(minutes), issues.len()), Role::Warn);
+                    let to = ctx.trackers.one().map(|name| format!(" to {name}")).unwrap_or_default();
+                    g.put(*y, left + 1, &format!("⚠ {} unsent{to} across {} {plural}", format_minutes(minutes), issues.len()), Role::Warn);
                     g.put(*y, (left + main_w).saturating_sub(11), "W to review", Role::Muted);
                 }
                 _ => {}
@@ -1915,7 +1947,8 @@ fn layout_today(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, sel: Option<Row>, le
         *y += 1;
     }
     if !any {
-        let empty = if ctx.store.tasks.is_empty() { format!("Nothing yet -- n adds a task, {} brings in your Jira issues.", ctx.import_keys) } else { "Nothing needs you right now.".to_string() };
+        let yours = ctx.trackers.one().map(|name| format!("your {name} issues")).unwrap_or_else(|| "your issues".to_string());
+        let empty = if ctx.store.tasks.is_empty() { format!("Nothing yet -- n adds a task, {} brings in {yours}.", ctx.import_keys) } else { "Nothing needs you right now.".to_string() };
         g.put(*y, left + 1, &empty, Role::Muted);
         *y += 2;
     }
@@ -2020,11 +2053,11 @@ fn layout_board(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, sel: Option<Row>, le
                 cy += 1;
             }
             let mut mx = x + 2;
-            if let Some(key) = t.jira_key() {
+            if let Some(key) = t.issue_key() {
                 mx = g.put(cy, mx, key, Role::Accent) + 1;
             }
             let mut meta: Vec<(String, Role)> = Vec::new();
-            if let Some(name) = jira_status(t) {
+            if let Some(name) = tracker_status(t) {
                 meta.push((format!("· {name}"), Role::Muted));
             } else if let Some(c) = &t.category {
                 meta.push((format!("#{c}"), Role::Muted));
@@ -2103,7 +2136,7 @@ fn layout_time(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, sel: Option<Row>, lef
     for (id, mins) in &week {
         let Some(t) = ctx.task(*id) else { continue };
         let mut cx = left;
-        if let Some(key) = t.jira_key() {
+        if let Some(key) = t.issue_key() {
             cx = g.put(*y, cx, key, Role::Accent) + 1;
         }
         g.put(*y, cx, &fit(&t.title, (left + name_w).saturating_sub(cx + 2)), Role::Text);
@@ -2116,7 +2149,7 @@ fn layout_time(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, sel: Option<Row>, lef
         x += cell;
         put_right(g, *y, x, &format_minutes(mins.iter().sum()), Role::Title);
         let unsent: i64 = ctx.worklogs.iter().filter(|r| r.task == *id).map(|r| r.minutes).sum();
-        let (text, role) = match (t.jira.is_some(), unsent) {
+        let (text, role) = match (t.link.is_some(), unsent) {
             (false, _) => ("local".to_string(), Role::Muted),
             (true, 0) => ("sent".to_string(), Role::Muted),
             (true, m) => (format_minutes(m), Role::Warn),
@@ -2160,13 +2193,14 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
         }
     };
 
-    // The heading: key and title, and where it stands with Jira.
+    // The heading: key and title, and where it stands with its tracker.
     let mut hx = left;
-    if let Some(key) = t.jira_key() {
+    if let Some(key) = t.issue_key() {
         hx = g.put(*y, hx, key, Role::Accent) + 2;
     }
     g.put(*y, hx, &fit(&t.title, width.saturating_sub(hx - left + 24)), Role::Title);
-    let state = match (&t.jira, sync_mark(ctx, t)) {
+    let tracker = ctx.tracker_of(t);
+    let state = match (&t.link, sync_mark(ctx, t)) {
         (Some(_), Some((text, role))) => Some((text, role)),
         (Some(link), None) => Some((if link.last_synced.is_some() { "✓ synced".to_string() } else { "linked".to_string() }, Role::Good)),
         (None, _) => Some(("local task".to_string(), Role::Muted)),
@@ -2182,10 +2216,10 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
         g.put(*y, left + 1, field.label(), Role::Muted);
         let (value, role, hint): (String, Role, String) = match field {
             Field::Title => (t.title.clone(), Role::Text, String::new()),
-            Field::Status => (t.status.label().to_string(), Role::Text, jira_status(t).map(|s| format!("Jira: {s}")).unwrap_or_default()),
+            Field::Status => (t.status.label().to_string(), Role::Text, tracker_status(t).map(|s| format!("{tracker}: {s}")).unwrap_or_default()),
             Field::Priority => {
-                let jira = t.jira.as_ref().and_then(|l| l.base.priority.clone()).map(|p| format!("Jira: {p}")).unwrap_or_default();
-                (t.priority.label().to_string(), priority_mark(t.priority).1, jira)
+                let theirs = t.link.as_ref().and_then(|l| l.base.priority.clone()).map(|p| format!("{tracker}: {p}")).unwrap_or_default();
+                (t.priority.label().to_string(), priority_mark(t.priority).1, theirs)
             }
             Field::Category => match &t.category {
                 Some(c) => (c.clone(), Role::Text, String::new()),
@@ -2208,7 +2242,7 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
         focus(g, row, *y, left);
         *y += 1;
     }
-    if let Some(link) = &t.jira {
+    if let Some(link) = &t.link {
         g.put(*y, left + 1, "Assignee", Role::Muted);
         g.put(*y, vx, link.base.assignee.as_deref().unwrap_or("nobody"), if link.not_mine { Role::Warn } else { Role::Text });
         *y += 1;
@@ -2231,19 +2265,23 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
     g.put(*y, vx, &time_text, Role::Text);
     *y += 1;
 
-    if let Some(link) = &t.jira {
+    if let Some(link) = &t.link {
         if !link.conflicts.is_empty() {
             *y += 1;
-            g.heading(*y, left, width, "Changed here and in Jira -- Enter to choose");
+            g.heading(*y, left, width, &format!("Changed here and in {tracker} -- Enter to choose"));
             *y += 1;
             for c in &link.conflicts {
-                g.put(*y, left + 1, &format!("⚠ {}: Jira has \"{}\", you have \"{}\"", c.field.label(), fit(&c.their_value(), 30), fit(&t.sync_value(c.field), 30)), Role::Bad);
+                g.put(*y, left + 1, &format!("⚠ {}: {tracker} has \"{}\", you have \"{}\"", c.field.label(), fit(&c.their_value(), 30), fit(&t.sync_value(c.field), 30)), Role::Bad);
                 focus(g, Row::Conflict(id, c.field), *y, left);
                 *y += 1;
             }
         }
         if let Some(err) = &link.error {
-            g.put(*y, left + 1, &fit(&format!("⚠ Jira refused the last change: {err} -- r retries"), width - 1), Role::Bad);
+            g.put(*y, left + 1, &fit(&format!("⚠ {tracker} refused the last change: {err} -- r retries"), width - 1), Role::Bad);
+            *y += 1;
+        }
+        for d in &link.dropped {
+            g.put(*y, left + 1, &fit(&format!("⚠ {tracker} won't take a change ({}): {} -- kept here only; r sends it again or takes {tracker}'s back", d.kind.describe(), d.why), width - 1), Role::Bad);
             *y += 1;
         }
     }
@@ -2312,9 +2350,9 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
         }
     }
 
-    // Activity: your notes and Jira's comments.
+    // Activity: your notes and the issue's comments.
     *y += 1;
-    heading_with_hint(g, *y, left, width, "Activity", if t.jira.is_some() { "N note · C comment" } else { "N note" });
+    heading_with_hint(g, *y, left, width, "Activity", if ctx.can(t, fenix_tracker::can::COMMENT) { "N note · C comment" } else { "N note" });
     *y += 1;
     for a in activity(t) {
         let (row, who, when, body) = match a {
@@ -2323,9 +2361,9 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
                 (Row::Note(id, i), "note".to_string(), ago(n.at, ctx.now), n.text.clone())
             }
             Activity::Comment(i) => {
-                let c = &t.jira.as_ref().unwrap().base.comments[i];
-                let when = parse_jira_time(&c.created).map(|at| ago(at, ctx.now)).unwrap_or_default();
-                (Row::Comment(id, i), format!("{} in Jira", c.author), when, c.body.clone())
+                let Some(c) = t.link.as_ref().and_then(|l| l.base.comments.get(i)) else { continue };
+                let when = parse_time(&c.created).map(|at| ago(at, ctx.now)).unwrap_or_default();
+                (Row::Comment(id, i), format!("{} in {tracker}", c.author), when, c.body.clone())
             }
         };
         let x = g.put(*y, left + 1, &who, if matches!(a, Activity::Comment(_)) { Role::Accent } else { Role::Muted });
@@ -2348,7 +2386,7 @@ fn layout_task(g: &mut Grid, ctx: &Ctx, id: TaskId, sel: Option<Row>, left: usiz
     for (i, e) in t.time_entries.iter().enumerate() {
         let when = format!("{}  {}–{}", e.start.format("%a %d %b"), e.start.format("%H:%M"), e.end.format("%H:%M"));
         g.put(*y, left + 1, &when, Role::Text);
-        let tail = match (t.jira.is_some(), e.sent) {
+        let tail = match (t.link.is_some(), e.sent) {
             (true, true) => format!("{} · sent", format_minutes(e.duration().num_minutes())),
             (true, false) => format!("{} · unsent", format_minutes(e.duration().num_minutes())),
             (false, _) => format_minutes(e.duration().num_minutes()),
@@ -2389,7 +2427,7 @@ fn ago(at: DateTime<Local>, now: DateTime<Local>) -> String {
 fn popups(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, line: usize, left: usize, width: usize) {
     let col = left + 4;
     if page.help {
-        let rows = help_rows(page);
+        let rows = help_rows(page, ctx);
         g.popup = Some(Popup { line, col, rows });
         return;
     }
@@ -2451,7 +2489,8 @@ fn popups(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, line: usize, left: usize, 
         let round = if ctx.round > 1 { format!(" · rounded to {}", format_minutes(ctx.round as i64)) } else { String::new() };
         let mut rows = vec![vec![(format!("Worklogs to send{round}"), Role::Title)], Vec::new()];
         if ctx.worklogs.is_empty() {
-            rows.push(vec![("Nothing to send -- all your time on linked tasks is in Jira.".into(), Role::Muted)]);
+            let sent = ctx.trackers.one().map(|name| format!("is in {name}")).unwrap_or_else(|| "is sent".to_string());
+            rows.push(vec![(format!("Nothing to send -- all your time on linked tasks {sent}."), Role::Muted)]);
         }
         let total: i64 = ctx.worklogs.iter().map(|r| r.minutes).sum();
         for (i, r) in ctx.worklogs.iter().enumerate() {
@@ -2463,13 +2502,14 @@ fn popups(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, line: usize, left: usize, 
                 (format!("{:<10}", r.key), Role::Accent),
                 (format!("{:<32}", fit(&r.title, 30)), if on { Role::Title } else { Role::Text }),
                 (amount, Role::Text),
+                (if r.maybe.is_some() { "  ⚠ may have been logged -- s sends again, x it was".to_string() } else { String::new() }, Role::Warn),
             ]);
         }
         rows.push(Vec::new());
         if total > 0 {
             rows.push(vec![(format!("Total {}", format_minutes(total)), Role::Title)]);
         }
-        rows.push(vec![("e amount · D leave out · x never send · W send all · Esc close".into(), Role::Muted)]);
+        rows.push(vec![("e amount · D leave out · x never send · W send all · s send again · Esc close".into(), Role::Muted)]);
         g.popup = Some(Popup { line, col, rows });
         return;
     }
@@ -2486,9 +2526,13 @@ fn popups(g: &mut Grid, page: &AgendaPage, ctx: &Ctx, line: usize, left: usize, 
     let _ = width;
 }
 
-fn help_rows(page: &AgendaPage) -> Vec<Vec<(String, Role)>> {
+fn help_rows(page: &AgendaPage, ctx: &Ctx) -> Vec<Vec<(String, Role)>> {
+    let (sync, comment, link) = match ctx.trackers.one() {
+        Some(name) => (format!("sync with {name}"), format!("private note, {name} comment"), format!("link to {name}, assign")),
+        None => ("sync with your trackers".to_string(), "private note, comment".to_string(), "link to an issue, assign".to_string()),
+    };
     let mut groups: Vec<(&str, Vec<(&str, &str)>)> = vec![
-        ("Move", vec![("1-4 Tab", "Today, Board, List, Time"), ("j k g G", "rows"), ("Enter", "open"), ("Esc", "back"), ("/", "search"), ("f F", "filter, clear"), ("P", "this project only"), ("R", "sync with Jira"), ("q", "close")]),
+        ("Move", vec![("1-4 Tab", "Today, Board, List, Time"), ("j k g G", "rows"), ("Enter", "open"), ("Esc", "back"), ("/", "search"), ("f F", "filter, clear"), ("P", "this project only"), ("R", &sync), ("q", "close")]),
         (
             "A task",
             vec![
@@ -2496,8 +2540,8 @@ fn help_rows(page: &AgendaPage) -> Vec<Vec<(String, Role)>> {
                 ("s p c u", "status, priority, category, due"),
                 ("e E", "title, description"),
                 ("t T", "clock, log time"),
-                ("N C", "private note, Jira comment"),
-                ("I A", "link to Jira, assign"),
+                ("N C", &comment),
+                ("I A", &link),
                 ("y o r", "copy link, browser, retry"),
                 ("x D", "archive, delete"),
             ],
@@ -2539,7 +2583,7 @@ fn key_strip(page: &AgendaPage, sel: Option<Row>, ctx: &Ctx) -> Vec<(&'static st
     if page.filters.is_some() {
         return vec![("Space", "toggle"), ("F", "clear"), ("Esc", "done")];
     }
-    let linked = sel.and_then(Row::task).and_then(|id| ctx.task(id)).is_some_and(|t| t.jira.is_some());
+    let linked = sel.and_then(Row::task).and_then(|id| ctx.task(id)).is_some_and(|t| t.link.is_some());
     let mut keys: Vec<(&str, &str)> = match (page.view, sel) {
         (View::Task(_), Some(Row::Field(..))) => vec![("h/l", "change"), ("Enter", "edit"), ("t", "clock"), ("E", "description"), ("a", "checklist item")],
         (View::Task(_), Some(Row::Check(..))) => vec![("Space", "tick"), ("e", "edit"), ("a", "add"), ("d", "delete")],
@@ -2587,11 +2631,19 @@ mod tests {
     }
 
     fn ctx<'a>(store: &'a AgendaStore, categories: &'a [String]) -> Ctx<'a> {
-        Ctx { store, now: now(), categories, worklogs: &[], round: 15, sync: String::new(), import_keys: "SPC A i".into() }
+        Ctx { store, now: now(), categories, worklogs: &[], round: 15, sync: String::new(), import_keys: "SPC A i".into(), trackers: jira() }
+    }
+
+    /// Jira, as the page sees it once it's found.
+    fn jira() -> &'static Trackers {
+        thread_local! {
+            static JIRA: &'static Trackers = Box::leak(Box::new(Trackers { list: vec![crate::tests::tracker("fenix.jira", "Jira")], ..Default::default() }));
+        }
+        JIRA.with(|j| *j)
     }
 
     fn page() -> AgendaPage {
-        AgendaPage::new(Tab::Today, Some(Project { name: "fenix".into(), jira_key: Some("FEN".into()) }))
+        AgendaPage::new(Tab::Today, Some(Project { name: "fenix".into(), issues: vec![("fenix.jira".into(), "FEN".into())] }))
     }
 
     #[test]
@@ -2637,7 +2689,7 @@ mod tests {
     }
 
     #[test]
-    fn a_local_tasks_status_is_a_menu_and_a_linked_ones_goes_to_jira() {
+    fn a_local_tasks_status_is_a_menu_and_a_linked_ones_goes_to_its_tracker() {
         let (mut s, a, b, _) = store();
         let cats = cats();
         let mut p = page();
@@ -2647,9 +2699,9 @@ mod tests {
         assert_eq!(p.key(Key::Enter, &ctx(&s, &cats)), Action::SetStatus(a, Status::Blocked));
 
         let update = RemoteUpdate { snapshot: RemoteSnapshot::default(), status: Status::Todo, priority: Priority::High, mine: None };
-        s.link(b, "OPS-88".into(), update);
+        s.link(b, "fenix.jira", "OPS-88".into(), update);
         p.select(b);
-        assert_eq!(p.key(Key::Char('s'), &ctx(&s, &cats)), Action::JiraStatus(b));
+        assert_eq!(p.key(Key::Char('s'), &ctx(&s, &cats)), Action::TrackerStatus(b));
     }
 
     #[test]

@@ -1,0 +1,75 @@
+% The thesis. Build this file: SPC m b, from any chapter too (each chapter's
+% first line says that main.tex is its root). Chapters are in chapters/;
+% \include gives each its own page and lets you build a few with
+% \includeonly{chapters/introduction}.
+\documentclass[12pt,a4paper,oneside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\doctitle}{%
+  {{name}}%
+}
+\newcommand{\docauthor}{%
+  {{author}}%
+}
+\newcommand{\docdegree}{%
+  {{degree}}%
+}
+\newcommand{\docuniversity}{%
+  {{university}}%
+}
+
+\title{\doctitle}
+\author{\docauthor}
+\date{\today}
+
+%\includeonly{chapters/introduction}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{3cm}
+  {\Huge\bfseries \doctitle\par}
+  \vspace{2cm}
+  {\Large \docauthor\par}
+  \vfill
+  A thesis submitted for the degree of\par
+  \docdegree\par
+  \vspace{1cm}
+  \docuniversity\par
+  \vspace{1cm}
+  \today
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+A summary of the thesis in a few paragraphs.
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\clearpage
+\pagenumbering{arabic}
+\onehalfspacing
+
+\include{chapters/introduction}
+\include{chapters/background}
+\include{chapters/conclusion}
+
+\appendix
+\include{chapters/appendix}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

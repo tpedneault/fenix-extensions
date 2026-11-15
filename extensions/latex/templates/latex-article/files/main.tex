@@ -1,0 +1,74 @@
+% The document. SPC m b builds it to main.pdf and shows it in the PDF reader;
+% SPC m w keeps it built as you save (latexmk). Which program builds is what
+% you have: latexmk, Tectonic, or pdflatex; .latexmkrc says the engine.
+\documentclass[11pt,{{paper}}]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\doctitle}{%
+  {{name}}%
+}
+\newcommand{\docauthor}{%
+  {{author}}%
+}
+
+\title{\doctitle}
+\author{\docauthor}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  Say in a few sentences what this article shows and why it matters.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+LaTeX sets text from marks: \emph{emphasis}, \textbf{strong}, a list,
+\begin{itemize}
+  \item an item,
+  \item and another,
+\end{itemize}
+and a reference to Section~\ref{sec:method}, Figure~\ref{fig:box},
+Equation~\eqref{eq:euler} and a source~\cite{knuth84}.
+
+\section{Method}\label{sec:method}
+An equation on a line of its own:
+\begin{equation}\label{eq:euler}
+  e^{i\pi} + 1 = 0
+\end{equation}
+
+\begin{figure}[htbp]
+  \centering
+  \fbox{\parbox{0.6\linewidth}{\centering A figure goes here.}}
+  \caption{A figure with a label.}
+  \label{fig:box}
+\end{figure}
+
+\section{Results}
+\begin{table}[htbp]
+  \centering
+  \caption{A table with rules.}
+  \label{tab:runs}
+  \begin{tabular}{lrr}
+    \toprule
+    Run & Time (s) & Error \\
+    \midrule
+    one & 1.2 & 0.01 \\
+    two & 0.9 & 0.02 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Conclusion}
+What follows from the results.
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "bug_report.md",
+    "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+    "sha": "3d2196f0a2a4a0c3d5d0f4d3c7e6b2b1a1f0e9d8",
+    "size": 180,
+    "url": "https://api.github.com/repos/acme/rocket/contents/.github/ISSUE_TEMPLATE/bug_report.md?ref=main",
+    "html_url": "https://github.com/acme/rocket/blob/main/.github/ISSUE_TEMPLATE/bug_report.md",
+    "git_url": "",
+    "download_url": "https://raw.githubusercontent.com/acme/rocket/main/.github/ISSUE_TEMPLATE/bug_report.md",
+    "type": "file",
+    "_links": {}
+  },
+  {
+    "name": "config.yml",
+    "path": ".github/ISSUE_TEMPLATE/config.yml",
+    "sha": "0",
+    "size": 30,
+    "url": "",
+    "html_url": "",
+    "git_url": "",
+    "download_url": "",
+    "type": "file",
+    "_links": {}
+  }
+]

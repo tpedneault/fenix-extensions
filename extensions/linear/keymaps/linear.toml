@@ -1,0 +1,25 @@
+# Linear's keys, under SPC o w. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC o w"
+group = "linear"
+
+[[leader]]
+keys = "SPC o w w"
+label = "open linear"
+command = "linear.open"
+
+[[leader]]
+keys = "SPC o w r"
+label = "refresh linear"
+command = "linear.refresh"
+
+[[leader]]
+keys = "SPC o w g"
+label = "go to issue"
+command = "linear.goto_issue"
+
+[[leader]]
+keys = "SPC o w n"
+label = "new issue"
+command = "linear.new_issue"

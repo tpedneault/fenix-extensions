@@ -1,0 +1,13 @@
+# name: Dev shell
+# key: devshell
+# scope: nix
+# --
+devShells = forAllSystems (system:
+  let pkgs = nixpkgs.legacyPackages.\${system}; in
+  {
+    default = pkgs.mkShell {
+      packages = with pkgs; [ ${1:git} ];
+      ${2:# RUST_LOG = "info";}
+    };
+  });
+$0

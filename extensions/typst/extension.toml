@@ -1,0 +1,105 @@
+[extension]
+id = "fenix.typst"
+name = "Typst"
+version = "1.0.0"
+description = "Typst: its grammar, tinymist, typstyle, compile and watch with their errors as problems, the PDF it makes opened in the PDF reader, the project's checks with fixes that install the tools, snippets, and templates"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
+
+# With Fenix: the project doctor's checks and the language server are
+# there from the start.
+[activation]
+on_startup = true
+
+[permissions]
+# typst compiles and watches; tinymist serves; typstyle formats; the tools
+# where the pack installs them (the tools folder) or where they're found.
+process = ["typst", "tinymist", "typstyle", "/tools/*"]
+# GitHub's releases, where the three are downloaded from, and where GitHub
+# sends the downloads.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# The .typ files at the top, typst.toml, and the PDF a compile made, read,
+# to find the document and to know the PDF is there.
+filesystem = "project-read"
+# Where you are: the project's folder, which the PDF reader's path needs,
+# and the .typ file you're in when the project names no document.
+editor = "read"
+
+[contributes]
+# A file saved: the first .typ file in a folder noticed; compile on save.
+events = ["saved"]
+
+[[contributes.contexts]]
+name = "typst"
+markers = ["typst.toml"]
+languages = ["typst"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+[[contributes.project_kinds]]
+id = "typst"
+name = "Typst"
+tag = "TYP"
+color = "string"
+markers = ["typst.toml"]
+main = ["main.typ"]
+
+[[contributes.commands]]
+id = "typst.doctor"
+title = "Typst: check the project again (Typst, tinymist, typstyle)"
+
+[[contributes.commands]]
+id = "typst.install.typst"
+title = "Typst: install Typst 0.15.1, the compiler"
+
+[[contributes.commands]]
+id = "typst.install.tinymist"
+title = "Typst: install tinymist 0.15.12, the language server"
+
+[[contributes.commands]]
+id = "typst.install.typstyle"
+title = "Typst: install typstyle 0.15.2, the formatter"
+
+[[contributes.commands]]
+id = "typst.compile"
+title = "Typst: compile the document to its PDF, and show its errors as problems"
+
+[[contributes.commands]]
+id = "typst.watch"
+title = "Typst: watch the document in the background (again to stop), and open its PDF"
+
+[[contributes.commands]]
+id = "typst.preview"
+title = "Typst: open the document's PDF in the PDF reader"
+
+[[contributes.settings]]
+key = "typst.main"
+kind = "text"
+label = "Document"
+description = "The .typ file to compile, in the project, when it isn't main.typ (src/main.typ, a typst.toml's entrypoint or the only .typ file at the top are found without it). Empty: found."
+default = ""
+project = true
+
+[[contributes.settings]]
+key = "typst.preview"
+kind = "bool"
+label = "Open the PDF after a compile"
+description = "The first successful compile opens the PDF in the PDF reader (fenix.pdf), which shows it again each time it's compiled. Off: only SPC m p opens it."
+default = "true"
+
+[[contributes.settings]]
+key = "typst.compile_on_save"
+kind = "bool"
+label = "Compile on save"
+description = "Saving a .typ file compiles the document, so its errors show as problems and its PDF is up to date. Not while typst watch runs, which does the compiling."
+default = "false"

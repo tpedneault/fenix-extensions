@@ -1,0 +1,15 @@
+# name: home-manager module
+# key: hm
+# scope: nix
+# --
+{ config, pkgs, ... }:
+
+{
+  home.username = "${1:me}";
+  home.homeDirectory = "${2:/home/me}";
+  home.stateVersion = "${3:24.11}";
+
+  home.packages = with pkgs; [ $0 ];
+
+  programs.home-manager.enable = true;
+}

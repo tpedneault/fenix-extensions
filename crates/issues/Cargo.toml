@@ -1,0 +1,15 @@
+[package]
+name = "fenix-issues"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "A forge's issues as a page, a branch started from one and answers for agents, with nothing of Fenix's host in it: shared by the GitHub Issues and GitLab Issues extensions."
+
+[dependencies]
+fenix-forge = { path = "../forge" }
+fenix-tracker = { path = "../tracker" }
+fenix-ui-kit = { path = "../ui-kit", default-features = false }
+
+# Built with whichever extension uses it.
+[workspace]

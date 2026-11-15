@@ -1,0 +1,53 @@
+id = "kubernetes.basics"
+track = "Kubernetes"
+order = 1
+title = "Kubernetes: the page, a context, a log, a change"
+about = "The Kubernetes page and its tabs, choosing a context for this project, a pod's log, and how a change is asked. It needs kubectl and a cluster for the log: without them the page says what's missing, and s on the tutorial page skips those steps."
+text = """
+kubectl and kubeconfig, as your terminal has them. Without kubectl the
+page says so (kubernetes.kubectl, in the settings, names where it is);
+without a cluster, it shows kubectl's own words for why. A step that
+needs a pod: s on the tutorial page skips it.
+
+SPC o k k   the Kubernetes page: the context and namespace on its top line
+              1-5, ] and [   workloads, pods, network, Secrets, forwards
+              j k            move;  Enter opens a workload, m its menu
+              c  n           the context (for this project only), the namespace
+              u              take the context a setting suggests
+              l  !  f        a log, a shell, a port-forward
+              i  D           the YAML (read-only), describe
+              x  R  S        delete a pod, restart, scale: each asked first
+              r              ask again;  / filter;  + more of a long list
+kubeconfig itself is never changed.
+On a log: s stops and starts, p the previous run, S since, t times, o a buffer.
+"""
+
+[[step]]
+say = "SPC o k k: the Kubernetes page -- its top line says the context and the namespace it works in."
+hint = "SPC o k k. Without kubectl or a cluster it opens all the same and says what's missing: that counts."
+page = "fenix.kubernetes/main"
+
+[[step]]
+say = "c: the context picker. What you pick here is this project's: kubeconfig, and every other tool, stay where they were. Each says whether it's protected."
+hint = "c, on the page. With no contexts in kubeconfig it says so: s on the tutorial page skips this and the next."
+picker = "any"
+
+[[step]]
+say = "Enter picks one (or Esc keeps the one you have)."
+hint = "Enter or Esc, in the picker."
+picker = "none"
+
+[[step]]
+say = "2: the pods. j or k to one that runs, then l: its log, followed as it's written."
+hint = "It takes a cluster with a pod in it: without one, s on the tutorial page skips this and the next."
+page = "fenix.kubernetes/logs"
+
+[[step]]
+say = "s stops following, s again carries on from there, p shows the run before its last restart. q closes the log."
+hint = "q, on the log page."
+closed = "fenix.kubernetes/logs"
+
+[[step]]
+say = "Back on the page, x on a pod asks first -- naming the context and the namespace -- and only y deletes it; any other key is no. In a protected context -- every one but a local cluster's, by default -- you type its name instead. Not needed now: q closes the page."
+hint = "q, on the Kubernetes page. If it's closed already: SPC o k k, then q -- or s on the tutorial page."
+closed = "fenix.kubernetes/main"

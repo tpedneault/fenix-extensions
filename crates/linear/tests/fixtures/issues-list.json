@@ -1,0 +1,153 @@
+{
+  "data": {
+    "issues": {
+      "nodes": [
+        {
+          "id": "1550e000-0000-4000-8000-000000000012",
+          "identifier": "ENG-12",
+          "url": "https://linear.app/acme/issue/ENG-12/fix-the-login-timeout",
+          "title": "Fix the login timeout",
+          "description": "The login times out after **30 s** on slow networks.\n\n- repro: throttle to 3G\n- see ENG-3",
+          "priority": 2,
+          "branchName": "jo/eng-12-fix-the-login-timeout",
+          "dueDate": "2026-11-20",
+          "createdAt": "2026-11-01T09:00:00.000Z",
+          "updatedAt": "2026-11-13T16:40:12.402Z",
+          "state": {
+            "id": "57000000-0000-4000-8000-000000000004",
+            "name": "In Progress",
+            "type": "started"
+          },
+          "team": {
+            "id": "5e000000-0000-4000-8000-0000000000e1",
+            "key": "ENG",
+            "name": "Engineering"
+          },
+          "assignee": {
+            "id": "7a1c2b3d-0000-4000-8000-0000000000a1",
+            "name": "Jo Bloggs",
+            "displayName": "jo",
+            "isMe": true
+          },
+          "creator": {
+            "id": "7a1c2b3d-0000-4000-8000-0000000000a2",
+            "name": "Amy Park",
+            "displayName": "amy"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "id": "1abe1000-0000-4000-8000-000898416404",
+                "name": "bug"
+              },
+              {
+                "id": "1abe1000-0000-4000-8000-004175343705",
+                "name": "auth"
+              }
+            ]
+          },
+          "cycle": {
+            "id": "c1c1e000-0000-4000-8000-000000000012",
+            "number": 12,
+            "name": "Hardening"
+          },
+          "project": {
+            "id": "90000000-0000-4000-8000-000000000001",
+            "name": "Auth revamp"
+          },
+          "parent": null,
+          "comments": {
+            "nodes": [
+              {
+                "id": "cm000003",
+                "body": "Reproduced on staging.",
+                "createdAt": "2026-11-13T16:40:12.402Z",
+                "user": {
+                  "name": "Amy Park",
+                  "displayName": "amy"
+                },
+                "botActor": null
+              },
+              {
+                "id": "cm000002",
+                "body": "Linked the Sentry event.",
+                "createdAt": "2026-11-12T10:00:00.000Z",
+                "user": null,
+                "botActor": {
+                  "name": "Sentry"
+                }
+              },
+              {
+                "id": "cm000001",
+                "body": "Taking this.",
+                "createdAt": "2026-11-10T08:15:00.000Z",
+                "user": {
+                  "name": "Jo Bloggs",
+                  "displayName": "jo"
+                },
+                "botActor": null
+              }
+            ],
+            "pageInfo": {
+              "hasNextPage": false
+            }
+          }
+        },
+        {
+          "id": "1550e000-0000-4000-8000-000000000015",
+          "identifier": "ENG-15",
+          "url": "https://linear.app/acme/issue/ENG-15/write-the-session-docs",
+          "title": "Write the session docs",
+          "description": "Cover cookie lifetime.\r\nAnd refresh.",
+          "priority": 3,
+          "branchName": "jo/eng-15-write-the-session-docs",
+          "dueDate": null,
+          "createdAt": "2026-11-01T09:00:00.000Z",
+          "updatedAt": "2026-11-12T11:00:00.000Z",
+          "state": {
+            "id": "57000000-0000-4000-8000-000000000003",
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "team": {
+            "id": "5e000000-0000-4000-8000-0000000000e1",
+            "key": "ENG",
+            "name": "Engineering"
+          },
+          "assignee": {
+            "id": "7a1c2b3d-0000-4000-8000-0000000000a1",
+            "name": "Jo Bloggs",
+            "displayName": "jo",
+            "isMe": true
+          },
+          "creator": {
+            "id": "7a1c2b3d-0000-4000-8000-0000000000a2",
+            "name": "Amy Park",
+            "displayName": "amy"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "id": "1abe1000-0000-4000-8000-001364667319",
+                "name": "docs"
+              }
+            ]
+          },
+          "cycle": null,
+          "project": null,
+          "parent": null,
+          "comments": {
+            "nodes": [],
+            "pageInfo": {
+              "hasNextPage": false
+            }
+          }
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      }
+    }
+  }
+}

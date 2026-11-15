@@ -1,0 +1,7 @@
+# GitHub Issues' keys, under SPC g beside Review's. Your own
+# keybindings.toml wins.
+
+[[leader]]
+keys = "SPC g i"
+label = "github issues"
+command = "github-issues.open"

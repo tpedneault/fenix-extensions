@@ -1,0 +1,18 @@
+[template]
+name = "LaTeX · article"
+kind = "other"
+group = "LaTeX"
+description = "An article: a title block, an abstract, sections, a figure, a table and an equation with labels you can reference, and a BibTeX bibliography. A .latexmkrc names the engine. SPC m b builds it and shows main.pdf."
+open = ["main.tex"]
+
+[[ask]]
+key = "author"
+label = "Author"
+default = "Ada Lovelace"
+hint = "in the title block and the PDF's metadata"
+
+[[ask]]
+key = "paper"
+label = "Paper size"
+choices = ["a4paper", "letterpaper"]
+default = "a4paper"

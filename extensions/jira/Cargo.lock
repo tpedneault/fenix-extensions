@@ -94,20 +94,50 @@ dependencies = [
 
 [[package]]
 name = "fenix-jira"
-version = "1.2.0"
+version = "1.4.0"
 dependencies = [
  "chrono",
  "fenix-extension-api",
  "fenix-jira-client",
+ "fenix-test-kit",
+ "fenix-tracker",
  "serde",
  "serde_json",
 ]
 
 [[package]]
 name = "fenix-jira-client"
+version = "1.2.0"
+dependencies = [
+ "chrono",
+ "fenix-tracker",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "fenix-test-kit"
 version = "1.0.0"
 dependencies = [
+ "fenix-extension-api",
+ "fenix-ui-kit",
+ "unicode-width",
+]
+
+[[package]]
+name = "fenix-tracker"
+version = "1.0.0"
+dependencies = [
+ "serde",
  "serde_json",
+]
+
+[[package]]
+name = "fenix-ui-kit"
+version = "1.0.0"
+dependencies = [
+ "fenix-extension-api",
+ "unicode-width",
 ]
 
 [[package]]
@@ -431,6 +461,12 @@ name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
+
+[[package]]
+name = "unicode-width"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca718471876992059f251e33aafc334346ada08042b7661dd1fe313a9bced557"
 
 [[package]]
 name = "wasm-bindgen"

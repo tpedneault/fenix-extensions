@@ -18,9 +18,19 @@
 //! (`github`, `gitlab`), and they talk HTTP through [`Http`]: the review
 //! extension's is Fenix's own (`run::fetch`), a test's a fake. So every
 //! forge call is async.
+//!
+//! Issues are `issues` (1.1): a search, an issue with its comments, a new
+//! one and its changes, on both forges, for the GitHub Issues and GitLab
+//! Issues extensions; and, with the feature `tracker`, the tracker seam
+//! they serve the agenda over them (`tracker`). `recorded` answers
+//! requests from responses written down, for tests.
 
 pub mod github;
 pub mod gitlab;
+pub mod issues;
+pub mod recorded;
+#[cfg(feature = "tracker")]
+pub mod tracker;
 
 /// What came back for a request.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,6 +46,13 @@ pub trait Http {
     /// `method` on `url` with `headers` and `body`: what came back, whatever
     /// its status, or why nothing did.
     async fn request(&self, method: &str, url: &str, headers: &[(&str, String)], body: Option<String>) -> Result<Response, String>;
+}
+
+/// A client shared: the same HTTP through each clone.
+impl<T: Http> Http for std::rc::Rc<T> {
+    async fn request(&self, method: &str, url: &str, headers: &[(&str, String)], body: Option<String>) -> Result<Response, String> {
+        (**self).request(method, url, headers, body).await
+    }
 }
 
 /// No network: what a test that doesn't reach a forge builds a client
@@ -70,11 +87,17 @@ pub fn with_query(url: &str, query: &[(&str, &str)]) -> String {
 /// A status's reason, as a server says it.
 pub fn reason(status: u16) -> &'static str {
     match status {
+        301 => "Moved Permanently",
+        302 => "Found",
+        303 => "See Other",
+        307 => "Temporary Redirect",
+        308 => "Permanent Redirect",
         400 => "Bad Request",
         401 => "Unauthorized",
         403 => "Forbidden",
         404 => "Not Found",
         405 => "Method Not Allowed",
+        408 => "Request Timeout",
         409 => "Conflict",
         422 => "Unprocessable Entity",
         429 => "Too Many Requests",
@@ -818,12 +841,15 @@ mod http_tests {
     use super::*;
     use std::cell::RefCell;
 
+    /// A request: its method, URL and headers.
+    type Asked = (String, String, Vec<(String, String)>);
+
     /// Answers every request with `status` and `body`, keeping what was
     /// asked.
     struct Canned {
         status: u16,
         body: String,
-        asked: RefCell<Vec<(String, String, Vec<(String, String)>)>>,
+        asked: RefCell<Vec<Asked>>,
     }
 
     impl Http for Canned {

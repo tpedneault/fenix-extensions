@@ -1,169 +1,98 @@
-//! Keeping linked tasks and their Jira issues in step: fetching issues
+//! Keeping linked tasks and their issues in step, through the tracker
+//! seam (`plans/tracker-seam.md`): finding the trackers, fetching issues
 //! and turning them into `RemoteUpdate`s, sending the outbox one op at a
-//! time, turning a board move into a real workflow transition, learning
-//! what "Blocked" means in each project, linking and importing issues,
-//! and sending worklogs.
+//! time, turning a board move into one of the tracker's moves, linking
+//! and importing issues, and sending worklogs.
 //!
-//! Jira itself is the Jira extension's: it holds your server, your token
-//! and Jira's settings, and passes requests on (`jira.request`). Each job
-//! here runs as `async` and ends with a [`Done`], which the agenda takes
-//! in once the job's answer has come (`Agenda::take_done`).
+//! Each tracker is its own extension's: it holds your sign-in and its
+//! settings, and answers `<id>.tracker.*`. Each job here runs as `async`
+//! (`crate::calls`) and ends with a [`Done`], which the agenda takes in
+//! once the job's answer has come (`Agenda::take_done`).
 
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 use std::rc::Rc;
+use std::collections::{HashMap, HashSet};
+use std::future::Future;
 use std::time::{Duration, Instant};
 
-use fenix_extension_api::run;
-use fenix_jira_client::{IssueDetail, JiraClient, Reply, StatusInfo, Transition, Transport};
+use fenix_tracker::{self as seam, call, code, Issue, Move, Moves, SeamError};
 
-use crate::model::{self, OpKind, Priority, RemoteComment, RemoteSnapshot, RemoteUpdate, Status, TaskId, WorklogRow};
+use crate::calls;
+use crate::model::{self, OpKind, PendingOp, RemoteComment, RemoteSnapshot, RemoteUpdate, Status, TaskId, WorklogRow};
+use crate::trackers::{self, Found, Tracker, Trackers, Via};
 
 /// Shown on a linked task whose issue a sync couldn't find.
-pub const NOT_FOUND: &str = "not found in Jira -- deleted, moved, or no longer visible to you";
+pub fn not_found(tracker: &str) -> String {
+    format!("not found in {tracker} -- deleted, moved, or no longer visible to you")
+}
 
 /// How long a sync stays fresh enough that opening the agenda doesn't
 /// start another one.
 pub const STALE_AFTER: Duration = Duration::from_secs(120);
 
-/// Jira, through the Jira extension.
-struct ViaJira;
+/// How long the trackers found stay found before the page's opening asks
+/// again -- one installed while Fenix runs is found by then.
+pub const PROBE_AFTER: Duration = Duration::from_secs(300);
 
-impl Transport for ViaJira {
-    fn send(&self, method: &str, path: &str, body: Option<String>) -> Pin<Box<dyn Future<Output = Reply>>> {
-        let payload = serde_json::json!({ "method": method, "path": path, "body": body }).to_string();
-        Box::pin(async move {
-            let answer = run::call("jira.request", &payload).await?;
-            let v: serde_json::Value = serde_json::from_str(&answer).map_err(|e| e.to_string())?;
-            let status = v.get("status").and_then(|s| s.as_u64()).unwrap_or(0) as u16;
-            Ok((status, v.get("body").and_then(|b| b.as_str()).unwrap_or_default().to_string()))
-        })
-    }
+/// One sync, across the trackers it asked: what each said, told once the
+/// last has answered.
+#[derive(Debug, Default)]
+pub struct Round {
+    pub quiet: bool,
+    /// Trackers still to answer.
+    pub waiting: usize,
+    /// (tracker, issues brought up to date), for each that synced.
+    pub synced: Vec<(String, usize)>,
+    pub conflicts: usize,
+    /// (tracker, why) for each that failed.
+    pub failures: Vec<(String, String)>,
 }
 
-pub fn client() -> JiraClient {
-    JiraClient::new(Rc::new(ViaJira))
-}
-
-/// What "Blocked" means for one Jira project (`jira.blocked`).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Blocked {
-    /// Transition to this status (matched by id; `name` is for display).
-    Status { id: String, name: String },
-    /// Set the issue's Flagged (impediment) field; leave the status alone.
-    Flag,
-    /// Don't touch Jira at all.
-    Local,
-}
-
-impl Blocked {
-    /// `flag`, `local`, or a status as `ID: Name`.
-    pub fn parse(text: &str) -> Result<Blocked, String> {
-        match text.trim() {
-            "flag" => Ok(Blocked::Flag),
-            "local" => Ok(Blocked::Local),
-            other => match other.split_once(':') {
-                Some((id, name)) if !id.trim().is_empty() => Ok(Blocked::Status { id: id.trim().into(), name: name.trim().into() }),
-                _ => Err(format!("\"{other}\": expected flag, local, or a status as ID: Name")),
-            },
-        }
-    }
-
-    /// As `jira.blocked` holds it.
-    pub fn text(&self) -> String {
-        match self {
-            Blocked::Flag => "flag".into(),
-            Blocked::Local => "local".into(),
-            Blocked::Status { id, name } => format!("{id}: {name}"),
-        }
-    }
-}
-
-/// What the Jira extension says of Jira (`jira.config`).
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Deserialize)]
-#[serde(default)]
-pub struct Config {
-    /// Where Jira is; none when it isn't set up.
-    pub base_url: Option<String>,
-    /// The projects tracked: their keys.
-    pub projects: Vec<String>,
-    /// People to assign to: (username, name).
-    pub users: Vec<(String, String)>,
-    /// Jira priority -> agenda priority.
-    pub priorities: Vec<(String, String)>,
-    /// Project -> what Blocked means there.
-    pub blocked: Vec<(String, String)>,
-    pub sync_minutes: u32,
-}
-
-impl Config {
-    pub fn blocked_for(&self, project: &str) -> Option<Blocked> {
-        self.blocked.iter().find(|(p, _)| p == project).and_then(|(_, meaning)| Blocked::parse(meaning).ok())
-    }
-
-    /// Whether Blocked means the Flagged field in any project.
-    pub fn flags_anywhere(&self) -> bool {
-        self.blocked.iter().any(|(_, meaning)| Blocked::parse(meaning) == Ok(Blocked::Flag))
-    }
-
-    /// `jira.priorities` first, then a guess from the name.
-    pub fn priority(&self, name: &str) -> Priority {
-        self.priorities
-            .iter()
-            .find(|(jira, _)| jira.eq_ignore_ascii_case(name))
-            .and_then(|(_, level)| Priority::ALL.into_iter().find(|p| p.label().eq_ignore_ascii_case(level)))
-            .unwrap_or_else(|| model::jira::guess_priority(name))
-    }
-
-    /// Which agenda column a Jira status lands in.
-    pub fn status_for(&self, project: &str, status_id: &str, category: &str, flagged: bool) -> Status {
-        match self.blocked_for(project) {
-            Some(Blocked::Status { id, .. }) if id == status_id => Status::Blocked,
-            Some(Blocked::Flag) if flagged => Status::Blocked,
-            _ => model::jira::status_for_category(category),
-        }
-    }
-}
+/// What a command waiting on the trackers' answer will do.
+pub type Then = Box<dyn FnOnce(&mut crate::Agenda)>;
 
 /// The sync's bookkeeping: none of it worth saving.
 #[derive(Default)]
 pub struct Sync {
-    /// What the Jira extension said of Jira; `None` until it has, and
-    /// `Some(Err)` when there's no Jira extension.
-    pub config: Option<Result<Config, String>>,
-    /// The op being sent -- one at a time, in order, so a title change
-    /// can't overtake the transition queued before it.
-    pub in_flight: Option<u64>,
-    pub pulling: bool,
+    pub trackers: Trackers,
+    /// Whether the trackers have been asked, and when.
+    pub probed: Option<Instant>,
+    /// Asks under way, and what they've found so far, in the order asked.
+    pub probing: Vec<(String, Option<Found>)>,
+    /// Asked again once the asking under way is done.
+    pub probe_again: bool,
+    /// Commands waiting for the asking to be done.
+    pub waiting: Vec<Then>,
+    /// The op being sent to each tracker -- one at a time each, in order,
+    /// so a title change can't overtake the move queued before it; one
+    /// tracker that's slow to answer holds only its own.
+    pub in_flight: HashMap<String, u64>,
+    pub round: Option<Round>,
     /// Pull again once the outbox empties (a comment was posted).
     pub pull_after_drain: bool,
     pub last_pull: Option<Instant>,
-    /// The token owner's username, for "still assigned to you".
-    pub me: Option<String>,
-    /// The Flagged field's id: `None` until asked, `Some(None)` when the
-    /// instance has none.
-    pub flag_field: Option<Option<String>>,
     pub sending_worklogs: bool,
-    /// The periodic sync's timer.
-    pub ticker: Option<u64>,
+    /// Trackers said to be unusable, said once.
+    pub warned: HashSet<String>,
 }
 
 impl Sync {
-    /// Jira's settings, once the Jira extension has said them.
-    pub fn config(&self) -> Option<&Config> {
-        self.config.as_ref().and_then(|c| c.as_ref().ok()).filter(|c| c.base_url.is_some())
+    pub fn pulling(&self) -> bool {
+        self.round.is_some()
     }
 
-    /// The Flagged field id to ask for, when any project uses it.
-    pub fn flag_wanted(&self) -> Option<String> {
-        let wanted = self.config().is_some_and(Config::flags_anywhere);
-        if wanted {
-            self.flag_field.clone().flatten()
-        } else {
-            None
-        }
+    /// Whether any tracker is ready.
+    pub fn any_ready(&self) -> bool {
+        self.trackers.ready().next().is_some()
+    }
+
+    /// A ready tracker, by id.
+    pub fn ready(&self, id: &str) -> Option<&Tracker> {
+        self.trackers.get(id).filter(|t| t.ready())
+    }
+
+    pub fn is_probing(&self) -> bool {
+        !self.probing.is_empty()
     }
 }
 
@@ -171,7 +100,8 @@ impl Sync {
 #[derive(Debug, Clone)]
 pub struct PickerCtx {
     pub task: Option<TaskId>,
-    pub project: Option<String>,
+    /// The tracker its rows are of, when one.
+    pub tracker: Option<String>,
     /// Where the task's card was before a board move this picker is
     /// finishing -- cancelling puts it back.
     pub revert: Option<(Status, i64)>,
@@ -181,20 +111,25 @@ pub struct PickerCtx {
 /// One row of a sync picker.
 #[derive(Debug, Clone)]
 pub enum Pick {
-    Issue(Box<IssueDetail>),
-    CreateIssue,
+    /// An issue to link to, and its tracker.
+    Issue(String, Box<Issue>),
+    /// The tracker's new-issue form.
+    CreateIssue(String),
     TypeKey,
     Unlink,
     OpenInBrowser,
-    Import(Box<IssueDetail>),
-    Transition(Transition),
-    /// The "Blocked..." row of a linked task's status picker.
+    Import(String, Box<Issue>),
+    Move(Box<Move>),
+    /// The "Blocked" row of a linked task's status picker.
     StartBlocked,
-    /// What Blocked means in a project, and -- when chosen while blocking
-    /// a task -- the transition that gets there.
-    Blocked(Blocked, Option<Transition>),
-    Priority(String),
-    Assignee(String, String),
+    Priority(seam::Priority),
+    /// Someone, or nobody.
+    Assignee(Option<seam::Person>),
+    /// A change that may have been made: send it again, or forget it.
+    SendAgain,
+    Forget,
+    /// Changes the tracker dropped: what to do with them.
+    Dropped(crate::model::DroppedChoice),
 }
 
 /// What an issue fetch was for.
@@ -204,7 +139,7 @@ pub enum IssueFetch {
     Import,
     LinkKey(TaskId),
     Created(TaskId),
-    AddFromJira { clock: bool },
+    AddIssue { clock: bool },
 }
 
 /// How sending one worklog row went.
@@ -214,25 +149,51 @@ pub struct WorklogSent {
     pub entries: Vec<usize>,
     pub key: String,
     pub minutes: i64,
-    pub result: Result<(), String>,
+    /// The `op` it went with.
+    pub op: String,
+    pub result: Result<(), SeamError>,
 }
 
 /// A job's end, for the agenda to take in.
 #[derive(Debug)]
 pub enum Done {
-    Config(Result<Config, String>),
-    Pulled { keys: Vec<String>, quiet: bool, me: Option<String>, flag_field: Option<Option<String>>, result: Result<Vec<IssueDetail>, String> },
-    OpDone { op_id: u64, key: String, what: String, flag_field: Option<Option<String>>, result: Result<(), String> },
-    Issues { purpose: IssueFetch, result: Result<Vec<IssueDetail>, String> },
-    Transitions { task: TaskId, target: Option<Status>, prev: (Status, i64), result: Result<Vec<Transition>, String> },
-    Priorities { task: TaskId, result: Result<Vec<fenix_jira_client::Priority>, String> },
-    ProjectStatuses { project: String, result: Result<Vec<StatusInfo>, String> },
+    /// What asking one tracker found.
+    Probed { id: String, found: Found },
+    /// One tracker's part of a sync.
+    Pulled { tracker: String, asked: Vec<String>, result: Result<seam::Found, SeamError> },
+    OpDone { op_id: u64, key: String, tracker: String, what: String, result: Result<Option<String>, SeamError> },
+    /// Issues to pick from, each with its tracker: those assigned to
+    /// you, or the one asked for.
+    Issues { purpose: IssueFetch, found: Vec<(String, Issue)>, failures: Vec<(String, SeamError)> },
+    Transitions { task: TaskId, target: Option<Status>, prev: (Status, i64), result: Result<Moves, SeamError> },
+    Priorities { task: TaskId, result: Result<Vec<seam::Priority>, SeamError> },
+    People { task: TaskId, result: Result<seam::People, SeamError> },
     WorklogsSent(Vec<WorklogSent>),
-    /// The Jira extension's new-issue form, filled in from a task: the
-    /// key it made, or why not.
-    Created { task: TaskId, result: Result<String, String> },
-    /// A setting the Jira extension changed for it.
-    Saved(Result<(), String>),
+    /// The tracker's new-issue form, filled in from a task: the ref it
+    /// made, or what it said it opened, or why not.
+    Created { task: TaskId, tracker: String, result: Result<seam::Created, SeamError> },
+    /// A choice a move carried, kept by the tracker.
+    Remembered { tracker: String, result: Result<(), SeamError> },
+    /// The project you're in, as each tracker that can tell names it.
+    Projects(Vec<(String, String)>),
+}
+
+impl std::fmt::Debug for Tracker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Tracker({})", self.id)
+    }
+}
+
+impl std::fmt::Debug for Found {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Found::Tracker(t) => write!(f, "Found({})", t.id),
+            Found::Other { id, .. } => write!(f, "Other({id})"),
+            Found::Impostor { id, .. } => write!(f, "Impostor({id})"),
+            Found::Broken { id, .. } => write!(f, "Broken({id})"),
+            Found::Absent => write!(f, "Absent"),
+        }
+    }
 }
 
 thread_local! {
@@ -244,156 +205,277 @@ pub fn take_done() -> Vec<Done> {
     DONE.with(|d| std::mem::take(&mut *d.borrow_mut()))
 }
 
+/// A job's end, for `take_done`.
+fn finish(done: Done) {
+    DONE.with(|d| d.borrow_mut().push(done));
+}
+
 /// Runs `job`; what it ends with comes to `take_done`.
 pub fn spawn(job: impl Future<Output = Done> + 'static) {
-    run::spawn(async move {
+    calls::spawn(async move {
         let done = job.await;
         DONE.with(|d| d.borrow_mut().push(done));
     });
 }
 
-/// `jira.config`: Jira's settings, from the Jira extension.
-pub fn fetch_config() {
-    spawn(async {
-        let config = run::call("jira.config", "null").await.and_then(|text| serde_json::from_str(&text).map_err(|e| e.to_string()));
-        Done::Config(config)
+/// Asks `id` who it is, beside the others: one that hangs holds up none.
+pub fn probe(id: String) {
+    spawn(async move {
+        let found = trackers::probe(id.clone()).await;
+        Done::Probed { id, found }
     });
 }
 
-/// `project`'s Blocked meaning, kept in `jira.blocked` by the Jira
-/// extension.
-pub fn save_blocked(project: &str, blocked: &Blocked) {
-    let payload = serde_json::json!({ "project": project, "blocked": blocked.text() }).to_string();
-    spawn(async move { Done::Saved(run::call("jira.set_blocked", &payload).await.map(|_| ())) });
+/// Issues `asked` (ids, or refs for links that don't know theirs), one
+/// call each, merged.
+async fn one_by_one(via: &Via, asked: &[String]) -> Result<seam::Found, SeamError> {
+    let mut found = seam::Found::default();
+    for one in asked {
+        match via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(vec![one.clone()])).await {
+            Ok(part) => {
+                let part = part.cleaned();
+                found.issues.extend(part.issues);
+                found.missing.extend(part.missing);
+            }
+            Err(e) if e.is(code::NOT_FOUND) => found.missing.push(one.clone()),
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(found)
 }
 
-/// Every linked task's issue, in searches of 50.
-pub fn pull(keys: Vec<String>, quiet: bool, need_me: bool, want_flag: bool, known_flag: Option<Option<String>>) {
+/// One tracker's linked issues, in calls of 50. A tracker that answers
+/// `not_found` for a whole call of several is asked one at a time.
+pub fn pull(via: Via, asked: Vec<String>) {
     spawn(async move {
-        let client = client();
-        let me = if need_me { client.myself().await.ok() } else { None };
-        let flag_field = match (&known_flag, want_flag) {
-            (None, true) => client.find_flagged_field().await.ok(),
-            _ => None,
-        };
-        let flag = flag_field.clone().or(known_flag).flatten();
-        let mut issues = Vec::new();
-        for chunk in keys.chunks(50) {
-            match client.search_details(&fenix_jira_client::build_keys_jql(chunk), chunk.len() as u32, flag.as_deref()).await {
-                Ok(found) => issues.extend(found),
-                Err(err) => return Done::Pulled { keys, quiet, me, flag_field, result: Err(err) },
+        let mut found = seam::Found::default();
+        for chunk in asked.chunks(seam::Issues::MAX_REFS) {
+            let part = match via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(chunk.to_vec())).await {
+                Ok(part) => Ok(part.cleaned()),
+                Err(e) if e.is(code::NOT_FOUND) => one_by_one(&via, chunk).await,
+                Err(e) => Err(e),
+            };
+            match part {
+                Ok(part) => {
+                    found.issues.extend(part.issues);
+                    found.missing.extend(part.missing);
+                }
+                Err(err) => return Done::Pulled { tracker: via.id, asked, result: Err(err) },
             }
         }
-        Done::Pulled { keys, quiet, me, flag_field, result: Ok(issues) }
+        Done::Pulled { tracker: via.id, asked, result: Ok(found) }
     });
 }
 
-/// One op from the outbox, sent.
-pub fn send_op(op: model::PendingOp, key: String, known_flag: Option<Option<String>>) {
+/// One op from the outbox, sent with its `op` to the issue `asked` (its
+/// id once known); `key` is its ref, to say it by.
+pub fn send_op(via: Via, op: PendingOp, asked: String, key: String) {
     spawn(async move {
-        let client = client();
-        let mut fetched_flag = None;
+        let uid = (!op.uid.is_empty()).then(|| op.uid.clone());
+        let update = |change: seam::Change| seam::Update::new(&asked, &change, uid.clone());
+        let transition = |id: String| seam::Transition { seam: seam::SEAM, key: asked.clone(), id, op: uid.clone() };
         let result = match &op.kind {
-            OpKind::SetSummary(s) => client.update_summary(&key, s).await,
-            OpKind::SetDescription(s) => client.update_description(&key, s).await,
-            OpKind::SetPriority(p) => client.update_priority(&key, p).await,
-            OpKind::AddComment(body) => client.add_comment(&key, body).await,
-            OpKind::SetAssignee { id, .. } => client.update_assignee(&key, id).await,
-            OpKind::Transition { id, .. } => client.apply_transition(&key, id).await,
-            OpKind::SetDue(due) => client.update_due(&key, due.as_deref()).await,
-            OpKind::SetFlag(on) => {
-                let field = match known_flag {
-                    Some(field) => Ok(field),
-                    None => client.find_flagged_field().await.inspect(|f| fetched_flag = Some(f.clone())),
+            OpKind::SetSummary(s) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Title(s.clone()))).await,
+            OpKind::SetDescription(s) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Body(s.clone()))).await,
+            OpKind::SetPriority(p) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Priority(p.clone()))).await,
+            OpKind::SetDue(due) => via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Due(due.clone()))).await,
+            OpKind::SetAssignee { id, name } => {
+                let who = (!id.is_empty()).then(|| seam::Person { id: id.clone(), name: name.clone() });
+                via.put::<seam::Said>(call::UPDATE, &update(seam::Change::Assignee(who))).await
+            }
+            OpKind::AddComment(body) => via.put::<seam::Said>(call::COMMENT, &seam::NewComment { seam: seam::SEAM, key: asked.clone(), body: body.clone(), op: uid.clone() }).await,
+            OpKind::Transition { id, .. } => via.put::<seam::Said>(call::TRANSITION, &transition(id.clone())).await,
+            OpKind::SetFlag(on) => via.put::<seam::Said>(call::TRANSITION, &transition(crate::legacy::flag_move(*on).into())).await,
+        };
+        let result = result.map(|said| said.said.map(|s| fenix_tracker::clean::message(&s)));
+        Done::OpDone { op_id: op.id, key, tracker: via.id, what: op.kind.describe(), result }
+    });
+}
+
+/// What can be done next with `key`, toward `target` when a card moved.
+pub fn transitions(via: Via, task: TaskId, key: String, from: seam::State, target: Option<Status>, prev: (Status, i64)) {
+    spawn(async move {
+        let req = seam::Transitions { seam: seam::SEAM, key, toward: target.map(|s| model::link::column_for_status(s).to_string()), from: Some(from) };
+        let result = via.get::<Moves>(call::TRANSITIONS, &req).await.map(Moves::cleaned);
+        Done::Transitions { task, target, prev, result }
+    });
+}
+
+pub fn priorities(via: Via, task: TaskId, key: String) {
+    spawn(async move {
+        let result = via.get::<seam::Priorities>(call::PRIORITIES, &seam::One { seam: seam::SEAM, key }).await.map(|p| p.cleaned().priorities);
+        Done::Priorities { task, result }
+    });
+}
+
+pub fn people(via: Via, task: TaskId, key: String) {
+    spawn(async move {
+        let result = via.get::<seam::People>(call::PEOPLE, &seam::One { seam: seam::SEAM, key }).await.map(seam::People::cleaned);
+        Done::People { task, result }
+    });
+}
+
+/// Every ready tracker's open issues assigned to you, up to `most` each,
+/// a page at a time; each issue once, however the pages drift.
+pub fn assigned(purpose: IssueFetch, vias: Vec<Via>, most: u32) {
+    spawn(async move {
+        let (mut found, mut failures) = (Vec::new(), Vec::new());
+        for via in vias {
+            let mut cursor: Option<String> = None;
+            let mut seen: HashSet<String> = HashSet::new();
+            let mut got = 0u32;
+            loop {
+                let limit = (most - got).min(seam::Assigned::MAX_LIMIT);
+                let page = match via.get::<seam::Page>(call::ASSIGNED, &seam::Assigned::new(limit, cursor.clone())).await.and_then(seam::Page::cleaned) {
+                    Ok(page) => page,
+                    Err(err) => {
+                        failures.push((via.id.clone(), err));
+                        break;
+                    }
                 };
-                match field {
-                    Ok(Some(field)) => client.set_flagged(&key, &field, *on).await,
-                    Ok(None) => Err(format!("this Jira has no Flagged field -- press b on the project's search on the Jira page ({}) to pick another meaning for Blocked", crate::keys::jira())),
-                    Err(err) => Err(err),
+                if page.issues.is_empty() {
+                    break;
+                }
+                got += page.issues.len() as u32;
+                for issue in page.issues {
+                    if seen.insert(issue.id.clone()) {
+                        found.push((via.id.clone(), issue));
+                    }
+                }
+                match page.next {
+                    Some(next) if got < most && cursor.as_ref() != Some(&next) => cursor = Some(next),
+                    _ => break,
                 }
             }
-        };
-        Done::OpDone { op_id: op.id, key, what: op.kind.describe(), flag_field: fetched_flag, result }
+        }
+        Done::Issues { purpose, found, failures }
     });
 }
 
-pub fn transitions(task: TaskId, key: String, target: Option<Status>, prev: (Status, i64)) {
-    spawn(async move { Done::Transitions { task, target, prev, result: client().list_transitions(&key).await } });
+/// Issue `key`, from the first of `vias` that has it: all asked at once,
+/// so one slow to answer doesn't hold the others back.
+pub fn issue(purpose: IssueFetch, vias: Vec<Via>, key: String) {
+    type Answers = Rc<RefCell<Vec<Option<Result<Option<Issue>, SeamError>>>>>;
+    let answers: Answers = Rc::new(RefCell::new(vec![None; vias.len()]));
+    let names: Vec<(String, String)> = vias.iter().map(|v| (v.id.clone(), v.name.clone())).collect();
+    if vias.is_empty() {
+        return spawn(async move { Done::Issues { purpose, found: Vec::new(), failures: Vec::new() } });
+    }
+    let purpose = Rc::new(RefCell::new(Some(purpose)));
+    for (i, via) in vias.into_iter().enumerate() {
+        let (answers, names, purpose, key) = (answers.clone(), names.clone(), purpose.clone(), key.clone());
+        crate::calls::spawn(async move {
+            let got = via.get::<seam::Found>(call::ISSUES, &seam::Issues::new(vec![key])).await.map(|f| f.cleaned().issues.into_iter().next());
+            answers.borrow_mut()[i] = Some(got);
+            if answers.borrow().iter().any(Option::is_none) {
+                return;
+            }
+            let Some(purpose) = purpose.borrow_mut().take() else { return };
+            let mut failures = Vec::new();
+            for ((id, name), got) in names.into_iter().zip(answers.borrow_mut().drain(..)) {
+                match got {
+                    Some(Ok(Some(issue))) => return finish(Done::Issues { purpose, found: vec![(id, issue)], failures: Vec::new() }),
+                    Some(Ok(None)) => failures.push((id, SeamError::new(code::NOT_FOUND, format!("{name} returned no issue")))),
+                    Some(Err(err)) => failures.push((id, err)),
+                    None => {}
+                }
+            }
+            finish(Done::Issues { purpose, found: Vec::new(), failures });
+        });
+    }
 }
 
-pub fn priorities(task: TaskId) {
-    spawn(async move { Done::Priorities { task, result: client().list_priorities().await } });
-}
-
-pub fn search(purpose: IssueFetch, jql: String, most: u32, flag: Option<String>) {
-    spawn(async move { Done::Issues { purpose, result: client().search_details(&jql, most, flag.as_deref()).await } });
-}
-
-pub fn issue(purpose: IssueFetch, key: String, flag: Option<String>) {
-    spawn(async move { Done::Issues { purpose, result: client().get_issue_with(&key, flag.as_deref()).await.map(|d| vec![d]) } });
-}
-
-pub fn project_statuses(project: String) {
+pub fn worklogs(rows: Vec<(Via, WorklogRow, String)>) {
     spawn(async move {
-        let result = client().list_project_statuses(&project).await;
-        Done::ProjectStatuses { project, result }
-    });
-}
-
-pub fn worklogs(rows: Vec<WorklogRow>) {
-    spawn(async move {
-        let client = client();
         let mut results = Vec::new();
-        for row in rows {
-            let started = row.started.format("%Y-%m-%dT%H:%M:%S%.3f%z").to_string();
-            let result = client.add_worklog_at(&row.key, row.minutes * 60, &started).await;
-            results.push(WorklogSent { task: row.task, entries: row.entries, key: row.key, minutes: row.minutes, result });
+        for (via, row, op) in rows {
+            let started = row.started.to_rfc3339_opts(chrono::SecondsFormat::Millis, false);
+            let req = seam::Worklog { seam: seam::SEAM, key: row.asked.clone(), seconds: row.minutes * 60, started, op: Some(op.clone()) };
+            let result = via.write(call::WORKLOG, &req).await.map(|_| ());
+            results.push(WorklogSent { task: row.task, entries: row.entries, key: row.key, minutes: row.minutes, op, result });
         }
         Done::WorklogsSent(results)
     });
 }
 
-/// The Jira extension's new-issue form, filled in from a task: answered
-/// once you've made the issue, or gone.
-pub fn new_issue(task: TaskId, summary: String, description: String) {
-    let payload = serde_json::json!({ "summary": summary, "description": description }).to_string();
-    spawn(async move { Done::Created { task, result: run::call("jira.new_issue", &payload).await } });
+/// The tracker's new-issue form, filled in from a task: answered once
+/// you've made the issue, or at once with what it opened.
+pub fn create(via: Via, task: TaskId, title: String, body: String, op: String) {
+    spawn(async move {
+        let req = seam::Create { seam: seam::SEAM, title, body, op: Some(op) };
+        let result = match via.ask_unbounded(call::CREATE, &req).await {
+            Ok(text) => via.read::<seam::Created>(call::CREATE, &text).map(|c| seam::Created { key: c.key.and_then(|k| fenix_tracker::clean::key(&k)), opened: c.opened.map(|o| fenix_tracker::clean::message(&o)) }),
+            Err(err) => Err(err),
+        };
+        Done::Created { task, tracker: via.id, result }
+    });
+}
+
+/// A choice a move carried, for the tracker to keep.
+pub fn remember(via: Via, key: String, remember: String, op: String) {
+    spawn(async move {
+        let result = via.write(call::REMEMBER, &seam::Remember { seam: seam::SEAM, key, remember, op: Some(op) }).await.map(|_| ());
+        Done::Remembered { tracker: via.id, result }
+    });
+}
+
+/// The project you're in, asked of each of `vias` (those that list
+/// `project`).
+pub fn projects(vias: Vec<Via>) {
+    spawn(async move {
+        let mut found = Vec::new();
+        for via in vias {
+            if let Ok(p) = via.get::<seam::Project>(call::PROJECT, &seam::Hello::default()).await {
+                if let Some(project) = p.project.as_deref().map(fenix_tracker::clean::name).filter(|p| !p.is_empty()) {
+                    found.push((via.id, project));
+                }
+            }
+        }
+        Done::Projects(found)
+    });
 }
 
 /// An issue as the agenda keeps it.
-pub fn remote_update(config: &Config, me: Option<&str>, d: &IssueDetail) -> RemoteUpdate {
-    let project = fenix_jira_client::project_of(&d.key);
+pub fn remote_update(i: &Issue) -> RemoteUpdate {
     RemoteUpdate {
         snapshot: RemoteSnapshot {
-            summary: d.summary.clone(),
-            description: d.description.clone().unwrap_or_default(),
-            status_id: d.status_id.clone(),
-            status_name: d.status.clone(),
-            status_category: d.status_category.clone(),
-            priority: d.priority.clone(),
-            assignee: d.assignee.clone(),
-            assignee_id: d.assignee_id.clone(),
-            flagged: d.flagged,
-            updated: d.updated.clone(),
-            due: d.due.clone(),
-            comments: d.comments.iter().map(|c| RemoteComment { id: c.id.clone(), author: c.author.clone(), body: c.body.clone(), created: c.created.clone() }).collect(),
+            summary: i.title.clone(),
+            description: i.body.clone(),
+            status_id: i.state.id.clone(),
+            status_name: i.state.name.clone(),
+            status_category: i.state.stage.clone(),
+            column: Some(i.state.column.clone()),
+            priority: i.priority.as_ref().map(|p| p.name.clone()),
+            assignee: i.assignee.as_ref().map(|p| p.name.clone()).filter(|n| !n.is_empty()),
+            assignee_id: i.assignee.as_ref().map(|p| p.id.clone()).filter(|n| !n.is_empty()),
+            flagged: false,
+            updated: i.updated.clone(),
+            due: i.due.clone(),
+            comments: i.comments.iter().map(|c| RemoteComment { id: c.id.clone(), author: c.author.clone(), body: c.body.clone(), created: c.created.clone() }).collect(),
+            url: i.url.clone(),
+            project: i.project.clone(),
+            description_cut: i.body_cut,
+            title_cut: i.title_cut,
         },
-        status: config.status_for(project, &d.status_id, &d.status_category, d.flagged),
-        priority: d.priority.as_deref().map(|p| config.priority(p)).unwrap_or(Priority::Medium),
-        mine: me.map(|me| d.assignee_id.as_deref() == Some(me)),
+        status: model::link::status_for_column(&i.state.column),
+        priority: model::link::priority_for_level(i.priority.as_ref().and_then(|p| p.level.as_deref())),
+        mine: i.mine,
     }
 }
 
-pub fn transition_label(t: &Transition) -> String {
-    if t.to_name.is_empty() || t.to_name == t.name {
-        t.name.clone()
-    } else {
-        format!("{}  ->  {}", t.name, t.to_name)
-    }
+/// The state the agenda last saw of a link, as `transitions` takes it.
+pub fn seen(base: &RemoteSnapshot) -> seam::State {
+    seam::State { id: base.status_id.clone(), name: base.status_name.clone(), stage: base.status_category.clone(), column: base.column.clone().unwrap_or_default() }
 }
 
-pub fn issue_label(d: &IssueDetail) -> String {
-    format!("{}  {}  [{}]", d.key, d.summary, d.status)
+/// An issue as a picker's row, with its tracker's name when several are
+/// listed.
+pub fn issue_label(i: &Issue, tracker: Option<&str>) -> String {
+    let label = format!("{}  {}  [{}]", i.key, i.title, i.state.name);
+    match tracker {
+        Some(name) => format!("{label}  · {name}"),
+        None => label,
+    }
 }
 
 /// Pickers the sync has open, by the id Fenix gave each.

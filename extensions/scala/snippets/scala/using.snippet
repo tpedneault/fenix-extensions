@@ -1,0 +1,7 @@
+# name: method with a using clause (Scala 3)
+# key: using
+# scope: scala
+# --
+def ${1:render}[A](a: A)(using ${2:s: Show[A]}): String =
+  ${3:s.show(a)}
+$0

@@ -1,0 +1,33 @@
+# Scala's keys, after SPC m in a Scala project or file. Your own
+# keybindings.toml wins. There's no key for debugging the tests or
+# importing the build again: they're commands to pick (SPC SPC).
+
+[[local.scala]]
+keys = "d"
+label = "check the project again"
+command = "scala.doctor"
+
+[[local.scala]]
+keys = "c"
+label = "a REPL for the project"
+command = "scala.console"
+
+[[local.scala]]
+keys = "w"
+label = "compile as sources change (again to stop)"
+command = "scala.watch"
+
+[[local.scala]]
+keys = "r"
+label = "run this file with scala-cli"
+command = "scala.run-file"
+
+[[local.scala]]
+keys = "t"
+label = "test this file with scala-cli"
+command = "scala.test-file"
+
+[[local.scala]]
+keys = "b"
+label = "debug this file with Metals"
+command = "scala.debug-file"

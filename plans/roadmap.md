@@ -51,6 +51,55 @@ left open:
 7. **Publisher ids** were left to this plan's recommendation: tied to a
    GitHub owner, below (1.4).
 
+## Milestone 6: built, not yet proven
+
+- **Kubernetes** 1.0.0, in the Lab bundle: `kubectl` in a pane, the
+  context per project and never kubeconfig's, every change asked and its
+  context named, every context protected but a local one (a local name
+  and a local server, both), Secret
+  values never shown, read-only agent tools kept to one namespace. Apply
+  was built, reviewed and taken out: it comes back after a run against a
+  real cluster.
+- **The tracker seam** (`plans/tracker-seam.md`, `crates/tracker`): what
+  the Agenda asks of any tracker. Agenda 1.3.0 calls it; Jira 1.4.0,
+  GitHub Issues, GitLab Issues and Linear serve it. Each tracker asks once
+  a session before the first change that arrives through the seam.
+- **Jira Cloud**, in the Jira extension: email and API token, scoped
+  tokens through Atlassian's gateway, rich text read as plain text,
+  descriptions read-only. Server and Data Center send the same requests as
+  before, held to a record of them.
+- **GitHub Issues** and **GitLab Issues** 1.0.0, on `crates/forge` and
+  Fenix's own forge tokens; **Linear** 1.0.0, its queries held to Linear's
+  published schema. Each has its page, a branch from an issue, and two
+  read-only agent tools.
+- **Scala**, **Nix**, **Typst** and **LaTeX** 1.0.0. Typst and LaTeX open
+  the PDF they make in the PDF reader, which reloads it.
+- `validate` refuses a package from another publisher that claims
+  Fenix's namespace or a service under it.
+
+Not proven:
+
+- Nothing has run in a Fenix window, against a cluster, a Jira Cloud
+  site, a GitHub or GitLab account or a Linear workspace. The trackers'
+  fixtures are written from each API's published description, not
+  recorded.
+- The seam's fix round and the trackers' moves onto it were not reviewed
+  again.
+
+What Fenix would need for the rest:
+
+- **A service doesn't know who calls it, and no namespace is reserved.**
+  Any extension can call a tracker's writes as you, and one that claims
+  the `fenix` namespace can answer in a tracker's place. The session
+  question is a stopgap. Fenix should pass the caller's id to a service
+  and reserve an extension's full id as a name only it serves.
+- No way to offer an agent tool only when a setting is on, to tell
+  whether a setting came from you or the project, or whether the project
+  is trusted.
+- No project metadata for a forge repository or a tracker's team.
+- The PDF reader's service takes a page but no position, so forward
+  search from LaTeX lands on the page only.
+
 ## Milestone 5: built, not yet proven
 
 - **`cargo xtask theme-import`** and **`cargo xtask snippets-import`**,
@@ -631,6 +680,10 @@ agenda calls for "the issues assigned to me", "this issue" and "move it
 on", which any tracker extension can serve. Jira Server and Data Center
 move onto it with no change in behaviour. The Jira bundle keeps working
 as it is.
+
+Built: the contract is [`plans/tracker-seam.md`](tracker-seam.md),
+`crates/tracker` its shapes, Jira 1.3 serves it and the agenda 1.3 calls
+it. 6.3 and 6.4 are written against it.
 
 ### 6.3 Jira Cloud (M)
 

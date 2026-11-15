@@ -1,0 +1,89 @@
+{
+  "file": "syn.nix",
+  "report": [
+    {
+      "note": "Syntax error",
+      "code": 0,
+      "severity": "Error",
+      "diagnostics": [
+        {
+          "at": {
+            "from": {
+              "line": 1,
+              "column": 7
+            },
+            "to": {
+              "line": 1,
+              "column": 8
+            }
+          },
+          "message": "Unexpected TOKEN_SEMICOLON at 6..7, wanted any of [TOKEN_L_PAREN, TOKEN_REC, TOKEN_L_BRACE, TOKEN_L_BRACK, TOKEN_STRING_START, TOKEN_IDENT]",
+          "suggestion": null
+        }
+      ]
+    },
+    {
+      "note": "Syntax error",
+      "code": 0,
+      "severity": "Error",
+      "diagnostics": [
+        {
+          "at": {
+            "from": {
+              "line": 1,
+              "column": 9
+            },
+            "to": {
+              "line": 1,
+              "column": 10
+            }
+          },
+          "message": "Unexpected TOKEN_R_BRACE at 8..9, wanted any of [TOKEN_SEMICOLON]",
+          "suggestion": null
+        }
+      ]
+    },
+    {
+      "note": "Syntax error",
+      "code": 0,
+      "severity": "Error",
+      "diagnostics": [
+        {
+          "at": {
+            "from": {
+              "line": 1,
+              "column": 1
+            },
+            "to": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          "message": "Unexpected end of file, wanted any of [TOKEN_SEMICOLON]",
+          "suggestion": null
+        }
+      ]
+    },
+    {
+      "note": "Syntax error",
+      "code": 0,
+      "severity": "Error",
+      "diagnostics": [
+        {
+          "at": {
+            "from": {
+              "line": 1,
+              "column": 1
+            },
+            "to": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          "message": "Unexpected end of file",
+          "suggestion": null
+        }
+      ]
+    }
+  ]
+}

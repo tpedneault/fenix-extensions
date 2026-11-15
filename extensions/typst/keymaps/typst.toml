@@ -1,0 +1,22 @@
+# Typst's keys, after SPC m in a project or file of its context. Your
+# own keybindings.toml wins.
+
+[[local.typst]]
+keys = "c"
+label = "compile the document, and show its PDF"
+command = "typst.compile"
+
+[[local.typst]]
+keys = "w"
+label = "watch the document (again to stop)"
+command = "typst.watch"
+
+[[local.typst]]
+keys = "p"
+label = "open the document's PDF"
+command = "typst.preview"
+
+[[local.typst]]
+keys = "d"
+label = "check the project again"
+command = "typst.doctor"

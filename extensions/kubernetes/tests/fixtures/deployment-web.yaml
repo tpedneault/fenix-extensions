@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "4"
+  creationTimestamp: "2026-11-12T09:00:00Z"
+  generation: 4
+  labels:
+    app: web
+  name: web
+  namespace: shop
+  resourceVersion: "48000"
+  uid: 0b1c2d3e-0000-4000-8000-000000000001
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - image: nginx:1.27
+        name: nginx
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      - image: fluent/fluent-bit:3.1
+        name: log-shipper
+status:
+  availableReplicas: 2
+  readyReplicas: 2
+  replicas: 3
+  updatedReplicas: 3

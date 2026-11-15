@@ -4,7 +4,11 @@
 //! stays read-only (search + single-issue fetch), everything that
 //! mutates something on the Jira side lives here instead.
 
+use crate::adf;
 use crate::client::JiraClient;
+
+/// Why a Cloud issue's description isn't written from plain text.
+pub const CLOUD_DESCRIPTION: &str = "Jira Cloud keeps a description as rich text, which plain text can't write back without losing what's in it -- edit it in Jira (o opens the issue)";
 
 /// One available workflow transition for an issue (`GET .../
 /// transitions`) -- `id` is what `apply_transition` needs to send
@@ -72,8 +76,13 @@ impl JiraClient {
         self.update_fields(key, serde_json::json!({"summary": summary})).await
     }
 
-    /// Same shape as `update_summary`, for the description field.
+    /// Same shape as `update_summary`, for the description field. Not on
+    /// Cloud: its description is rich text, and text written over it
+    /// would lose what plain text can't hold ([`CLOUD_DESCRIPTION`]).
     pub async fn update_description(&self, key: &str, description: &str) -> Result<(), String> {
+        if self.is_cloud() {
+            return Err(CLOUD_DESCRIPTION.to_string());
+        }
         self.update_fields(key, serde_json::json!({"description": description})).await
     }
 
@@ -82,14 +91,38 @@ impl JiraClient {
         self.update_fields(key, serde_json::json!({"duedate": due})).await
     }
 
+    /// Sets every label the issue should have.
+    pub async fn update_labels(&self, key: &str, labels: &[String]) -> Result<(), String> {
+        self.update_fields(key, serde_json::json!({"labels": labels})).await
+    }
+
+    /// `PUT .../assignee` with `{"name": null}`: nobody. On Cloud, v3's
+    /// with `{"accountId": null}`.
+    pub async fn unassign(&self, key: &str) -> Result<(), String> {
+        if self.is_cloud() {
+            let path = format!("/rest/api/3/issue/{key}/assignee");
+            self.send("PUT", &path, &serde_json::json!({"accountId": null})).await?;
+            return Ok(());
+        }
+        let path = format!("/rest/api/2/issue/{key}/assignee");
+        self.send("PUT", &path, &serde_json::json!({"name": null})).await?;
+        Ok(())
+    }
+
     async fn update_fields(&self, key: &str, fields: serde_json::Value) -> Result<(), String> {
         let path = format!("/rest/api/2/issue/{key}");
         self.send("PUT", &path, &serde_json::json!({"fields": fields})).await?;
         Ok(())
     }
 
-    /// `POST /rest/api/2/issue/{key}/comment`.
+    /// `POST /rest/api/2/issue/{key}/comment`; on Cloud, v3's, the text
+    /// as rich text (paragraphs and line breaks).
     pub async fn add_comment(&self, key: &str, body: &str) -> Result<(), String> {
+        if self.is_cloud() {
+            let path = format!("/rest/api/3/issue/{key}/comment");
+            self.send("POST", &path, &serde_json::json!({"body": adf::from_text(body)})).await?;
+            return Ok(());
+        }
         let path = format!("/rest/api/2/issue/{key}/comment");
         self.send("POST", &path, &serde_json::json!({"body": body})).await?;
         Ok(())
@@ -128,7 +161,13 @@ impl JiraClient {
     /// user_id}`, Server/DC's own username-based convention (not Cloud's
     /// `accountId`) -- matches the plain-username `id` shape tracked
     /// users already use (e.g. `"jo1111111"`).
+    /// On Cloud, `user_id` is an account id, sent as `{"accountId": ...}`.
     pub async fn update_assignee(&self, key: &str, user_id: &str) -> Result<(), String> {
+        if self.is_cloud() {
+            let path = format!("/rest/api/3/issue/{key}/assignee");
+            self.send("PUT", &path, &serde_json::json!({"accountId": user_id})).await?;
+            return Ok(());
+        }
         let path = format!("/rest/api/2/issue/{key}/assignee");
         self.send("PUT", &path, &serde_json::json!({"name": user_id})).await?;
         Ok(())
@@ -140,7 +179,17 @@ impl JiraClient {
     /// this instance actually has configured). Unlike `list_transitions`'
     /// response, this one is a plain top-level JSON array, not wrapped in
     /// an object field.
+    ///
+    /// On Cloud, `GET /rest/api/3/priority/search` (paged, where the
+    /// plain list is deprecated), falling back to the plain list.
     pub async fn list_priorities(&self) -> Result<Vec<Priority>, String> {
+        if self.is_cloud() {
+            if let Ok(body) = self.request("/rest/api/3/priority/search", &[("maxResults", "100")]).await {
+                if let Some(values) = body.get("values").and_then(|v| v.as_array()) {
+                    return Ok(values.iter().filter_map(parse_priority).collect());
+                }
+            }
+        }
         let body = self.request("/rest/api/2/priority", &[]).await?;
         let priorities = body.as_array().ok_or_else(|| "unexpected priority response shape".to_string())?;
         Ok(priorities.iter().filter_map(parse_priority).collect())
@@ -162,10 +211,11 @@ impl JiraClient {
         Ok(())
     }
 
-    /// `GET /rest/api/2/myself` -- the token owner's username.
+    /// `GET /rest/api/2/myself` -- the token owner's username; on Cloud,
+    /// their account id.
     pub async fn myself(&self) -> Result<String, String> {
         let body = self.request("/rest/api/2/myself", &[]).await?;
-        body.get("name").and_then(|n| n.as_str()).map(str::to_string).ok_or_else(|| "unexpected myself response shape".to_string())
+        body.get(if self.is_cloud() { "accountId" } else { "name" }).and_then(|n| n.as_str()).map(str::to_string).ok_or_else(|| "unexpected myself response shape".to_string())
     }
 
     /// `GET /rest/api/2/project/{key}/statuses` -- every status any of the
@@ -181,6 +231,22 @@ impl JiraClient {
             }
         }
         Ok(statuses)
+    }
+
+    /// The people who can be assigned issue `key` on Cloud, as (account
+    /// id, name), from `GET /rest/api/3/user/assignable/search`: people,
+    /// not apps, and only those active. `key` may be the issue's numeric
+    /// id, asked as `issueId`.
+    pub async fn assignable(&self, key: &str) -> Result<Vec<(String, String)>, String> {
+        let by = if !key.is_empty() && key.bytes().all(|b| b.is_ascii_digit()) { "issueId" } else { "issueKey" };
+        let body = self.request("/rest/api/3/user/assignable/search", &[(by, key), ("maxResults", "500")]).await?;
+        let users = body.as_array().ok_or_else(|| "unexpected assignable users response shape".to_string())?;
+        Ok(users
+            .iter()
+            .filter(|u| u.get("active").and_then(|a| a.as_bool()).unwrap_or(true))
+            .filter(|u| u.get("accountType").and_then(|t| t.as_str()).is_none_or(|t| t == "atlassian"))
+            .filter_map(|u| Some((u.get("accountId")?.as_str()?.to_string(), u.get("displayName").and_then(|n| n.as_str()).unwrap_or_default().to_string())))
+            .collect())
     }
 
     /// The id of the instance's Flagged custom field (Jira Software's

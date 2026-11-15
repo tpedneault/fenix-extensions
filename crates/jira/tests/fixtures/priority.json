@@ -1,0 +1,1 @@
+[{"self":"https://jira.example.com/rest/api/2/priority/1","statusColor":"#d04437","description":"","iconUrl":"","name":"Highest","id":"1"},{"name":"High","id":"2"},{"name":"Major","id":"3"},{"name":"Minor","id":"4"},{"name":"Lowest","id":"5"}]

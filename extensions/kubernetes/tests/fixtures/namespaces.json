@@ -1,0 +1,6 @@
+{"kind":"NamespaceList","apiVersion":"v1","metadata":{"resourceVersion":"48211"},"items":[
+{"metadata":{"name":"default"},"status":{"phase":"Active"}},
+{"metadata":{"name":"kube-system"},"status":{"phase":"Active"}},
+{"metadata":{"name":"shop"},"status":{"phase":"Active"}},
+{"metadata":{"name":"payments"},"status":{"phase":"Active"}}
+]}

@@ -1,0 +1,24 @@
+[
+  {
+    "id": 9,
+    "username": "jo",
+    "name": "Jo Bloggs",
+    "state": "active",
+    "locked": false,
+    "avatar_url": null,
+    "web_url": "https://gitlab.example.com/jo",
+    "access_level": 40,
+    "expires_at": null
+  },
+  {
+    "id": 12,
+    "username": "kim.park",
+    "name": "Kim Park",
+    "state": "active",
+    "locked": false,
+    "avatar_url": null,
+    "web_url": "https://gitlab.example.com/kim.park",
+    "access_level": 30,
+    "expires_at": null
+  }
+]

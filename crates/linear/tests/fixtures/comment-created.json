@@ -1,0 +1,10 @@
+{
+  "data": {
+    "commentCreate": {
+      "success": true,
+      "comment": {
+        "id": "cm000004"
+      }
+    }
+  }
+}

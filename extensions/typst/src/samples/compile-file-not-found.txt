@@ -1,0 +1,1 @@
+h1.typ:1:8: error: file not found (searched at /home/ada/book/nope.typ)

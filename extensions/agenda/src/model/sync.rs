@@ -1,11 +1,11 @@
-//! `AgendaStore`'s Jira side: linking, the outbox of pending changes,
+//! `AgendaStore`'s tracker side: linking, the outbox of pending changes,
 //! merging a fetched issue in, settling conflicts, and batching unsent
-//! time into worklogs. See `crate::model::jira` for the model.
+//! time into worklogs. See `crate::model::link` for the model.
 
 use chrono::{DateTime, NaiveDate};
 use crate::clock::Local;
 
-use crate::model::jira::{Conflict, JiraLink, OpKind, PendingOp, RemoteUpdate, SyncField};
+use crate::model::link::{Conflict, Dropped, IssueLink, OpKind, PendingOp, RemoteUpdate, SyncField};
 use crate::model::store::AgendaStore;
 use crate::model::task::{Status, TaskId};
 #[cfg(test)]
@@ -16,10 +16,15 @@ use crate::model::task::Priority;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorklogRow {
     pub task: TaskId,
+    /// Its tracker.
+    pub tracker: String,
+    /// Its issue's ref, as shown.
     pub key: String,
+    /// What it's sent by: the issue's id once known.
+    pub asked: String,
     pub title: String,
     pub date: NaiveDate,
-    /// When the day's first entry started -- what Jira files it under.
+    /// When the day's first entry started -- what the tracker files it under.
     pub started: DateTime<Local>,
     /// What was actually tracked, in minutes.
     pub actual_minutes: i64,
@@ -27,18 +32,90 @@ pub struct WorklogRow {
     pub minutes: i64,
     /// Indices into the task's `time_entries` this row covers.
     pub entries: Vec<usize>,
+    /// The `op` it was sent with when no answer came: it may have been
+    /// logged, so `W` leaves it out.
+    pub maybe: Option<String>,
+}
+
+impl WorklogRow {
+    /// Its `op`: the one it was sent with when no answer came, else one
+    /// made of the task, the day, the entries' starts and the minutes --
+    /// no clock, so the same row sent again is known as the same worklog
+    /// (`plans/tracker-seam.md` §3.7), and a row you changed isn't.
+    pub fn op(&self, starts: &[DateTime<Local>]) -> String {
+        if let Some(op) = &self.maybe {
+            return op.clone();
+        }
+        // FNV-1a: the same on every run, unlike std's hasher.
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        let mut eat = |bytes: &[u8]| {
+            for b in bytes {
+                h ^= u64::from(*b);
+                h = h.wrapping_mul(0x0100_0000_01b3);
+            }
+        };
+        for start in starts {
+            eat(start.to_rfc3339().as_bytes());
+        }
+        eat(&self.minutes.to_le_bytes());
+        format!("agenda:w{}:{}:{h:016x}", self.task.0, self.date)
+    }
+}
+
+/// What to do about changes a tracker dropped.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DroppedChoice {
+    /// Queued again, as new changes.
+    SendAgain,
+    /// The tracker's values back at the next sync.
+    TakeTheirs,
+    /// Yours stay, here only; the mark goes.
+    KeepMine,
+}
+
+/// A random part for an `op`, so two agendas (or two ops in one
+/// millisecond) never share one (`plans/tracker-seam.md` §3.7).
+pub fn nonce() -> u64 {
+    use std::hash::{BuildHasher, Hasher};
+    std::collections::hash_map::RandomState::new().build_hasher().finish()
 }
 
 impl AgendaStore {
-    pub fn find_by_key(&self, key: &str) -> Option<TaskId> {
-        self.tasks.iter().find(|t| t.jira_key() == Some(key)).map(|t| t.id)
+    /// The task linked to tracker `tracker`'s issue `key` (a ref or an id).
+    pub fn find_by_key(&self, tracker: &str, key: &str) -> Option<TaskId> {
+        self.tasks.iter().find(|t| t.link.as_ref().is_some_and(|l| l.is(tracker, key))).map(|t| t.id)
     }
 
-    /// Links `id` to `key`. Jira wins for everything the two share: its
-    /// summary, description, status and priority replace the task's own.
-    /// A local description that would be lost is kept as a note, so
-    /// linking never throws anything away.
-    pub fn link(&mut self, id: TaskId, key: String, update: RemoteUpdate) {
+    /// The task linked to `tracker`'s issue with id `id` and ref `key`:
+    /// by id, or by ref for a link that doesn't know its id yet.
+    pub fn find_issue(&self, tracker: &str, id: &str, key: &str) -> Option<TaskId> {
+        self.tasks.iter().find(|t| t.link.as_ref().is_some_and(|l| l.is_issue(tracker, id, key))).map(|t| t.id)
+    }
+
+    /// The issue's id and current ref, as an answer gave them.
+    pub fn rekey(&mut self, task: TaskId, id: &str, key: &str) {
+        if let Some(link) = self.task_mut(task).and_then(|t| t.link.as_mut()) {
+            link.id = Some(id.to_string());
+            link.key = key.to_string();
+        }
+    }
+
+    /// The task linked to issue `key` in any tracker, the first found --
+    /// for a ref given without its tracker.
+    pub fn find_by_any(&self, key: &str) -> Option<TaskId> {
+        self.tasks.iter().find(|t| t.issue_key() == Some(key)).map(|t| t.id)
+    }
+
+    /// Links `id` to `tracker`'s issue `key`. The tracker wins for
+    /// everything the two share: its title, description, status and
+    /// priority replace the task's own. A local description that would be
+    /// lost is kept as a note, so linking never throws anything away.
+    pub fn link(&mut self, id: TaskId, tracker: &str, key: String, update: RemoteUpdate) {
+        self.link_with_id(id, tracker, None, key, update);
+    }
+
+    /// `link`, knowing the issue's id.
+    pub fn link_with_id(&mut self, id: TaskId, tracker: &str, issue: Option<String>, key: String, update: RemoteUpdate) {
         let Some(task) = self.task(id) else { return };
         let old_description = task.description.trim().to_string();
         if !old_description.is_empty() && old_description != update.snapshot.description.trim() {
@@ -57,22 +134,28 @@ impl AgendaStore {
             self.move_to_status(id, update.status);
         }
         if let Some(task) = self.task_mut(id) {
-            task.jira = Some(JiraLink {
+            task.link = Some(IssueLink {
+                tracker: tracker.to_string(),
                 key,
+                id: issue,
+                unknown: false,
                 base: update.snapshot,
                 last_synced: Some(now),
                 error: None,
+                transient: false,
                 conflicts: Vec::new(),
                 not_mine: update.mine == Some(false),
                 resolving: false,
+                dropped: Vec::new(),
+                retake: Vec::new(),
             });
         }
     }
 
-    /// A new task tracking `key`, filed under `category`.
-    pub fn create_linked(&mut self, key: String, update: RemoteUpdate, category: Option<String>) -> TaskId {
+    /// A new task tracking `tracker`'s issue `key`, filed under `category`.
+    pub fn create_linked(&mut self, tracker: &str, issue: Option<String>, key: String, update: RemoteUpdate, category: Option<String>) -> TaskId {
         let id = self.create_task(update.snapshot.summary.clone(), String::new(), update.priority, category);
-        self.link(id, key, update);
+        self.link_with_id(id, tracker, issue, key, update);
         id
     }
 
@@ -81,7 +164,7 @@ impl AgendaStore {
     pub fn unlink(&mut self, id: TaskId) {
         self.outbox.retain(|op| op.task != id);
         if let Some(task) = self.task_mut(id) {
-            task.jira = None;
+            task.link = None;
             task.updated_at = crate::clock::now();
         }
     }
@@ -89,25 +172,27 @@ impl AgendaStore {
     /// Queues `kind` for a linked task. A no-op on a local task, so
     /// callers can enqueue after every edit without checking first.
     pub fn enqueue(&mut self, id: TaskId, kind: OpKind) {
-        if self.task(id).and_then(|t| t.jira.as_ref()).is_none() {
+        if self.task(id).and_then(|t| t.link.as_ref()).is_none() {
             return;
         }
         let op_id = self.next_op_id;
         self.next_op_id += 1;
-        self.outbox.push(PendingOp { id: op_id, task: id, kind });
+        let uid = format!("agenda:{}:{op_id}:{:08x}", crate::clock::now().timestamp_millis(), nonce() as u32);
+        self.outbox.push(PendingOp { id: op_id, task: id, kind, uid });
     }
 
     pub fn pending_for(&self, id: TaskId) -> impl Iterator<Item = &PendingOp> {
         self.outbox.iter().filter(move |op| op.task == id)
     }
 
-    /// The next op worth sending: oldest first, skipping any held by a
-    /// conflict on its field and any task whose last push failed (those
-    /// wait for a retry, so one bad op doesn't spin forever).
-    pub fn next_op(&self) -> Option<&PendingOp> {
+    /// The next op worth sending to a tracker `ready` says is: oldest
+    /// first, skipping any held by a conflict on its field and any task
+    /// whose last push failed (those wait for a retry, so one bad op
+    /// doesn't spin forever).
+    pub fn next_op(&self, ready: impl Fn(&str) -> bool) -> Option<&PendingOp> {
         self.outbox.iter().find(|op| {
-            let Some(link) = self.task(op.task).and_then(|t| t.jira.as_ref()) else { return false };
-            if link.error.is_some() {
+            let Some(link) = self.task(op.task).and_then(|t| t.link.as_ref()) else { return false };
+            if link.error.is_some() || !ready(&link.tracker) {
                 return false;
             }
             match op.kind.field() {
@@ -117,22 +202,34 @@ impl AgendaStore {
         })
     }
 
-    /// Jira accepted op `op_id`: drop it and fold it into the base.
+    /// The tracker accepted op `op_id`: drop it and fold it into the base.
     pub fn op_succeeded(&mut self, op_id: u64) {
         let Some(pos) = self.outbox.iter().position(|op| op.id == op_id) else { return };
         let op = self.outbox.remove(pos);
-        if let Some(link) = self.task_mut(op.task).and_then(|t| t.jira.as_mut()) {
+        if let Some(link) = self.task_mut(op.task).and_then(|t| t.link.as_mut()) {
             op.kind.apply_to(&mut link.base);
             link.error = None;
+            link.transient = false;
         }
     }
 
-    /// Jira refused op `op_id`: keep it, and say why on its task.
-    pub fn op_failed(&mut self, op_id: u64, error: String) {
+    /// The tracker refused op `op_id`, or never heard it: keep it, and
+    /// say why on its task. A `transient` failure is tried again by the
+    /// next timed sync; an `unknown` one -- no answer came, it may have
+    /// been made -- never by itself.
+    pub fn op_failed(&mut self, op_id: u64, error: String, transient: bool, unknown: bool) {
         let Some(task) = self.outbox.iter().find(|op| op.id == op_id).map(|op| op.task) else { return };
-        if let Some(link) = self.task_mut(task).and_then(|t| t.jira.as_mut()) {
+        if let Some(link) = self.task_mut(task).and_then(|t| t.link.as_mut()) {
             link.error = Some(error);
+            link.transient = transient && !unknown;
+            link.unknown = unknown;
         }
+    }
+
+    /// The op holding task `id` back: its first, when its last send
+    /// failed.
+    pub fn held_op(&self, id: TaskId) -> Option<&PendingOp> {
+        self.outbox.iter().find(|op| op.task == id)
     }
 
     /// Drops op `op_id` without sending it -- a status change whose
@@ -141,26 +238,78 @@ impl AgendaStore {
         self.outbox.retain(|op| op.id != op_id);
     }
 
+    /// The tracker will never take op `op_id` (`unsupported`): off the
+    /// outbox, so the task's later changes go on, and kept on the task so
+    /// it says so until you choose (`resolve_dropped`).
+    pub fn op_dropped(&mut self, op_id: u64, why: String) {
+        let Some(pos) = self.outbox.iter().position(|op| op.id == op_id) else { return };
+        let op = self.outbox.remove(pos);
+        if let Some(link) = self.task_mut(op.task).and_then(|t| t.link.as_mut()) {
+            link.dropped.push(Dropped { kind: op.kind, why });
+        }
+    }
+
+    /// What you chose for task `id`'s dropped changes: sent again (as new
+    /// changes), the tracker's values taken back at the next sync, or
+    /// yours kept here only.
+    pub fn resolve_dropped(&mut self, id: TaskId, choice: DroppedChoice) {
+        let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) else { return };
+        let dropped = std::mem::take(&mut link.dropped);
+        match choice {
+            DroppedChoice::SendAgain => {
+                for d in dropped {
+                    self.enqueue(id, d.kind);
+                }
+            }
+            DroppedChoice::TakeTheirs => {
+                for field in dropped.iter().filter_map(|d| d.kind.field()) {
+                    if !link.retake.contains(&field) {
+                        link.retake.push(field);
+                    }
+                }
+            }
+            DroppedChoice::KeepMine => {}
+        }
+    }
+
+    /// Changes waiting for a task that has no link (agenda 1.2 saved the
+    /// file, and lost the link): dropped, each said on its task's notes.
+    /// How many went.
+    pub fn drop_orphans(&mut self) -> usize {
+        let orphans: Vec<PendingOp> = self.outbox.iter().filter(|op| self.task(op.task).is_none_or(|t| t.link.is_none())).cloned().collect();
+        for op in &orphans {
+            if self.task(op.task).is_some() {
+                self.add_note(op.task, format!("A change for its tracker ({}) was dropped: the task's link was lost (an older agenda saved agenda.json)", op.kind.describe()));
+            }
+        }
+        self.outbox.retain(|op| !orphans.contains(op));
+        orphans.len()
+    }
+
     /// Clears a task's push error so its ops are tried again.
     pub fn retry(&mut self, id: TaskId) {
-        if let Some(link) = self.task_mut(id).and_then(|t| t.jira.as_mut()) {
+        if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
             link.error = None;
+            link.transient = false;
+            link.unknown = false;
         }
     }
 
     pub fn set_link_error(&mut self, id: TaskId, error: Option<String>) {
-        if let Some(link) = self.task_mut(id).and_then(|t| t.jira.as_mut()) {
+        if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
             link.error = error;
+            link.transient = false;
+            link.unknown = false;
         }
     }
 
     pub fn set_resolving(&mut self, id: TaskId, resolving: bool) {
-        if let Some(link) = self.task_mut(id).and_then(|t| t.jira.as_mut()) {
+        if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
             link.resolving = resolving;
         }
     }
 
-    /// Puts a card back where it was -- for a board move Jira refused.
+    /// Puts a card back where it was -- for a board move the tracker refused.
     pub fn restore_status(&mut self, id: TaskId, status: Status, order: i64) {
         self.set_status(id, status);
         if let Some(task) = self.task_mut(id) {
@@ -169,15 +318,22 @@ impl AgendaStore {
     }
 
     /// Merges a freshly fetched issue into its task, field by field (see
-    /// the module docs on `crate::model::jira`).
+    /// the module docs on `crate::model::link`).
     pub fn apply_remote(&mut self, id: TaskId, update: RemoteUpdate) {
-        let Some(link) = self.task(id).and_then(|t| t.jira.as_ref()) else { return };
+        let Some(link) = self.task(id).and_then(|t| t.link.as_ref()) else { return };
         let base = link.base.clone();
         let theirs = &update.snapshot;
-        let changed = |field: SyncField| match field {
-            SyncField::Title => theirs.summary != base.summary,
-            SyncField::Description => theirs.description != base.description,
-            SyncField::Status => theirs.status_id != base.status_id || theirs.flagged != base.flagged,
+        // A base kept by agenda 1.2 wasn't cleaned (a description's
+        // `\r\n`), nor knew its column: neither is a change.
+        let text = |s: &str| fenix_tracker::clean::text(s, usize::MAX).0;
+        // Both are kept as the tracker sent them; one that differs only in
+        // what isn't shown (a 1.2 base's `\r\n`) isn't a change.
+        let line = |s: &str| fenix_tracker::clean::line(s, usize::MAX);
+        let retake = link.retake.clone();
+        let changed = |field: SyncField| retake.contains(&field) || match field {
+            SyncField::Title => theirs.summary != base.summary && line(&theirs.summary) != line(&base.summary),
+            SyncField::Description => theirs.description != base.description && text(&theirs.description) != text(&base.description),
+            SyncField::Status => theirs.status_id != base.status_id || base.column.as_ref().is_some_and(|c| theirs.column.as_ref() != Some(c)),
             SyncField::Priority => theirs.priority != base.priority,
             SyncField::Due => theirs.due != base.due,
         };
@@ -200,15 +356,27 @@ impl AgendaStore {
         }
 
         let now = crate::clock::now();
-        if let Some(link) = self.task_mut(id).and_then(|t| t.jira.as_mut()) {
-            // Everything that never conflicts just follows Jira.
+        if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
+            // Everything that never conflicts just follows the tracker.
             link.base.comments = update.snapshot.comments.clone();
             link.base.assignee = update.snapshot.assignee.clone();
             link.base.assignee_id = update.snapshot.assignee_id.clone();
             link.base.updated = update.snapshot.updated.clone();
+            link.base.url = update.snapshot.url.clone();
+            link.base.project = update.snapshot.project.clone();
+            link.base.description_cut = update.snapshot.description_cut;
+            link.base.title_cut = update.snapshot.title_cut;
+            link.retake.clear();
             if link.base.status_id == update.snapshot.status_id {
                 link.base.status_name = update.snapshot.status_name.clone();
                 link.base.status_category = update.snapshot.status_category.clone();
+                link.base.column = update.snapshot.column.clone();
+            }
+            if !pending.contains(&SyncField::Title) {
+                link.base.summary = update.snapshot.summary.clone();
+            }
+            if !pending.contains(&SyncField::Description) {
+                link.base.description = update.snapshot.description.clone();
             }
             if let Some(mine) = update.mine {
                 link.not_mine = !mine;
@@ -221,24 +389,24 @@ impl AgendaStore {
         }
     }
 
-    /// Settles a conflict: `keep_mine` sends your value over Jira's (the
-    /// held op goes through), otherwise Jira's value replaces yours and
-    /// your pending change for that field is dropped.
+    /// Settles a conflict: `keep_mine` sends your value over the
+    /// tracker's (the held op goes through), otherwise the tracker's value
+    /// replaces yours and your pending change for that field is dropped.
     pub fn resolve_conflict(&mut self, id: TaskId, field: SyncField, keep_mine: bool) {
         let Some(conflict) = self
             .task(id)
-            .and_then(|t| t.jira.as_ref())
+            .and_then(|t| t.link.as_ref())
             .and_then(|link| link.conflicts.iter().find(|c| c.field == field))
             .cloned()
         else {
             return;
         };
-        if let Some(link) = self.task_mut(id).and_then(|t| t.jira.as_mut()) {
+        if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
             link.conflicts.retain(|c| c.field != field);
         }
         if keep_mine {
             // Their value becomes the base, so our op is the only change.
-            if let Some(link) = self.task_mut(id).and_then(|t| t.jira.as_mut()) {
+            if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
                 copy_field(field, &conflict.theirs, &mut link.base);
             }
         } else {
@@ -247,7 +415,8 @@ impl AgendaStore {
         }
     }
 
-    /// Jira's value for `field` becomes both the task's own and the base.
+    /// The tracker's value for `field` becomes both the task's own and the
+    /// base.
     fn take_theirs(&mut self, id: TaskId, field: SyncField, update: &RemoteUpdate) {
         let theirs = &update.snapshot;
         match field {
@@ -261,18 +430,20 @@ impl AgendaStore {
                 }
             }
         }
-        if let Some(link) = self.task_mut(id).and_then(|t| t.jira.as_mut()) {
+        if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
             copy_field(field, update, &mut link.base);
         }
     }
 
-    /// Every unsent day of time on a linked task, rounded to `round`
-    /// minutes -- what the worklog review shows. The running timer isn't a
-    /// time entry yet, so it's never included.
-    pub fn worklog_batch(&self, round: u32) -> Vec<WorklogRow> {
+    /// Every unsent day of time on a task linked to a tracker that
+    /// `takes` worklogs, rounded to `round` minutes -- what the worklog
+    /// review shows. The running timer isn't a time entry yet, so it's
+    /// never included.
+    pub fn worklog_batch(&self, round: u32, takes: impl Fn(&str) -> bool) -> Vec<WorklogRow> {
         let mut rows: Vec<WorklogRow> = Vec::new();
         for task in &self.tasks {
-            let Some(key) = task.jira_key() else { continue };
+            let Some(link) = task.link.as_ref().filter(|l| takes(&l.tracker)) else { continue };
+            let key = link.key.as_str();
             for (i, entry) in task.time_entries.iter().enumerate() {
                 if entry.sent {
                     continue;
@@ -281,25 +452,29 @@ impl AgendaStore {
                 let minutes = entry.duration().num_minutes().max(0);
                 match rows.iter_mut().find(|r| r.task == task.id && r.date == date) {
                     Some(row) => {
+                        row.maybe = row.maybe.take().or_else(|| entry.maybe.clone());
                         row.actual_minutes += minutes;
                         row.started = row.started.min(entry.start);
                         row.entries.push(i);
                     }
                     None => rows.push(WorklogRow {
                         task: task.id,
+                        tracker: link.tracker.clone(),
                         key: key.to_string(),
+                        asked: link.asked().to_string(),
                         title: task.title.clone(),
                         date,
                         started: entry.start,
                         actual_minutes: minutes,
                         minutes: 0,
                         entries: vec![i],
+                        maybe: entry.maybe.clone(),
                     }),
                 }
             }
         }
         for row in &mut rows {
-            row.minutes = crate::model::jira::round_minutes(row.actual_minutes, round);
+            row.minutes = crate::model::link::round_minutes(row.actual_minutes, round);
         }
         rows.sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.key.cmp(&b.key)));
         rows
@@ -311,16 +486,75 @@ impl AgendaStore {
             for &i in entries {
                 if let Some(entry) = task.time_entries.get_mut(i) {
                     entry.sent = true;
+                    entry.maybe = None;
                 }
             }
         }
+    }
+
+    /// `entries` of `id` were sent as a worklog with `op` and no answer
+    /// came: they may have been logged.
+    pub fn mark_maybe(&mut self, id: TaskId, entries: &[usize], op: &str) {
+        if let Some(task) = self.task_mut(id) {
+            for &i in entries {
+                if let Some(entry) = task.time_entries.get_mut(i) {
+                    entry.maybe = Some(op.to_string());
+                }
+            }
+        }
+    }
+
+    /// The starts of `entries` of `id`, for a worklog's `op`.
+    pub fn starts(&self, id: TaskId, entries: &[usize]) -> Vec<DateTime<Local>> {
+        self.task(id).map(|t| entries.iter().filter_map(|&i| t.time_entries.get(i)).map(|e| e.start).collect()).unwrap_or_default()
+    }
+
+    /// The store as it's shown: every text that came from a tracker (and
+    /// your own) cleaned for the screen. Never saved, and never what an
+    /// edit starts from: what's kept is the tracker's text, byte for
+    /// byte (`plans/tracker-seam.md` §3.1).
+    pub fn shown(&self) -> AgendaStore {
+        use fenix_tracker::clean;
+        let line = |s: &mut String| *s = clean::line(s, usize::MAX);
+        let text = |s: &mut String| *s = clean::text(s, usize::MAX).0;
+        let snap = |b: &mut crate::model::link::RemoteSnapshot| {
+            line(&mut b.summary);
+            text(&mut b.description);
+            line(&mut b.status_name);
+            for o in [&mut b.priority, &mut b.assignee, &mut b.project].into_iter().flatten() {
+                line(o);
+            }
+            for c in &mut b.comments {
+                line(&mut c.author);
+                text(&mut c.body);
+            }
+        };
+        let mut shown = self.clone();
+        for t in &mut shown.tasks {
+            line(&mut t.title);
+            text(&mut t.description);
+            if let Some(l) = t.link.as_mut() {
+                l.key = clean::line(&l.key, usize::MAX);
+                snap(&mut l.base);
+                for c in &mut l.conflicts {
+                    snap(&mut c.theirs.snapshot);
+                }
+                for e in l.error.iter_mut() {
+                    *e = clean::message(e);
+                }
+                for d in &mut l.dropped {
+                    d.why = clean::message(&d.why);
+                }
+            }
+        }
+        shown
     }
 
     /// Total unsent time on linked tasks and how many issues it spans.
     pub fn unsent_time(&self) -> (chrono::Duration, usize) {
         let mut total = chrono::Duration::zero();
         let mut issues = 0;
-        for task in self.tasks.iter().filter(|t| t.jira.is_some()) {
+        for task in self.tasks.iter().filter(|t| t.link.is_some()) {
             let unsent: chrono::Duration =
                 task.time_entries.iter().filter(|e| !e.sent).fold(chrono::Duration::zero(), |acc, e| acc + e.duration());
             if unsent > chrono::Duration::zero() {
@@ -332,12 +566,12 @@ impl AgendaStore {
     }
 }
 
-/// Jira's `YYYY-MM-DD` as a date; anything else is no date.
+/// A tracker's `YYYY-MM-DD` as a date; anything else is no date.
 pub fn parse_due(due: Option<&str>) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(due?, "%Y-%m-%d").ok()
 }
 
-fn copy_field(field: SyncField, from: &RemoteUpdate, base: &mut crate::model::jira::RemoteSnapshot) {
+fn copy_field(field: SyncField, from: &RemoteUpdate, base: &mut crate::model::link::RemoteSnapshot) {
     let theirs = &from.snapshot;
     match field {
         SyncField::Title => base.summary = theirs.summary.clone(),
@@ -348,6 +582,7 @@ fn copy_field(field: SyncField, from: &RemoteUpdate, base: &mut crate::model::ji
             base.status_id = theirs.status_id.clone();
             base.status_name = theirs.status_name.clone();
             base.status_category = theirs.status_category.clone();
+            base.column = theirs.column.clone();
             base.flagged = theirs.flagged;
         }
     }
@@ -356,7 +591,7 @@ fn copy_field(field: SyncField, from: &RemoteUpdate, base: &mut crate::model::ji
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::jira::RemoteSnapshot;
+    use crate::model::link::RemoteSnapshot;
 
     fn snapshot(summary: &str) -> RemoteSnapshot {
         RemoteSnapshot {
@@ -377,7 +612,7 @@ mod tests {
     fn linked() -> (AgendaStore, TaskId) {
         let mut store = AgendaStore::default();
         let id = store.create_task("local".to_string(), "".to_string(), Priority::Low, None);
-        store.link(id, "PROJ-1".to_string(), update(snapshot("Fix it")));
+        store.link(id, "jira", "PROJ-1".to_string(), update(snapshot("Fix it")));
         (store, id)
     }
 
@@ -385,15 +620,15 @@ mod tests {
     fn linking_takes_jiras_fields_and_keeps_a_differing_local_description_as_a_note() {
         let mut store = AgendaStore::default();
         let id = store.create_task("local".to_string(), "my own notes".to_string(), Priority::Low, None);
-        store.link(id, "PROJ-1".to_string(), update(snapshot("Fix it")));
+        store.link(id, "jira", "PROJ-1".to_string(), update(snapshot("Fix it")));
 
         let task = store.task(id).unwrap();
         assert_eq!(task.title, "Fix it");
         assert_eq!(task.description, "remote description");
         assert_eq!(task.priority, Priority::High);
-        assert_eq!(task.jira_key(), Some("PROJ-1"));
+        assert_eq!(task.issue_key(), Some("PROJ-1"));
         assert!(task.notes[0].text.contains("my own notes"));
-        assert_eq!(store.find_by_key("PROJ-1"), Some(id));
+        assert_eq!(store.find_by_key("jira", "PROJ-1"), Some(id));
     }
 
     #[test]
@@ -407,7 +642,7 @@ mod tests {
         store.set_due(id, date);
         store.enqueue(id, OpKind::SetDue(due("2026-10-09")));
         store.apply_remote(id, update(RemoteSnapshot { due: due("2026-10-05"), ..snapshot("Fix it") }));
-        let link = store.task(id).unwrap().jira.as_ref().unwrap();
+        let link = store.task(id).unwrap().link.as_ref().unwrap();
         assert_eq!(link.conflicts[0].field, SyncField::Due);
         assert_eq!(store.task(id).unwrap().due, date, "yours stays until you choose");
 
@@ -429,7 +664,7 @@ mod tests {
         let (mut store, id) = linked();
         store.apply_remote(id, update(snapshot("Renamed in Jira")));
         assert_eq!(store.task(id).unwrap().title, "Renamed in Jira");
-        assert!(store.task(id).unwrap().jira.as_ref().unwrap().conflicts.is_empty());
+        assert!(store.task(id).unwrap().link.as_ref().unwrap().conflicts.is_empty());
     }
 
     #[test]
@@ -439,7 +674,7 @@ mod tests {
         store.enqueue(id, OpKind::SetSummary("Mine".to_string()));
         store.apply_remote(id, update(snapshot("Fix it")));
         assert_eq!(store.task(id).unwrap().title, "Mine");
-        assert_eq!(store.next_op().map(|op| op.kind.clone()), Some(OpKind::SetSummary("Mine".to_string())));
+        assert_eq!(store.next_op(|_| true).map(|op| op.kind.clone()), Some(OpKind::SetSummary("Mine".to_string())));
     }
 
     #[test]
@@ -449,11 +684,11 @@ mod tests {
         store.enqueue(id, OpKind::SetSummary("Mine".to_string()));
         store.apply_remote(id, update(snapshot("Theirs")));
 
-        let link = store.task(id).unwrap().jira.as_ref().unwrap();
+        let link = store.task(id).unwrap().link.as_ref().unwrap();
         assert_eq!(link.conflicts.len(), 1);
         assert_eq!(link.conflicts[0].their_value(), "Theirs");
         assert_eq!(store.task(id).unwrap().title, "Mine", "a conflict never silently overwrites yours");
-        assert!(store.next_op().is_none(), "the conflicting op waits for a decision");
+        assert!(store.next_op(|_| true).is_none(), "the conflicting op waits for a decision");
     }
 
     #[test]
@@ -466,8 +701,8 @@ mod tests {
 
         store.resolve_conflict(id, SyncField::Title, true);
         assert_eq!(store.task(id).unwrap().title, "Mine");
-        assert!(store.next_op().is_some());
-        assert_eq!(store.task(id).unwrap().jira.as_ref().unwrap().base.summary, "Theirs");
+        assert!(store.next_op(|_| true).is_some());
+        assert_eq!(store.task(id).unwrap().link.as_ref().unwrap().base.summary, "Theirs");
 
         theirs_store.resolve_conflict(id, SyncField::Title, false);
         assert_eq!(theirs_store.task(id).unwrap().title, "Theirs");
@@ -479,7 +714,7 @@ mod tests {
         let (mut store, id) = linked();
         store.set_title(id, "Mine".to_string());
         store.enqueue(id, OpKind::SetSummary("Mine".to_string()));
-        let op = store.next_op().unwrap().id;
+        let op = store.next_op(|_| true).unwrap().id;
         store.op_succeeded(op);
 
         store.apply_remote(id, update(snapshot("Mine")));
@@ -491,13 +726,13 @@ mod tests {
     fn a_failed_op_is_kept_and_blocks_its_task_until_retried() {
         let (mut store, id) = linked();
         store.enqueue(id, OpKind::AddComment("hi".to_string()));
-        let op = store.next_op().unwrap().id;
-        store.op_failed(op, "HTTP 403".to_string());
-        assert!(store.next_op().is_none());
-        assert_eq!(store.task(id).unwrap().jira.as_ref().unwrap().error.as_deref(), Some("HTTP 403"));
+        let op = store.next_op(|_| true).unwrap().id;
+        store.op_failed(op, "HTTP 403".to_string(), false, false);
+        assert!(store.next_op(|_| true).is_none());
+        assert_eq!(store.task(id).unwrap().link.as_ref().unwrap().error.as_deref(), Some("HTTP 403"));
 
         store.retry(id);
-        assert_eq!(store.next_op().map(|o| o.id), Some(op));
+        assert_eq!(store.next_op(|_| true).map(|o| o.id), Some(op));
     }
 
     #[test]
@@ -511,7 +746,7 @@ mod tests {
 
         let task = store.task(id).unwrap();
         assert_eq!(task.status, Status::Done);
-        assert!(task.jira.as_ref().unwrap().not_mine);
+        assert!(task.link.as_ref().unwrap().not_mine);
     }
 
     #[test]
@@ -519,7 +754,7 @@ mod tests {
         let (mut store, id) = linked();
         store.enqueue(id, OpKind::AddComment("hi".to_string()));
         store.unlink(id);
-        assert!(store.task(id).unwrap().jira.is_none());
+        assert!(store.task(id).unwrap().link.is_none());
         assert_eq!(store.task(id).unwrap().title, "Fix it");
         assert!(store.outbox.is_empty());
     }
@@ -542,7 +777,7 @@ mod tests {
             }
         }
 
-        let rows = store.worklog_batch(15);
+        let rows = store.worklog_batch(15, |_| true);
         assert_eq!(rows.len(), 1, "local tasks never produce worklogs");
         assert_eq!(rows[0].key, "PROJ-1");
         assert_eq!(rows[0].actual_minutes, 70);
@@ -551,7 +786,7 @@ mod tests {
         assert_eq!(store.unsent_time(), (chrono::Duration::minutes(70), 1));
 
         store.mark_sent(id, &rows[0].entries);
-        assert!(store.worklog_batch(15).is_empty());
+        assert!(store.worklog_batch(15, |_| true).is_empty());
         assert_eq!(store.unsent_time().1, 0);
     }
 
@@ -562,7 +797,7 @@ mod tests {
         let json = serde_json::to_string(&store).unwrap();
         let reloaded: AgendaStore = serde_json::from_str(&json).unwrap();
         assert_eq!(reloaded.outbox.len(), 1);
-        assert_eq!(reloaded.task(id).unwrap().jira_key(), Some("PROJ-1"));
+        assert_eq!(reloaded.task(id).unwrap().issue_key(), Some("PROJ-1"));
     }
 
     #[test]
@@ -572,7 +807,7 @@ mod tests {
             "subtasks":[],"depends_on":[],"created_at":"2026-01-01T10:00:00+00:00","updated_at":"2026-01-01T10:00:00+00:00",
             "done_at":null,"archived":false,"order":0}],"next_id":1,"active_timer":null}"#;
         let store: AgendaStore = serde_json::from_str(json).unwrap();
-        assert!(store.tasks[0].jira.is_none());
+        assert!(store.tasks[0].link.is_none());
         assert!(!store.tasks[0].time_entries[0].sent);
         assert!(store.outbox.is_empty());
     }

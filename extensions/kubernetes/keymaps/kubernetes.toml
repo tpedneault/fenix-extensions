@@ -1,0 +1,25 @@
+# Kubernetes' keys, under SPC o k. Your own keybindings.toml wins.
+
+[[leader]]
+keys = "SPC o k"
+group = "kubernetes"
+
+[[leader]]
+keys = "SPC o k k"
+label = "kubernetes"
+command = "kubernetes.open"
+
+[[leader]]
+keys = "SPC o k c"
+label = "context, for this project"
+command = "kubernetes.context"
+
+[[leader]]
+keys = "SPC o k n"
+label = "namespace"
+command = "kubernetes.namespace"
+
+[[leader]]
+keys = "SPC o k f"
+label = "stop a port-forward"
+command = "kubernetes.forwards"

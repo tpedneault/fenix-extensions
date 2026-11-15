@@ -1,0 +1,6 @@
+[template]
+name = "Nix · NixOS module"
+kind = "other"
+group = "Nix"
+description = "A NixOS module in a flake: options for a service (enable, port), the systemd unit it adds, the flake's nixosModules output, and an example configuration that nixos-rebuild build and nix build can evaluate without touching the machine."
+open = ["module.nix", "flake.nix"]

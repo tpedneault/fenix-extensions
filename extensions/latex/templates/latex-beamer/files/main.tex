@@ -1,0 +1,60 @@
+% The presentation. SPC m b builds it to main.pdf and shows it in the
+% PDF reader.
+\documentclass[aspectratio=169]{beamer}
+
+\usetheme{%
+  {{theme}}%
+}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\newcommand{\doctitle}{%
+  {{name}}%
+}
+\newcommand{\docauthor}{%
+  {{author}}%
+}
+
+\title{\doctitle}
+\author{\docauthor}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+\section{Motivation}
+\begin{frame}{Why}
+  \begin{itemize}
+    \item One point per line
+    \item \alert{Highlight} what matters
+    \item Reveal one at a time \pause
+    \item like this
+  \end{itemize}
+\end{frame}
+
+\section{Results}
+\begin{frame}{Two columns}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      Text on the left.
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{block}{A block}
+        Text in a block.
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Thank you}
+  Questions?
+\end{frame}
+
+\end{document}

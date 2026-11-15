@@ -1,0 +1,144 @@
+[extension]
+id = "fenix.scala"
+name = "Scala"
+version = "1.0.0"
+description = "Scala 2 and 3: their grammar, Metals (found, or installed with Coursier) with debugging, sbt, scala-cli, Mill, Gradle and Maven tasks, a REPL, a watching build, the project's checks, snippets, and sbt and scala-cli projects"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["languages", "snippets", "templates"]
+runtime = "wasm"
+
+[engine]
+fenix = ">=1.5, <2"
+# How an install ended, as a notification (1.3); lang-kit, the kit it's
+# built on, is on 1.5.
+api = "1.5"
+
+# With Fenix: the project doctor's checks and Metals are there from the
+# start.
+[activation]
+on_startup = true
+
+[permissions]
+# The build tools (sbt, scala-cli, Mill and its ./mill, Gradle and Maven
+# with their wrappers) run the tasks; javac, Coursier (cs, or coursier),
+# Metals and the build tools are asked their versions; Metals serves --
+# where the pack installs it (the tools folder) or where it's found; and
+# Coursier installs it. The JDK is the one you chose, if you did.
+process = ["metals", "cs", "coursier", "scala-cli", "sbt", "mill", "gradle", "gradlew", "mvn", "mvnw", "javac", "${setting:scala.jdk}", "/tools/*"]
+# Coursier's releases, and where GitHub sends their downloads. Metals and
+# the compilers are fetched by Coursier and the build tools themselves, as
+# they are in a terminal; that's theirs, not the pack's.
+network = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"]
+# The debug adapter Metals starts, on a port of its own choosing.
+sockets = ["tcp://localhost:1024-65535", "tcp://127.0.0.1:1024-65535"]
+# The build files at the top and one folder down, .scalafmt.conf and .env,
+# read, to know which tools the project uses.
+filesystem = "project-read"
+# The file you're in, for running, testing and debugging it.
+editor = "read"
+
+[contributes]
+# A build file saved: the project read again.
+events = ["saved"]
+
+# Scala's language server is the pack: it runs Metals and passes its
+# messages on, answering what Metals asks of its client.
+[[contributes.language_servers]]
+name = "metals"
+languages = ["scala"]
+
+[[contributes.contexts]]
+name = "scala"
+markers = ["build.sbt", "build.sc", "build.mill", "project.scala", ".scalafmt.conf"]
+languages = ["scala"]
+
+# The kind of project this pack knows, for Fenix 1.6 and later (an earlier Fenix
+# ignores it, and the pack still installs there): how it is named, tagged and
+# found, apart from the context above, whose markers only say when this pack applies.
+# A Gradle or Maven project's files are the Java pack's kind's, so a Scala
+# one built by them is found as Java, and `kind = "scala"` in its settings
+# says otherwise.
+[[contributes.project_kinds]]
+id = "scala"
+name = "Scala"
+tag = "SC"
+color = "function"
+markers = ["build.sbt", "build.sc", "build.mill", "project.scala", ".scalafmt.conf"]
+main = ["src/main/scala/Main.scala", "src/main/scala/{folder}.scala", "src/main/scala/main.scala", "Main.scala", "main.scala", "hello.scala", "project.scala", "build.sbt"]
+
+[[contributes.commands]]
+id = "scala.doctor"
+title = "Scala: check the project again (the JDK, Coursier, Metals, the build tools)"
+
+[[contributes.commands]]
+id = "scala.install.coursier"
+title = "Scala: install Coursier 2.1.26, which installs Metals"
+
+[[contributes.commands]]
+id = "scala.install.scalafmt"
+title = "Scala: install scalafmt 3.11.5, the native formatter that formats on save"
+
+[[contributes.commands]]
+id = "scala.allow-project"
+title = "Scala: allow Metals in this project (it imports the build, which runs the build's own code)"
+
+[[contributes.commands]]
+id = "scala.forget-project"
+title = "Scala: forget what's decided about this project's build (it's asked again)"
+
+[[contributes.commands]]
+id = "scala.install-metals"
+title = "Scala: install Metals 1.6.9 with Coursier"
+
+[[contributes.commands]]
+id = "scala.import-build"
+title = "Scala: import the build into Metals again"
+
+[[contributes.commands]]
+id = "scala.console"
+title = "Scala: a REPL for the project, in a terminal"
+
+[[contributes.commands]]
+id = "scala.watch"
+title = "Scala: compile as sources change, in the background (the same command stops it)"
+
+[[contributes.commands]]
+id = "scala.run-file"
+title = "Scala: run the file you're in with scala-cli"
+
+[[contributes.commands]]
+id = "scala.test-file"
+title = "Scala: test the file you're in with scala-cli"
+
+[[contributes.commands]]
+id = "scala.debug-file"
+title = "Scala: debug the file you're in with Metals (held for the debugger)"
+
+[[contributes.commands]]
+id = "scala.debug-tests"
+title = "Scala: debug the tests of the file you're in with Metals (held for the debugger)"
+
+[[contributes.settings]]
+key = "scala.jdk"
+kind = "path"
+label = "JDK"
+description = "The JDK to use -- its java, its bin folder or its home -- when it isn't the one on PATH or JAVA_HOME: the project doctor checks it, and Metals and the build tools run with it as JAVA_HOME. Metals 1.6 needs Java 17 or later."
+default = ""
+
+[[contributes.settings]]
+key = "scala.auto_import"
+kind = "choice"
+label = "Import builds"
+description = "When Metals imports the build (sbt, Mill, Gradle, Maven) by itself: all -- the first time and each time a build file changes -- initial -- the first time only -- or off. Fenix has no prompt for Metals to ask in, so with off the build is imported only by Scala: import the build."
+default = "all"
+choices = ["all", "initial", "off"]
+
+[[contributes.settings]]
+key = "scala.run_metals"
+kind = "choice"
+label = "Run Metals"
+description = "ask -- Metals isn't started in a project, and so doesn't import its build, until you've said Import to the question when a Scala file opens -- or always, which runs Metals and imports the build in every project without asking: a build is the project's own code, so choose always only if you open your own. This is yours: no project can set it."
+default = "ask"
+choices = ["ask", "always"]

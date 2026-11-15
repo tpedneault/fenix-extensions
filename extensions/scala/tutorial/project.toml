@@ -1,0 +1,81 @@
+# A lesson of Fenix's tutorial (SPC h T): the language packs' shared shape
+# -- the doctor and a fix from it, a task, debugging, formatting -- filled
+# in for Scala. Scala has no packages page here, so it has the four pairs of
+# steps that apply. See "Tutorial lessons" in the repository's CONTRIBUTING.md.
+id = "scala.project"
+track = "Scala"
+order = 1
+title = "A Scala project: doctor, tasks, debugging, formatting"
+about = "In a Scala project of yours (sbt, Mill or scala-cli; the Scala · sbt project template makes one). A step whose tool isn't installed yet can't work: s on the tutorial page skips it, and the doctor says how to install it."
+text = """
+A Scala project in Fenix: what it needs, its tasks, debugging with Metals,
+and formatting as you save.
+
+SPC p h   the project doctor: the JDK, Coursier and Metals (each checked,
+          with a fix that installs Coursier and then Metals), and your
+          build tool (f runs the fix on the row, r checks again, q closes it)
+SPC p t   the tasks: compile, test, run, clean (and a run and a test for each
+          sbt project or Mill module)
+SPC m w   compile as sources change, in the background (again to stop it)
+SPC m c   a REPL for the project, in a terminal
+SPC u b   a breakpoint on this line
+SPC m b   debug the file you're in with Metals: it starts the program under
+          its debug adapter, and the launch Scala: Metals' debug session
+          (SPC u U) connects to it
+SPC ,     the settings: editor.format_on_save, scala.jdk, scala.run_metals
+SPC c F   format the file (Metals runs scalafmt)
+
+Metals starts in a project once you've said Import to its question: a build is
+the project's own code, so the pack asks first (the doctor's row Metals and the
+build says where you are).
+
+A program to try it on, if you have none; put it in Main.scala of a folder of
+its own with a build.sbt (or run it as a script), and open the folder as a
+project:
+
+@main def run(): Unit =
+  var total = 0
+  for i <- 1 to 3 do
+    total += i
+    println(s"total so far: $total")
+"""
+
+[[step]]
+say = "SPC p h: the project doctor -- the JDK, Coursier, Metals and the build tool, each checked."
+hint = "SPC p, then h. In a Scala project: the checks are for the project you're in."
+page = "doctor"
+
+[[step]]
+say = "A row that isn't green has a fix when there is one: f on Coursier's downloads its release and checks its SHA-256; f on Metals' then runs cs install metals as a task. The JDK and your build tool are yours to install (the rows say what they found). Then q."
+hint = "j and k to the row, f runs its fix, r checks again. Nothing missing? Just q, on the page."
+closed = "doctor"
+
+[[step]]
+say = "SPC p t: the project's tasks -- compile, test, run, clean, and a run and a test for each sbt project."
+hint = "SPC p, then t. Without sbt, scala-cli or Mill, or in a folder with no Scala project, there are none: s on the tutorial page skips this."
+picker = "tasks"
+
+[[step]]
+say = "Pick test and Enter: your build tool runs the tests in Task Output (q there closes it). Or Esc."
+hint = "Type test to narrow the list, then Enter; or Esc."
+picker = "none"
+
+[[step]]
+say = "Open the file above, put the cursor on a line of the loop and SPC u b for a breakpoint. Then SPC m b: Metals (allowed with Import when it asked) starts the program under its debug adapter. SPC u U: the launches."
+hint = "SPC u, then b. Then SPC m, then b: Metals needs to have read the build (its first start takes a while). Then SPC u, then U. Without Metals, `s` on the tutorial page skips this and the next."
+picker = "any"
+
+[[step]]
+say = "Pick Scala: Metals' debug session and Enter: it stops at the breakpoint. n steps, c continues, SPC u q ends the session."
+hint = "j and k, then Enter. After the stop: n for the next line, c to continue, SPC u q to end."
+picker = "none"
+
+[[step]]
+say = "SPC , : the settings. Search for format_on_save and turn it on: saving a Scala file then formats it, with the scalafmt your .scalafmt.conf names."
+hint = "SPC then a comma. On the page, / searches; Enter changes the setting under the cursor."
+page = "settings"
+
+[[step]]
+say = "q. Save a .scala file now: Metals formats it (and shows the compiler's problems)."
+hint = "q, on the settings page."
+closed = "settings"

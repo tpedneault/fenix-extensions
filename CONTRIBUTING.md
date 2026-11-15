@@ -765,6 +765,11 @@ extensions depend on by path
   the test kit's driver (Fenix's side, on recorded output), against a copy
   of API 1.6's types until 1.6 is released; see
   [`plans/test-explorer.md`](plans/test-explorer.md).
+- [`tracker`](plans/tracker-seam.md): the tracker seam, how the agenda
+  asks a tracker extension (Jira, GitHub Issues, ...) for its issues --
+  the shapes, the cleaning of what a tracker sends, and a fake tracker
+  for tests. A tracker extension serves it; the agenda's README has
+  [Writing a tracker](extensions/agenda/README.md#writing-a-tracker).
 - `forge` (GitHub and GitLab), `jira`, `mib`, `ccsds`, `nats`,
   `diagram`: the code two extensions share, or an extension and its
   agent tools.
