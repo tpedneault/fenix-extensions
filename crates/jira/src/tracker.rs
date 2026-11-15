@@ -374,6 +374,7 @@ impl Seam {
             title: d.summary.clone(),
             body: d.description.clone().unwrap_or_default(),
             body_cut: false,
+            title_cut: false,
             state: seam::State { id: d.status_id.clone(), name: d.status.clone(), stage: stage(&d.status_category).into(), column: self.settings.column(project, &d.status_id, &d.status_category, d.flagged).into() },
             kind: d.issue_type.clone(),
             priority: d.priority.as_ref().map(|p| seam::Priority { name: p.clone(), level: Some(self.settings.level(p).into()) }),

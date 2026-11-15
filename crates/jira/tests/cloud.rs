@@ -163,7 +163,8 @@ fn whats_assigned_pages_by_the_searchs_token() {
     );
     let second: Page = serde_json::from_str(&call(&seam, "assigned", serde_json::json!({"seam": 1, "limit": 2, "cursor": next})).unwrap()).unwrap();
     assert_eq!(second.next, None, "isLast");
-    assert_eq!(second.issues[0].title, "Write the [31mrelease notes for 2.0", "cleaned");
+    assert_eq!(second.issues[0].title, "Write the \u{1b}[31mrelease\u{202e} notes\nfor 2.0", "kept as Jira has it, to write back");
+    assert_eq!(fenix_tracker::clean::line(&second.issues[0].title, 200), "Write the [31mrelease notes for 2.0", "cleaned to be shown");
     assert!(jira.asked().last().unwrap().contains("&nextPageToken=Ch0jU3RyaW5nJlVGSlBTZz09JUludCZOakF3&maxResults=2&"), "{:?}", jira.asked());
 }
 

@@ -25,6 +25,21 @@ Center.
   as for Server (`jira.seam_writes`), and a change sent twice is made
   once.
 - When Jira says to slow down, the agenda is told how long to wait.
+- The question before the agenda's changes says what it can know: an
+  extension asks (Fenix can't tell which; usually the Agenda), and
+  allowing lets every extension's changes through until Fenix restarts.
+  Not now (or Esc) refuses for 10 minutes without asking again; a
+  question left unanswered for a minute, or replaced by another picker,
+  refuses what waited, and the next change asks again. At most 50
+  changes wait.
+- A change is known by its call and `op` together: a move sent with the
+  `op` of an earlier comment is still made.
+- `jira.request` (the agenda 1.2's) is refused for Jira Cloud.
+- **Changed:** your token isn't sent over `http://`. Jira Cloud is
+  https only; for Server and Data Center, turn on the new **Allow a Server over http**
+  setting (`jira.allow_http`) to send it in clear anyway.
+- Issue text reaches the agenda as Jira has it, byte for byte, so what
+  is written back is Jira's own; the agenda cleans it to show it.
 
 ## 1.3.0
 

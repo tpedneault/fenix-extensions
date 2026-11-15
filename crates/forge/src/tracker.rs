@@ -228,6 +228,7 @@ impl<C: Issues> Seam<C> {
             title: issue.title.clone(),
             body: issue.body.clone(),
             body_cut: false,
+            title_cut: false,
             state: self.state(issue),
             kind: None,
             priority: None,

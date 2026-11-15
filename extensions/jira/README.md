@@ -95,7 +95,8 @@ What Cloud doesn't do here yet, that Server does:
 | `jira.blocked` | Per project, what Blocked means: a status, the Flagged field, or nothing |
 | `jira.priorities` | How Jira's priorities map onto the agenda's |
 | `jira.sync_minutes` | How often the agenda's linked tasks are brought up to date (every 5 minutes at most) |
-| `jira.seam_writes` | Whether the agenda may change your issues: `ask` once a session (the default), `always`, or `never` |
+| `jira.seam_writes` | Whether extensions may change your issues through Jira: `ask` (the default), `always`, or `never` |
+| `jira.allow_http` | Server or Data Center over `http://`: send your token in clear anyway (off by default) |
 
 ## What it may do
 
@@ -117,17 +118,37 @@ and how priorities map (`jira.priorities`) are kept here, and the agenda
 holds neither your server nor your token.
 
 Fenix doesn't tell an extension who's calling it, so any installed
-extension could use the seam. The first change the seam brings in a
-session asks you: *"Agenda wants to change issues in Jira for you --
-allow for this session?"*; `jira.seam_writes` says it for good. A change
-sent twice (the agenda gave up waiting, and you said send it again) is
-made once in a session.
+extension could use the seam, and Jira can't say which one asks. The
+first change the seam brings in a session asks you: *"An extension asks
+to change issues in Jira for you (Fenix can't tell which; usually the
+Agenda) -- allow?"*
+
+- **Allow every extension's changes through Jira until Fenix restarts**
+  lets every change through, whoever sends it, until you restart Fenix.
+- **Not now** (or Esc) refuses the changes that waited, and any other
+  for 10 minutes without asking again; `r` on the task tries again after
+  that. Changing `jira.seam_writes` ends the 10 minutes at once.
+- A question no one answers within a minute (or that Fenix replaced
+  with another picker) refuses what waited, and the next change asks
+  again. At most 50 changes wait for your answer; more are refused.
+
+`jira.seam_writes` says it for good: `always` or `never`. A change sent
+twice (the agenda gave up waiting, and you said send it again) is made
+once in a session.
 
 The agenda 1.2, from before the seam, uses `jira.request`,
 `jira.config`, `jira.set_blocked` and `jira.new_issue`, which this one
-still answers, unchanged; they go at 2.0. **`jira.request` is
-deprecated**: it sends whatever request it's given to your Jira as you,
-for any extension that asks, without asking you.
+still answers; they go at 2.0. **`jira.request` is deprecated**: it
+sends whatever request it's given to your Jira as you, for any extension
+that asks, without asking you. It's refused for Jira Cloud, whose API
+token is account-wide (the agenda 1.2 never worked with Cloud).
+
+## Your token over http
+
+Your token isn't sent in clear by default. Jira Cloud is only reached
+over `https://`. A Server or Data Center address starting `http://` is
+refused unless you turn on **Allow a Server over http** (`jira.allow_http`), which
+sends your token unencrypted -- use it only on a network you trust.
 
 ## Building
 

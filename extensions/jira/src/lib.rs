@@ -35,7 +35,7 @@ use api::{host, run, Event, Extension, HttpRequest, Key, Page, PickerItem};
 use fenix_jira_client::tracker::{self as seam, Learned};
 use fenix_jira_client::cloud::{cloud_id, gateway, host_of};
 use fenix_jira_client::{Auth, Deployment, IssueDetail, IssueSummary, JiraClient, Reply, Transport};
-use fenix_tracker::{code, SeamError};
+use fenix_tracker::{code, gate, SeamError};
 
 use page::{Action as A, Choice, JiraPage, Loaded, QueryKind};
 
@@ -201,6 +201,14 @@ fn tracker_settings() -> seam::Settings {
     }
 }
 
+/// Why `jira.request` won't serve Jira Cloud.
+const REQUEST_NOT_CLOUD: &str = "jira.request isn't served for Jira Cloud: it's the agenda 1.2's, which never worked with Cloud, and it would sign any request with your account-wide API token -- update the agenda";
+
+/// A seam write's `op`, when it has one.
+fn op_of(payload: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string))
+}
+
 /// The agenda's payload for an issue of this tracker's: `tracker` and
 /// `ref` for the agenda 1.3, `key` for 1.2.
 fn agenda_payload(key: &str, clock: Option<bool>) -> String {
@@ -275,12 +283,30 @@ struct Connect {
     learned: Rc<RefCell<Learned>>,
 }
 
+/// Why credentials won't go to `base` for a Jira `cloud` or not: Cloud
+/// only over https, its account-wide API token never in clear; Server
+/// over http only when `jira.allow_http` says to send its token in clear.
+fn in_clear(base: &str, cloud: bool) -> Option<String> {
+    if !base.to_ascii_lowercase().starts_with("http://") {
+        return None;
+    }
+    if cloud {
+        return Some(format!("Jira Cloud is only reached over https -- jira.base_url is {base}; your email and API token aren't sent in clear"));
+    }
+    let allowed = api::setting("jira.allow_http").is_some_and(|v| v.trim() == "true");
+    (!allowed).then(|| format!("jira.base_url is {base}: your token would be sent in clear -- use https, or set jira.allow_http to send it anyway"))
+}
+
 /// A connection, or why there's none.
 fn connect(site: &Known, learned: &Rc<RefCell<Learned>>) -> Result<Connect, String> {
     let (Some(base), Some(token)) = (base_url(), token()) else { return Err(not_set_up(&settings_keys())) };
     let email = email();
-    if deployment_now(site, &base).is_cloud() && email.is_none() {
+    let cloud = deployment_now(site, &base).is_cloud();
+    if cloud && email.is_none() {
         return Err(cloud_not_set_up(&settings_keys()));
+    }
+    if let Some(why) = in_clear(&base, cloud) {
+        return Err(why);
     }
     let forced = Deployment::forced(api::setting("jira.kind").as_deref());
     let scoped = api::setting("jira.scoped_token").is_some_and(|v| v.trim() == "true");
@@ -339,6 +365,9 @@ impl Connect {
             return Ok(JiraClient::for_deployment(test, deployment_now(&self.site, &self.base)));
         }
         let deployment = self.settle().await;
+        if let Some(why) = in_clear(&self.base, deployment.is_cloud()) {
+            return Err(why);
+        }
         if !deployment.is_cloud() {
             return Ok(JiraClient::new(Rc::new(Direct::new(&self.base, Some(Auth::Bearer(self.token))))));
         }
@@ -395,13 +424,6 @@ enum Asked {
     Gate,
 }
 
-/// A seam write held while you're asked whether to allow it.
-struct Held {
-    call: Waiting,
-    name: String,
-    payload: String,
-}
-
 #[derive(Default)]
 pub struct Jira {
     page: Option<(u64, JiraPage)>,
@@ -418,10 +440,11 @@ pub struct Jira {
     /// New-issue forms the seam's `create` opened, answered as the seam
     /// answers (`{"ref": ...}`) rather than with a bare key.
     seam_creates: HashSet<Waiting>,
-    /// Whether the seam may write this session, and what waits on it.
+    /// Whether the seam may write, and the writes waiting on its question.
     gate: fenix_tracker::gate::Gate,
-    held: Vec<Held>,
-    /// The seam's writes done this session, by `op`.
+    /// The timer for the gate's question running out.
+    gate_timer: Option<u64>,
+    /// The seam's writes done while it runs, by call and `op`.
     done_ops: Rc<RefCell<fenix_tracker::Dedupe>>,
 }
 
@@ -930,7 +953,6 @@ impl Jira {
     /// (`fenix_tracker::gate`), and one already done this session (its
     /// `op`) is answered as it was.
     fn serve_seam(&mut self, call: Waiting, name: &str, payload: &str) -> Option<Result<String, String>> {
-        use fenix_tracker::gate::{self, Verdict};
         // About: what it knows now -- no network, nothing asked.
         if name == fenix_tracker::call::ABOUT {
             let ready = self.connect().is_ok();
@@ -944,50 +966,70 @@ impl Jira {
             let why = seam::about_for(&tracker_settings(), false, self.deployment()).not_ready.unwrap_or_default();
             return Some(Err(SeamError::new(code::NOT_SET_UP, why).to_err()));
         }
-        let op = serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string));
-        if let Some(answer) = self.done_ops.borrow().get(op.as_deref()) {
+        let op = op_of(payload);
+        if let Some(answer) = self.done_ops.borrow().get(name, op.as_deref(), payload) {
             return Some(answer);
         }
-        let held = Held { call, name: name.to_string(), payload: payload.to_string() };
-        match self.gate.check(api::setting("jira.seam_writes").as_deref(), "Jira") {
-            Verdict::Go => self.serve_seam_now(call, name, payload),
-            Verdict::Refuse(why) => Some(Err(why.to_err())),
-            Verdict::Wait => {
-                self.held.push(held);
-                None
-            }
-            Verdict::Ask => {
-                self.held.push(held);
-                let rows = [PickerItem::new(gate::ALLOW, "allow"), PickerItem::new(gate::DENY, "deny")];
-                let id = api::pick(&gate::question("Jira"), &rows);
-                self.asked.insert(id, Asked::Gate);
-                None
-            }
-        }
+        let write = gate::Write { call, name: name.to_string(), payload: payload.to_string(), caller: None };
+        let steps = self.gate.check(api::setting("jira.seam_writes").as_deref(), "Jira", std::time::Instant::now(), write);
+        self.gate_steps(steps, Some(call))
     }
 
-    /// You answered the gate: the writes held go through, or are refused.
-    fn gate_answered(&mut self, allow: bool) {
-        self.gate.answered(allow);
-        for Held { call, name, payload } in std::mem::take(&mut self.held) {
-            let answer = if allow { self.serve_seam_now(call, &name, &payload) } else { Some(Err(fenix_tracker::gate::Gate::denied("Jira").to_err())) };
-            if let Some(answer) = answer {
-                api::answer(call, answer);
+    /// What the gate says to do: writes done or refused, a question
+    /// asked. What's for `this` call, when it's answered now, comes back
+    /// rather than being answered.
+    fn gate_steps(&mut self, steps: Vec<gate::Step>, this: Option<Waiting>) -> Option<Result<String, String>> {
+        let mut mine = None;
+        for step in steps {
+            let (call, answer) = match step {
+                gate::Step::Go(w) => (w.call, self.serve_seam_now(w.call, &w.name, &w.payload)),
+                gate::Step::Refuse(w, why) => (w.call, Some(Err(why.to_err()))),
+                gate::Step::Ask(q) => {
+                    let rows: Vec<PickerItem> = q.rows.iter().map(|(label, value)| PickerItem::new(label.clone(), value.to_string())).collect();
+                    // A question asked before (Fenix replaced it, or it ran
+                    // out) is no longer this one: its late answer is ignored.
+                    self.asked.retain(|_, a| !matches!(a, Asked::Gate));
+                    let id = api::pick(&q.title, &rows);
+                    self.asked.insert(id, Asked::Gate);
+                    if let Some(t) = self.gate_timer.take() {
+                        host::cancel_timer(t);
+                    }
+                    if let Some(deadline) = self.gate.deadline() {
+                        let ms = deadline.saturating_duration_since(std::time::Instant::now()).as_millis().min(u32::MAX as u128) as u32;
+                        self.gate_timer = Some(host::set_timer(ms.max(1), false));
+                    }
+                    continue;
+                }
+            };
+            match answer {
+                Some(answer) if Some(call) == this => mine = Some(answer),
+                Some(answer) => api::answer(call, answer),
+                None => {}
             }
         }
+        mine
+    }
+
+    /// You answered the gate (`allow`, `deny`, or nothing: Esc).
+    fn gate_answered(&mut self, choice: Option<&str>) {
+        if let Some(t) = self.gate_timer.take() {
+            host::cancel_timer(t);
+        }
+        let steps = self.gate.answered(choice, "Jira", std::time::Instant::now());
+        self.gate_steps(steps, None);
     }
 
     /// A seam call, served now: `Some` answered at once, `None` later.
     fn serve_seam_now(&mut self, call: Waiting, name: &str, payload: &str) -> Option<Result<String, String>> {
         let settings = tracker_settings();
         let refuse = |code: &str, why: String| Some(Err(SeamError::new(code, why).to_err()));
-        let op = serde_json::from_str::<serde_json::Value>(payload).ok().and_then(|v| v.get("op").and_then(|o| o.as_str()).map(str::to_string));
+        let op = op_of(payload);
         match name {
             fenix_tracker::call::REMEMBER => match serde_json::from_str::<fenix_tracker::Remember>(payload).ok().and_then(|r| seam::parse_remember(&r.remember)) {
                 Some((project, blocked)) => {
                     self.set_blocked(&project, &blocked.text());
                     let answer = Ok("{}".to_string());
-                    self.done_ops.borrow_mut().put(op.as_deref(), &answer);
+                    self.done_ops.borrow_mut().put(name, op.as_deref(), payload, &answer);
                     Some(answer)
                 }
                 None => refuse(code::BAD_REQUEST, format!("a Jira call: what to remember isn't Jira's: {payload}")),
@@ -1008,6 +1050,8 @@ impl Jira {
                 let deployment = self.deployment();
                 let connect = match self.connect() {
                     Ok(connect) => connect,
+                    // Set up, but not to send your credentials in clear: said as such.
+                    Err(why) if why.contains("in clear") => return refuse(code::NOT_SET_UP, why),
                     Err(_) => return refuse(code::NOT_SET_UP, seam::about_for(&settings, false, deployment).not_ready.unwrap_or_default()),
                 };
                 let (name, payload) = (name.to_string(), payload.to_string());
@@ -1020,7 +1064,7 @@ impl Jira {
                         Err(why) => Err(seam::classify(why).to_err()),
                     };
                     if fenix_tracker::call::writes(&name) {
-                        done_ops.borrow_mut().put(op.as_deref(), &answer);
+                        done_ops.borrow_mut().put(&name, op.as_deref(), &payload, &answer);
                     }
                     api::answer(call, answer);
                 });
@@ -1091,7 +1135,20 @@ impl Extension for Jira {
         self.take_done();
         let Some(event) = event else { return };
         match event {
-            Event::SettingChanged(_) => self.settings_changed(),
+            Event::SettingChanged(key) => {
+                if key == "jira.seam_writes" {
+                    self.gate.reset();
+                }
+                self.settings_changed();
+            }
+            Event::Timer(t) if Some(t) == self.gate_timer => {
+                self.gate_timer = None;
+                // The timer was set for the question's deadline: it's run out.
+                let now = self.gate.deadline().map_or_else(std::time::Instant::now, |d| d.max(std::time::Instant::now()));
+                self.asked.retain(|_, a| !matches!(a, Asked::Gate));
+                let steps = self.gate.expire("Jira", now);
+                self.gate_steps(steps, None);
+            }
             Event::Composed((id, Some(body))) => match self.asked.remove(&id) {
                 Some(Asked::Description(key)) => {
                     let k = key.clone();
@@ -1110,7 +1167,7 @@ impl Extension for Jira {
                         api::notify(&format!("Blocked in {project} now means {meaning}"));
                     }
                 }
-                Some(Asked::Gate) => self.gate_answered(choice.as_deref() == Some("allow")),
+                Some(Asked::Gate) => self.gate_answered(choice.as_deref()),
                 _ => {}
             },
             Event::Composed((id, None)) => {
@@ -1186,17 +1243,23 @@ impl Extension for Jira {
                     Ok(req) => req,
                     Err(e) => return Some(Err(format!("a Jira request: {e}"))),
                 };
-                // As before for Server; Cloud signed in as it takes it.
+                // For the agenda 1.2, which only ever ran against Server:
+                // never Cloud, whose token is account-wide.
                 let connect = match self.connect() {
                     Ok(connect) => connect,
                     Err(why) => return Some(Err(why)),
                 };
+                if self.deployment().is_cloud() {
+                    return Some(Err(REQUEST_NOT_CLOUD.to_string()));
+                }
                 run::spawn(async move {
-                    let direct = match deployment_now(&connect.site, &connect.base) {
-                        Deployment::Cloud => Direct::new(&connect.base, connect.email.clone().map(|email| Auth::Basic { email, token: connect.token.clone() })),
-                        Deployment::Server => Direct::new(&connect.base, Some(Auth::Bearer(connect.token.clone()))),
+                    let answer = match connect.settle().await {
+                        Deployment::Cloud => Err(REQUEST_NOT_CLOUD.to_string()),
+                        Deployment::Server => {
+                            let direct = Direct::new(&connect.base, Some(Auth::Bearer(connect.token.clone())));
+                            direct.send(&req.method, &req.path, req.body).await.map(|(status, body)| serde_json::json!({ "status": status, "body": body }).to_string())
+                        }
                     };
-                    let answer = direct.send(&req.method, &req.path, req.body).await.map(|(status, body)| serde_json::json!({ "status": status, "body": body }).to_string());
                     api::answer(call, answer);
                 });
                 return None;
@@ -1339,7 +1402,7 @@ mod tests {
     fn the_first_write_of_a_session_asks_and_the_rest_dont() {
         let server = recorded();
         let mut h = jira(true);
-        h.fake.on_pick("Agenda wants to change issues in Jira", fenix_tracker::gate::ALLOW);
+        h.fake.on_pick("asks to change issues in Jira", fenix_tracker::gate::ALLOW);
         assert_eq!(h.serve("fenix.jira.tracker.comment", COMMENT), None, "held while asking");
         assert_eq!(last_answer(&h), Ok("{}".into()));
         assert_eq!(server.asked(), ["POST /rest/api/2/issue/PROJ-1/comment"]);
@@ -1359,10 +1422,10 @@ mod tests {
     fn not_now_refuses_what_waited_and_never_refuses_everything() {
         let server = recorded();
         let mut h = jira(true);
-        h.fake.on_pick("Agenda wants to change issues in Jira", fenix_tracker::gate::DENY);
+        h.fake.on_pick("asks to change issues in Jira", fenix_tracker::gate::DENY);
         h.serve("fenix.jira.tracker.remember", r#"{"seam": 1, "remember": "{\"project\":\"OPS\",\"blocked\":\"local\"}"}"#);
         let err = SeamError::from_err(&last_answer(&h).unwrap_err());
-        assert_eq!((err.code.as_str(), err.message.as_str()), ("refused", "you didn't allow the agenda to change issues in Jira -- r on the task asks again"));
+        assert_eq!((err.code.as_str(), err.message.as_str()), ("refused", "you didn't allow changes through Jira -- refused for 10 minutes; r on the task tries again after that"));
         assert!(!h.fake.setting_value("jira.blocked").unwrap_or_default().contains("OPS"), "remember is gated too");
 
         let mut h = jira(true);
@@ -1373,6 +1436,114 @@ mod tests {
         h.serve("fenix.jira.tracker.transition", r#"{"seam": 1, "ref": "PROJ-1", "id": "41"}"#);
         assert!(h.fake.pickers().is_empty());
         assert_eq!(server.asked().last().map(String::as_str), Some("POST /rest/api/2/issue/PROJ-1/transitions"));
+    }
+
+    /// A question no one answers (or Fenix replaced) doesn't wedge the
+    /// gate: when its time is up what waited is refused, a late answer to
+    /// it counts for nothing, and the next write asks again.
+    #[test]
+    fn an_unanswered_question_runs_out_and_the_next_write_asks_again() {
+        let server = recorded();
+        let mut h = jira(true);
+        assert_eq!(h.serve("fenix.jira.tracker.comment", COMMENT), None, "held while asking");
+        let first = h.fake.pickers().len();
+        assert_eq!(first, 1);
+        assert!(h.fake.pickers()[0].title.contains("An extension asks to change issues in Jira for you (Fenix can't tell which; usually the Agenda)"));
+        assert!(h.fake.pickers()[0].items.iter().any(|r| r.label.contains("every extension's changes through Jira until Fenix restarts")));
+        h.fire_timers();
+        let err = SeamError::from_err(&last_answer(&h).unwrap_err());
+        assert_eq!((err.code.as_str(), err.message.as_str()), ("refused", "no answer came to whether to allow changes through Jira -- r on the task asks again"));
+        assert!(server.asked().is_empty());
+
+        // The stale question answered late: nothing.
+        let stale = *h.ext.asked.keys().next().unwrap_or(&0);
+        assert_eq!(stale, 0, "forgotten once it ran out");
+        h.fake.on_pick("asks to change issues in Jira", fenix_tracker::gate::ALLOW);
+        assert_eq!(h.serve("fenix.jira.tracker.comment", &COMMENT.replace("agenda:1:7", "agenda:1:8")), None);
+        assert_eq!(h.fake.pickers().len(), 2, "asked again");
+        assert_eq!(last_answer(&h), Ok("{}".into()));
+        assert_eq!(server.asked(), ["POST /rest/api/2/issue/PROJ-1/comment"]);
+    }
+
+    /// "Not now" isn't asked again at every write: what comes in the next
+    /// ten minutes is refused without a question, until the setting
+    /// changes.
+    #[test]
+    fn not_now_cools_off_without_asking_until_the_setting_changes() {
+        let server = recorded();
+        let mut h = jira(true);
+        h.fake.on_pick_nothing("asks to change issues in Jira");
+        h.serve("fenix.jira.tracker.comment", COMMENT);
+        let err = SeamError::from_err(&last_answer(&h).unwrap_err());
+        assert_eq!(err.code, "refused", "Esc is not now");
+        let asked = h.fake.pickers().len();
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.comment", &COMMENT.replace("agenda:1:7", "agenda:1:8")).unwrap().unwrap_err());
+        assert!(err.message.starts_with("you said not now to changes through Jira -- refused for "), "{}", err.message);
+        assert!(err.message.ends_with("or change its seam_writes setting"), "{}", err.message);
+        assert_eq!(h.fake.pickers().len(), asked, "not asked again");
+        h.set_setting("jira.seam_writes", Some("ask"));
+        h.fake.on_pick("asks to change issues in Jira", fenix_tracker::gate::ALLOW);
+        assert_eq!(h.serve("fenix.jira.tracker.comment", &COMMENT.replace("agenda:1:7", "agenda:1:9")), None);
+        assert_eq!(h.fake.pickers().len(), asked + 1, "asked once the setting changed");
+        assert_eq!(server.asked().len(), 1);
+    }
+
+    /// No more than the gate's cap of writes wait for an answer.
+    #[test]
+    fn too_many_writes_waiting_are_refused() {
+        let _server = recorded();
+        let mut h = jira(true);
+        for i in 0..fenix_tracker::gate::MOST_HELD {
+            assert_eq!(h.serve("fenix.jira.tracker.comment", &COMMENT.replace("agenda:1:7", &format!("agenda:1:{}", 100 + i))), None);
+        }
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.comment", COMMENT).unwrap().unwrap_err());
+        assert_eq!((err.code.as_str(), err.message.as_str()), ("refused", "too many changes waiting for your answer about Jira -- r on the task tries again"));
+        assert_eq!(h.fake.pickers().len(), 1);
+    }
+
+    /// An op is a write's, on its call: a move sent with the op a comment
+    /// had is still made.
+    #[test]
+    fn an_op_done_on_one_call_doesnt_answer_another() {
+        let server = recorded();
+        let mut h = jira(true);
+        h.fake.setting("jira.seam_writes", "always");
+        h.serve("fenix.jira.tracker.comment", COMMENT);
+        assert_eq!(last_answer(&h), Ok("{}".into()));
+        h.serve("fenix.jira.tracker.transition", r#"{"seam": 1, "ref": "PROJ-1", "id": "41", "op": "agenda:1:7"}"#);
+        assert_eq!(server.asked().last().map(String::as_str), Some("POST /rest/api/2/issue/PROJ-1/transitions"));
+    }
+
+    /// `jira.request` is the agenda 1.2's, ungated: it isn't served for
+    /// Jira Cloud, where it would send whatever it's given as you.
+    #[test]
+    fn the_raw_request_is_refused_on_cloud() {
+        let mut h = cloud(true);
+        let err = h.serve("jira.request", r#"{"method": "POST", "path": "/rest/api/2/issue/PROJ-1/comment", "body": "{}"}"#);
+        h.settle();
+        let err = err.or_else(|| h.fake.state().answers.values().last().cloned()).unwrap().unwrap_err();
+        assert!(err.contains("Jira Cloud"), "{err}");
+        assert!(h.fake.requests().iter().all(|(_, r)| r.method != "POST"), "nothing posted");
+    }
+
+    /// Your token isn't sent in clear: Cloud is https only, and Server
+    /// over http only when you've said so.
+    #[test]
+    fn credentials_arent_sent_over_http_unless_you_say_so() {
+        let mut h = cloud(true);
+        h.fake.setting("jira.base_url", "http://acme.atlassian.net/");
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap_or_else(|| { h.settle(); answered(&h) }).unwrap_err());
+        assert!(err.message.contains("only reached over https"), "{}", err.message);
+        assert!(h.fake.requests().is_empty(), "nothing sent");
+
+        let _server = recorded();
+        let mut h = jira(true);
+        h.fake.setting("jira.base_url", "http://jira.example.com/");
+        let err = SeamError::from_err(&h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap_or_else(|| answered(&h)).unwrap_err());
+        assert!(err.message.contains("set jira.allow_http"), "{}", err.message);
+        h.fake.setting("jira.allow_http", "true");
+        let ok = h.serve("fenix.jira.tracker.issues", r#"{"seam": 1, "refs": ["PROJ-1"]}"#).unwrap_or_else(|| answered(&h));
+        assert!(ok.is_ok(), "{ok:?}");
     }
 
     #[test]
@@ -1467,7 +1638,7 @@ mod tests {
     #[test]
     fn clouds_seam_writes_pass_the_gate_as_servers_and_an_op_is_done_once() {
         let mut h = cloud(true);
-        h.fake.on_pick("Agenda wants to change issues in Jira", fenix_tracker::gate::ALLOW);
+        h.fake.on_pick("asks to change issues in Jira", fenix_tracker::gate::ALLOW);
         let comment = r#"{"seam": 1, "ref": "PROJ-1", "body": "Done.\nShipped.", "op": "agenda:1:9"}"#;
         assert_eq!(h.serve("fenix.jira.tracker.comment", comment), None, "held while asking");
         h.settle();
