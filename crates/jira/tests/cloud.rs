@@ -249,6 +249,9 @@ fn writes_go_as_cloud_takes_them() {
         "people, not apps; active ones"
     );
     assert_eq!(jira.asked().last().unwrap(), "GET /rest/api/3/user/assignable/search?issueKey=PROJ-1&maxResults=500");
+    // The agenda asks by the issue's id, which outlives a move.
+    let _ = call(&seam, "people", serde_json::json!({"seam": 1, "ref": "10001"})).unwrap();
+    assert_eq!(jira.asked().last().unwrap(), "GET /rest/api/3/user/assignable/search?issueId=10001&maxResults=500");
 }
 
 #[test]

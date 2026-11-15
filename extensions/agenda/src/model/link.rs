@@ -68,6 +68,9 @@ pub struct RemoteSnapshot {
     /// Its body was longer than the agenda keeps: never written back.
     #[serde(default)]
     pub description_cut: bool,
+    /// Its title was longer than the agenda keeps: never written back.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub title_cut: bool,
 }
 
 /// A fetched issue plus what it means for the agenda's own fields.
@@ -181,6 +184,23 @@ pub struct IssueLink {
     /// never saved.
     #[serde(skip)]
     pub resolving: bool,
+    /// Changes the tracker said it will never take (`unsupported`): off
+    /// the outbox, kept here so the task says so until you choose -- `r`
+    /// sends them again, takes the tracker's value back, or keeps yours
+    /// here only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dropped: Vec<Dropped>,
+    /// Fields whose tracker value the next sync takes back, whatever the
+    /// base says (you chose to after a change was dropped).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub retake: Vec<SyncField>,
+}
+
+/// A change the tracker won't take, and what it said.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Dropped {
+    pub kind: OpKind,
+    pub why: String,
 }
 
 impl IssueLink {
@@ -204,7 +224,8 @@ impl IssueLink {
             }
     }
 
-    /// What to ask the tracker for it by: its id once known.
+    /// What to ask the tracker for it by, and to write to it by: its id
+    /// once known, which outlives a move (`plans/tracker-seam.md` §4.2).
     pub fn asked(&self) -> &str {
         self.id.as_deref().unwrap_or(&self.key)
     }

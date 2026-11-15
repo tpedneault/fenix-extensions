@@ -2,13 +2,53 @@
 use std::path::PathBuf;
 
 use super::store::AgendaStore;
+use super::task::TaskId;
+
+/// Beside `agenda.json`: every link that isn't Jira's, as of this
+/// agenda's last save. Agenda 1.2 reads only Jira's links, and drops the
+/// others when it saves `agenda.json`; this file it never touches, so a
+/// link 1.2 dropped is found here again (`reconcile`).
+pub const LINKS: &str = "agenda-links.json";
+
+#[derive(serde::Serialize, serde::Deserialize, Default)]
+struct Links {
+    links: Vec<Kept>,
+}
+
+/// A link, and the task it's on: by its id and when it was made, so a
+/// task 1.2 deleted (and another took its id) isn't given it.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Kept {
+    task: TaskId,
+    created_at: chrono::DateTime<crate::clock::Local>,
+    link: super::link::IssueLink,
+}
+
+fn links_path(path: &std::path::Path) -> std::path::PathBuf {
+    path.with_file_name(LINKS)
+}
+
+/// Links the side file has that `agenda.json` lost (1.2 saved it) put
+/// back, and changes left waiting for a task with no link dropped, with
+/// a note.
+fn reconcile(path: &std::path::Path, store: &mut AgendaStore) {
+    let kept: Links = std::fs::read_to_string(links_path(path)).ok().and_then(|c| serde_json::from_str(&c).ok()).unwrap_or_default();
+    for k in kept.links {
+        if let Some(task) = store.tasks.iter_mut().find(|t| t.id == k.task && t.created_at == k.created_at && t.link.is_none()) {
+            task.link = Some(k.link);
+        }
+    }
+    store.drop_orphans();
+}
 
 /// Loads the store from `path`. A missing or corrupt file loads as an
 /// empty store rather than failing -- the agenda is a convenience, not
 /// critical data that should refuse to open Fenix over, same posture
 /// `fenix-config`'s `load_or_default` already has for `config.ini`.
 pub fn load(path: &std::path::Path) -> AgendaStore {
-    std::fs::read_to_string(path).ok().and_then(|contents| serde_json::from_str(&contents).ok()).unwrap_or_default()
+    let mut store: AgendaStore = std::fs::read_to_string(path).ok().and_then(|contents| serde_json::from_str(&contents).ok()).unwrap_or_default();
+    reconcile(path, &mut store);
+    store
 }
 
 /// Reads the store from `path` for a reload: `None` when the file isn't
@@ -22,18 +62,41 @@ pub fn reload(path: &std::path::Path) -> std::io::Result<Option<AgendaStore>> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(e),
     };
-    serde_json::from_str(&contents).map(Some).map_err(std::io::Error::other)
+    let mut store: AgendaStore = serde_json::from_str(&contents).map_err(std::io::Error::other)?;
+    reconcile(path, &mut store);
+    Ok(Some(store))
 }
 
 pub fn save(path: &std::path::Path, store: &AgendaStore) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let json = serde_json::to_vec_pretty(store).map_err(std::io::Error::other)?;
-    // Written beside it, then put in its place: a crash mid-write leaves
-    // the last good one.
+    // The links 1.2 would drop, first: a crash between the two leaves a
+    // link kept twice, never none.
+    let links = Links {
+        links: store
+            .tasks
+            .iter()
+            .filter_map(|t| Some(Kept { task: t.id, created_at: t.created_at, link: t.link.clone().filter(|l| l.tracker != crate::legacy::ID)? }))
+            .collect(),
+    };
+    let side = links_path(path);
+    if links.links.is_empty() {
+        match std::fs::remove_file(&side) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+    } else {
+        write(&side, &serde_json::to_vec_pretty(&links).map_err(std::io::Error::other)?)?;
+    }
+    write(path, &serde_json::to_vec_pretty(store).map_err(std::io::Error::other)?)
+}
+
+/// Written beside it, then put in its place: a crash mid-write leaves
+/// the last good one.
+fn write(path: &std::path::Path, json: &[u8]) -> std::io::Result<()> {
     let partial = path.with_extension("json.partial");
-    std::fs::write(&partial, &json)?;
+    std::fs::write(&partial, json)?;
     std::fs::rename(&partial, path)
 }
 

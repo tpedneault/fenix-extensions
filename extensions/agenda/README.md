@@ -53,11 +53,40 @@ agenda only -- is asked the first time and remembered.
 
 Any tracker extension that serves the agenda works the same way, and
 several at once: GitHub Issues, GitLab Issues and Linear are found when
-they're installed. Each is synced on its own schedule. A change whose
-answer never came isn't sent again by itself: the task says it may have
-been made, and `r` asks. Where issues from two are listed together, each says
-whose it is; words that said "Jira" name the task's tracker. A tracker
-built elsewhere is found once its name is in `agenda.trackers`.
+they're installed. Each is synced on its own schedule, and each has its
+own queue of changes: one that's slow to answer holds up only its own.
+Changes go to an issue by its id, so one that moved to another project
+since the last sync still gets them. Where issues from two are listed
+together, each says whose it is; words that said "Jira" name the task's
+tracker. A tracker built elsewhere is found once its name is in
+`agenda.trackers`.
+
+When a change doesn't go through:
+
+- **No answer came** (a slow tracker): it may have been made, so it isn't
+  sent again by itself. The task says so, and `r` asks whether to send it
+  again -- with the same `op`, so a tracker that took it doesn't make it
+  twice -- or to forget it. A worklog with no answer is marked "may have
+  been logged" in the review: `W` leaves it out, `s` sends it again (the
+  same `op`) and `x` says it was logged.
+- **Refused** (signed out, a value it didn't accept): the task says why,
+  and `r` sends it again once you've put it right.
+- **Never taken** (the tracker has no such field): it's taken off the
+  queue, so the task's other changes go, and the task is marked "not
+  taken" until you choose with `r`: send it again, take the tracker's
+  value back, or keep yours here only.
+
+What a tracker sends is kept as it sent it, byte for byte, so what goes
+back is the tracker's own text; it's shown cleaned -- control
+characters, bidirectional overrides and invisible characters removed,
+the joiners and marks living scripts and emoji need kept. A title or
+description too long to keep whole isn't written back.
+
+Links to trackers other than Jira are kept in `agenda.json` under
+`"link"`, which agenda 1.2 drops when it saves the file; they're also
+kept beside it, in `agenda-links.json`, which 1.2 never touches, and
+put back when this agenda reads the file again. A change left waiting
+for a task whose link was lost is dropped, with a note on the task.
 
 ## Settings
 

@@ -62,6 +62,9 @@ impl Recorded {
             .on("GET", "&startAt=2&", 200, read("search-assigned-2.json"))
             .on("GET", "/rest/api/2/issue/PROJ-1?", 200, read("issue-PROJ-1.json"))
             .on("GET", "/rest/api/2/issue/PROJ-1/transitions", 200, read("transitions-PROJ-1.json"))
+            // PROJ-1 by its id, 10201, as the agenda names it once known.
+            .on("GET", "/rest/api/2/issue/10201?", 200, read("issue-PROJ-1.json"))
+            .on("GET", "/rest/api/2/issue/10201/transitions", 200, read("transitions-PROJ-1.json"))
             .on("GET", "/rest/api/2/issue/NOPE-1", 404, read("not-found.json"))
             .on("GET", "/rest/api/2/priority", 200, read("priority.json"))
             .on("POST", "/rest/api/2/", 204, "")
@@ -89,6 +92,8 @@ impl Recorded {
             .on("GET", "&nextPageToken=Ch0jU3RyaW5nJlVGSlBTZz09JUludCZOakF3&", 200, read("search-jql-assigned-1.json"))
             .on("GET", "/rest/api/3/issue/PROJ-1?", 200, read("issue-PROJ-1.json"))
             .on("GET", "/rest/api/2/issue/PROJ-1/transitions", 200, read("transitions-PROJ-1.json"))
+            .on("GET", "/rest/api/3/issue/10201?", 200, read("issue-PROJ-1.json"))
+            .on("GET", "/rest/api/2/issue/10201/transitions", 200, read("transitions-PROJ-1.json"))
             .on("GET", "/rest/api/3/issue/NOPE-1", 404, read("not-found.json"))
             .on("GET", "/rest/api/3/priority/search", 200, read("priority-search.json"))
             .on("GET", "/rest/api/3/user/assignable/search", 200, read("assignable.json"))

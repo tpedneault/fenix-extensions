@@ -223,12 +223,15 @@ impl FakeTracker {
                 if !s.issues.iter().any(|i| i.key == req.key || i.id == req.key) {
                     return Err(SeamError::new(crate::code::NOT_FOUND, format!("{} isn't there", req.key)).to_err());
                 }
-                let moves = s.moves.get(&req.key).cloned().unwrap_or_else(|| Moves { transitions: s.default_moves.clone(), ..Default::default() });
+                // Its moves are kept by its ref; it may be asked by its id.
+                let key = s.issues.iter().find(|i| i.key == req.key || i.id == req.key).map(|i| i.key.clone()).unwrap_or_default();
+                let moves = s.moves.get(&key).cloned().unwrap_or_else(|| Moves { transitions: s.default_moves.clone(), ..Default::default() });
                 json(&moves)
             }
             call::TRANSITION => {
                 let req: Transition = serde_json::from_str(payload).map_err(bad)?;
-                let moves = s.moves.get(&req.key).map(|m| m.transitions.clone()).unwrap_or_else(|| s.default_moves.clone());
+                let key = s.issues.iter().find(|i| i.key == req.key || i.id == req.key).map(|i| i.key.clone()).unwrap_or_default();
+                let moves = s.moves.get(&key).map(|m| m.transitions.clone()).unwrap_or_else(|| s.default_moves.clone());
                 let Some(m) = moves.into_iter().find(|m| m.id == req.id) else {
                     return Err(SeamError::new(crate::code::REFUSED, format!("no move {} from here", req.id)).to_err());
                 };

@@ -78,7 +78,7 @@ pub enum TimeSource {
     Manual,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeEntry {
     pub start: DateTime<Local>,
     pub end: DateTime<Local>,
@@ -88,6 +88,11 @@ pub struct TimeEntry {
     /// task.
     #[serde(default)]
     pub sent: bool,
+    /// Sent as a worklog with this `op` and no answer came: it may have
+    /// been logged. Left out of `W` until you send it again (with the
+    /// same `op`) or say it was logged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maybe: Option<String>,
 }
 
 impl TimeEntry {

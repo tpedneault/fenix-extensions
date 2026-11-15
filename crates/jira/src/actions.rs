@@ -235,9 +235,11 @@ impl JiraClient {
 
     /// The people who can be assigned issue `key` on Cloud, as (account
     /// id, name), from `GET /rest/api/3/user/assignable/search`: people,
-    /// not apps, and only those active.
+    /// not apps, and only those active. `key` may be the issue's numeric
+    /// id, asked as `issueId`.
     pub async fn assignable(&self, key: &str) -> Result<Vec<(String, String)>, String> {
-        let body = self.request("/rest/api/3/user/assignable/search", &[("issueKey", key), ("maxResults", "500")]).await?;
+        let by = if !key.is_empty() && key.bytes().all(|b| b.is_ascii_digit()) { "issueId" } else { "issueKey" };
+        let body = self.request("/rest/api/3/user/assignable/search", &[(by, key), ("maxResults", "500")]).await?;
         let users = body.as_array().ok_or_else(|| "unexpected assignable users response shape".to_string())?;
         Ok(users
             .iter()

@@ -5,7 +5,7 @@
 use chrono::{DateTime, NaiveDate};
 use crate::clock::Local;
 
-use crate::model::link::{Conflict, IssueLink, OpKind, PendingOp, RemoteUpdate, SyncField};
+use crate::model::link::{Conflict, Dropped, IssueLink, OpKind, PendingOp, RemoteUpdate, SyncField};
 use crate::model::store::AgendaStore;
 use crate::model::task::{Status, TaskId};
 #[cfg(test)]
@@ -18,7 +18,10 @@ pub struct WorklogRow {
     pub task: TaskId,
     /// Its tracker.
     pub tracker: String,
+    /// Its issue's ref, as shown.
     pub key: String,
+    /// What it's sent by: the issue's id once known.
+    pub asked: String,
     pub title: String,
     pub date: NaiveDate,
     /// When the day's first entry started -- what the tracker files it under.
@@ -29,6 +32,52 @@ pub struct WorklogRow {
     pub minutes: i64,
     /// Indices into the task's `time_entries` this row covers.
     pub entries: Vec<usize>,
+    /// The `op` it was sent with when no answer came: it may have been
+    /// logged, so `W` leaves it out.
+    pub maybe: Option<String>,
+}
+
+impl WorklogRow {
+    /// Its `op`: the one it was sent with when no answer came, else one
+    /// made of the task, the day, the entries' starts and the minutes --
+    /// no clock, so the same row sent again is known as the same worklog
+    /// (`plans/tracker-seam.md` §3.7), and a row you changed isn't.
+    pub fn op(&self, starts: &[DateTime<Local>]) -> String {
+        if let Some(op) = &self.maybe {
+            return op.clone();
+        }
+        // FNV-1a: the same on every run, unlike std's hasher.
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        let mut eat = |bytes: &[u8]| {
+            for b in bytes {
+                h ^= u64::from(*b);
+                h = h.wrapping_mul(0x0100_0000_01b3);
+            }
+        };
+        for start in starts {
+            eat(start.to_rfc3339().as_bytes());
+        }
+        eat(&self.minutes.to_le_bytes());
+        format!("agenda:w{}:{}:{h:016x}", self.task.0, self.date)
+    }
+}
+
+/// What to do about changes a tracker dropped.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DroppedChoice {
+    /// Queued again, as new changes.
+    SendAgain,
+    /// The tracker's values back at the next sync.
+    TakeTheirs,
+    /// Yours stay, here only; the mark goes.
+    KeepMine,
+}
+
+/// A random part for an `op`, so two agendas (or two ops in one
+/// millisecond) never share one (`plans/tracker-seam.md` §3.7).
+pub fn nonce() -> u64 {
+    use std::hash::{BuildHasher, Hasher};
+    std::collections::hash_map::RandomState::new().build_hasher().finish()
 }
 
 impl AgendaStore {
@@ -97,6 +146,8 @@ impl AgendaStore {
                 conflicts: Vec::new(),
                 not_mine: update.mine == Some(false),
                 resolving: false,
+                dropped: Vec::new(),
+                retake: Vec::new(),
             });
         }
     }
@@ -126,7 +177,7 @@ impl AgendaStore {
         }
         let op_id = self.next_op_id;
         self.next_op_id += 1;
-        let uid = format!("agenda:{}:{op_id}", crate::clock::now().timestamp_millis());
+        let uid = format!("agenda:{}:{op_id}:{:08x}", crate::clock::now().timestamp_millis(), nonce() as u32);
         self.outbox.push(PendingOp { id: op_id, task: id, kind, uid });
     }
 
@@ -187,6 +238,54 @@ impl AgendaStore {
         self.outbox.retain(|op| op.id != op_id);
     }
 
+    /// The tracker will never take op `op_id` (`unsupported`): off the
+    /// outbox, so the task's later changes go on, and kept on the task so
+    /// it says so until you choose (`resolve_dropped`).
+    pub fn op_dropped(&mut self, op_id: u64, why: String) {
+        let Some(pos) = self.outbox.iter().position(|op| op.id == op_id) else { return };
+        let op = self.outbox.remove(pos);
+        if let Some(link) = self.task_mut(op.task).and_then(|t| t.link.as_mut()) {
+            link.dropped.push(Dropped { kind: op.kind, why });
+        }
+    }
+
+    /// What you chose for task `id`'s dropped changes: sent again (as new
+    /// changes), the tracker's values taken back at the next sync, or
+    /// yours kept here only.
+    pub fn resolve_dropped(&mut self, id: TaskId, choice: DroppedChoice) {
+        let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) else { return };
+        let dropped = std::mem::take(&mut link.dropped);
+        match choice {
+            DroppedChoice::SendAgain => {
+                for d in dropped {
+                    self.enqueue(id, d.kind);
+                }
+            }
+            DroppedChoice::TakeTheirs => {
+                for field in dropped.iter().filter_map(|d| d.kind.field()) {
+                    if !link.retake.contains(&field) {
+                        link.retake.push(field);
+                    }
+                }
+            }
+            DroppedChoice::KeepMine => {}
+        }
+    }
+
+    /// Changes waiting for a task that has no link (agenda 1.2 saved the
+    /// file, and lost the link): dropped, each said on its task's notes.
+    /// How many went.
+    pub fn drop_orphans(&mut self) -> usize {
+        let orphans: Vec<PendingOp> = self.outbox.iter().filter(|op| self.task(op.task).is_none_or(|t| t.link.is_none())).cloned().collect();
+        for op in &orphans {
+            if self.task(op.task).is_some() {
+                self.add_note(op.task, format!("A change for its tracker ({}) was dropped: the task's link was lost (an older agenda saved agenda.json)", op.kind.describe()));
+            }
+        }
+        self.outbox.retain(|op| !orphans.contains(op));
+        orphans.len()
+    }
+
     /// Clears a task's push error so its ops are tried again.
     pub fn retry(&mut self, id: TaskId) {
         if let Some(link) = self.task_mut(id).and_then(|t| t.link.as_mut()) {
@@ -227,9 +326,13 @@ impl AgendaStore {
         // A base kept by agenda 1.2 wasn't cleaned (a description's
         // `\r\n`), nor knew its column: neither is a change.
         let text = |s: &str| fenix_tracker::clean::text(s, usize::MAX).0;
-        let changed = |field: SyncField| match field {
-            SyncField::Title => theirs.summary != fenix_tracker::clean::line(&base.summary, usize::MAX),
-            SyncField::Description => theirs.description != text(&base.description),
+        // Both are kept as the tracker sent them; one that differs only in
+        // what isn't shown (a 1.2 base's `\r\n`) isn't a change.
+        let line = |s: &str| fenix_tracker::clean::line(s, usize::MAX);
+        let retake = link.retake.clone();
+        let changed = |field: SyncField| retake.contains(&field) || match field {
+            SyncField::Title => theirs.summary != base.summary && line(&theirs.summary) != line(&base.summary),
+            SyncField::Description => theirs.description != base.description && text(&theirs.description) != text(&base.description),
             SyncField::Status => theirs.status_id != base.status_id || base.column.as_ref().is_some_and(|c| theirs.column.as_ref() != Some(c)),
             SyncField::Priority => theirs.priority != base.priority,
             SyncField::Due => theirs.due != base.due,
@@ -262,6 +365,8 @@ impl AgendaStore {
             link.base.url = update.snapshot.url.clone();
             link.base.project = update.snapshot.project.clone();
             link.base.description_cut = update.snapshot.description_cut;
+            link.base.title_cut = update.snapshot.title_cut;
+            link.retake.clear();
             if link.base.status_id == update.snapshot.status_id {
                 link.base.status_name = update.snapshot.status_name.clone();
                 link.base.status_category = update.snapshot.status_category.clone();
@@ -347,6 +452,7 @@ impl AgendaStore {
                 let minutes = entry.duration().num_minutes().max(0);
                 match rows.iter_mut().find(|r| r.task == task.id && r.date == date) {
                     Some(row) => {
+                        row.maybe = row.maybe.take().or_else(|| entry.maybe.clone());
                         row.actual_minutes += minutes;
                         row.started = row.started.min(entry.start);
                         row.entries.push(i);
@@ -355,12 +461,14 @@ impl AgendaStore {
                         task: task.id,
                         tracker: link.tracker.clone(),
                         key: key.to_string(),
+                        asked: link.asked().to_string(),
                         title: task.title.clone(),
                         date,
                         started: entry.start,
                         actual_minutes: minutes,
                         minutes: 0,
                         entries: vec![i],
+                        maybe: entry.maybe.clone(),
                     }),
                 }
             }
@@ -378,9 +486,68 @@ impl AgendaStore {
             for &i in entries {
                 if let Some(entry) = task.time_entries.get_mut(i) {
                     entry.sent = true;
+                    entry.maybe = None;
                 }
             }
         }
+    }
+
+    /// `entries` of `id` were sent as a worklog with `op` and no answer
+    /// came: they may have been logged.
+    pub fn mark_maybe(&mut self, id: TaskId, entries: &[usize], op: &str) {
+        if let Some(task) = self.task_mut(id) {
+            for &i in entries {
+                if let Some(entry) = task.time_entries.get_mut(i) {
+                    entry.maybe = Some(op.to_string());
+                }
+            }
+        }
+    }
+
+    /// The starts of `entries` of `id`, for a worklog's `op`.
+    pub fn starts(&self, id: TaskId, entries: &[usize]) -> Vec<DateTime<Local>> {
+        self.task(id).map(|t| entries.iter().filter_map(|&i| t.time_entries.get(i)).map(|e| e.start).collect()).unwrap_or_default()
+    }
+
+    /// The store as it's shown: every text that came from a tracker (and
+    /// your own) cleaned for the screen. Never saved, and never what an
+    /// edit starts from: what's kept is the tracker's text, byte for
+    /// byte (`plans/tracker-seam.md` §3.1).
+    pub fn shown(&self) -> AgendaStore {
+        use fenix_tracker::clean;
+        let line = |s: &mut String| *s = clean::line(s, usize::MAX);
+        let text = |s: &mut String| *s = clean::text(s, usize::MAX).0;
+        let snap = |b: &mut crate::model::link::RemoteSnapshot| {
+            line(&mut b.summary);
+            text(&mut b.description);
+            line(&mut b.status_name);
+            for o in [&mut b.priority, &mut b.assignee, &mut b.project].into_iter().flatten() {
+                line(o);
+            }
+            for c in &mut b.comments {
+                line(&mut c.author);
+                text(&mut c.body);
+            }
+        };
+        let mut shown = self.clone();
+        for t in &mut shown.tasks {
+            line(&mut t.title);
+            text(&mut t.description);
+            if let Some(l) = t.link.as_mut() {
+                l.key = clean::line(&l.key, usize::MAX);
+                snap(&mut l.base);
+                for c in &mut l.conflicts {
+                    snap(&mut c.theirs.snapshot);
+                }
+                for e in l.error.iter_mut() {
+                    *e = clean::message(e);
+                }
+                for d in &mut l.dropped {
+                    d.why = clean::message(&d.why);
+                }
+            }
+        }
+        shown
     }
 
     /// Total unsent time on linked tasks and how many issues it spans.
