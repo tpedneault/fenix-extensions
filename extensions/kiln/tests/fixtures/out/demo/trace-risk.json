@@ -1,0 +1,15 @@
+{
+  "commit": "8c0580dca1f31bf7660271d6cf92c7ba0342fb3c",
+  "items": [
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "RISK-001",
+      "status": "open",
+      "title": "The SD card wears out"
+    }
+  ],
+  "kiln_json": 1,
+  "roles": [],
+  "type": "risk"
+}
