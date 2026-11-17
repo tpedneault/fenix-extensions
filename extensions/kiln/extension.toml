@@ -87,7 +87,7 @@ tag = "KILN"
 markers = ["kiln.toml"]
 
 # The SPC m menu (keymaps/kiln.toml) in a Kiln project, and on the plan's
-# page, which later versions open.
+# page (its own keys are the page's: README, "Keys").
 [[contributes.contexts]]
 name = "kiln"
 markers = ["kiln.toml"]

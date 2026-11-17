@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+requirement  3 items
+REQ-001     Readings are logged every second     approved
+  REQ-002   Logged readings survive a power cut  draft
+REQ-003     The log exports as CSV               approved
+decision  1 item
+ADR-001     Store readings in SQLite             accepted
+milestone  2 items
+MS-001      First release                        active
+MS-002      Second release                       planned
+task  8 items
+TASK-001    Set up the logger                    done
+TASK-002    Write readings to SQLite             doing
+  TASK-007  Batch the writes                     todo
+TASK-003    Export the log as CSV                todo
+TASK-004    Add the export button                todo
+TASK-005    Ask about retention rules            blocked
+TASK-006    Draft the user guide                 todo
+TASK-008    Tidy the build scripts               todo
+test  1 item
+TEST-001    Readings arrive every second         passing
+risk  1 item
+RISK-001    The SD card wears out                open
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab

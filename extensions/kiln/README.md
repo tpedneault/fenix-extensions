@@ -8,12 +8,25 @@ repository. This extension is its place in Fenix; it works by running the
 **This version is the start of it.** A folder with a `kiln.toml` at its
 top is a `KILN` project. `Kiln: open the plan` looks for kiln (1.0.0 or
 later), reads the project (`kiln list`, `kiln status`, `kiln check`) and
-shows its name, how many items it has, each open milestone's progress and
-the findings -- or what's in the way, in kiln's own words. It's read
-again on `r` (or `Kiln: read the project again`), when a file is saved,
-when git's head moves, and every `kiln.refresh_seconds` while the page is
-in view. The plan's pages, edits, exports and agent tools are what the
-next versions add.
+opens the plan: a page with a tab per view of it, in the order Kiln's own
+GUI has them, the project's name and the check's errors on its top line.
+It's read again on `r` (or `Kiln: read the project again`), when a file is
+saved, when git's head moves, and every `kiln.refresh_seconds` while the
+page is in view; a read that fails keeps the last one on screen with
+kiln's line under it. When kiln isn't there, is too old, or finds no
+`kiln.toml`, every tab says so in kiln's own words.
+
+**Tree** is the first tab: every open item, nested by `parent` under a
+heading per type, `REQ-014  Title  approved`, its status coloured by what
+it means for its type (done, in progress, first, blocked, closed). `a`
+shows closed items too. The other tabs are coming in the next versions.
+
+On every tab, the cursor stays on the same item when the project is read
+again (or where it was, when that item went away), `/` narrows the rows as
+you type, `Enter` opens the item's file at its line, and the page reopens
+with your next session as you left it: the tab, and each tab's cursor,
+filter and `a`. Several plan pages can be open in different panes, each
+with its own.
 
 **Kiln's language server** (`kiln lsp`: completion, hover, `gd`, `gr`,
 rename and problems in item files and code references) is registered as
@@ -47,6 +60,23 @@ quickfix entries.
 error, 2 warnings`, and nothing when there are none.
 
 ## Keys
+
+On the plan:
+
+| Key | What it does |
+|---|---|
+| `j` `k`, `↓` `↑` | Next / previous row (headings are skipped) |
+| `C-d` `C-u`, `PgDn` `PgUp` | Half a page down / up |
+| `g g` `G`, `Home` `End` | First / last row |
+| `Tab` `]`, `S-Tab` `[`, `1`–`9` | Next / previous tab, or one by its number |
+| `/` | Filter: narrows the rows as you type (headings and parents of a match stay); `Enter` keeps it, `Esc` clears it |
+| `Enter` | Open the item's file at its line |
+| `a` | Show closed items too, or hide them again |
+| `r` | Read the project again |
+
+The mouse: a click on a tab shows it, on a row moves the cursor there, a
+double click opens it; the wheel moves three rows. `q` and `Esc` close the
+page, as on any of Fenix's.
 
 After `SPC m`, in a Kiln project:
 

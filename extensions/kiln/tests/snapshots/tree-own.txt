@@ -1,0 +1,40 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+requirement  25 items                                                                                        ┃
+REQ-001    The repository is the source of truth                                                 approved    ┃
+  REQ-013  Edits keep the author's formatting and never fight an editor                          verified    ┃
+REQ-002    Readable without Kiln                                                                 implemented ┃
+  REQ-016  Changes since a baseline are shown item by item                                       implemented ┃
+REQ-003    Checkable in CI                                                                       approved    ┃
+  REQ-011  Findings name the file, line and column                                               verified    ┃
+  REQ-012  Findings show on merge requests                                                       verified    ┃
+  REQ-015  Duplicate IDs are found and fixed by one command                                      verified    ┃
+REQ-004    Fast and keyboard-first                                                               approved    ┃
+  REQ-007  kiln check on 2,000 items and 50k source files in 2 s                                 verified    ┃
+  REQ-008  Language server responds within 50 ms after a keystroke                               implemented ┃
+  REQ-009  Flint provider answers within 16 ms for 2,000 items                                   implemented ┃
+  REQ-010  Export dry run of a 2,000-item document in 3 s                                        verified    │
+REQ-005    Works on a locked-down corporate machine and in a CI container                        approved    │
+  REQ-014  No secrets in kiln.toml                                                               verified    │
+REQ-006    No tool requires another                                                              approved    │
+REQ-017    The GUI opens any project from a picker and switches between them                     implemented │
+REQ-018    Requirements at several levels trace to each other, and derived ones say so           implemented │
+REQ-019    Coding agents find how this project's design is organised and how to change it        implemented │
+REQ-020    Coding agents read the plan and act on it from the command line                       verified    │
+REQ-021    A person uses Kiln without an agent: items start with a shape, the first export wor…  verified    │
+REQ-022    Every view of the plan agrees, and what reaches readers is finished                   verified    │
+REQ-023    The trace says what passed, and a change says which requirements it touches           verified    │
+REQ-024    Sign-off is visible: who moved which status, when, in which change                    verified    │
+REQ-025    A one-page document reads top-down, its requirements as one tree                      implemented │
+decision  23 items                                                                                           │
+ADR-001    TOML front matter                                                                     accepted    │
+ADR-002    Sequential IDs, renumbered on collision                                               accepted    │
+ADR-003    One-way publishing to Confluence                                                      accepted    │
+ADR-004    One design document is the default export                                             accepted    │
+ADR-005    Shell out to git                                                                      accepted    │
+ADR-006    One spelling per ID number, at least three digits                                     accepted    │
+ADR-007    Links are written once, on their source side                                          accepted    │
+ADR-008    Code references are matched on text, not parsed                                       accepted    │
+ADR-009    Exports kept in the repository name no commit                                         accepted    │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab

@@ -1,0 +1,27 @@
+  «accent:1 »«title panel under=title:Tree»   «accent:2 »«muted:Trace»   «accent:3 »«muted:Impact»   «accent:4 »«muted:Board»   «accent:5 »«muted:Roadmap»   «accent:6 »«muted:Decisions»   «accent:7 »«muted:Changes»   «accent:8 »«muted:Item»   «accent:9 »«muted:Check»   «title:Demo»«bad:  1 error»
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  «title:requirement»  «muted:3 items»
+> «accent:REQ-001»     Readings are logged every second     «keyword:approved»
+    «accent:REQ-002»   Logged readings survive a power cut  «accent:draft»
+  «accent:REQ-003»     The log exports as CSV               «keyword:approved»
+  «title:decision»  «muted:1 item»
+  «accent:ADR-001»     Store readings in SQLite             «keyword:accepted»
+  «title:milestone»  «muted:2 items»
+  «accent:MS-001»      First release                        «keyword:active»
+  «accent:MS-002»      Second release                       «accent:planned»
+  «title:task»  «muted:8 items»
+  «accent:TASK-001»    Set up the logger                    «good:done»
+  «accent:TASK-002»    Write readings to SQLite             «keyword:doing»
+    «accent:TASK-007»  Batch the writes                     «accent:todo»
+  «accent:TASK-003»    Export the log as CSV                «accent:todo»
+  «accent:TASK-004»    Add the export button                «accent:todo»
+  «accent:TASK-005»    Ask about retention rules            «bad:blocked»
+  «accent:TASK-006»    Draft the user guide                 «accent:todo»
+  «accent:TASK-008»    Tidy the build scripts               «accent:todo»
+  «title:test»  «muted:1 item»
+  «accent:TEST-001»    Readings arrive every second         «keyword:passing»
+  «title:risk»  «muted:1 item»
+  «accent:RISK-001»    The SD card wears out                «accent:open»
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  «accent:Enter» «muted:open»  «accent:/» «muted:filter»  «accent:a» «muted:show closed»  «accent:v» «muted:item»  «accent:i» «muted:impact»  «accent:r» «muted:reload»  «accent:Tab» «muted:next tab»
+[more keys, mouse]

@@ -279,6 +279,8 @@ pub struct Project {
     /// the first look, `Some(None)` outside a repository.
     git: Option<Option<(Option<String>, Option<String>)>>,
     notices: Vec<Notice>,
+    /// How many reads have loaded ([`Project::loads`]).
+    loads: u64,
 }
 
 impl Project {
@@ -320,6 +322,14 @@ impl Project {
             Phase::Ready(v) => Some(v),
             _ => None,
         }
+    }
+
+    /// How many reads have loaded a project so far: a page tells a new
+    /// read from the one it built its rows from by this, so it builds them
+    /// again only when there's a new one -- not on every [`Notice::Changed`],
+    /// which a reload starting or failing brings too.
+    pub fn loads(&self) -> u64 {
+        self.loads
     }
 
     /// Whether a reload runs or waits.
@@ -694,6 +704,7 @@ impl Project {
                     .plan
                     .unwrap_or_else(|| Err("kiln status gave no answer".into()));
                 self.loaded = Some(Loaded::new(version, items, plan, findings));
+                self.loads += 1;
                 self.error = None;
                 self.no_project = None;
                 self.end_reading();

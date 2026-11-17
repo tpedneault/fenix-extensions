@@ -1,0 +1,40 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+decision  23 items
+ADR-010    kiln stays a console program; kilnw opens the GUI                                       accepted
+ADR-011    Word files are written directly, not through docx-rs                                    accepted
+ADR-012    The GUI edits front matter, never prose                                                 accepted
+ADR-014    Kiln pushes the tasks it manages to Jira                                                accepted
+ADR-015    Presets are copied into the project and stack without duplicates                        accepted
+ADR-016    Requirement levels are types in order, traced upward by a link; derived ones are mark…  accepted
+ADR-017    The agent guide lives in the design folder, its rules written once and its descriptio…  accepted
+ADR-018    Ready work is open work whose dependencies are finished; milestones group it, they do…  accepted
+ADR-019    An editor the user names for Kiln comes before Fenix; VISUAL and EDITOR come after it   accepted
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+/adr-01  Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab

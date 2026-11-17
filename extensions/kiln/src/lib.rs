@@ -41,8 +41,10 @@ pub(crate) use fenix_extension_api as api;
 #[cfg(test)]
 pub(crate) use fenix_test_kit::api;
 
-use api::{page as pages_api, Event, Extension, Key, Page};
+use api::{page as pages_api, Event, Extension, Key, KeyPress, KeyScheme, MouseEvent, Page};
 use lsp::Lsp;
+use pages::frame::{Effect, Hints, Now, Plan};
+use pages::Tab;
 use project::{Notice, Project, QueryId, Why};
 use tasks::Offer;
 
@@ -54,13 +56,21 @@ const PLAN: &str = "plan";
 const PROJECT: &str = "/project";
 
 /// Who asked a query ([`Project::query`]), so its answer goes to them.
-/// One map for every asker: a page that asks adds its own variant (with
-/// its page id) and is handed its answers in [`Kiln::pass_on`]. An answer
-/// no one's waiting for -- its page closed -- is dropped.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// One map for every asker, handed its answers in [`Kiln::pass_on`]. An
+/// answer no one's waiting for -- its page closed -- is dropped.
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum For {
     /// `kiln lsp --languages`, for [`Lsp`].
     Languages,
+    /// A plan page's tab: its view's query `tag`
+    /// ([`pages::view::View::queries`]).
+    Plan { page: u64, tab: Tab, tag: String },
+}
+
+/// One plan page: whether it's in view, and its tabs.
+struct PlanPage {
+    shown: bool,
+    plan: Plan,
 }
 
 /// What was last given to Fenix, so each of the three is given again only
@@ -82,8 +92,9 @@ const MOST_ROUNDS: usize = 16;
 #[derive(Default)]
 struct Kiln {
     project: Project,
-    /// Its pages, and whether each is in view.
-    pages: HashMap<u64, bool>,
+    /// Its plan pages: several may be open, in different panes, each
+    /// with its own tab, cursors and filters.
+    pages: HashMap<u64, PlanPage>,
     lsp: Lsp,
     /// The queries waiting for an answer, and who for.
     asked: HashMap<QueryId, For>,
@@ -128,15 +139,28 @@ impl Kiln {
                         Some(For::Languages) => {
                             self.lsp.answered(id, &result, self.project.version())
                         }
+                        Some(For::Plan { page, tab, tag }) => {
+                            if let Some(p) = self.pages.get_mut(&page) {
+                                if p.plan.answered(tab, &tag, id, &result) {
+                                    pages_api::refresh(page);
+                                }
+                            }
+                        }
                         None => {}
                     },
                 }
             }
-            if !decide {
+            // A page's tab may want kiln asked something: on a new read,
+            // a tab shown, an item handed on. Its answer may be here at
+            // once (kiln unusable): another round.
+            let asked = self.ask_for_pages();
+            if !decide && !asked {
                 break;
             }
             // Asking brings an answer, maybe at once: another round.
-            decide = self.decide_lsp();
+            if decide {
+                decide = self.decide_lsp();
+            }
         }
         if changed {
             for &p in self.pages.keys() {
@@ -281,8 +305,73 @@ impl Kiln {
     }
 
     fn shown_changed(&mut self) {
-        let any = self.pages.values().any(|&shown| shown);
+        let any = self.pages.values().any(|p| p.shown);
         self.project.set_shown(any);
+    }
+
+    /// What each page in view wants asked of kiln, asked: whether any was.
+    /// A page out of view asks once it's shown again.
+    fn ask_for_pages(&mut self) -> bool {
+        let now = Now {
+            state: self.project.state(),
+            loads: self.project.loads(),
+        };
+        let mut wanted = Vec::new();
+        for (&page, p) in self.pages.iter_mut().filter(|(_, p)| p.shown) {
+            wanted.extend(p.plan.wants(now).into_iter().map(|a| (page, a)));
+        }
+        let asked = !wanted.is_empty();
+        for (page, ask) in wanted {
+            let who = For::Plan {
+                page,
+                tab: ask.tab,
+                tag: ask.tag.clone(),
+            };
+            let id = self.ask(ask.args.clone(), who);
+            let loads = self.project.loads();
+            if let Some(p) = self.pages.get_mut(&page) {
+                p.plan.asked(
+                    &ask,
+                    id,
+                    Now {
+                        state: self.project.state(),
+                        loads,
+                    },
+                );
+            }
+        }
+        asked
+    }
+
+    /// Something done on plan page `page` -- a key, a click -- and what it
+    /// asks of Fenix done.
+    fn on_page(&mut self, page: u64, act: impl FnOnce(&mut Plan, Now) -> Vec<Effect>) {
+        let now = Now {
+            state: self.project.state(),
+            loads: self.project.loads(),
+        };
+        let Some(p) = self.pages.get_mut(&page) else {
+            return;
+        };
+        let effects = act(&mut p.plan, now);
+        for effect in effects {
+            match effect {
+                Effect::Open(place) => {
+                    let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
+                    let path = root.join(&place.path);
+                    api::host::open_file(&path.to_string_lossy(), place.line);
+                }
+                Effect::Reload => self.reload(),
+            }
+        }
+        self.pass_on();
+    }
+
+    /// A plan page, `page`, kept: in view.
+    fn add_page(&mut self, page: u64, plan: Plan) {
+        self.pages.insert(page, PlanPage { shown: true, plan });
+        self.project.start();
+        self.shown_changed();
     }
 }
 
@@ -298,12 +387,13 @@ impl Extension for Kiln {
     fn run_command(&mut self, id: &str) -> Result<(), String> {
         match id {
             "kiln.open" => {
-                match self.pages.keys().next() {
+                // The first opened, when there's one: it keeps its tab.
+                match self.pages.keys().min() {
                     Some(&p) => pages_api::focus(p),
                     None => {
                         let p = pages_api::open(PLAN, "Kiln");
                         // Opened is in view; PageShown confirms it.
-                        self.pages.insert(p, true);
+                        self.add_page(p, Plan::new());
                     }
                 }
                 self.project.start();
@@ -331,8 +421,8 @@ impl Extension for Kiln {
                 self.project.timer(t);
             }
             Event::PageShown((p, shown)) => {
-                if let Some(s) = self.pages.get_mut(&p) {
-                    *s = shown;
+                if let Some(page) = self.pages.get_mut(&p) {
+                    page.shown = shown;
                     self.shown_changed();
                 }
             }
@@ -357,21 +447,75 @@ impl Extension for Kiln {
         self.pass_on();
     }
 
-    fn page(&mut self, _page: u64, _width: u32, _height: u32) -> Page {
-        pages::plan::page(self.project.state())
+    fn page(&mut self, page: u64, width: u32, height: u32) -> Page {
+        let hints = Hints {
+            doctor: api::key_for("project.doctor"),
+            settings: api::key_for("settings.open"),
+        };
+        let now = Now {
+            state: self.project.state(),
+            loads: self.project.loads(),
+        };
+        let Some(p) = self.pages.get_mut(&page) else {
+            return Page::new().line([pages_api::muted("this page was closed")]);
+        };
+        p.plan
+            .render(now, &hints, width as usize, height as usize)
+            .to_page()
     }
 
-    fn page_key(&mut self, _page: u64, key: Key) {
-        if key == Key::Char('r') {
-            self.reload();
-            self.pass_on();
+    fn page_key(&mut self, page: u64, key: Key) {
+        let press = fenix_ui_kit::KeyPress::from(fenix_ui_kit::Key::from(key));
+        self.on_page(page, |plan, now| plan.key(press, now));
+    }
+
+    /// `C-d`, `C-u`, PageUp and PageDown; Shift and Ctrl with a key in
+    /// the filter.
+    fn page_key_press(&mut self, page: u64, key: KeyPress) {
+        if let Some(press) = fenix_ui_kit::KeyPress::from_api(&key) {
+            self.on_page(page, |plan, now| plan.key(press, now));
         }
+    }
+
+    fn page_mouse(&mut self, page: u64, event: MouseEvent) {
+        let m = fenix_ui_kit::Mouse::from(&event);
+        self.on_page(page, |plan, now| plan.mouse(&m, now));
+    }
+
+    fn page_paste(&mut self, page: u64, text: &str) {
+        self.on_page(page, |plan, _| {
+            plan.paste(text);
+            Vec::new()
+        });
+    }
+
+    /// The tab, and each tab's cursor, filter and toggles.
+    fn page_state(&mut self, page: u64) -> Option<String> {
+        self.pages.get(&page).map(|p| p.plan.save())
+    }
+
+    /// A plan page as it was saved; a state it can't read opens as a new
+    /// page does, rather than not at all.
+    fn page_restore(&mut self, page: u64, kind: &str, state: &str) -> bool {
+        if kind != PLAN {
+            return false;
+        }
+        self.add_page(page, Plan::restore(state));
+        self.pass_on();
+        true
     }
 
     fn page_closed(&mut self, page: u64) {
         self.pages.remove(&page);
         self.shown_changed();
         self.pass_on();
+    }
+
+    /// The hints that name Fenix's keys are drawn again.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        for &p in self.pages.keys() {
+            pages_api::refresh(p);
+        }
     }
 }
 
@@ -421,15 +565,36 @@ mod tests {
             .collect()
     }
 
-    const LOADED: &str = "Demo\n16 items · kiln 1.0.0\nMS-001 First release  1 of 5 done\nMS-002 Second release  0 of 2 done\nno milestone  0 of 1 done\n1 error, 2 warnings\n\nr read again\n";
+    use fenix_test_kit::assert_snapshot;
 
-    #[test]
-    fn open_reads_the_project_and_shows_it() {
-        let fake = demo();
+    /// The size snapshots are drawn at: wide enough for every tab.
+    const WIDE: (u32, u32) = (110, 26);
+
+    /// The plan opened on the demo project, drawn wide.
+    fn opened(fake: &Fake) -> (Harness<Kiln>, u64) {
         let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.size = WIDE;
         h.command("kiln.open").unwrap();
         let page = h.page("plan");
-        assert_eq!(h.screen(page), LOADED);
+        (h, page)
+    }
+
+    /// The ID under the cursor on page `page`'s tab shown.
+    fn at(h: &Harness<Kiln>, page: u64) -> Option<String> {
+        h.ext.pages.get(&page)?.plan.id().map(str::to_string)
+    }
+
+    /// The screen's last line: the bottom line.
+    fn foot(h: &mut Harness<Kiln>, page: u64) -> String {
+        h.screen(page).lines().last().unwrap_or("").to_string()
+    }
+
+    #[test]
+    fn open_reads_the_project_and_shows_its_tree() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        assert_snapshot!("tree-demo", h.screen(page));
+        assert_snapshot!("tree-demo-marked", h.marked(page));
         assert_eq!(
             spawned(&fake)
                 .iter()
@@ -438,19 +603,96 @@ mod tests {
             // version, list, status, check, then lsp --languages.
             5
         );
+        // At 80 cells the tabs after the one shown give way.
+        h.size = (80, 24);
+        assert_snapshot!("tree-demo-80", h.screen(page));
+    }
+
+    #[test]
+    fn kilns_own_tree_with_closed_items_shown_on_a() {
+        let fake = own();
+        let (mut h, page) = opened(&fake);
+        h.size = (110, 40);
+        assert_snapshot!("tree-own", h.screen(page));
+        h.keys(page, "/adr-01<Enter>");
+        assert_snapshot!("tree-own-adr", h.screen(page));
+        assert!(!h.screen(page).contains("ADR-013"));
+        h.key(page, Key::Char('a'));
+        let s = h.screen(page);
+        assert!(s.contains("ADR-013") && s.contains("superseded"), "{s}");
+        assert!(s.ends_with("/adr-01  closed items shown\n"), "{s}");
+        h.key(page, Key::Char('a'));
+        assert!(!h.screen(page).contains("ADR-013"));
+    }
+
+    #[test]
+    fn the_filter_narrows_as_you_type() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        h.keys(page, "/sql");
+        assert!(h.marked(page).ends_with("[typing, more keys, mouse]\n"));
+        h.keys(page, "ite");
+        assert_snapshot!("tree-demo-filter", h.screen(page));
+        h.keys(page, "<Esc>");
+        assert!(h.screen(page).contains("REQ-001"));
+        assert!(!h.marked(page).contains("typing"));
+    }
+
+    #[test]
+    fn enter_and_a_double_click_open_the_item_at_its_line() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        fake.take();
+        h.keys(page, "jj<Enter>");
+        assert_eq!(
+            fake.take(),
+            ["open /project/design/requirements/REQ-003-the-log-exports-as-csv.md:2"]
+        );
+        // Line 2 is the first heading; the decision's row is line 7. The
+        // mouse is where the page was last drawn.
+        h.screen(page);
+        h.click(page, 7, 3, 1);
+        assert!(fake.take().is_empty(), "one click only moves the cursor");
+        assert_eq!(at(&h, page).as_deref(), Some("ADR-001"));
+        h.click(page, 7, 3, 2);
+        assert_eq!(
+            fake.take(),
+            ["open /project/design/decisions/ADR-001-store-readings-in-sqlite.md:2"]
+        );
+        // A click on a tab shows it.
+        h.click(page, 0, 12, 1);
+        assert!(h.screen(page).contains("Trace: not built yet"));
+    }
+
+    #[test]
+    fn tabs_switch_and_v_and_i_hand_the_item_on() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        h.key(page, Key::Tab);
+        assert!(h.screen(page).contains("\nTrace: not built yet\n"));
+        h.keys(page, "9");
+        assert!(h.screen(page).contains("\nCheck: not built yet\n"));
+        h.keys(page, "1jv");
+        assert!(h
+            .screen(page)
+            .contains("\nItem of REQ-002: not built yet\n"));
+        h.keys(page, "1Gi");
+        assert!(h
+            .screen(page)
+            .contains("\nImpact of RISK-001: not built yet\n"));
+        // Back on the Tree, the cursor is where it was.
+        h.keys(page, "1");
+        assert_eq!(at(&h, page).as_deref(), Some("RISK-001"));
     }
 
     #[test]
     fn loading_shows_while_kiln_reads() {
         let fake = demo();
         fake.on_spawn("kiln list", Ran::running(""));
-        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
-        h.command("kiln.open").unwrap();
-        let page = h.page("plan");
-        assert_eq!(
-            h.screen(page),
-            "Kiln\nreading the project…\n\nr read again\n"
-        );
+        let (mut h, page) = opened(&fake);
+        let s = h.screen(page);
+        assert!(s.contains("\nreading the project…\n"), "{s}");
+        assert!(s.ends_with("r try again  Tab next tab\n"), "{s}");
     }
 
     #[test]
@@ -459,9 +701,7 @@ mod tests {
         for pattern in ["kiln list", "kiln status", "kiln check"] {
             fake.on_spawn(pattern, Ran::running(""));
         }
-        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
-        h.command("kiln.open").unwrap();
-        let page = h.page("plan");
+        let (mut h, page) = opened(&fake);
         for (pattern, file, code) in [
             ("kiln list", "demo/list.json", 0),
             ("kiln status", "demo/status.json", 0),
@@ -474,18 +714,23 @@ mod tests {
             h.said(p, "kiln: 1 error, 2 warnings", true);
             h.exited(p, Some(code));
         }
-        assert_eq!(h.screen(page), LOADED);
+        let at_once = {
+            let (mut h, page) = opened(&demo());
+            h.screen(page)
+        };
+        assert_eq!(h.screen(page), at_once);
     }
 
     #[test]
     fn kiln_missing_says_how_to_set_kiln_path() {
         let fake = Fake::new();
-        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
-        h.command("kiln.open").unwrap();
-        let page = h.page("plan");
-        assert!(h.screen(page).starts_with(
-            "Kiln\nkiln isn't on the PATH: install Kiln, or set kiln.path to where kiln is\n"
-        ));
+        fake.key("project.doctor", "SPC p h")
+            .key("settings.open", "SPC h s");
+        let (mut h, page) = opened(&fake);
+        assert_snapshot!("not-found", h.screen(page));
+        // On every tab.
+        h.keys(page, "4");
+        assert!(h.screen(page).contains("\nkiln isn't on the PATH"));
         // Set, it's looked for again at once.
         fake.on_spawn("/opt/kiln/kiln --version", Ran::ok("kiln 1.0.0\n"))
             .on_spawn("/opt/kiln/kiln list", Ran::ok(fixture("demo/list.json")));
@@ -497,27 +742,44 @@ mod tests {
     }
 
     #[test]
-    fn a_kiln_error_is_shown_as_kiln_wrote_it() {
-        let fake = demo();
-        fake.on_spawn(
-            "kiln list",
-            Ran::fails(2, "kiln: kiln.toml:4: unknown key `nmae`"),
-        );
-        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
-        h.command("kiln.open").unwrap();
-        let page = h.page("plan");
-        assert_eq!(
-            h.screen(page),
-            "Kiln\nkiln: kiln.toml:4: unknown key `nmae`\n\nr read again\n"
-        );
+    fn whats_in_the_way_is_said_in_the_projects_words() {
+        let cases: [(&str, Ran, &str); 4] = [
+            (
+                "kiln --version",
+                Ran::ok("kiln 0.9.4\n"),
+                "kiln 0.9.4 is older than 1.0.0, the oldest this extension reads: update Kiln",
+            ),
+            (
+                "kiln --version",
+                Ran::fails(2, "error: unknown flag --version"),
+                "kiln can't be used: error: unknown flag --version",
+            ),
+            (
+                "kiln list",
+                Ran::fails(2, fixture("errors/no-kiln-toml.stderr")),
+                "kiln: no kiln.toml in <dir> or any folder above it (run `kiln init` to start a project)",
+            ),
+            (
+                "kiln list",
+                Ran::fails(2, "kiln: kiln.toml:4: unknown key `nmae`"),
+                "kiln: kiln.toml:4: unknown key `nmae`",
+            ),
+        ];
+        for (pattern, ran, said) in cases {
+            let fake = demo();
+            fake.on_spawn(pattern, ran);
+            let (mut h, page) = opened(&fake);
+            let s = h.screen(page);
+            assert!(s.contains(&format!("\n{said}\n")), "{said}: {s}");
+            assert!(s.starts_with("1 Tree "), "{s}");
+        }
     }
 
     #[test]
     fn a_failing_reload_keeps_the_loaded_project() {
         let fake = demo();
-        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
-        h.command("kiln.open").unwrap();
-        let page = h.page("plan");
+        let (mut h, page) = opened(&fake);
+        h.keys(page, "jj");
         fake.on_spawn(
             "kiln list",
             Ran::fails(
@@ -527,22 +789,37 @@ mod tests {
         );
         h.saved("/home/me/demo/design/tasks/TASK-001-set-up-the-logger.md");
         let s = h.screen(page);
-        assert!(s.starts_with("Demo\n16 items"), "{s}");
-        assert!(s.contains("the last read failed: kiln: design/tasks/TASK-001-set-up-the-logger.md:1: front matter can't be parsed\n"), "{s}");
+        assert!(s.contains("\nTASK-001 "), "{s}");
+        assert_eq!(foot(&mut h, page), "the last read failed: kiln: design/tasks/TASK-001-set-up-the-logger.md:1: front matter can't be parsed");
+        assert_eq!(
+            at(&h, page).as_deref(),
+            Some("REQ-003"),
+            "the cursor where it was"
+        );
+        // A key's message goes before it, then it's back.
+        h.key(page, Key::Char('a'));
+        assert_eq!(foot(&mut h, page), "closed items shown");
+        h.key(page, Key::Char('j'));
+        assert!(foot(&mut h, page).starts_with("the last read failed"));
     }
 
     #[test]
     fn two_reloads_while_one_runs_run_one_more() {
         let fake = demo();
-        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
-        h.command("kiln.open").unwrap();
+        let (mut h, page) = opened(&fake);
+        let loaded = h.screen(page);
         fake.take();
         fake.on_spawn("kiln list", Ran::running(fixture("demo/list.json")));
         h.command("kiln.reload").unwrap();
         h.command("kiln.reload").unwrap();
-        let page = h.page("plan");
         h.key(page, Key::Char('r'));
-        assert!(h.screen(page).ends_with("reading again…\n\nr read again\n"));
+        assert!(h.screen(page).starts_with("1 Tree "));
+        assert!(h
+            .screen(page)
+            .lines()
+            .next()
+            .unwrap()
+            .ends_with("reading…  Demo  1 error"));
         let first = fake.process("kiln list").unwrap().id;
         fake.on_spawn("kiln list", Ran::ok(fixture("demo/list.json")));
         h.exited(first, Some(0));
@@ -551,7 +828,86 @@ mod tests {
             .filter(|l| l.ends_with("kiln list --format json"))
             .count();
         assert_eq!(lists, 2);
-        assert_eq!(h.screen(page), LOADED);
+        assert_eq!(h.screen(page), loaded);
+    }
+
+    #[test]
+    fn the_page_state_round_trips_through_fenix() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        h.keys(page, "jja/req<Enter>4");
+        let state = h.ext.page_state(page).unwrap();
+        assert!(state.starts_with(r#"{"tab":"board","tabs":{"#), "{state}");
+        let screen = h.screen(page);
+        h.close(page);
+        assert!(h.ext.page_restore(41, "plan", &state));
+        h.settle();
+        assert_eq!(h.screen(41), screen);
+        h.keys(41, "1");
+        let s = h.screen(41);
+        assert!(
+            s.ends_with("/req  closed items shown\n") || s.contains("\n/req  "),
+            "{s}"
+        );
+        assert_eq!(at(&h, 41).as_deref(), Some("REQ-003"), "{}", h.marked(41));
+        // Not ours, or a state it can't read: refused, or a new page.
+        assert!(!h.ext.page_restore(42, "other", &state));
+        assert!(h.ext.page_restore(43, "plan", "{\"v\": 99}"));
+        assert!(h.screen(43).contains("\nREQ-001 "));
+    }
+
+    #[test]
+    fn two_pages_keep_their_own_tabs_and_answers_go_to_the_asker() {
+        use crate::pages::frame::tests::Asking;
+        let fake = demo();
+        fake.on_spawn("kiln show", Ran::ok("REQ-002, shown"));
+        let (mut h, one) = opened(&fake);
+        assert!(h.ext.page_restore(2, "plan", "{}"));
+        h.event(Event::PageShown((2, true)));
+        for p in [one, 2] {
+            h.ext
+                .pages
+                .get_mut(&p)
+                .unwrap()
+                .plan
+                .set_view(Tab::Item, Box::<Asking>::default());
+        }
+        fake.take();
+        h.keys(2, "4");
+        h.keys(one, "jv");
+        assert_eq!(
+            spawned(&fake),
+            ["/usr/bin/kiln show REQ-002"],
+            "one ask, from the page that handed it on"
+        );
+        assert!(h.screen(one).contains("\nREQ-002, shown\n"));
+        assert!(h.screen(2).contains("\nBoard: not built yet\n"));
+        h.keys(2, "8");
+        assert!(
+            h.screen(2).contains("\nnothing\n"),
+            "the other page's Item asked nothing"
+        );
+        // A reload asks again, for the page whose Item tab is shown; one
+        // closed while its answer is out drops it.
+        fake.on_spawn("kiln show", Ran::running(""));
+        h.key(one, Key::Char('r'));
+        assert_eq!(
+            spawned(&fake)
+                .iter()
+                .filter(|l| l.contains(" show "))
+                .count(),
+            1
+        );
+        assert!(foot(&mut h, one) == "reading…", "{}", h.screen(one));
+        assert!(
+            h.screen(one).contains("\nREQ-002, shown\n"),
+            "the last answer stays meanwhile"
+        );
+        let p = fake.process("kiln show").unwrap().id;
+        h.close(one);
+        h.said(p, "late", false);
+        h.exited(p, Some(0));
+        assert!(h.ext.asked.is_empty());
     }
 
     #[test]
