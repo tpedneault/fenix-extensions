@@ -172,11 +172,18 @@ cd "$demo"
 record_project "$out/demo" REQ-001 REQ-002 ADR-001 MS-001 TASK-002 TASK-004 TEST-001 TASK-006
 rec "$out/demo" impact-REQ-001 json impact REQ-001 --format json
 rec "$out/demo" diff-v0.1 json diff v0.1 --format json
+rec "$out/demo" diff-v0.1 txt diff v0.1
+# The other way round, what v0.1 would lose: the added items as removed.
+rec "$out/demo" diff-removed json diff HEAD..v0.1 --format json
+rec "$out/demo" diff-removed txt diff HEAD..v0.1
+# Nothing changed since the last commit.
+rec "$out/demo" diff-none json diff HEAD --format json
 rec "$out/demo" next-unowned json next --unowned --format json
 rec "$out/demo" check txt check
 rec "$out/errors" unknown-id out show TASK-099 --format json
 rec "$out/errors" bad-id out show NOPE-1 --format json
 rec "$out/errors" bad-status out set TASK-001 status=finished
+rec "$out/errors" diff-unknown-rev out diff v9.9 --format json
 
 own="$tmp/kiln"
 git clone -q --no-checkout "$KILN_SOURCE" "$own"
@@ -195,6 +202,14 @@ cd "$empty"
 rec "$out/errors" no-kiln-toml out list --format json
 # The folder kiln names is this machine's: `<dir>` instead.
 sed -i "s|$empty|<dir>|g" "$out/errors/no-kiln-toml.stderr"
+
+# A project outside any repository: `diff` has nothing to read.
+loose="$tmp/loose"
+mkdir -p "$loose"
+cd "$loose"
+"$KILN" init --name Demo >/dev/null 2>&1
+rec "$out/errors" diff-no-repo out diff v0.1 --format json
+sed -i "s|$loose|<dir>|g" "$out/errors/diff-no-repo.stderr"
 
 # The demo's source, without its git history.
 mkdir -p "$here/demo"

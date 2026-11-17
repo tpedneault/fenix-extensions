@@ -1,0 +1,13 @@
+v0.1 (f496961) → the working tree
+~ REQ-002 Logged readings survive a power cut: + mitigates RISK-001
+~ TASK-001 Set up the logger: status todo → done
+~ TASK-002 Write readings to SQLite: status todo → doing; owner (none) → ana
+~ TASK-003 Export the log as CSV: owner (none) → bo
++ TASK-004 Add the export button (task)
++ TASK-005 Ask about retention rules (task)
++ TASK-006 Draft the user guide (task)
++ TASK-007 Batch the writes (task)
++ TASK-008 Tidy the build scripts (task)
++ TEST-001 Readings arrive every second (test)
++ RISK-001 The SD card wears out (risk)
+7 added, 4 changed, 0 removed

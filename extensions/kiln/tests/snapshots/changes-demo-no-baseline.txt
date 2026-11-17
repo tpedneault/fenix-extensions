@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+no baseline yet: kiln diff compares with a revision, and can't say "the latest tag"
+press b to set one: a tag, a branch or a commit (v1.0, main, 1a2b3c4), or A..B for two
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+b baseline  Enter open  / filter  v item  i impact  r reload  Tab next tab
