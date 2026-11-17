@@ -1,0 +1,40 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+requirement  25 items  no gaps  columns: implements | verifies
+REQ-001  The repository is the source of t…  through children               cli.rs:957
+REQ-002  Readable without Kiln               apply.rs:82, docx.rs:131 +3    tests.rs:301, tests.rs:326 +3
+REQ-003  Checkable in CI                     through children               through children
+REQ-004  Fast and keyboard-first             through children               through children
+REQ-005  Works on a locked-down corporate …  through children               through children
+REQ-006  No tool requires another            check.rs:48                    cli.rs:878
+REQ-007  kiln check on 2,000 items and 50k…  project.rs:170                 bench.rs:344
+REQ-008  Language server responds within 5…  project.rs:299                 bench.rs:344, tests.rs:367 +2
+REQ-009  Flint provider answers within 16 …  items.rs:205                   bench.rs:344, tests.rs:177
+REQ-010  Export dry run of a 2,000-item do…  lib.rs:56                      bench.rs:344
+REQ-011  Findings name the file, line and …  finding.rs:154                 finding.rs:214
+REQ-012  Findings show on merge requests     output.rs:23                   output.rs:164, output.rs:178
+REQ-013  Edits keep the author's formattin…  write.rs:48, edit.rs:60        tests.rs:723, edit.rs:257 +2
+REQ-014  No secrets in kiln.toml             agents.rs:157, config.rs:262   agents.rs:157, config.rs:1067
+REQ-015  Duplicate IDs are found and fixed…  rules.rs:223, renumber.rs:44   tests.rs:113, tests.rs:272 +1
+REQ-016  Changes since a baseline are show…  diff.rs:254                    tests.rs:425, cli.rs:720
+REQ-017  The GUI opens any project from a …  home.rs:205                    home.rs:1048, home.rs:1137 +1
+REQ-018  Requirements at several levels tr…  rules.rs:581, levels.rs:75 +1  tests.rs:516, tests.rs:173 +1
+REQ-019  Coding agents find how this proje…  rules.rs:41, agents.rs:189     agents.rs:546, cli.rs:1321
+REQ-020  Coding agents read the plan and a…  TASK-001, TASK-002 +10         tests.rs:619, new_item.rs:244 +3
+REQ-021  A person uses Kiln without an age…  TASK-007, TASK-008 +3          main.rs:663, cli.rs:1474
+REQ-022  Every view of the plan agrees, an…  TASK-012, TASK-013 +6          tests.rs:686, tests.rs:248 +2
+REQ-023  The trace says what passed, and a…  TASK-017, TASK-018 +6          affected.rs:123, results.rs:106 +1
+REQ-024  Sign-off is visible: who moved wh…  TASK-020, TASK-021 +2          config.rs:1140, cli.rs:1658
+REQ-025  A one-page document reads top-dow…  assemble.rs:397                tests.rs:1329, tests.rs:829
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+m only gaps  T next type  Enter open  / filter  v item  i impact  r reload  Tab next tab

@@ -171,6 +171,10 @@ record_project() { # record_project DIR SHOW-IDS...
 cd "$demo"
 record_project "$out/demo" REQ-001 REQ-002 ADR-001 MS-001 TASK-002 TASK-004 TEST-001 TASK-006
 rec "$out/demo" impact-REQ-001 json impact REQ-001 --format json
+rec "$out/demo" impact-TASK-002 json impact TASK-002 --format json
+rec "$out/demo" impact-TASK-006 json impact TASK-006 --format json
+rec "$out/demo" trace-task json trace --type task --format json
+rec "$out/demo" trace-risk json trace --type risk --format json
 rec "$out/demo" diff-v0.1 json diff v0.1 --format json
 rec "$out/demo" diff-v0.1 txt diff v0.1
 # The other way round, what v0.1 would lose: the added items as removed.
@@ -181,6 +185,9 @@ rec "$out/demo" diff-none json diff HEAD --format json
 rec "$out/demo" next-unowned json next --unowned --format json
 rec "$out/demo" check txt check
 rec "$out/errors" unknown-id out show TASK-099 --format json
+rec "$out/errors" impact-unknown-id out impact TASK-099 --format json
+rec "$out/errors" trace-unknown-type out trace --type nosuch --format json
+rec "$out/errors" trace-levels out trace --levels --format json
 rec "$out/errors" bad-id out show NOPE-1 --format json
 rec "$out/errors" bad-status out set TASK-001 status=finished
 rec "$out/errors" diff-unknown-rev out diff v9.9 --format json

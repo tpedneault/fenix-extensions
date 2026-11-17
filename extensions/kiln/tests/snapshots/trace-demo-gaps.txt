@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+requirement  3 items  2 gaps  columns: implements | verifies
+REQ-002  Logged readings survive a power cut  gap       gap
+REQ-003  The log exports as CSV               TASK-003  gap
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+m all items  T next type  Enter open  / filter  v item  i impact  r reload  Tab next tab
