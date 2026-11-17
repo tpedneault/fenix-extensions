@@ -17,7 +17,8 @@ fenix = ">=1.6, <2"
 api = "1.5"
 
 # A command loads it, or a project with a kiln.toml at its top. Loading
-# asks nothing of kiln: the project is read when a page opens.
+# looks for kiln and reads the project once, to register Kiln's language
+# server (kiln lsp) unless .fenix/tools.json already runs it.
 [activation]
 commands = ["kiln.*"]
 markers = ["kiln.toml"]
@@ -29,8 +30,9 @@ markers = ["kiln.toml"]
 # its own Confluence and Jira credentials; the extension never sees them.
 # The path kiln.path holds, when kiln isn't on the PATH.
 process = ["kiln", "${setting:kiln.path}"]
-# The open project, read-only: kiln.toml and what the project's tools
-# file says about its language servers. Nothing here writes a file.
+# The open project, read-only: kiln.toml, and .fenix/tools.json to tell
+# whether the project already runs kiln's language server (then this
+# adds none). Nothing here writes a file.
 filesystem = "project-read"
 # Where you are, so a page can follow the item ID under the cursor and a
 # file's items can be found. Never changes a buffer.

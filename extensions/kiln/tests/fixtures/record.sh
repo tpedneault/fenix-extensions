@@ -21,6 +21,13 @@
 #   out/demo/  kiln's answers about the demo
 #   out/version.txt, out/errors/   `kiln --version`, and two errors
 #
+# `lsp-languages` in out/demo/ and out/own/ is `kiln lsp --languages
+# --format json`. Kiln 1.0.0 has no --languages: recorded with it, these
+# hold its refusal (exit 2, one stderr line, no stdout), which the tests
+# read as such. A kiln that has it records its JSON there instead; until
+# one is released, the JSON the tests read is hand-written, in ../hand/
+# (not made or touched by this script).
+#
 # Each answer is `<name>.<ext>` (stdout as kiln printed it), with
 # `<name>.stderr` when kiln said something on stderr and `<name>.exit`
 # holding its exit code. Nothing written holds a path of this machine's:
@@ -158,6 +165,7 @@ record_project() { # record_project DIR SHOW-IDS...
   done
   rec "$d" trace json trace --format json
   rec "$d" export-dry-run json export --dry-run --format json
+  rec "$d" lsp-languages json lsp --languages --format json
 }
 
 cd "$demo"

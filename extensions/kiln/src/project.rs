@@ -37,9 +37,9 @@
 //! reload is skipped, not queued, when one runs: it would only repeat it.
 //!
 //! Nothing is asked of kiln until something wants the project
-//! ([`Project::start`], a page opening): an idle project ignores saves,
-//! git and timers, so a Fenix with the extension loaded and no page open
-//! runs no kiln.
+//! ([`Project::start`]: the extension loading, since Kiln's language
+//! server is decided from it, or a page opening): an idle project ignores
+//! saves, git and timers.
 //!
 //! # Where kiln runs
 //!

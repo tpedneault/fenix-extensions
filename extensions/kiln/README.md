@@ -15,6 +15,20 @@ when git's head moves, and every `kiln.refresh_seconds` while the page is
 in view. The plan's pages, edits, exports and agent tools are what the
 next versions add.
 
+**Kiln's language server** (`kiln lsp`: completion, hover, `gd`, `gr`,
+rename and problems in item files and code references) is registered as
+the project loads, beside the other servers, with the same kiln the
+extension runs. Its languages are what `kiln lsp --languages` says (Markdown
+and the languages of the code `[code] paths` scans); a kiln without that
+command -- 1.0.0 is one -- gets Markdown only, said once on the extension's
+output page (`SPC h l`), and a later kiln adds the code languages. A
+project whose `.fenix/tools.json` already runs kiln (what `kiln init
+--fenix` writes, or its older form) keeps that one, and the extension adds
+none, so kiln never runs twice; remove the entry and save, and the
+extension's takes over. It's set again only when the languages or the kiln
+change (`kiln.path`, `kiln.toml` saved, `r`), and taken away when kiln
+isn't found, is too old, or finds no `kiln.toml`.
+
 ## Keys
 
 After `SPC m`, in a Kiln project:
@@ -35,8 +49,9 @@ After `SPC m`, in a Kiln project:
 
 - **Run `kiln`** (`process`), or the path `kiln.path` holds: nothing else.
   The extension never writes an item file itself; kiln does, when asked.
-- **Read the project** (`filesystem = "project-read"`): `kiln.toml` and
-  what the project's tools file says about its language servers.
+- **Read the project** (`filesystem = "project-read"`): `kiln.toml`, and
+  `.fenix/tools.json`, only to tell whether it already runs kiln's
+  language server.
 - **Read the editor** (`editor = "read"`): where you are, so a page can
   follow the item ID under the cursor. It changes no buffer.
 
@@ -56,3 +71,8 @@ record it again and read the diff:
 ```text
 extensions/kiln/tests/fixtures/record.sh /path/to/kiln
 ```
+
+One file isn't recorded: `tests/fixtures/hand/lsp-languages.json`, the
+answer of `kiln lsp --languages`, which no released kiln has yet, is
+written by hand (its `README` says from what).
+

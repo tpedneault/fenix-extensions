@@ -1,0 +1,14 @@
+HAND-WRITTEN, NOT RECORDED.
+
+lsp-languages.json is what `kiln lsp --languages --format json` should
+print for a project whose [code] paths hold Rust and Tcl files. It was
+written by hand from Kiln's unreleased, unverified commit 4592faf ("Lsp:
+kiln lsp --languages says what init --fenix would register", never
+compiled): its test `lsp_languages_lists_what_init_fenix_would_register`
+expects exactly these keys and values, and kiln's `json_out` prints keys
+in name order, two spaces deep, as its other answers in ../out/ are.
+
+No released kiln prints it yet (kiln 1.0.0 refuses --languages; its real
+refusal is recorded in ../out/demo/lsp-languages.*). Once a kiln that has
+it is released, record.sh records the real answer in ../out/, and the
+tests should read that instead of this file.
