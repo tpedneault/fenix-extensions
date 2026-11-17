@@ -10,22 +10,28 @@
 //! The parts that decide things are plain code, tested natively: `kiln`
 //! (the queue that runs kiln), `model` (what kiln's JSON says), `project`
 //! (kiln found, the project read, when to read it again), `lsp` (whether
-//! and how Kiln's language server is registered) and `pages` (the pages,
-//! from the project's state). This file meets Fenix: it hands Fenix's
-//! events to the project, passes on what the project says changed, routes
-//! each query's answer to whoever asked it ([`For`]), and does what `lsp`
-//! decides. It stays the thin part that talks to the host.
+//! and how Kiln's language server is registered), `doctor` (the project
+//! doctor's rows), `tasks` (the task picker's), `modeline` (the item's
+//! text) and `pages` (the pages, from the project's state). This file
+//! meets Fenix: it hands Fenix's events to the project, passes on what the
+//! project says changed, routes each query's answer to whoever asked it
+//! ([`For`]), does what `lsp` decides, and gives Fenix the doctor's rows,
+//! the tasks and the modeline text -- each only when it differs from what
+//! it gave last. It stays the thin part that talks to the host.
 //!
 //! The project is read once as the extension loads (a `kiln.toml` at the
 //! project's top, or a `kiln.*` command): the language server is wanted
 //! from the start, not only once a page opens, and deciding it needs kiln
 //! found and the project read.
 
+pub mod doctor;
 pub mod kiln;
 pub mod lsp;
 pub mod model;
+pub mod modeline;
 pub mod pages;
 pub mod project;
+pub mod tasks;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -38,6 +44,7 @@ pub(crate) use fenix_test_kit::api;
 use api::{page as pages_api, Event, Extension, Key, Page};
 use lsp::Lsp;
 use project::{Notice, Project, QueryId, Why};
+use tasks::Offer;
 
 /// The page kind the plan opens as (the manifest's context names it).
 const PLAN: &str = "plan";
@@ -54,6 +61,18 @@ const PROJECT: &str = "/project";
 enum For {
     /// `kiln lsp --languages`, for [`Lsp`].
     Languages,
+}
+
+/// What was last given to Fenix, so each of the three is given again only
+/// when it changes. `None`: not given yet, so the first decision is always
+/// given, even when it is "nothing" (it clears what an earlier run left).
+#[derive(Default)]
+struct Told {
+    doctor: Option<Vec<api::Check>>,
+    /// The kiln program the tasks run, `None` inside for none offered.
+    tasks: Option<Option<String>>,
+    /// The modeline's text, `None` inside for no item.
+    modeline: Option<Option<String>>,
 }
 
 /// How many rounds [`Kiln::pass_on`] goes before it stops: each round
@@ -74,6 +93,7 @@ struct Kiln {
     /// without the project saying anything: decide it on the next
     /// [`Kiln::pass_on`].
     decide: bool,
+    told: Told,
 }
 
 impl Kiln {
@@ -94,8 +114,12 @@ impl Kiln {
     fn pass_on(&mut self) {
         let mut changed = false;
         let mut decide = std::mem::take(&mut self.decide);
+        // Anything that can move what Fenix is told: not a line of kiln's
+        // output, which brings neither a notice nor a decision.
+        let mut touched = decide;
         for _ in 0..MOST_ROUNDS {
             let notices = self.project.take_notices();
+            touched |= !notices.is_empty();
             decide |= !notices.is_empty();
             for notice in notices {
                 match notice {
@@ -117,6 +141,69 @@ impl Kiln {
         if changed {
             for &p in self.pages.keys() {
                 pages_api::refresh(p);
+            }
+        }
+        if touched {
+            self.publish();
+        }
+    }
+
+    /// The doctor's rows, the tasks and the modeline item, given to Fenix
+    /// when they differ from what it was last given. Each is worked out
+    /// by a pure function ([`doctor::rows`], [`tasks::offer`],
+    /// [`modeline::line`]); a state still being found out leaves what was
+    /// given as it is.
+    fn publish(&mut self) {
+        let state = self.project.state();
+        let usability = lsp::usability(&state);
+        // The kiln the queue runs; looked for only in a usable project.
+        let program = if usability == lsp::Usability::Usable {
+            kiln::program()
+        } else {
+            Err(String::new())
+        };
+        let kiln_path = api::setting("kiln.path")
+            .map(|p| p.trim().to_string())
+            .filter(|p| !p.is_empty());
+        let rows = doctor::rows(&doctor::Input {
+            state,
+            lsp: self.lsp.status(),
+            kiln_path: kiln_path.as_deref(),
+            program: program.as_deref().ok(),
+            version: self.project.version(),
+        });
+        let offer = tasks::offer(&usability, program);
+        let line = modeline::line(&state);
+
+        if let Some(rows) = rows {
+            if self.told.doctor.as_ref() != Some(&rows) {
+                api::project::doctor(&rows);
+                self.told.doctor = Some(rows);
+            }
+        }
+        let wanted = match offer {
+            Offer::Keep => None,
+            Offer::Clear => Some(None),
+            Offer::With(program) => Some(Some(program)),
+        };
+        if let Some(program) = wanted {
+            if self.told.tasks.as_ref() != Some(&program) {
+                let tasks = program.as_deref().map(tasks::tasks).unwrap_or_default();
+                match api::project::tasks(&tasks) {
+                    Ok(()) => self.told.tasks = Some(program),
+                    Err(why) => api::warn!("Fenix refused kiln's tasks: {why}"),
+                }
+            }
+        }
+        let text = match line {
+            modeline::Line::Keep => None,
+            modeline::Line::None => Some(None),
+            modeline::Line::Text(text) => Some(Some(text)),
+        };
+        if let Some(text) = text {
+            if self.told.modeline.as_ref() != Some(&text) {
+                api::status(text.as_deref());
+                self.told.modeline = Some(text);
             }
         }
     }
@@ -223,6 +310,13 @@ impl Extension for Kiln {
                 self.shown_changed();
             }
             "kiln.reload" => self.reload(),
+            // Nothing is downloaded: the extension has no network
+            // permission. The doctor's fix row for a missing kiln runs it.
+            "kiln.install_help" => {
+                api::open_url(doctor::INSTALL_URL)
+                    .map_err(|why| format!("can't open {}: {why}", doctor::INSTALL_URL))?;
+                return Ok(());
+            }
             _ => return Err(format!("no command {id}")),
         }
         self.pass_on();
@@ -743,6 +837,297 @@ mod tests {
         h.ext.pass_on();
         h.settle();
         assert!(!h.ext.asked.contains_key(&id));
+    }
+
+    // -- The doctor, the tasks and the modeline -----------------------------
+
+    /// A fake whose kiln answers as Kiln's own project did: no findings.
+    fn own() -> Fake {
+        let fake = Fake::new();
+        fake.program("kiln", "/usr/bin/kiln")
+            .on_spawn("kiln --version", Ran::ok(fixture("version.txt")))
+            .on_spawn("kiln list --format json", Ran::ok(fixture("own/list.json")))
+            .on_spawn(
+                "kiln status --format json",
+                Ran::ok(fixture("own/status.json")),
+            )
+            .on_spawn(
+                "kiln check --format json",
+                Ran::ok(fixture("own/check.json")),
+            )
+            .on_spawn(
+                "kiln lsp --languages",
+                Ran::fails(2, fixture("own/lsp-languages.stderr")),
+            );
+        fake
+    }
+
+    /// What it told Fenix, of `what` (`doctor`, `tasks`, `status`), in order.
+    fn told(fake: &Fake, what: &str) -> Vec<String> {
+        fake.calls()
+            .into_iter()
+            .filter(|c| c.split(' ').next() == Some(what))
+            .collect()
+    }
+
+    /// The rows it set last, one line each: `label health detail`.
+    fn rows(fake: &Fake) -> Vec<String> {
+        fake.state()
+            .checks
+            .iter()
+            .map(|c| {
+                let health = format!("{:?}", c.health);
+                let fix = c.fix.as_ref().map(|(l, cmd)| format!(" -> {l} ({cmd})"));
+                format!(
+                    "{} {} {}{}",
+                    c.label,
+                    health.strip_prefix("Health::").unwrap_or(&health),
+                    c.detail,
+                    fix.unwrap_or_default()
+                )
+            })
+            .collect()
+    }
+
+    const DEMO_TASKS: &str = "tasks kiln: check, kiln: export --check, kiln: export";
+
+    #[test]
+    fn the_demo_project_gets_its_rows_tasks_and_modeline() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        let r = rows(&fake);
+        assert_eq!(r.len(), 4, "{r:?}");
+        assert_eq!(r[0], "kiln Ok kiln 1.0.0, /usr/bin/kiln");
+        assert_eq!(r[1], "kiln.toml Ok read, 16 items");
+        // kiln 1.0.0 has no `lsp --languages`: Markdown only, with why.
+        assert!(
+            r[2].starts_with("language server Info kiln lsp, for markdown only: kiln 1.0.0 has no"),
+            "{}",
+            r[2]
+        );
+        assert_eq!(
+            r[3],
+            "kiln check Bad 1 error, 2 warnings -> open the plan (kiln.open)"
+        );
+        // The tasks run the kiln found, in the project.
+        let state = fake.state();
+        let lines: Vec<String> = state
+            .tasks
+            .iter()
+            .map(|t| format!("{}: {}", t.name, fenix_test_kit::line(&t.cmd)))
+            .collect();
+        assert_eq!(
+            lines,
+            [
+                "kiln: check: /usr/bin/kiln check",
+                "kiln: export --check: /usr/bin/kiln export --check",
+                "kiln: export: /usr/bin/kiln export",
+            ]
+        );
+        assert!(state
+            .tasks
+            .iter()
+            .all(|t| t.cmd.cwd.as_deref() == Some(PROJECT)));
+        drop(state);
+        assert_eq!(told(&fake, "tasks"), [DEMO_TASKS]);
+        assert_eq!(told(&fake, "status"), ["status kiln 1 error, 2 warnings"]);
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 error, 2 warnings"));
+    }
+
+    #[test]
+    fn a_project_with_no_findings_has_no_modeline_item() {
+        let fake = own();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        assert_eq!(fake.status(), None);
+        assert_eq!(rows(&fake)[3], "kiln check Ok no findings");
+        assert_eq!(
+            rows(&fake)[1],
+            format!("kiln.toml Ok read, {} items", fixture_items("own"))
+        );
+        assert_eq!(told(&fake, "tasks"), [DEMO_TASKS]);
+    }
+
+    /// How many items `own/list.json` holds.
+    fn fixture_items(project: &str) -> String {
+        model::list(&fixture(&format!("{project}/list.json")))
+            .unwrap()
+            .len()
+            .to_string()
+    }
+
+    #[test]
+    fn the_modeline_follows_the_check_and_keeps_its_text_while_reading() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 error, 2 warnings"));
+        // A reload that runs: the text stays, and nothing is set.
+        fake.on_spawn("kiln list", Ran::running(""));
+        h.command("kiln.reload").unwrap();
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 error, 2 warnings"));
+        assert_eq!(told(&fake, "status").len(), 1);
+        // It ends with the error fixed: one warning less, one set.
+        let list = fake.process("kiln list").unwrap().id;
+        fake.on_spawn(
+            "kiln check",
+            Ran::ok(
+                r#"[{"code":"K201","severity":"warning","message":"m","path":"a.md","line":1,"column":1}]"#,
+            ),
+        );
+        for line in fixture("demo/list.json").lines() {
+            h.said(list, line, false);
+        }
+        h.exited(list, Some(0));
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 warning"));
+        // Clean: the item goes.
+        fake.on_spawn("kiln list", Ran::ok(fixture("demo/list.json")));
+        fake.on_spawn("kiln check", Ran::ok("[]"));
+        h.saved("/home/me/demo/design/tasks/TASK-006-draft-the-user-guide.md");
+        assert_eq!(fake.status(), None);
+        assert_eq!(
+            told(&fake, "status"),
+            [
+                "status kiln 1 error, 2 warnings",
+                "status kiln 1 warning",
+                "status -"
+            ]
+        );
+    }
+
+    #[test]
+    fn repeated_reloads_with_nothing_changed_set_nothing_again() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        h.command("kiln.open").unwrap();
+        let page = h.page("plan");
+        let before = (
+            told(&fake, "doctor"),
+            told(&fake, "tasks"),
+            told(&fake, "status"),
+        );
+        // The doctor was set again as the server's row went from waiting
+        // to registered; once it's settled, nothing is.
+        assert_eq!((before.1.len(), before.2.len()), (1, 1));
+        h.command("kiln.reload").unwrap();
+        h.key(page, Key::Char('r'));
+        h.saved("/home/me/demo/design/tasks/TASK-001-set-up-the-logger.md");
+        h.saved("/home/me/demo/kiln.toml");
+        h.fire_timers();
+        assert_eq!(
+            (
+                told(&fake, "doctor"),
+                told(&fake, "tasks"),
+                told(&fake, "status")
+            ),
+            before
+        );
+    }
+
+    #[test]
+    fn kiln_missing_says_so_with_its_fix_and_offers_no_tasks() {
+        let fake = Fake::new();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        assert_eq!(
+            rows(&fake),
+            ["kiln Bad isn't on the PATH, and kiln.path is empty -> how to install Kiln (kiln.install_help)"]
+        );
+        assert_eq!(told(&fake, "tasks"), ["tasks "]);
+        assert!(fake.state().tasks.is_empty());
+        assert_eq!(fake.status(), None);
+        // The fix opens Kiln's install page and nothing else.
+        h.command("kiln.install_help").unwrap();
+        assert_eq!(
+            fake.state().urls,
+            ["https://github.com/tpedneault/kiln/wiki/Installing"]
+        );
+        assert!(!fake.calls().iter().any(|c| c.starts_with("http")));
+    }
+
+    #[test]
+    fn a_kiln_path_that_cant_run_is_named_and_a_working_one_brings_the_tasks() {
+        let fake = demo();
+        let dir = folder("doctor-path");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(told(&fake, "tasks").len(), 1);
+        fake.on_spawn_error("/nowhere/kiln", "no such file");
+        h.set_setting("kiln.path", Some("/nowhere/kiln"));
+        assert_eq!(
+            rows(&fake),
+            ["kiln Bad kiln.path is /nowhere/kiln, which can't be run: set it to where kiln is, or empty it to use the PATH -> how to install Kiln (kiln.install_help)"]
+        );
+        assert!(fake.state().tasks.is_empty());
+        assert_eq!(fake.status(), None);
+        // Another kiln: the tasks run it, once.
+        fake.on_spawn("/opt/kiln --version", Ran::ok("kiln 1.1.0\n"))
+            .on_spawn("/opt/kiln list", Ran::ok(fixture("demo/list.json")))
+            .on_spawn("/opt/kiln status", Ran::ok(fixture("demo/status.json")))
+            .on_spawn("/opt/kiln check", Ran::ok("[]"));
+        h.set_setting("kiln.path", Some("/opt/kiln"));
+        assert_eq!(rows(&fake)[0], "kiln Ok kiln 1.1.0, /opt/kiln");
+        assert_eq!(
+            fenix_test_kit::line(&fake.state().tasks[0].cmd),
+            "/opt/kiln check"
+        );
+        assert_eq!(told(&fake, "tasks").len(), 3);
+        h.command("kiln.reload").unwrap();
+        assert_eq!(told(&fake, "tasks").len(), 3);
+    }
+
+    #[test]
+    fn not_a_kiln_project_clears_everything_once() {
+        let fake = demo();
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(2, fixture("errors/no-kiln-toml.stderr")),
+        );
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        h.command("kiln.reload").unwrap();
+        assert!(fake.state().checks.is_empty());
+        assert!(fake.state().tasks.is_empty());
+        assert_eq!(fake.status(), None);
+        assert_eq!(told(&fake, "doctor"), ["doctor 0"]);
+        assert_eq!(told(&fake, "tasks"), ["tasks "]);
+        assert_eq!(told(&fake, "status"), ["status -"]);
+    }
+
+    #[test]
+    fn a_project_kiln_cant_read_says_kilns_line_in_the_doctor() {
+        let fake = demo();
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(2, "kiln: kiln.toml:4: unknown key `nmae`"),
+        );
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        let r = rows(&fake);
+        assert_eq!(r[0], "kiln Ok kiln 1.0.0, /usr/bin/kiln");
+        assert_eq!(r[1], "kiln.toml Bad kiln: kiln.toml:4: unknown key `nmae`");
+        // Usable: kiln's own checks can be run to see more.
+        assert_eq!(told(&fake, "tasks"), [DEMO_TASKS]);
+        assert_eq!(fake.status(), None);
+    }
+
+    #[test]
+    fn the_doctor_follows_the_language_server() {
+        let fake = demo();
+        let dir = folder("doctor-lsp");
+        std::fs::write(dir.join(".fenix/tools.json"), TOOLS).unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(
+            rows(&fake)[2],
+            "language server Ok left to .fenix/tools.json, which runs kiln lsp"
+        );
+        std::fs::write(dir.join(".fenix/tools.json"), "{}").unwrap();
+        h.saved(&dir.join(".fenix/tools.json").display().to_string());
+        assert!(rows(&fake)[2].starts_with("language server Info kiln lsp, for markdown only"));
+        assert_eq!(told(&fake, "doctor").len(), 2);
     }
 
     #[test]

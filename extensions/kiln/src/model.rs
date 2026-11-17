@@ -222,6 +222,19 @@ pub struct Counts {
     pub warnings: u32,
 }
 
+impl Counts {
+    /// `1 error, 2 warnings`; `None` when there are neither.
+    pub fn said(&self) -> Option<String> {
+        let (e, w) = (self.errors as usize, self.warnings as usize);
+        match (e, w) {
+            (0, 0) => None,
+            (0, w) => Some(count(w, "warning")),
+            (e, 0) => Some(count(e, "error")),
+            (e, w) => Some(format!("{}, {}", count(e, "error"), count(w, "warning"))),
+        }
+    }
+}
+
 /// `kiln status --format json`: the plan by milestone.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Status {
@@ -301,6 +314,15 @@ pub struct Finding {
 /// with this same JSON on stdout: the exit code isn't the answer.
 pub fn check(text: &str) -> Result<Vec<Finding>, String> {
     array("kiln check", text)
+}
+
+/// `1 item`, `16 items`: `n` and `what`, plural unless `n` is 1.
+pub fn count(n: usize, what: &str) -> String {
+    if n == 1 {
+        format!("1 {what}")
+    } else {
+        format!("{n} {what}s")
+    }
 }
 
 /// Errors and warnings among `findings`.

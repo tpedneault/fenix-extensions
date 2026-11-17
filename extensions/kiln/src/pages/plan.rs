@@ -7,7 +7,7 @@
 //! know and offers one key, `r`, read again.
 
 use crate::api::{page as pages, Page, Span};
-use crate::model::{Counts, MIN_VERSION};
+use crate::model::{count, Counts, MIN_VERSION};
 use crate::project::State;
 
 /// The page for `state`.
@@ -97,15 +97,6 @@ fn findings(c: Counts) -> Span {
             count(e as usize, "error"),
             count(w as usize, "warning")
         )),
-    }
-}
-
-/// `1 item`, `16 items`.
-fn count(n: usize, what: &str) -> String {
-    if n == 1 {
-        format!("1 {what}")
-    } else {
-        format!("{n} {what}s")
     }
 }
 

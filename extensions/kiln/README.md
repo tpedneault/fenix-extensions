@@ -29,6 +29,23 @@ extension's takes over. It's set again only when the languages or the kiln
 change (`kiln.path`, `kiln.toml` saved, `r`), and taken away when kiln
 isn't found, is too old, or finds no `kiln.toml`.
 
+**The project doctor** (`SPC p h`) has Kiln's rows: kiln found and its
+version (or, when it isn't, that it's not on the PATH and `kiln.path` is
+empty, or that the path it holds can't be run, with a fix row that opens
+Kiln's install instructions in the browser -- nothing is downloaded), the
+project read (or kiln's own error line), the language server, and what the
+last `kiln check` found, with a fix row that opens the plan. In a folder
+that isn't a Kiln project it has none.
+
+**Tasks** (`SPC t t`), in a Kiln project: `kiln: check`, `kiln: export
+--check` and `kiln: export` (which writes the file targets, never
+publishes to Confluence: no task passes `--yes`). `kiln: check`'s lines are
+`path:line:col: K102 error: message`, which the task pane turns into
+quickfix entries.
+
+**The modeline** shows the last check's findings when there are any, `kiln 1
+error, 2 warnings`, and nothing when there are none.
+
 ## Keys
 
 After `SPC m`, in a Kiln project:
@@ -37,6 +54,9 @@ After `SPC m`, in a Kiln project:
 |---|---|---|
 | `SPC m o` | `kiln.open` | Open the plan |
 | `SPC m r` | `kiln.reload` | Read the project again |
+
+`Kiln: how to install kiln` (`kiln.install_help`) is the doctor's fix row
+for a kiln that isn't found; it has no key.
 
 ## Settings
 

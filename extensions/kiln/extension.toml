@@ -28,7 +28,9 @@ markers = ["kiln.toml"]
 # check, show) and to change it (set, link, new) -- the extension never
 # writes an item file itself. kiln reads kiln.toml and design/, and holds
 # its own Confluence and Jira credentials; the extension never sees them.
-# The path kiln.path holds, when kiln isn't on the PATH.
+# The path kiln.path holds, when kiln isn't on the PATH. The tasks it
+# offers (kiln: check, kiln: export --check, kiln: export) run the same
+# kiln, so they need nothing more; none publishes to Confluence.
 process = ["kiln", "${setting:kiln.path}"]
 # The open project, read-only: kiln.toml, and .fenix/tools.json to tell
 # whether the project already runs kiln's language server (then this
@@ -50,6 +52,13 @@ title = "Kiln: open the plan"
 [[contributes.commands]]
 id = "kiln.reload"
 title = "Kiln: read the project again"
+
+# The project doctor's fix row for a kiln that isn't found: opens Kiln's
+# install instructions in the browser. Nothing is downloaded (no network
+# permission), so it is not in the keymap.
+[[contributes.commands]]
+id = "kiln.install_help"
+title = "Kiln: how to install kiln"
 
 [[contributes.settings]]
 key = "kiln.path"
