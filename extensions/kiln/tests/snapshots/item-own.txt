@@ -1,0 +1,30 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+requirement   REQ-001  The repository is the source of truth                         approved
+Every fact Kiln shows comes from files in the repository, plus git
+coverage  implements yes  verifies yes
+child         REQ-013  Edits keep the author's formatting and never fight an editor  verified
+← verifies    code     crates/kiln/tests/cli.rs:957
+mentioned by  ADR-014  Kiln pushes the tasks it manages to Jira                      accepted
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  v item  i impact  r reload  Tab next tab

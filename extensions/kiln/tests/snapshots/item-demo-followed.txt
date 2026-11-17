@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+requirement  REQ-002   Logged readings survive a power cut  draft
+A reading written before the power goes stays readable after.
+coverage  implements no  verifies no
+parent       REQ-001   Readings are logged every second     approved
+mitigates →  RISK-001  The SD card wears out                open
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+C-o back  Enter open  / filter  v item  i impact  r reload  Tab next tab

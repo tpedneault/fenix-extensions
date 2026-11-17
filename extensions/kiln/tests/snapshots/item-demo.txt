@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+requirement   REQ-001   Readings are logged every second     approved
+The logger stores one reading a second from each sensor.
+coverage  implements yes  verifies yes
+child         REQ-002   Logged readings survive a power cut  draft
+← implements  TASK-001  Set up the logger                    done
+← implements  TASK-002  Write readings to SQLite             doing
+← verifies    TEST-001  Readings arrive every second         passing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  v item  i impact  r reload  Tab next tab
