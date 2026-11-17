@@ -1,0 +1,32 @@
+{
+  "also_in": [],
+  "body": "\n## Context\n\nReadings must survive a power cut.\n\n## Decision\n\nSQLite in WAL mode.\n\n## Consequences\n\nOne file to back up.\n",
+  "children": [],
+  "closed": false,
+  "coverage": {},
+  "derived": false,
+  "done": false,
+  "due": null,
+  "id": "ADR-001",
+  "inbound": {},
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {},
+  "mentioned_by": [
+    {
+      "id": "TASK-002",
+      "status": "doing",
+      "title": "Write readings to SQLite"
+    }
+  ],
+  "owner": null,
+  "parent": null,
+  "path": "design/decisions/ADR-001-store-readings-in-sqlite.md",
+  "progress": null,
+  "status": "accepted",
+  "tags": [],
+  "title": "Store readings in SQLite",
+  "type": "decision"
+}

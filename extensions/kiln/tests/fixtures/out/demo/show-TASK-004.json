@@ -1,0 +1,41 @@
+{
+  "also_in": [],
+  "body": "\nOn the main window, beside the log.\n",
+  "children": [],
+  "closed": false,
+  "coverage": {},
+  "derived": false,
+  "done": false,
+  "due": null,
+  "id": "TASK-004",
+  "inbound": {},
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {
+    "depends-on": [
+      {
+        "id": "TASK-003",
+        "status": "todo",
+        "title": "Export the log as CSV"
+      }
+    ],
+    "part-of": [
+      {
+        "id": "MS-001",
+        "status": "active",
+        "title": "First release"
+      }
+    ]
+  },
+  "mentioned_by": [],
+  "owner": null,
+  "parent": null,
+  "path": "design/tasks/TASK-004-add-the-export-button.md",
+  "progress": null,
+  "status": "todo",
+  "tags": [],
+  "title": "Add the export button",
+  "type": "task"
+}

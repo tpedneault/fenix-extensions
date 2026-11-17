@@ -6,10 +6,14 @@ repository. This extension is its place in Fenix; it works by running the
 `kiln` program and shows what kiln says.
 
 **This version is the start of it.** A folder with a `kiln.toml` at its
-top is a `KILN` project, and two commands exist: `Kiln: open the plan`
-opens a page that says only that the project is being read, and `Kiln:
-read the project again` does nothing yet. The plan's pages, edits,
-exports and agent tools are what the next versions add.
+top is a `KILN` project. `Kiln: open the plan` looks for kiln (1.0.0 or
+later), reads the project (`kiln list`, `kiln status`, `kiln check`) and
+shows its name, how many items it has, each open milestone's progress and
+the findings -- or what's in the way, in kiln's own words. It's read
+again on `r` (or `Kiln: read the project again`), when a file is saved,
+when git's head moves, and every `kiln.refresh_seconds` while the page is
+in view. The plan's pages, edits, exports and agent tools are what the
+next versions add.
 
 ## Keys
 
@@ -43,4 +47,12 @@ No network and no secrets: Confluence and Jira credentials stay Kiln's.
 ```text
 cargo xtask pack extensions/kiln dist
 cargo xtask install extensions/kiln
+```
+
+The tests read kiln's real output, recorded in `tests/fixtures/` (Kiln's
+own project and a small demo project made there). After a kiln release,
+record it again and read the diff:
+
+```text
+extensions/kiln/tests/fixtures/record.sh /path/to/kiln
 ```

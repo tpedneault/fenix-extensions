@@ -1,0 +1,55 @@
+{
+  "also_in": [],
+  "body": "\nThe logger stores one reading a second from each sensor.\n",
+  "children": [
+    {
+      "id": "REQ-002",
+      "status": "draft",
+      "title": "Logged readings survive a power cut"
+    }
+  ],
+  "closed": false,
+  "coverage": {
+    "implements": true,
+    "verifies": true
+  },
+  "derived": false,
+  "done": false,
+  "due": null,
+  "id": "REQ-001",
+  "inbound": {
+    "implements": [
+      {
+        "id": "TASK-001",
+        "status": "done",
+        "title": "Set up the logger"
+      },
+      {
+        "id": "TASK-002",
+        "status": "doing",
+        "title": "Write readings to SQLite"
+      }
+    ],
+    "verifies": [
+      {
+        "id": "TEST-001",
+        "status": "passing",
+        "title": "Readings arrive every second"
+      }
+    ]
+  },
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {},
+  "mentioned_by": [],
+  "owner": null,
+  "parent": null,
+  "path": "design/requirements/REQ-001-readings-are-logged-every-second.md",
+  "progress": null,
+  "status": "approved",
+  "tags": [],
+  "title": "Readings are logged every second",
+  "type": "requirement"
+}

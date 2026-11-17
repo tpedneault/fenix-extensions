@@ -1,0 +1,52 @@
+{
+  "also_in": [],
+  "body": "\nLogging and the CSV export.\n",
+  "children": [],
+  "closed": false,
+  "coverage": {},
+  "derived": false,
+  "done": false,
+  "due": "2030-06-30",
+  "id": "MS-001",
+  "inbound": {
+    "part-of": [
+      {
+        "id": "TASK-001",
+        "status": "done",
+        "title": "Set up the logger"
+      },
+      {
+        "id": "TASK-002",
+        "status": "doing",
+        "title": "Write readings to SQLite"
+      },
+      {
+        "id": "TASK-003",
+        "status": "todo",
+        "title": "Export the log as CSV"
+      },
+      {
+        "id": "TASK-004",
+        "status": "todo",
+        "title": "Add the export button"
+      }
+    ]
+  },
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {},
+  "mentioned_by": [],
+  "owner": null,
+  "parent": null,
+  "path": "design/milestones/MS-001-first-release.md",
+  "progress": {
+    "done": 1,
+    "total": 5
+  },
+  "status": "active",
+  "tags": [],
+  "title": "First release",
+  "type": "milestone"
+}

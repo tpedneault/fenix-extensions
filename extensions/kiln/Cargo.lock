@@ -99,6 +99,8 @@ dependencies = [
  "fenix-extension-api",
  "fenix-test-kit",
  "fenix-ui-kit",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

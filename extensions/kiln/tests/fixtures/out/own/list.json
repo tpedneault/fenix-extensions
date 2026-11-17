@@ -1,0 +1,1809 @@
+[
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-001-the-repository-is-the-source-of-truth.md",
+    "status": "approved",
+    "tags": [],
+    "title": "The repository is the source of truth",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-002-readable-without-kiln.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Readable without Kiln",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-003-checkable-in-ci.md",
+    "status": "approved",
+    "tags": [],
+    "title": "Checkable in CI",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-004-fast-and-keyboard-first.md",
+    "status": "approved",
+    "tags": [],
+    "title": "Fast and keyboard-first",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-005-works-on-a-locked-down-corporate-machine-and-in-a.md",
+    "status": "approved",
+    "tags": [],
+    "title": "Works on a locked-down corporate machine and in a CI container",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-006-no-tool-requires-another.md",
+    "status": "approved",
+    "tags": [],
+    "title": "No tool requires another",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-007-kiln-check-on-2-000-items-and-50k-source-files-in.md",
+    "status": "verified",
+    "tags": [],
+    "title": "kiln check on 2,000 items and 50k source files in 2 s",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-008-language-server-responds-within-50-ms-after-a.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Language server responds within 50 ms after a keystroke",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-009-flint-provider-answers-within-16-ms-for-2-000.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Flint provider answers within 16 ms for 2,000 items",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-010-export-dry-run-of-a-2-000-item-document-in-3-s.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Export dry run of a 2,000-item document in 3 s",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-003",
+    "path": "design/requirements/REQ-011-findings-name-the-file-line-and-column.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Findings name the file, line and column",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-003",
+    "path": "design/requirements/REQ-012-findings-show-on-merge-requests.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Findings show on merge requests",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-001",
+    "path": "design/requirements/REQ-013-edits-keep-the-author-s-formatting-and-never-fight.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Edits keep the author's formatting and never fight an editor",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-005",
+    "path": "design/requirements/REQ-014-no-secrets-in-kiln-toml.md",
+    "status": "verified",
+    "tags": [],
+    "title": "No secrets in kiln.toml",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "mitigates": [
+        "RISK-003"
+      ]
+    },
+    "owner": null,
+    "parent": "REQ-003",
+    "path": "design/requirements/REQ-015-duplicate-ids-are-found-and-fixed-by-one-command.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Duplicate IDs are found and fixed by one command",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-002",
+    "path": "design/requirements/REQ-016-changes-since-a-baseline-are-shown-item-by-item.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Changes since a baseline are shown item by item",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-017-the-gui-opens-any-project-from-a-picker.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "The GUI opens any project from a picker and switches between them",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-018-requirements-at-several-levels-trace-to-each-other.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Requirements at several levels trace to each other, and derived ones say so",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-019-coding-agents-find-how-to-change-the-design.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Coding agents find how this project's design is organised and how to change it",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-020-coding-agents-read-the-plan-and-act-on-it-from-the.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Coding agents read the plan and act on it from the command line",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-021-a-person-uses-kiln-without-an-agent-items-start.md",
+    "status": "verified",
+    "tags": [],
+    "title": "A person uses Kiln without an agent: items start with a shape, the first export works, mistakes are said",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-022",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-022-every-view-of-the-plan-agrees-and-what-reaches.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Every view of the plan agrees, and what reaches readers is finished",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-023",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-023-the-trace-says-what-passed-and-a-change-says-which.md",
+    "status": "verified",
+    "tags": [],
+    "title": "The trace says what passed, and a change says which requirements it touches",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-024",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-024-sign-off-is-visible-who-moved-which-status-when-in.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Sign-off is visible: who moved which status, when, in which change",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-025",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-025-a-one-page-document-reads-top-down-requirements-as-one-tree.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "A one-page document reads top-down, its requirements as one tree",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-001-toml-front-matter.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "TOML front matter",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-002-sequential-ids-renumbered-on-collision.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Sequential IDs, renumbered on collision",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-003-one-way-publishing-to-confluence.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "One-way publishing to Confluence",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-004-one-design-document-is-the-default-export.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "One design document is the default export",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-005-shell-out-to-git.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Shell out to git",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-006-one-spelling-per-id-number-at-least-three-digits.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "One spelling per ID number, at least three digits",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-007-links-are-written-once-on-their-source-side.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Links are written once, on their source side",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-008-code-references-are-matched-on-text-not-parsed.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Code references are matched on text, not parsed",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-009-exports-kept-in-the-repository-name-no-commit.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Exports kept in the repository name no commit",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-010-kiln-stays-a-console-program-kilnw-opens-the-gui.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "kiln stays a console program; kilnw opens the GUI",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-011-word-files-are-written-directly-not-through-docx-rs.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Word files are written directly, not through docx-rs",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-012-the-gui-edits-front-matter-never-prose.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "The GUI edits front matter, never prose",
+    "type": "decision"
+  },
+  {
+    "closed": true,
+    "done": false,
+    "due": null,
+    "id": "ADR-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-013-items-are-a-flat-list-with-one-line-per-relationship.md",
+    "status": "superseded",
+    "tags": [],
+    "title": "Items are a flat list, with one line per relationship",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-014-kiln-pushes-the-tasks-it-manages-to-jira.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Kiln pushes the tasks it manages to Jira",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-015-presets-are-copied-into-the-project-and-stack-without-duplicates.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Presets are copied into the project and stack without duplicates",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-016-requirement-levels-are-types-in-order-traced-by-a-link.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Requirement levels are types in order, traced upward by a link; derived ones are marked",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-017-the-agent-guide-lives-in-the-design-folder-half-generated.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "The agent guide lives in the design folder, its rules written once and its description generated",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-018-ready-work-is-open-work-whose-dependencies-are.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Ready work is open work whose dependencies are finished; milestones group it, they don't gate it",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-019-an-editor-the-user-names-for-kiln-comes-before.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "An editor the user names for Kiln comes before Fenix; VISUAL and EDITOR come after it",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-020-a-milestone-s-progress-is-its-own-work-everywhere.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "A milestone's progress is its own work, everywhere",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-021-test-results-are-matched-to-code-references-by-the.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Test results are matched to code references by the name of the test that follows them",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-022",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-022-a-code-reference-covers-the-code-down-to-the-next.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "A code reference covers the code down to the next one",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-023",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-023-sign-off-and-history-are-read-from-git-never.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Sign-off and history are read from git, never stored in items",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-024",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "supersedes": [
+        "ADR-013"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-024-requirements-as-one-tree-item-facts-as-a-table.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Requirements are one tree on the page, and an item's facts are a table",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-001-k0-workspace-crate-shells-and-ci.md",
+    "status": "done",
+    "tags": [],
+    "title": "K0: workspace, crate shells and CI",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-001"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-002-k1-the-format-kiln-check-and-the-editing-commands.md",
+    "status": "done",
+    "tags": [],
+    "title": "K1: the format, kiln check and the editing commands",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-002"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-003-k2-exports-without-writes-to-confluence.md",
+    "status": "done",
+    "tags": [],
+    "title": "K2: exports without writes to Confluence",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-003"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-004-k3-publishing-to-confluence.md",
+    "status": "done",
+    "tags": [],
+    "title": "K3: publishing to Confluence",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-004"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-005-k4-the-language-server.md",
+    "status": "done",
+    "tags": [],
+    "title": "K4: the language server",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-005"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-006-k5-the-flint-provider.md",
+    "status": "done",
+    "tags": [],
+    "title": "K5: the Flint provider",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-006"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-007-k6-baselines-diffs-and-confluence-comments.md",
+    "status": "done",
+    "tags": [],
+    "title": "K6: baselines, diffs and Confluence comments",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-007"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-008-k7-the-gui.md",
+    "status": "done",
+    "tags": [],
+    "title": "K7: the GUI",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-008"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-009-k8-word-export-and-the-jira-mirror.md",
+    "status": "done",
+    "tags": [],
+    "title": "K8: Word export and the Jira mirror",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-009"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-010-k9-a-gui-that-edits-front-matter-and-runs-exports.md",
+    "status": "done",
+    "tags": [],
+    "title": "K9: a GUI that edits front matter and runs exports",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-010"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-011-k10-kiln-pushes-its-tasks-to-jira.md",
+    "status": "done",
+    "tags": [],
+    "title": "K10: Kiln pushes its tasks to Jira",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-011"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-012-k11-presets-such-as-arc42.md",
+    "status": "done",
+    "tags": [],
+    "title": "K11: presets such as arc42",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-012"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-013-k12-home-the-projects-dashboard.md",
+    "status": "done",
+    "tags": [],
+    "title": "K12: Home, the projects dashboard",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-013"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-014-k13-requirement-levels.md",
+    "status": "done",
+    "tags": [],
+    "title": "K13: requirement levels",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-014"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-015-k14-the-agent-guide.md",
+    "status": "done",
+    "tags": [],
+    "title": "K14: the agent guide",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-015"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-016-k15-the-plan-from-the-command-line.md",
+    "status": "done",
+    "tags": [],
+    "title": "K15: the plan from the command line",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-017-k16-a-first-project-that-explains-itself.md",
+    "status": "done",
+    "tags": [],
+    "title": "K16: a first project that explains itself",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-018-k17-the-plan-everywhere-and-claimed.md",
+    "status": "done",
+    "tags": [],
+    "title": "K17: the plan everywhere, and claimed",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-019-k18-the-trace-says-what-passed-and-what-a-change.md",
+    "status": "done",
+    "tags": [],
+    "title": "K18: the trace says what passed, and what a change touches",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-019"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-020-k19-sign-off-and-history-from-git.md",
+    "status": "done",
+    "tags": [],
+    "title": "K19: sign-off and history from git",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-020"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-021-k20-one-page-documents-read-top-down.md",
+    "status": "done",
+    "tags": [],
+    "title": "K20: one-page documents read top-down, requirements as one tree",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-001-kiln-show-prints-the-body-and-its-json-is.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln show prints the body, and its JSON is structured",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-002-kiln-list-format-json-carries-links-owner-due-and.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln list --format json carries links, owner, due and, with --body, the body",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-003-kiln-next-and-kiln-status-ready-work-and-the-plan.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln next and kiln status: ready work and the plan by milestone",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-004-plan-checks-k211-to-k214.md",
+    "status": "done",
+    "tags": [],
+    "title": "Plan checks: K211 to K214",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-005-kiln-new-takes-links-tags-and-a-body-kiln-set.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln new takes links, tags and a body; kiln set takes tags and jira",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "TASK-003",
+        "TASK-005"
+      ],
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-006-the-agent-guide-describes-the-plan-and-how-to-work.md",
+    "status": "done",
+    "tags": [],
+    "title": "The agent guide describes the plan and how to work through it",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-007-body-templates-for-the-default-types.md",
+    "status": "done",
+    "tags": [],
+    "title": "Body templates for the default types",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-008-kiln-init-adds-the-design-doc-export.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln init adds the design-doc export",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-009-kiln-list-refuses-unknown-statuses-and-takes-comma.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln list refuses unknown statuses and takes comma lists",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-010-kiln-editor-visual-and-editor-open-items-outside.md",
+    "status": "done",
+    "tags": [],
+    "title": "KILN_EDITOR, VISUAL and EDITOR open items outside Fenix",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-011-kiln-help-groups-the-everyday-commands-first.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln --help groups the everyday commands first",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-012-untouched-template-text-is-reported-k215.md",
+    "status": "done",
+    "tags": [],
+    "title": "Untouched template text is reported (K215)",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-013-the-gui-shows-ready-and-waiting-work-and-one.md",
+    "status": "done",
+    "tags": [],
+    "title": "The GUI shows ready and waiting work, and one progress everywhere",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-014-work-can-be-claimed-owner-in-next-and-status-kiln.md",
+    "status": "done",
+    "tags": [],
+    "title": "Work can be claimed: owner in next and status, kiln next --unowned",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-015-the-design-doc-template-places-tasks-and-tests.md",
+    "status": "done",
+    "tags": [],
+    "title": "The design-doc template places tasks and tests",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-016-json-output-carries-kiln-json.md",
+    "status": "done",
+    "tags": [],
+    "title": "JSON output carries kiln_json",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-023"
+      ],
+      "part-of": [
+        "MS-019"
+      ]
+    },
+    "owner": "claude",
+    "parent": null,
+    "path": "design/tasks/TASK-017-kiln-next-and-status-tell-work-in-progress-from.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln next and status tell work in progress from work ready to start",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-023"
+      ],
+      "part-of": [
+        "MS-019"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-018-junit-results-count-toward-verification-results.md",
+    "status": "done",
+    "tags": [],
+    "title": "JUnit results count toward verification: --results, K216 and K217",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-023"
+      ],
+      "part-of": [
+        "MS-019"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-019-kiln-affected-the-requirements-a-change-reaches.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln affected: the requirements a change reaches, and what to re-check",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-024"
+      ],
+      "part-of": [
+        "MS-020"
+      ]
+    },
+    "owner": "claude",
+    "parent": null,
+    "path": "design/tasks/TASK-020-kiln-log-an-item-s-history-from-git.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln log: an item's history from git",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-024"
+      ],
+      "part-of": [
+        "MS-020"
+      ]
+    },
+    "owner": "claude",
+    "parent": null,
+    "path": "design/tasks/TASK-021-kiln-signoff-sign-off-changes-since-a-revision.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln signoff: sign-off changes since a revision, with their authors",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-001-the-confluence-api-differs-between-cloud-and-data.md",
+    "status": "open",
+    "tags": [],
+    "title": "The Confluence API differs between Cloud and Data Center",
+    "type": "risk"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-002-people-edit-published-pages-in-confluence.md",
+    "status": "open",
+    "tags": [],
+    "title": "People edit published pages in Confluence",
+    "type": "risk"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-003-two-branches-allocate-the-same-id.md",
+    "status": "mitigated",
+    "tags": [],
+    "title": "Two branches allocate the same ID",
+    "type": "risk"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-004-the-model-becomes-a-second-jira.md",
+    "status": "open",
+    "tags": [],
+    "title": "The model becomes a second Jira",
+    "type": "risk"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-005-the-format-is-wrong-and-costly-to-change.md",
+    "status": "mitigated",
+    "tags": [],
+    "title": "The format is wrong and costly to change",
+    "type": "risk"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-006-diagram-text-missing-in-ci-images-without-fonts.md",
+    "status": "open",
+    "tags": [],
+    "title": "Diagram text missing in CI images without fonts",
+    "type": "risk"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-007-a-one-page-document-outgrows-what-confluence.md",
+    "status": "open",
+    "tags": [],
+    "title": "A one-page document outgrows what Confluence handles well",
+    "type": "risk"
+  }
+]

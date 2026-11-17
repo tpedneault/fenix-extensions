@@ -1,0 +1,105 @@
+{
+  "from": "v0.1",
+  "fromCommit": "f4969619cdda8cc7fe02f1926df90430ca910e3b",
+  "items": [
+    {
+      "change": "changed",
+      "details": [
+        "+ mitigates RISK-001"
+      ],
+      "id": "REQ-002",
+      "path": "design/requirements/REQ-002-logged-readings-survive-a-power-cut.md",
+      "title": "Logged readings survive a power cut",
+      "type": "requirement"
+    },
+    {
+      "change": "changed",
+      "details": [
+        "status todo → done"
+      ],
+      "id": "TASK-001",
+      "path": "design/tasks/TASK-001-set-up-the-logger.md",
+      "title": "Set up the logger",
+      "type": "task"
+    },
+    {
+      "change": "changed",
+      "details": [
+        "status todo → doing",
+        "owner (none) → ana"
+      ],
+      "id": "TASK-002",
+      "path": "design/tasks/TASK-002-write-readings-to-sqlite.md",
+      "title": "Write readings to SQLite",
+      "type": "task"
+    },
+    {
+      "change": "changed",
+      "details": [
+        "owner (none) → bo"
+      ],
+      "id": "TASK-003",
+      "path": "design/tasks/TASK-003-export-the-log-as-csv.md",
+      "title": "Export the log as CSV",
+      "type": "task"
+    },
+    {
+      "change": "added",
+      "details": [],
+      "id": "TASK-004",
+      "path": "design/tasks/TASK-004-add-the-export-button.md",
+      "title": "Add the export button",
+      "type": "task"
+    },
+    {
+      "change": "added",
+      "details": [],
+      "id": "TASK-005",
+      "path": "design/tasks/TASK-005-ask-about-retention-rules.md",
+      "title": "Ask about retention rules",
+      "type": "task"
+    },
+    {
+      "change": "added",
+      "details": [],
+      "id": "TASK-006",
+      "path": "design/tasks/TASK-006-draft-the-user-guide.md",
+      "title": "Draft the user guide",
+      "type": "task"
+    },
+    {
+      "change": "added",
+      "details": [],
+      "id": "TASK-007",
+      "path": "design/tasks/TASK-007-batch-the-writes.md",
+      "title": "Batch the writes",
+      "type": "task"
+    },
+    {
+      "change": "added",
+      "details": [],
+      "id": "TASK-008",
+      "path": "design/tasks/TASK-008-tidy-the-build-scripts.md",
+      "title": "Tidy the build scripts",
+      "type": "task"
+    },
+    {
+      "change": "added",
+      "details": [],
+      "id": "TEST-001",
+      "path": "design/tests/TEST-001-readings-arrive-every-second.md",
+      "title": "Readings arrive every second",
+      "type": "test"
+    },
+    {
+      "change": "added",
+      "details": [],
+      "id": "RISK-001",
+      "path": "design/risks/RISK-001-the-sd-card-wears-out.md",
+      "title": "The SD card wears out",
+      "type": "risk"
+    }
+  ],
+  "kiln_json": 1,
+  "to": "working tree"
+}

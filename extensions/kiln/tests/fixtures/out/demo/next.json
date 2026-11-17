@@ -1,0 +1,54 @@
+[
+  {
+    "id": "TASK-003",
+    "line": 2,
+    "milestone": {
+      "id": "MS-001",
+      "status": "active",
+      "title": "First release"
+    },
+    "owner": "bo",
+    "path": "design/tasks/TASK-003-export-the-log-as-csv.md",
+    "status": "todo",
+    "title": "Export the log as CSV",
+    "type": "task"
+  },
+  {
+    "id": "TASK-007",
+    "line": 2,
+    "milestone": {
+      "id": "MS-001",
+      "status": "active",
+      "title": "First release"
+    },
+    "owner": null,
+    "path": "design/tasks/TASK-007-batch-the-writes.md",
+    "status": "todo",
+    "title": "Batch the writes",
+    "type": "task"
+  },
+  {
+    "id": "TASK-006",
+    "line": 2,
+    "milestone": {
+      "id": "MS-002",
+      "status": "planned",
+      "title": "Second release"
+    },
+    "owner": null,
+    "path": "design/tasks/TASK-006-draft-the-user-guide.md",
+    "status": "todo",
+    "title": "Draft the user guide",
+    "type": "task"
+  },
+  {
+    "id": "TASK-008",
+    "line": 2,
+    "milestone": null,
+    "owner": null,
+    "path": "design/tasks/TASK-008-tidy-the-build-scripts.md",
+    "status": "todo",
+    "title": "Tidy the build scripts",
+    "type": "task"
+  }
+]

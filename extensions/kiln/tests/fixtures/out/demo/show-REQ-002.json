@@ -1,0 +1,41 @@
+{
+  "also_in": [],
+  "body": "\nA reading written before the power goes stays readable after.\n",
+  "children": [],
+  "closed": false,
+  "coverage": {
+    "implements": false,
+    "verifies": false
+  },
+  "derived": false,
+  "done": false,
+  "due": null,
+  "id": "REQ-002",
+  "inbound": {},
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {
+    "mitigates": [
+      {
+        "id": "RISK-001",
+        "status": "open",
+        "title": "The SD card wears out"
+      }
+    ]
+  },
+  "mentioned_by": [],
+  "owner": null,
+  "parent": {
+    "id": "REQ-001",
+    "status": "approved",
+    "title": "Readings are logged every second"
+  },
+  "path": "design/requirements/REQ-002-logged-readings-survive-a-power-cut.md",
+  "progress": null,
+  "status": "draft",
+  "tags": [],
+  "title": "Logged readings survive a power cut",
+  "type": "requirement"
+}
