@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+no open work: a shows what's done, kiln new adds a task
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab

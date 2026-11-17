@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+done  21 items
+TASK-001  kiln show prints the body, and its JSON is structured
+TASK-002  kiln list --format json carries links, owner, due and, with --body, the body
+TASK-003  kiln next and kiln status: ready work and the plan by milestone
+TASK-004  Plan checks: K211 to K214
+TASK-005  kiln new takes links, tags and a body; kiln set takes tags and jira
+TASK-006  The agent guide describes the plan and how to work through it
+TASK-007  Body templates for the default types
+TASK-008  kiln init adds the design-doc export
+TASK-009  kiln list refuses unknown statuses and takes comma lists
+TASK-010  KILN_EDITOR, VISUAL and EDITOR open items outside Fenix
+TASK-011  kiln --help groups the everyday commands first
+TASK-012  Untouched template text is reported (K215)
+TASK-013  The GUI shows ready and waiting work, and one progress everywhere
+TASK-014  Work can be claimed: owner in next and status, kiln next --unowned
+TASK-015  The design-doc template places tasks and tests
+TASK-016  JSON output carries kiln_json
+TASK-017  kiln next and status tell work in progress from work ready to start             · claude
+TASK-018  JUnit results count toward verification: --results, K216 and K217
+TASK-019  kiln affected: the requirements a change reaches, and what to re-check
+TASK-020  kiln log: an item's history from git                                            · claude
+TASK-021  kiln signoff: sign-off changes since a revision, with their authors             · claude
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+closed items shown
