@@ -522,14 +522,14 @@ impl Extension for Kiln {
 api::export!(Kiln);
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::model::tests::fixture;
     use fenix_test_kit::{Fake, Harness, Ran};
 
     /// A fake whose kiln answers as the demo project's did, check's exit 1
     /// included.
-    fn demo() -> Fake {
+    pub(crate) fn demo() -> Fake {
         let fake = Fake::new();
         fake.program("kiln", "/usr/bin/kiln")
             .on_spawn("kiln --version", Ran::ok(fixture("version.txt")))
@@ -571,7 +571,7 @@ mod tests {
     const WIDE: (u32, u32) = (110, 26);
 
     /// The plan opened on the demo project, drawn wide.
-    fn opened(fake: &Fake) -> (Harness<Kiln>, u64) {
+    pub(crate) fn opened(fake: &Fake) -> (Harness<Kiln>, u64) {
         let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
         h.size = WIDE;
         h.command("kiln.open").unwrap();
@@ -580,12 +580,12 @@ mod tests {
     }
 
     /// The ID under the cursor on page `page`'s tab shown.
-    fn at(h: &Harness<Kiln>, page: u64) -> Option<String> {
+    pub(crate) fn at(h: &Harness<Kiln>, page: u64) -> Option<String> {
         h.ext.pages.get(&page)?.plan.id().map(str::to_string)
     }
 
     /// The screen's last line: the bottom line.
-    fn foot(h: &mut Harness<Kiln>, page: u64) -> String {
+    pub(crate) fn foot(h: &mut Harness<Kiln>, page: u64) -> String {
         h.screen(page).lines().last().unwrap_or("").to_string()
     }
 
@@ -1198,7 +1198,7 @@ mod tests {
     // -- The doctor, the tasks and the modeline -----------------------------
 
     /// A fake whose kiln answers as Kiln's own project did: no findings.
-    fn own() -> Fake {
+    pub(crate) fn own() -> Fake {
         let fake = Fake::new();
         fake.program("kiln", "/usr/bin/kiln")
             .on_spawn("kiln --version", Ran::ok(fixture("version.txt")))

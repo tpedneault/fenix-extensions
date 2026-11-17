@@ -73,8 +73,10 @@ yours (`m`, `T`, `b`, `H`, `L`, `C-o`, `C-i`...): match on `key.key`,
 
 Pure tests in your file: build a `Loaded` from `tests/fixtures/out/demo`
 and `own` (`model::tests::fixture`), a `Looks::new(&loaded)`, a `Ctx`, and
-assert on `rows` (see `tree.rs`'s tests: a line per row). Page tests in
-`lib.rs`'s style: a `Fake` answering kiln from the fixtures, `kiln.open`,
+assert on `rows` (see `tree.rs`'s tests: a line per row). Page tests in your
+file too, with `lib.rs`'s helpers (`crate::tests::{demo, own, opened, at,
+foot}`; add your command's answer with `.on_spawn("kiln trace --format
+json", Ran::ok(fixture(..)))`): `kiln.open`,
 `h.keys(page, "4")` to reach your tab, then
 `assert_snapshot!("board-demo", h.screen(page))` at `h.size = (110, 26)`.
 Snapshots are `tests/snapshots/<tab>-<project>[-<what>].txt`; write them
