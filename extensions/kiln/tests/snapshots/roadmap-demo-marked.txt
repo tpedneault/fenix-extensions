@@ -1,0 +1,27 @@
+  «accent:1 »«muted:Tree»   «accent:2 »«muted:Trace»   «accent:3 »«muted:Impact»   «accent:4 »«muted:Board»   «accent:5 »«title panel under=title:Roadmap»   «accent:6 »«muted:Decisions»   «accent:7 »«muted:Changes»   «accent:8 »«muted:Item»   «accent:9 »«muted:Check»   «title:Demo»«bad:  1 error»
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> «accent:MS-001»      First release              «keyword:active»   due 2030-06-30     1/5 ██░░░░░░░░
+    «accent:TASK-002»  Write readings to SQLite   «keyword:doing»    «keyword:in progress»        «muted:· ana»
+    «accent:TASK-003»  Export the log as CSV      «accent:todo»     «good:ready»              «muted:· bo»
+    «accent:TASK-007»  Batch the writes           «accent:todo»     «good:ready»
+    «accent:TASK-004»  Add the export button      «accent:todo»     «warn:waits on TASK-003»
+  «accent:MS-002»      Second release             «accent:planned»  «muted:undated»            0/2 ░░░░░░░░░░
+    «accent:TASK-006»  Draft the user guide       «accent:todo»     «good:ready»
+    «accent:TASK-005»  Ask about retention rules  «bad:blocked»  «bad:blocked»
+  «title:no milestone»  «muted:1 item»
+  «accent:TASK-008»    Tidy the build scripts     «accent:todo»     «good:ready»
+
+
+
+
+
+
+
+
+
+
+
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  «accent:Enter» «muted:open»  «accent:/» «muted:filter»  «accent:a» «muted:show closed»  «accent:v» «muted:item»  «accent:i» «muted:impact»  «accent:r» «muted:reload»  «accent:Tab» «muted:next tab»
+[more keys, mouse]
