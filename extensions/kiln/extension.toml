@@ -1,0 +1,83 @@
+[extension]
+id = "fenix.kiln"
+name = "Kiln"
+version = "1.0.0"
+description = "A Kiln project in Fenix: its plan on pages, edits to its items, exports, and read tools for coding agents, all by running the kiln program"
+authors = ["Thomas Pedneault"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpedneault/fenix-extensions"
+categories = ["tools"]
+runtime = "wasm"
+
+[engine]
+# 1.6 is the first Fenix that reads project kinds, which is how a folder
+# with a kiln.toml is a KILN project.
+fenix = ">=1.6, <2"
+# The API the shared kits are built on (ui-kit's pages, test-kit's tests).
+api = "1.5"
+
+# A command loads it, or a project with a kiln.toml at its top. Loading
+# asks nothing of kiln: the project is read when a page opens.
+[activation]
+commands = ["kiln.*"]
+markers = ["kiln.toml"]
+
+[permissions]
+# kiln: the only program it runs, to read the project (list, status,
+# check, show) and to change it (set, link, new) -- the extension never
+# writes an item file itself. kiln reads kiln.toml and design/, and holds
+# its own Confluence and Jira credentials; the extension never sees them.
+# The path kiln.path holds, when kiln isn't on the PATH.
+process = ["kiln", "${setting:kiln.path}"]
+# The open project, read-only: kiln.toml and what the project's tools
+# file says about its language servers. Nothing here writes a file.
+filesystem = "project-read"
+# Where you are, so a page can follow the item ID under the cursor and a
+# file's items can be found. Never changes a buffer.
+editor = "read"
+
+[contributes]
+# Told when a file is saved, and when the repository's head moves, so the
+# project is read again on the change, not on a guess.
+events = ["saved", "git"]
+
+[[contributes.commands]]
+id = "kiln.open"
+title = "Kiln: open the plan"
+
+[[contributes.commands]]
+id = "kiln.reload"
+title = "Kiln: read the project again"
+
+[[contributes.settings]]
+key = "kiln.path"
+kind = "path"
+label = "kiln"
+description = "Where kiln is, when it isn't on the PATH. Empty: kiln, from the PATH."
+default = ""
+
+[[contributes.settings]]
+key = "kiln.refresh_seconds"
+kind = "int"
+label = "Refresh every"
+description = "Seconds between reloads while a Kiln page is in view. 0: only when a file is saved and when you press r."
+default = "5"
+
+# What a folder with a kiln.toml is, in the hub, on Home and in the
+# modeline. Fenix's own detection comes first: a Rust or Python project
+# with a kiln.toml stays what it is (Kiln's own repository is a Rust
+# workspace and stays RS) and still gets everything else here -- the
+# context and the activation don't depend on the kind. The tag is the
+# kind's, for a folder nothing else names.
+[[contributes.project_kinds]]
+id = "kiln"
+name = "Kiln"
+tag = "KILN"
+markers = ["kiln.toml"]
+
+# The SPC m menu (keymaps/kiln.toml) in a Kiln project, and on the plan's
+# page, which later versions open.
+[[contributes.contexts]]
+name = "kiln"
+markers = ["kiln.toml"]
+pages = ["plan"]

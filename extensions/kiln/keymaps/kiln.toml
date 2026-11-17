@@ -1,0 +1,12 @@
+# Kiln's keys, after SPC m in a Kiln project or on its page. Your own
+# keybindings.toml wins.
+
+[[local.kiln]]
+keys = "o"
+label = "open the plan"
+command = "kiln.open"
+
+[[local.kiln]]
+keys = "r"
+label = "read the project again"
+command = "kiln.reload"
