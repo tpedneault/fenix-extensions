@@ -1,0 +1,3 @@
+design-doc-confluence (confluence, document) → space DEMO, page 123456789 "Demo space home"
+  drift     "Demo — design document": drift: edited by Ana at 2026-02-01T09:30:00Z, version 5; skipped (15 KiB)
+  0 create, 0 update, 0 unchanged, 1 drift, 0 retire

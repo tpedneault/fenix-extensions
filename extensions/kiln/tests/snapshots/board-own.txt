@@ -1,4 +1,4 @@
-1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Expo…› Kiln
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 done  21 items
 TASK-001  kiln show prints the body, and its JSON is structured

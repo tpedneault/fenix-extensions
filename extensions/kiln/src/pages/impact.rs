@@ -206,6 +206,9 @@ mod tests {
             loaded: l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         view.rows(&ctx)
@@ -243,6 +246,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         assert!(v.queries(&ctx).is_empty(), "nothing to ask");

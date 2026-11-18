@@ -326,6 +326,9 @@ mod tests {
             loaded: l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         view.rows(&ctx)
@@ -369,6 +372,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         assert!(v.queries(&ctx).is_empty());
@@ -456,6 +462,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         let built = v.rows(&ctx);
@@ -508,7 +517,7 @@ mod tests {
             ["kiln: v0.1: not a git repository with commits"]
         );
         // kiln not run at all is one note too.
-        v.answer("diff", &Err(Failure::TimedOut));
+        v.answer("diff", &Err(Failure::TimedOut(60)));
         assert_eq!(lines(&v, &l).len(), 1);
     }
 
@@ -554,6 +563,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         let mut v = since(" v0.1 ");
@@ -591,6 +603,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         let mut v = Changes::default();

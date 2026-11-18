@@ -236,6 +236,15 @@ impl Row {
         row
     }
 
+    /// A row the cursor stops on that is no item and no place: an export
+    /// target's line (Exports), `key` what the cursor follows. `Enter`
+    /// says it has no file; the edits say there's no item.
+    pub fn entry(key: impl Into<String>, cells: Vec<Cell>) -> Row {
+        let mut row = Row::new(Kind::Code, cells);
+        row.key = key.into();
+        row
+    }
+
     /// A muted line that says something.
     pub fn note(text: impl Into<String>) -> Row {
         Row::new(Kind::Note, vec![Cell::muted(text)])
@@ -283,10 +292,21 @@ impl Row {
 /// ([`View::answer`]). The frame asks it once for each read of the project
 /// -- again after a reload -- and again when its `args` change; a view
 /// that wants it no more leaves it out.
+///
+/// [`Query::per_round`] asks it once per round of the view's instead of
+/// once per read: for a query too costly to repeat on every reload (the
+/// Exports tab's dry run renders the whole document and may ask
+/// Confluence), asked when the tab is first shown and again when the view
+/// moves to its next round (`R`). [`Query::limit`] gives it longer than
+/// [`crate::kiln::TIMEOUT_MS`] to answer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Query {
     pub tag: String,
     pub args: Vec<String>,
+    /// Asked once per this round rather than once per read.
+    pub round: Option<u64>,
+    /// How long kiln may take, in ms; `None`: the queue's default.
+    pub limit_ms: Option<u32>,
 }
 
 impl Query {
@@ -294,7 +314,22 @@ impl Query {
         Query {
             tag: tag.to_string(),
             args: args.into_iter().map(Into::into).collect(),
+            round: None,
+            limit_ms: None,
         }
+    }
+
+    /// Asked once for round `round`, not again on a reload: again only
+    /// when the round (or the args) change.
+    pub fn per_round(mut self, round: u64) -> Query {
+        self.round = Some(round);
+        self
+    }
+
+    /// kiln may take `ms` to answer it.
+    pub fn limit(mut self, ms: u32) -> Query {
+        self.limit_ms = Some(ms);
+        self
     }
 }
 
@@ -371,6 +406,28 @@ pub enum Reply {
         args: Vec<String>,
         stdin: Option<String>,
     },
+    /// A kiln command that changes no item, run in kiln's queue: `kiln
+    /// export`, which writes generated files or publishes to Confluence.
+    /// Unlike [`Reply::Edit`], the project isn't read again after it and
+    /// the frame says nothing: the view is handed the outcome
+    /// ([`View::ran`]) and says it. `limit_ms` gives it longer than the
+    /// queue's default. `publish` names the Confluence target it
+    /// publishes: one such runs at a time for the whole extension (`lib.rs`
+    /// refuses a second, answering at once), it isn't stopped when another
+    /// kiln is chosen, and every plan page's bottom line says it runs.
+    Run {
+        tag: String,
+        args: Vec<String>,
+        limit_ms: Option<u32>,
+        publish: Option<String>,
+    },
+    /// Something that went wrong, said on the bottom line in the error
+    /// look.
+    Bad(String),
+    /// kiln with `args` run in a terminal pane under the focused one,
+    /// called `title`, for what must be typed into kiln itself: `kiln auth
+    /// confluence`, whose token the extension never sees.
+    Terminal { title: String, args: Vec<String> },
 }
 
 impl Reply {
@@ -412,6 +469,14 @@ pub struct Ctx<'a> {
     /// view has.
     pub reading: bool,
     pub looks: &'a Looks,
+    /// The project's change count now (`Project::changes`): an answer
+    /// asked at this count still shows the project as it is.
+    pub changes: u64,
+    /// `kiln.toml` as the extension read it, or why it couldn't.
+    pub config: Result<&'a Config, &'a str>,
+    /// The Confluence target being published, if one is (one at a time,
+    /// for the whole extension: [`Reply::Run`]).
+    pub publishing: Option<&'a str>,
 }
 
 impl Ctx<'_> {
@@ -583,6 +648,14 @@ pub trait View {
     /// ([`stdout`]). Its rows are built again after.
     fn answer(&mut self, _tag: &str, _result: &Result<Ran, Failure>) {}
 
+    /// [`View::answer`], with the project's change count as it was when
+    /// the query was asked ([`Ctx::changes`]): for a view that must tell
+    /// an answer about the project as it is from one about an earlier
+    /// state. Calls [`View::answer`] unless the view says otherwise.
+    fn answer_at(&mut self, tag: &str, result: &Result<Ran, Failure>, _changes: u64) {
+        self.answer(tag, result);
+    }
+
     /// An item handed to it from another tab: `v` for Item, `i` for
     /// Impact. The frame then shows this tab.
     fn hand(&mut self, _id: &str) {}
@@ -605,6 +678,14 @@ pub trait View {
     /// has said the outcome already; a view replies to go on (another
     /// `Ask` after a refusal) or ignores it.
     fn edited(&mut self, _tag: &str, _result: &Result<Ran, Failure>, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// How the command it asked for with `tag` ([`Reply::Run`]) ended:
+    /// kiln's output, or why there's none. The frame says nothing of it;
+    /// the view replies with what to say ([`Reply::Say`], [`Reply::Bad`])
+    /// or what to do next.
+    fn ran(&mut self, _tag: &str, _result: &Result<Ran, Failure>, _ctx: &Ctx) -> Reply {
         Reply::Ignored
     }
 

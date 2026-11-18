@@ -666,7 +666,7 @@ mod tests {
                 "isn't a language's name",
             ),
             (ok("{\"kiln_json\": 1, \"langu"), "can't be read"),
-            (Err(Failure::TimedOut), "gave no answer in 60 s"),
+            (Err(Failure::TimedOut(60)), "gave no answer in 60 s"),
             (
                 Ok(Ran {
                     code: Some(2),

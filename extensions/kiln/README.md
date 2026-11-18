@@ -48,6 +48,10 @@ closed), the same on every tab:
   a row each; `v` on a row follows it, `<` and `>` go back and forward.
 - **Check**: `kiln check`'s findings under their file, in line order;
   `Enter` opens the line, `e` keeps the errors only.
+- **Exports** (`0`): `kiln export --dry-run`, target by target, as the
+  command line prints it; `w` and `W` write file targets, `P` publishes a
+  Confluence target. See "Exports and publishing" below.
+- **Comments**: not built yet (`Tab` reaches it).
 
 **Editing**: the same edits from the plan's keys (on the item under the
 cursor, on every tab) and from a buffer (the commands under "Keys", on
@@ -140,13 +144,90 @@ last `kiln check` found, with a fix row that opens the plan. In a folder
 that isn't a Kiln project it has none.
 
 **Tasks** (`SPC t t`), in a Kiln project: `kiln: check`, `kiln: export
---check` and `kiln: export` (which writes the file targets, never
-publishes to Confluence: no task passes `--yes`). `kiln: check`'s lines are
-`path:line:col: K102 error: message`, which the task pane turns into
-quickfix entries.
+--check` and `kiln: export` (no task passes `--yes`, so none publishes to
+Confluence). `kiln: export` is a bare `kiln export`: in a project with a
+Confluence target, kiln plans that target against the live space too,
+which needs its token, and with none it stops before writing any file;
+not on a terminal it then publishes nothing and exits 1. The Exports tab's
+`W` names the file targets instead, and writes only them. `kiln: check`'s
+lines are `path:line:col: K102 error: message`, which the task pane turns
+into quickfix entries.
 
 **The modeline** shows the last check's findings when there are any, `kiln 1
 error, 2 warnings`, and nothing when there are none.
+
+## Exports and publishing
+
+The Exports tab (`0`) shows `kiln export --dry-run` for each `[[export]]`
+in `kiln.toml`: the target's line as a heading (`design-md (markdown,
+document) → docs/generated/DESIGN.md`, `spec (confluence, document) →
+space FLINT, page 123456789 "Flint"`), then what would change (`would
+create`, `would update`, `would remove … (no longer produced)`, or
+`unchanged (1 file)`), `leaves out: …`, and for Confluence the plan's
+operations with their reasons and sizes, the pages that aren't Kiln's,
+the totals line, warnings and refusals -- in kiln's words. `Enter` on a
+file that exists opens it.
+
+**When it's read.** When the tab is first shown, and on `R`; not on every
+reload (the dry run renders the whole document, and for Confluence reads
+the space). Each target is asked on its own (`kiln export --dry-run
+--format json -- NAME`): in kiln 1.0.0 one target kiln can't plan fails
+the whole command, so a Confluence target with no token, or a server that
+doesn't answer, shows kiln's line under its heading and the other targets
+still show. A target says `reading… (asks Confluence)` while its dry run
+runs, which may take up to 10 minutes; a dry run read before the project
+changed (a save, an edit, a checkout, or a read that found something new)
+says so, and `R` reads it again. Without a `kiln.toml` the extension can
+read, every target is asked at once, and kiln's answer (or its one line)
+is all there is.
+
+kiln runs one command at a time, so while a dry run or a publish runs, the
+project's reloads and edits wait for it: the other tabs keep the last
+read, with `reading…` on the top line, and an edit runs once it's done.
+
+**Writing.** `w` writes the file target under the cursor (`kiln export
+--format json -- NAME`), `W` every file target, each named. It asks
+nothing (the files are generated, and git has the last ones): the bottom
+line says what kiln wrote, and the target's dry run is read again. The
+project isn't, since no item changed.
+
+**Publishing.** `P` on a Confluence target publishes it, and only when its
+last dry run is current (read since the project last changed), isn't
+refused, and has something to do; otherwise the bottom line says which,
+and `R` reads it again. It shows what will happen in Fenix's prompt --
+`Publish to Confluence: writes 2 pages in space DEMO, under page 123456789
+"Demo space home" (0 create, 1 update, 0 unchanged, 0 drift, 1 retire).
+Type design-doc-confluence to publish` -- and publishes only when the
+target's name is typed exactly; anything else, `y` included, cancels and
+says so. It then runs `kiln export --yes --format json -- NAME`, that one
+target. kiln reads the space again as it publishes and publishes its own
+plan, not the dry run's: what it did is shown as kiln says it (`published
+0 created, 1 updated, 1 retired, 0 pruned`), with a word when its plan
+wasn't the one shown; a refusal or an error is kiln's line, and a network
+or server error (exit 3) says the next publish finishes what this one
+started. The dry run is read again after.
+
+A publish may run for up to two hours before the extension stops it (a
+large space takes minutes, and a publish stopped half done stays half
+done until the next one). One runs at a time, for every plan page; while
+it does, every tab's bottom line says `publishing NAME to Confluence…`,
+and a second `P` says one runs. Choosing another kiln (`kiln.path`) or
+closing the page doesn't stop it.
+
+**Signing in.** With no token, the target's line is kiln's (`no token for
+…: run kiln auth confluence`, or the credential store's own error), and
+`A` runs `kiln auth confluence` in a terminal under the current pane: the
+token is typed into kiln there. Then `R`.
+
+**Never done here**, and left to a terminal: `--force` (overwrite pages
+edited in Confluence), `--adopt` (replace an existing page's content),
+`--prune-removed` (send retired pages to the trash) and `--allow-shallow`.
+A plan kiln refuses -- a page edited in Confluence, a page to adopt that
+has content, a page too large -- is shown with kiln's reason and
+publishes nothing from here; overriding it is a decision typed at a
+terminal. Nor does the extension publish anywhere but `P` on this tab:
+not as an agent tool, not as a task, not as a command. It never sees a
+token: no secret, no prompt for one, no environment variable.
 
 ## Keys
 
@@ -157,7 +238,7 @@ On the plan:
 | `j` `k`, `↓` `↑` | Next / previous row (headings are skipped) |
 | `C-d` `C-u`, `PgDn` `PgUp` | Half a page down / up |
 | `g g` `G`, `Home` `End` | First / last row |
-| `Tab` `]`, `S-Tab` `[`, `1`–`9` | Next / previous tab, or one by its number |
+| `Tab` `]`, `S-Tab` `[`, `1`–`9`, `0` | Next / previous tab, or one by its number (`0`: Exports; Comments by `Tab`) |
 | `/` | Filter: narrows the rows as you type (headings and parents of a match stay); `Enter` keeps it, `Esc` clears it |
 | `Enter` | Open the item's file at its line (or the code location, or the finding) |
 | `v` | The item under the cursor on the Item tab |
@@ -168,6 +249,10 @@ On the plan:
 | `b` | Changes: the baseline, typed in Fenix's prompt |
 | `<`, `>` | Item: the item viewed before, after (Kiln's `C-o` and `C-i` are Fenix's own here) |
 | `e` | Check: errors only, or everything again |
+| `R` | Exports: read every target's dry run again |
+| `w`, `W` | Exports: write the file target under the cursor; every file target |
+| `P` | Exports: publish the Confluence target under the cursor, after its name is typed |
+| `A` | Exports: `kiln auth confluence` in a terminal, on a Confluence target |
 | `s` | Status: pick one of the item's type's statuses (the current one says `now`) |
 | `H`, `L` | Board: the previous / next status in the type's order (at the first or last, it says so) |
 | `l` | Link: pick a role its type may start, then a target the role allows that isn't linked yet |
@@ -234,6 +319,9 @@ for a kiln that isn't found; it has no key.
   the cursor. It changes no buffer.
 
 No network and no secrets: Confluence and Jira credentials stay Kiln's.
+Publishing to Confluence is kiln's own network access, run by `P` on the
+Exports tab after the target's name is typed; `kiln auth confluence` runs
+in a terminal pane, where the token goes to kiln.
 
 ## Building
 
@@ -250,7 +338,10 @@ record it again and read the diff:
 extensions/kiln/tests/fixtures/record.sh /path/to/kiln
 ```
 
-One file isn't recorded: `tests/fixtures/hand/lsp-languages.json`, the
-answer of `kiln lsp --languages`, which no released kiln has yet, is
-written by hand (its `README` says from what).
+Some answers aren't recorded, and are written by hand in
+`tests/fixtures/hand/` (its `README` says from what): `kiln lsp
+--languages`, which no released kiln has yet, and what `kiln export`
+prints when it publishes -- that needs a Confluence server, which the
+recording never reaches (its Confluence plans are made offline, from
+snapshots).
 

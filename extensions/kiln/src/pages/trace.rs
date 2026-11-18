@@ -287,6 +287,9 @@ mod tests {
             loaded: l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         view.rows(&ctx)
@@ -305,6 +308,9 @@ mod tests {
             loaded: l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         view.key(KeyPress::from(Key::Char(c)), None, &ctx)
@@ -316,6 +322,9 @@ mod tests {
             loaded: l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         view.queries(&ctx).remove(0).args
@@ -351,6 +360,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         let rows = t.rows(&ctx);
@@ -485,7 +497,7 @@ mod tests {
         );
         t.answer("trace", &ran(0, r#"{"kiln_json": 2, "items": []}"#, ""));
         assert!(lines(&t, &l)[0].contains("shape 2"));
-        t.answer("trace", &Err(Failure::TimedOut));
+        t.answer("trace", &Err(Failure::TimedOut(60)));
         assert!(lines(&t, &l)[0].contains("no answer"));
         t.answer(
             "trace",

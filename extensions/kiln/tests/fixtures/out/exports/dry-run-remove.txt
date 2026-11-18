@@ -1,0 +1,5 @@
+sections-md (markdown, sections) → docs/sections
+  would update docs/sections/index.md
+  would update docs/sections/requirements.md
+  would remove docs/sections/risks.md (no longer produced)
+  leaves out: ADR-001, MS-001, MS-002, TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TEST-001, RISK-001

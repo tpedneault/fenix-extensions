@@ -14,10 +14,44 @@
 //! # Keys the frame owns
 //!
 //! `j` `k` `↓` `↑`, `g g` `G` `Home` `End`, `C-d` `C-u` `PgDn` `PgUp` (half
-//! a page), `Tab` `]` `[` `S-Tab` `1`–`9`, `/` (then everything until
+//! a page), `Tab` `]` `[` `S-Tab` `1`–`9` `0`, `/` (then everything until
 //! `Enter` or `Esc`), `Enter`, `r`, `a`, `v`, `i`, and the edits: `s` `l`
 //! `U` `n` `N` `E`, `H` `L` (see below). A view gets every other key. `q`
 //! and `Esc` close the page and Space is the leader: Fenix's.
+//!
+//! # Eleven tabs
+//!
+//! `1`–`9` reach the first nine, `0` the tenth (Exports), and `Tab` `]`
+//! `[` every one, Comments (the eleventh) included. The bar is ui-kit's:
+//! it numbers the first nine itself, so the tenth's title carries its
+//! `0` (in the title's look, not the number's accent). Eleven don't fit
+//! 110 columns beside the project's name, and ui-kit cuts the bar at its
+//! end without a mark (it scrolls only to keep the active tab in view,
+//! with `‹` for those before it): so when they don't all fit and the tab
+//! shown isn't the last, a muted `›` after the bar says there are more,
+//! which `Tab` or `0` reach.
+//!
+//! # Asked once per round
+//!
+//! A query is asked once per read of the project, unless the view says
+//! [`super::view::Query::per_round`]: then once per round of the view's,
+//! however many reads load -- the Exports tab's dry run, too costly to
+//! repeat on every reload, is asked when the tab is first shown and on
+//! `R`. A query may also give kiln longer to answer
+//! ([`super::view::Query::limit`]). The project's change count as a query
+//! is asked is handed back with its answer ([`View::answer_at`]), so a
+//! view can tell whether what it holds still shows the project as it is.
+//!
+//! # Commands that change no item
+//!
+//! [`Reply::Run`] runs a kiln command that writes no item (`kiln
+//! export`): through kiln's queue as an [`Effect::Run`], with no reload
+//! after and nothing said by the frame -- the view is handed the outcome
+//! ([`Plan::ran`]) and says it. One that publishes is the extension's one
+//! publish at a time; while it runs ([`Now::publishing`]), every tab's
+//! bottom line says so before its keys. [`Reply::Terminal`] runs kiln in
+//! a terminal pane (`kiln auth confluence`), for what is typed into kiln
+//! itself.
 //!
 //! # When rows are built
 //!
@@ -79,14 +113,18 @@ use crate::project::{Loaded, QueryId, State};
 /// The project now, as the frame needs it: its state, and how many reads
 /// have loaded ([`crate::project::Project::loads`]), so a new read is
 /// told from the one the rows were built from; `kiln.toml` as the
-/// extension read it, or why it couldn't ([`crate::config`]); and whether
-/// every edit has been read back ([`crate::project::Project::settled`]).
+/// extension read it, or why it couldn't ([`crate::config`]); whether
+/// every edit has been read back ([`crate::project::Project::settled`]);
+/// its change count ([`crate::project::Project::changes`]); and the
+/// Confluence target being published, if one is.
 #[derive(Clone, Copy)]
 pub struct Now<'a> {
     pub state: State<'a>,
     pub loads: u64,
     pub config: Result<&'a Config, &'a str>,
     pub settled: bool,
+    pub changes: u64,
+    pub publishing: Option<&'a str>,
 }
 
 /// The tag of an edit flow's prompts, picks and edits, before its serial
@@ -134,6 +172,16 @@ pub enum Effect {
         args: Vec<String>,
         stdin: Option<String>,
     },
+    /// A kiln command that changes no item ([`Reply::Run`]).
+    Run {
+        tab: Tab,
+        tag: String,
+        args: Vec<String>,
+        limit_ms: Option<u32>,
+        publish: Option<String>,
+    },
+    /// kiln in a terminal pane ([`Reply::Terminal`]).
+    Terminal { title: String, args: Vec<String> },
 }
 
 /// A query to put to kiln for a tab ([`super::view::Query`]): `lib.rs`
@@ -144,6 +192,18 @@ pub struct Ask {
     pub tab: Tab,
     pub tag: String,
     pub args: Vec<String>,
+    /// How long kiln may take, in ms ([`super::view::Query::limit`]).
+    pub limit_ms: Option<u32>,
+    /// The round it's for ([`super::view::Query::per_round`]).
+    pub round: Option<u64>,
+}
+
+/// When a query was asked: for a read of the project, or for a round of
+/// the view's ([`super::view::Query::per_round`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Stamp {
+    Read(u64),
+    Round(u64),
 }
 
 /// The page's state as saved: its shape's version.
@@ -177,10 +237,12 @@ struct Pane {
     /// The read its rows were built from; `None` before the first build.
     built: Option<u64>,
     dirty: bool,
-    /// Each query asked, by tag: its args and the read it was for.
-    asked: HashMap<String, (Vec<String>, u64)>,
-    /// Each query out, by tag: its args and id.
-    out: HashMap<String, (Vec<String>, QueryId)>,
+    /// Each query asked, by tag: its args and the read or round it was
+    /// for.
+    asked: HashMap<String, (Vec<String>, Stamp)>,
+    /// Each query out, by tag: its args, id, and the project's change
+    /// count as it was asked.
+    out: HashMap<String, (Vec<String>, QueryId, u64)>,
     /// An ID the cursor goes to once a read newer than the one given has
     /// loaded: an edit's item (a new ID, a new item), which the read
     /// before the edit doesn't have yet.
@@ -357,12 +419,24 @@ impl Pane {
 }
 
 /// What `pane`'s view builds from and is asked with.
-fn ctx<'a>(loaded: &'a Loaded, pane: &Pane, looks: &'a Looks) -> Ctx<'a> {
+fn ctx<'a>(loaded: &'a Loaded, pane: &Pane, looks: &'a Looks, now: Now<'a>) -> Ctx<'a> {
     Ctx {
         loaded,
         closed: pane.closed,
         reading: !pane.out.is_empty(),
         looks,
+        changes: now.changes,
+        config: now.config,
+        publishing: now.publishing,
+    }
+}
+
+/// What a query is asked for: round `round` when it gives one, else read
+/// `loads`.
+fn stamp(round: Option<u64>, loads: u64) -> Stamp {
+    match round {
+        Some(r) => Stamp::Round(r),
+        None => Stamp::Read(loads),
     }
 }
 
@@ -522,7 +596,7 @@ impl Plan {
             }
         }
         if pane.built != Some(now.loads) || pane.dirty {
-            let ctx = ctx(loaded, pane, &self.looks);
+            let ctx = ctx(loaded, pane, &self.looks, now);
             pane.build(&ctx);
             pane.built = Some(now.loads);
         }
@@ -547,18 +621,24 @@ impl Plan {
         self.ensure(now);
         let tab = self.tab();
         let pane = &self.panes[self.tabs.active];
-        let ctx = ctx(loaded, pane, &self.looks);
+        let ctx = ctx(loaded, pane, &self.looks, now);
         pane.view
             .queries(&ctx)
             .into_iter()
             .filter(|q| {
-                pane.asked.get(&q.tag) != Some(&(q.args.clone(), now.loads))
-                    && pane.out.get(&q.tag).is_none_or(|(args, _)| *args != q.args)
+                let stamp = stamp(q.round, now.loads);
+                pane.asked.get(&q.tag) != Some(&(q.args.clone(), stamp))
+                    && pane
+                        .out
+                        .get(&q.tag)
+                        .is_none_or(|(args, _, _)| *args != q.args)
             })
             .map(|q| Ask {
                 tab,
                 tag: q.tag,
                 args: q.args,
+                limit_ms: q.limit_ms,
+                round: q.round,
             })
             .collect()
     }
@@ -566,9 +646,12 @@ impl Plan {
     /// `ask` was put to kiln as query `id`.
     pub fn asked(&mut self, ask: &Ask, id: QueryId, now: Now) {
         let pane = &mut self.panes[ask.tab.index()];
-        pane.asked
-            .insert(ask.tag.clone(), (ask.args.clone(), now.loads));
-        pane.out.insert(ask.tag.clone(), (ask.args.clone(), id));
+        pane.asked.insert(
+            ask.tag.clone(),
+            (ask.args.clone(), stamp(ask.round, now.loads)),
+        );
+        pane.out
+            .insert(ask.tag.clone(), (ask.args.clone(), id, now.changes));
         pane.dirty = true;
     }
 
@@ -584,14 +667,51 @@ impl Plan {
     ) -> bool {
         let pane = &mut self.panes[tab.index()];
         match pane.out.get(tag) {
-            Some((_, out)) if *out == id => {
+            Some((_, out, changes)) if *out == id => {
+                let changes = *changes;
                 pane.out.remove(tag);
-                pane.view.answer(tag, result);
+                pane.view.answer_at(tag, result, changes);
                 pane.dirty = true;
                 true
             }
             _ => false,
         }
+    }
+
+    /// How the command tab `tab`'s view asked for with `tag`
+    /// ([`Reply::Run`]) ended, handed to it; what it replies, done. The
+    /// frame says nothing itself: the view does. Unlike the other
+    /// answers, it isn't dropped when the project isn't read now (another
+    /// kiln chosen while a publish ran): what kiln did to Confluence is
+    /// said all the same, the view handed an empty project, and nothing it
+    /// asks for next is done.
+    pub fn ran(
+        &mut self,
+        tab: Tab,
+        tag: &str,
+        result: &Result<Ran, Failure>,
+        now: Now,
+    ) -> Vec<Effect> {
+        if matches!(now.state, State::Loaded { .. }) {
+            return self.answer_view(tab, now, |view, ctx| view.ran(tag, result, ctx));
+        }
+        let empty = Loaded::new(MIN_VERSION, Vec::new(), Err(String::new()), Ok(Vec::new()));
+        let pane = &mut self.panes[tab.index()];
+        let ctx = ctx(&empty, pane, &self.looks, now);
+        let reply = pane.view.ran(tag, result, &ctx);
+        pane.dirty = true;
+        match reply {
+            Reply::Say(text) => self.say(&text, Role::Text),
+            Reply::Bad(text) => self.say(&text, Role::Bad),
+            _ => {}
+        }
+        Vec::new()
+    }
+
+    /// Something said on the bottom line from outside the page (a
+    /// terminal Fenix wouldn't open).
+    pub fn tell(&mut self, text: &str, bad: bool) {
+        self.say(text, if bad { Role::Bad } else { Role::Text });
     }
 
     // -- Keys and the mouse ----------------------------------------------------
@@ -626,6 +746,11 @@ impl Plan {
             Key::Char('[') => Some(Key::BackTab),
             k @ (Key::Tab | Key::BackTab) => Some(k),
             k @ Key::Char('1'..='9') if !ctrl => Some(k),
+            // The tenth (Exports): ui-kit's bar numbers nine.
+            Key::Char('0') if !ctrl && Tab::ALL.len() > 9 => {
+                self.tabs.active = 9;
+                return Vec::new();
+            }
             _ => None,
         };
         if let Some(k) = tab_key {
@@ -838,7 +963,7 @@ impl Plan {
         let tab = self.tab();
         let pane = &mut self.panes[tab.index()];
         let row = pane.row().cloned();
-        let ctx = ctx(loaded, pane, &self.looks);
+        let ctx = ctx(loaded, pane, &self.looks, now);
         let reply = pane.view.key(press, row.as_ref(), &ctx);
         self.reply(tab, reply)
     }
@@ -878,6 +1003,23 @@ impl Plan {
                 args,
                 stdin,
             }],
+            Reply::Run {
+                tag,
+                args,
+                limit_ms,
+                publish,
+            } => vec![Effect::Run {
+                tab,
+                tag,
+                args,
+                limit_ms,
+                publish,
+            }],
+            Reply::Bad(text) => {
+                self.say(&text, Role::Bad);
+                Vec::new()
+            }
+            Reply::Terminal { title, args } => vec![Effect::Terminal { title, args }],
         }
     }
 
@@ -940,7 +1082,7 @@ impl Plan {
         };
         self.ensure(now);
         let pane = &mut self.panes[tab.index()];
-        let ctx = ctx(loaded, pane, &self.looks);
+        let ctx = ctx(loaded, pane, &self.looks, now);
         let reply = hear(pane.view.as_mut(), &ctx);
         // An answer may change what the view shows whatever it replies (a
         // step of a flow kept, then the next asked): built again, which an
@@ -1052,9 +1194,29 @@ impl Plan {
         }
         let rw: usize = right.iter().map(|(t, _)| width(t)).sum();
         let room = rect.w.saturating_sub(rw + 2);
-        let tabs: Vec<KitTab> = Tab::ALL.iter().map(|t| KitTab::new(t.title())).collect();
+        // ui-kit numbers the first nine; the tenth carries its `0`.
+        let tabs: Vec<KitTab> = Tab::ALL
+            .iter()
+            .enumerate()
+            .map(|(i, t)| match i {
+                9 => KitTab::new(format!("0 {}", t.title())),
+                _ => KitTab::new(t.title()),
+            })
+            .collect();
+        // The bar's width as ui-kit lays it out: "1 " before the first
+        // nine, three cells between.
+        let full: usize = tabs
+            .iter()
+            .enumerate()
+            .map(|(i, t)| width(&t.title) + if i < 9 { 2 } else { 0 })
+            .sum::<usize>()
+            + 3 * tabs.len().saturating_sub(1);
         self.tabs
             .render(&tabs, Rect::new(rect.x, rect.y, room, 1), c);
+        // In the gap before the project's name: the bar never draws there.
+        if full > room && self.tabs.active + 1 < tabs.len() && room < rect.w {
+            c.put(rect.x + room, rect.y, "›", Role::Muted);
+        }
         if rect.h > 1 {
             c.rule(rect.y + 1, rect.x..rect.right());
         }
@@ -1122,7 +1284,8 @@ impl Plan {
                     }
                 }
             } else {
-                let mut x = body.x;
+                // A heading's or a note's cells run on, indented as deep.
+                let mut x = body.x + (row.depth * 2).min(w / 2);
                 for cell in &row.cells {
                     if x >= body.x + w {
                         break;
@@ -1159,6 +1322,19 @@ impl Plan {
                 &format!("/{}", pane.filter.trim()),
                 Role::Accent,
             ) + GAP;
+        }
+        // A publish runs: said on every tab, before anything else but the
+        // filter, the keys after it as they fit.
+        if let Some(target) = now.publishing {
+            if self.message.is_none() {
+                x = c.put_fit(
+                    x,
+                    rect.y,
+                    end.saturating_sub(x),
+                    &format!("publishing {target} to Confluence…"),
+                    Role::Warn,
+                ) + GAP;
+            }
         }
         let said = if let Some((text, role)) = &self.message {
             Some((text.clone(), role.clone()))
@@ -1302,6 +1478,8 @@ pub(crate) mod tests {
             loads,
             config: Err("not read in this test"),
             settled: true,
+            changes: 0,
+            publishing: None,
         }
     }
 
@@ -1334,9 +1512,16 @@ pub(crate) mod tests {
         keys(&mut p, "9", now);
         assert_eq!(p.tab(), Tab::Check);
         key(&mut p, Key::Tab, now);
+        assert_eq!(p.tab(), Tab::Exports);
+        keys(&mut p, "1", now);
+        keys(&mut p, "0", now);
+        assert_eq!(p.tab(), Tab::Exports, "0 is the tenth");
+        key(&mut p, Key::Tab, now);
+        assert_eq!(p.tab(), Tab::Comments, "the eleventh, by Tab only");
+        key(&mut p, Key::Tab, now);
         assert_eq!(p.tab(), Tab::Tree, "round to the first");
         key(&mut p, Key::BackTab, now);
-        assert_eq!(p.tab(), Tab::Check);
+        assert_eq!(p.tab(), Tab::Comments);
     }
 
     #[test]
@@ -1534,7 +1719,9 @@ pub(crate) mod tests {
             [Ask {
                 tab: Tab::Item,
                 tag: "show".into(),
-                args: vec!["show".into(), "REQ-001".into()]
+                args: vec!["show".into(), "REQ-001".into()],
+                limit_ms: None,
+                round: None,
             }]
         );
         p.asked(&asks[0], 7, now);
@@ -1718,6 +1905,8 @@ pub(crate) mod tests {
             loads: 1,
             config: Err("none"),
             settled: true,
+            changes: 0,
+            publishing: None,
         };
         assert!(p.typed(Tab::Check, "target", "TEST-001", gone).is_empty());
         assert_eq!(
@@ -1749,6 +1938,8 @@ pub(crate) mod tests {
             loads: 0,
             config: Err("none"),
             settled: true,
+            changes: 0,
+            publishing: None,
         };
         assert!(screen(&mut p, now, 60, 8).contains("reading the project…"));
         keys(&mut p, "5", now);
@@ -1805,6 +1996,8 @@ pub(crate) mod tests {
             loads: 0,
             config: Err("none"),
             settled: true,
+            changes: 0,
+            publishing: None,
         };
         assert!(key(&mut p, Key::Char('n'), reading).is_empty());
         assert_eq!(

@@ -379,6 +379,9 @@ mod tests {
             loaded: l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         v.rows(&ctx)
@@ -481,6 +484,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         let rows = v.rows(&ctx);
@@ -534,6 +540,9 @@ mod tests {
             loaded: l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks,
         }
     }

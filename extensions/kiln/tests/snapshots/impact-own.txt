@@ -1,4 +1,4 @@
-1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Expo…› Kiln
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 REQ-001  The repository is the source of truth  8 reach it
 REQ-013                            child of REQ-001                      Edits keep the author's formatting a…

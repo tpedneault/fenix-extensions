@@ -12,3 +12,49 @@ No released kiln prints it yet (kiln 1.0.0 refuses --languages; its real
 refusal is recorded in ../out/demo/lsp-languages.*). Once a kiln that has
 it is released, record.sh records the real answer in ../out/, and the
 tests should read that instead of this file.
+
+---
+
+export-*: what `kiln export` prints that can't be recorded without a
+Confluence server (record.sh never reaches one) or with the Secret
+Service this recording machine lacks. Each is `<name>.json` or
+`<name>.stderr` with `<name>.exit`, as record.sh writes them. Written from
+Kiln's source at 0cc4568 (crates/kiln/src/cmd/export.rs, unchanged at
+4592faf), and from the recorded answers in ../out/exports/ for everything
+else in them (the plan, the commit, the sizes):
+
+- export-publish-applied.json, exit 0: `kiln export
+  design-doc-confluence --yes --format json` after a successful publish
+  of the plan in ../out/exports/confluence-update.json. JSON output
+  publishes before printing (export.rs:312-328) and `applied` is
+  `applied_json` (export.rs:454-458, 789-794): created, updated, retired,
+  pruned, skipped. Exit 0 (export.rs:382).
+- export-publish-applied-other-plan.json, exit 0: the same, when the
+  plan kiln made as it published (it reads the space again: it never
+  publishes a dry run's plan) differs from the one the dry run showed --
+  here the old section had been retired by someone else meanwhile, so
+  kiln's plan updates the page and retires nothing.
+- export-publish-nothing.json, exit 0: kiln's own plan, read as it
+  published, has nothing to do: `publish` returns before writing
+  (export.rs:683-685), `applied` stays null, exit 0. The op is what the
+  planner gives an unchanged page (crates/kiln-confluence/src/plan.rs:
+  `Unchanged`, no reasons, message "published", plan.rs:334-347).
+- export-publish-refused.json, exit 1: the plan kiln read as it published
+  is refused (the page was edited in Confluence since the dry run):
+  nothing is published (export.rs:679-682), the JSON with the refusal is
+  printed and the exit is 1 (export.rs:379-381). The JSON is the recorded
+  dry run's, ../out/exports/confluence-drift.json, which is what the
+  same snapshot plans.
+- export-publish-network.stderr, exit 3: a publish stopped half-way by
+  the server or the network (export.rs:761-766: "publishing `NAME`
+  stopped: {e}; run again to finish", EXIT_NETWORK). The `{e}` is shaped
+  as the recorded read error in ../out/exports/confluence-unreachable.stderr
+  is, for a PUT.
+- export-publish-space-changed.stderr, exit 1: a publish whose snapshot
+  is over two minutes old and whose fresh plan differs (export.rs:711-729).
+- export-no-token.stderr, export-publish-no-token.stderr, exit 2: no
+  token, where the credential store answers that it has none (a desktop
+  with a Secret Service, Windows): export.rs:570-583, with " (or plan
+  offline with --snapshot FILE)" only for --dry-run and --check. What a
+  machine without a Secret Service prints instead is recorded in
+  ../out/exports/confluence-no-token.stderr.

@@ -26,10 +26,13 @@ impl View for Board {
     fn empty(&self) -> String                             // said with no rows
     fn queries(&self, ctx: &Ctx) -> Vec<Query>            // kiln asked for you
     fn answer(&mut self, tag: &str, result: &Result<Ran, Failure>)
+    fn answer_at(&mut self, tag: &str, result: &Result<Ran, Failure>, changes: u64) // the same, with
+                                                          //   ctx.changes as it was asked (default: answer)
     fn hand(&mut self, id: &str)                          // `v` → Item, `i` → Impact
     fn typed(&mut self, tag: &str, text: &str, ctx: &Ctx) -> Reply    // after Reply::Ask
     fn picked(&mut self, tag: &str, value: &str, ctx: &Ctx) -> Reply  // after Reply::Pick
     fn edited(&mut self, tag: &str, result: &Result<Ran, Failure>, ctx: &Ctx) -> Reply // after Reply::Edit
+    fn ran(&mut self, tag: &str, result: &Result<Ran, Failure>, ctx: &Ctx) -> Reply    // after Reply::Run
     fn save(&self) -> serde_json::Value                   // your state, in the page's
     fn restore(&mut self, saved: &serde_json::Value)      // unreadable: leave the default
 }
@@ -46,10 +49,18 @@ One line each. `Row::heading(cells)` groups the rows after it (the cursor
 skips it; the filter keeps it when a row under it matches). `Row::item(item,
 cells)` (`Enter` opens the item's file at its line; `v`/`i` use its ID),
 `ctx.row(id, cells)` for an ID another answer gives, `Row::code(path, line,
-cells)`, `Row::finding(path, line, cells)`, `Row::note(text)` (a line the
-cursor passes over: kiln's error, "reading…"). `.depth(n)` indents the
-first cell; `.keyed(k)` changes what the cursor follows across reloads
+cells)`, `Row::finding(path, line, cells)`, `Row::entry(key, cells)` (a row
+the cursor stops on that is no item and no file: an export target's line),
+`Row::note(text)` (a line the cursor passes over: kiln's error,
+"reading…"). `.depth(n)` indents the first cell (a heading's and a note's
+text too); `.keyed(k)` changes what the cursor follows across reloads
 (the ID by default). Cells line up in columns across the tab; don't pad.
+
+Besides the project, `Ctx` has `config` (`kiln.toml` as the extension
+read it, or why not), `changes` (the project's change count: it moves on
+a save, an edit, a new git head, and a read that loads something new --
+not on a reload that finds nothing) and `publishing` (the Confluence
+target being published, one at a time for the whole extension).
 
 Cells say what they are, not their colour: `Cell::id`, `Cell::text`,
 `Cell::muted`, `Cell::title`, `Cell::new(t, Look::Good | Warn | Bad |
@@ -67,10 +78,20 @@ meanwhile (`ctx.reading` too), keeps your last rows on screen, and calls
 &[0])` and `model::object`/`model::array`; an error is one line, kiln's
 own: show it as a `Row::note`. Only the tab shown asks.
 
+A query too costly for every reload (Exports' dry run renders the whole
+document and may ask Confluence) says `.per_round(n)`: the frame then asks
+it once for round `n` of yours, however many reads load -- so when the tab
+is first shown -- and again when you move to the next round (Exports'
+`R`), or its args change. `.limit(ms)` gives kiln longer than the queue's
+60 s (the job is stopped past it). `answer_at` hands you the project's
+change count as the query was asked: an answer asked at `ctx.changes`
+still shows the project as it is.
+
 ## Keys
 
-The frame owns `j k ↓ ↑ g G Home End C-d C-u PgUp PgDn Tab S-Tab ] [ 1–9
-/ Enter r a v i` and the edits' `s l U n N E H L`; Fenix owns `q`, `Esc` and Space, and keeps its own
+The frame owns `j k ↓ ↑ g G Home End C-d C-u PgUp PgDn Tab S-Tab ] [ 1–9 0
+/ Enter r a v i` and the edits' `s l U n N E H L` (`0` is the tenth tab,
+Exports; the eleventh, Comments, is reached with `Tab`); Fenix owns `q`, `Esc` and Space, and keeps its own
 chords from every page -- Ctrl+O and Ctrl+I among them (its jump list),
 so a tab can't rely on them (in a terminal `C-i` is `Tab` anyway).
 Everything else is yours: match on `key.key`, `key.mods.ctrl`. Return
@@ -78,7 +99,7 @@ Everything else is yours: match on `key.key`, `key.mods.ctrl`. Return
 line, `Reply::Ignored` otherwise.
 
 Taken by tabs now: Trace `m` `T`, Changes `b`, Item `<` `>` (and `C-o`
-`C-i` when they arrive), Check `e`. The edits are the frame's, on every
+`C-i` when they arrive), Check `e`, Exports `R` `w` `W` `P` `A`. The edits are the frame's, on every
 tab: `s` `l` `U` `n` `N` `E`, and `H` `L` (Board only). The frame runs
 their flows (`src/edit.rs`) on the row's `id`, so a row that is an item
 gets them with nothing more; a row without one says "no item here".
@@ -95,6 +116,18 @@ Reply::pick(tag, title, items)       // Fenix's picker  -> picked(tag, value, ct
 Reply::edit(tag, ["set", id, "status=doing"])   // kiln, through Project::edit
                                      //   (Reply::Edit { tag, args, stdin } for one that reads stdin)
                                      //   -> edited(tag, &result, ctx)
+```
+
+Three more, for what isn't an edit:
+
+```rust
+Reply::Run { tag, args, limit_ms, publish } // kiln, in the queue, changing no item (`kiln export`):
+                                     //   no reload after, nothing said by the frame -> ran(tag, &result, ctx),
+                                     //   which says the outcome; `publish: Some(target)` is the one
+                                     //   publish at a time (a second is answered at once that one runs),
+                                     //   not stopped when kiln.path changes, said on every bottom line
+Reply::Bad(text)                     // said on the bottom line in the error look
+Reply::Terminal { title, args }      // kiln in a terminal pane below (`kiln auth confluence`)
 ```
 
 The frame turns each into an `Effect` naming the tab; `lib.rs` asks

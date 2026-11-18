@@ -1,4 +1,4 @@
-1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check            Kiln
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Expo…› Kiln
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 MS-001  K0: workspace, crate shells and CI                               done  undated
 MS-002  K1: the format, kiln check and the editing commands              done  undated

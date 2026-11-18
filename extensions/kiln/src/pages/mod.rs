@@ -11,8 +11,9 @@
 //!   owner, natural ID order).
 //!
 //! [`Tab`] is the one list of tabs. Every tab is registered here already,
-//! so a tab's module is all its author edits. Exports and Comments come
-//! later (E3): each is a variant, a title and a module, added at the end.
+//! so a tab's module is all its author edits. Eleven: `1`–`9` reach the
+//! first nine and `0` the tenth, Exports; Comments is reached with `Tab`
+//! (the frame's header says how the bar copes).
 //!
 //! What it deliberately doesn't do: call Fenix or kiln. `lib.rs` hands
 //! the frame Fenix's keys and kiln's answers and does what it returns.
@@ -23,7 +24,9 @@ pub mod view;
 pub mod board;
 pub mod changes;
 pub mod check;
+pub mod comments;
 pub mod decisions;
+pub mod exports;
 pub mod impact;
 pub mod item;
 pub mod roadmap;
@@ -45,11 +48,14 @@ pub enum Tab {
     Changes,
     Item,
     Check,
+    Exports,
+    Comments,
 }
 
 impl Tab {
-    /// Every tab, in the order they're shown and numbered (`1`–`9`).
-    pub const ALL: [Tab; 9] = [
+    /// Every tab, in the order they're shown and numbered (`1`–`9`, then
+    /// `0`).
+    pub const ALL: [Tab; 11] = [
         Tab::Tree,
         Tab::Trace,
         Tab::Impact,
@@ -59,6 +65,8 @@ impl Tab {
         Tab::Changes,
         Tab::Item,
         Tab::Check,
+        Tab::Exports,
+        Tab::Comments,
     ];
 
     /// Its place in [`Tab::ALL`].
@@ -78,6 +86,8 @@ impl Tab {
             Tab::Changes => "Changes",
             Tab::Item => "Item",
             Tab::Check => "Check",
+            Tab::Exports => "Exports",
+            Tab::Comments => "Comments",
         }
     }
 
@@ -93,6 +103,8 @@ impl Tab {
             Tab::Changes => "changes",
             Tab::Item => "item",
             Tab::Check => "check",
+            Tab::Exports => "exports",
+            Tab::Comments => "comments",
         }
     }
 
@@ -112,6 +124,8 @@ impl Tab {
             Tab::Changes => Box::<changes::Changes>::default(),
             Tab::Item => Box::<item::ItemView>::default(),
             Tab::Check => Box::<check::Check>::default(),
+            Tab::Exports => Box::<exports::Exports>::default(),
+            Tab::Comments => Box::<comments::Comments>::default(),
         }
     }
 }
@@ -126,6 +140,7 @@ mod tests {
             assert_eq!(Tab::by_name(t.name()), Some(t));
             assert_eq!(Tab::ALL[t.index()], t);
         }
-        assert_eq!(Tab::by_name("exports"), None);
+        assert_eq!(Tab::by_name("exports"), Some(Tab::Exports));
+        assert_eq!(Tab::by_name("jira"), None);
     }
 }

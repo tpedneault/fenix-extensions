@@ -126,6 +126,9 @@ mod tests {
             loaded: l,
             closed,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         Tree.rows(&ctx)

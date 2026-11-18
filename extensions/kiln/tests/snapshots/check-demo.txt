@@ -1,4 +1,4 @@
-1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   Demo  1 error
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check › Demo  1 error
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 design/requirements/REQ-003-the-log-exports-as-csv.md  1 finding
 2:7    K201  warning  REQ-003 is approved but nothing verifies it

@@ -1,0 +1,4 @@
+adopted (confluence, document) → space DEMO, page 555 "Team page"
+  update    "Demo — adopted": adopt the existing page (needs --adopt) (17 KiB)
+  0 create, 1 update, 0 unchanged, 0 drift, 0 retire
+  refused: page 555 ("Team page") already has content; publishing into it replaces it, which needs --adopt

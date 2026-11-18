@@ -1,4 +1,4 @@
-1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   Demo  1 error
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check › Demo  1 error
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 HEAD (8c0580d) → v0.1
 Changed  4 items

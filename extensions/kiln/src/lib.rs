@@ -26,6 +26,14 @@
 //! The edits' flows ([`edit`]) offer choices from the project's
 //! `kiln.toml`, read here ([`Kiln::read_config`]) when the extension
 //! loads, on `r`, and when `kiln.toml` is saved.
+//! A tab's `kiln export` (the Exports tab's `w`, `W` and `P`) runs through
+//! the queue too, as a query with its own limit ([`For::Run`]): it writes
+//! generated files or publishes, never an item, so no reload follows. A
+//! publish is one at a time for the whole extension ([`Kiln::publishing`]):
+//! a second is answered at once that one runs, and every plan page's
+//! bottom line says it runs. `kiln auth confluence` opens in a terminal
+//! pane, the token typed into kiln there; this file never reads a secret,
+//! prompts for one, or reads the environment.
 //! The commands that start in a buffer (`kiln.show`, `kiln.impact`,
 //! `kiln.find`) take what `here()` and `cursor()` say as they run
 //! ([`spot`]) and act once the project is read ([`Wanted`]).
@@ -96,6 +104,15 @@ enum For {
     Edit { page: u64, tab: Tab, tag: String },
     /// The edit of the buffer flow `serial` ([`Kiln::here`]).
     Here { serial: u64 },
+    /// A plan page's tab: the command its view asked for with `tag`
+    /// ([`pages::view::Reply::Run`]).
+    Run { page: u64, tab: Tab, tag: String },
+}
+
+/// The publish running: its query, and the Confluence target it publishes.
+struct Publishing {
+    id: QueryId,
+    target: String,
 }
 
 /// Who asked Fenix's prompt or picker, so the answer goes to them. Like
@@ -185,12 +202,21 @@ struct Kiln {
     /// [`Kiln::pass_on`].
     decide: bool,
     told: Told,
+    /// The one publish that may run ([`pages::view::Reply::Run`] with
+    /// `publish`), from when it's asked until its answer comes -- even if
+    /// its page closes meanwhile.
+    publishing: Option<Publishing>,
 }
 
-/// The project now, for a page: its state, its reads, `kiln.toml`, and
-/// whether every edit has been read back. A function of the two fields,
-/// not a method, so a page (another field) can be borrowed beside it.
-fn now_of<'a>(project: &'a Project, config: &'a Option<Result<config::Config, String>>) -> Now<'a> {
+/// The project now, for a page: its state, its reads, `kiln.toml`,
+/// whether every edit has been read back, its change count and the
+/// publish running. A function of the fields, not a method, so a page
+/// (another field) can be borrowed beside them.
+fn now_of<'a>(
+    project: &'a Project,
+    config: &'a Option<Result<config::Config, String>>,
+    publishing: &'a Option<Publishing>,
+) -> Now<'a> {
     Now {
         state: project.state(),
         loads: project.loads(),
@@ -200,6 +226,8 @@ fn now_of<'a>(project: &'a Project, config: &'a Option<Result<config::Config, St
             None => Err("kiln.toml hasn't been read yet"),
         },
         settled: project.settled(),
+        changes: project.changes(),
+        publishing: publishing.as_ref().map(|p| p.target.as_str()),
     }
 }
 
@@ -246,7 +274,7 @@ impl Kiln {
                             }
                         }
                         Some(For::Edit { page, tab, tag }) => {
-                            let now = now_of(&self.project, &self.config);
+                            let now = now_of(&self.project, &self.config, &self.publishing);
                             if let Some(p) = self.pages.get_mut(&page) {
                                 let effects = p.plan.edited(tab, &tag, &result, now);
                                 pages_api::refresh(page);
@@ -254,6 +282,19 @@ impl Kiln {
                             }
                         }
                         Some(For::Here { serial }) => self.here_edited(serial, &result),
+                        Some(For::Run { page, tab, tag }) => {
+                            if self.publishing.as_ref().is_some_and(|p| p.id == id) {
+                                self.publishing = None;
+                                // Every page's bottom line said it ran.
+                                changed = true;
+                            }
+                            let now = now_of(&self.project, &self.config, &self.publishing);
+                            if let Some(p) = self.pages.get_mut(&page) {
+                                let effects = p.plan.ran(tab, &tag, &result, now);
+                                pages_api::refresh(page);
+                                self.perform(page, effects);
+                            }
+                        }
                         None => {}
                     },
                 }
@@ -456,7 +497,7 @@ impl Kiln {
     /// What each page in view wants asked of kiln, asked: whether any was.
     /// A page out of view asks once it's shown again.
     fn ask_for_pages(&mut self) -> bool {
-        let now = now_of(&self.project, &self.config);
+        let now = now_of(&self.project, &self.config, &self.publishing);
         let mut wanted = Vec::new();
         for (&page, p) in self.pages.iter_mut().filter(|(_, p)| p.shown) {
             wanted.extend(p.plan.wants(now).into_iter().map(|a| (page, a)));
@@ -468,9 +509,16 @@ impl Kiln {
                 tab: ask.tab,
                 tag: ask.tag.clone(),
             };
-            let id = self.ask(ask.args.clone(), who);
+            let id = self
+                .project
+                .query_with(ask.args.clone(), ask.limit_ms, false);
+            self.asked.insert(id, who);
             if let Some(p) = self.pages.get_mut(&page) {
-                p.plan.asked(&ask, id, now_of(&self.project, &self.config));
+                p.plan.asked(
+                    &ask,
+                    id,
+                    now_of(&self.project, &self.config, &self.publishing),
+                );
             }
         }
         asked
@@ -482,7 +530,7 @@ impl Kiln {
         if self.config.is_none() {
             self.read_config();
         }
-        let now = now_of(&self.project, &self.config);
+        let now = now_of(&self.project, &self.config, &self.publishing);
         let Some(p) = self.pages.get_mut(&page) else {
             return;
         };
@@ -526,6 +574,69 @@ impl Kiln {
                     let id = self.project.edit(args, stdin);
                     self.asked.insert(id, For::Edit { page, tab, tag });
                 }
+                Effect::Run {
+                    tab,
+                    tag,
+                    args,
+                    limit_ms,
+                    publish,
+                } => self.run(page, tab, tag, args, limit_ms, publish),
+                Effect::Terminal { title, args } => self.terminal(page, &title, args),
+            }
+        }
+    }
+
+    /// A tab's command that changes no item, in kiln's queue; its answer
+    /// to the tab ([`For::Run`]). One that publishes waits for no other
+    /// publish: while one runs it is answered at once that it does, and
+    /// nothing is run. It isn't stopped when another kiln is chosen (a
+    /// publish stopped half done leaves Confluence half updated).
+    fn run(
+        &mut self,
+        page: u64,
+        tab: Tab,
+        tag: String,
+        args: Vec<String>,
+        limit_ms: Option<u32>,
+        publish: Option<String>,
+    ) {
+        if let (Some(_), Some(running)) = (&publish, &self.publishing) {
+            let why = Err(kiln::Failure::Unusable(format!(
+                "{} is being published: one publish at a time",
+                running.target
+            )));
+            let now = now_of(&self.project, &self.config, &self.publishing);
+            if let Some(p) = self.pages.get_mut(&page) {
+                let effects = p.plan.ran(tab, &tag, &why, now);
+                pages_api::refresh(page);
+                self.perform(page, effects);
+            }
+            return;
+        }
+        let id = self.project.query_with(args, limit_ms, publish.is_some());
+        self.asked.insert(id, For::Run { page, tab, tag });
+        if let Some(target) = publish {
+            self.publishing = Some(Publishing { id, target });
+            for &p in self.pages.keys() {
+                pages_api::refresh(p);
+            }
+        }
+    }
+
+    /// kiln with `args` in a terminal pane under the focused one: what is
+    /// typed into kiln (`kiln auth confluence`'s token) stays between the
+    /// person and kiln. The kiln is the one the queue runs; when there's
+    /// none, or Fenix won't open the pane, the page says why.
+    fn terminal(&mut self, page: u64, title: &str, args: Vec<String>) {
+        let opened = kiln::program().and_then(|program| {
+            let cmd = api::Command::new(&program).args(args);
+            api::host::run_in_terminal(&cmd, title, true)
+                .map_err(|why| format!("Fenix didn't open a terminal for {title}: {why}"))
+        });
+        if let Err(why) = opened {
+            if let Some(p) = self.pages.get_mut(&page) {
+                p.plan.tell(&why, true);
+                pages_api::refresh(page);
             }
         }
     }
@@ -550,7 +661,7 @@ impl Kiln {
             }
             return;
         };
-        let now = now_of(&self.project, &self.config);
+        let now = now_of(&self.project, &self.config, &self.publishing);
         match who {
             Asker::View { page, tab, tag } => {
                 let Some(p) = self.pages.get_mut(&page) else {
@@ -744,7 +855,7 @@ impl Kiln {
                 };
                 let facts = Facts {
                     loaded,
-                    config: now_of(&self.project, &self.config).config,
+                    config: now_of(&self.project, &self.config, &self.publishing).config,
                 };
                 // The flow it replaces can't be answered any more.
                 self.answers.retain(|_, a| !matches!(a, Asker::Here { .. }));
@@ -884,7 +995,7 @@ impl Extension for Kiln {
             doctor: api::key_for("project.doctor"),
             settings: api::key_for("settings.open"),
         };
-        let now = now_of(&self.project, &self.config);
+        let now = now_of(&self.project, &self.config, &self.publishing);
         let Some(p) = self.pages.get_mut(&page) else {
             return Page::new().line([pages_api::muted("this page was closed")]);
         };

@@ -228,6 +228,9 @@ mod tests {
             loaded: l,
             closed,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         Roadmap
@@ -279,6 +282,9 @@ mod tests {
             loaded: &l,
             closed: false,
             reading: false,
+            changes: 0,
+            config: Err("not read in this test"),
+            publishing: None,
             looks: &looks,
         };
         let rows = Roadmap.rows(&ctx);

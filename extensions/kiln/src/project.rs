@@ -54,10 +54,14 @@
 //!
 //! - [`Project::query`]: any other reading command (`show`, `trace`,
 //!   `impact`, `diff`, `export --dry-run`), its answer a [`Notice::Answer`]
-//!   with the id it returned;
+//!   with the id it returned; [`Project::query_with`] for one with a
+//!   longer limit, or that must not be stopped (`export`, which writes
+//!   generated files or publishes, and is no edit: nothing to read again);
 //! - [`Project::edit`]: an editing command (`set`, `link`, `new`...), its
 //!   answer the same way, then a reload;
-//! - [`Project::take_notices`] after every call into it: what changed.
+//! - [`Project::take_notices`] after every call into it: what changed;
+//! - [`Project::changes`]: a count that moves whenever what kiln would
+//!   export may have moved, so an answer can be told stale.
 //!
 //! What it deliberately doesn't do: draw anything, read files itself (kiln
 //! does), or run two kilns at once ([`crate::kiln`]).
@@ -288,6 +292,8 @@ pub struct Project {
     /// that loaded shows ([`Project::settled`]).
     edits_done: u64,
     edits_read: u64,
+    /// [`Project::changes`].
+    changes: u64,
 }
 
 impl Project {
@@ -353,6 +359,18 @@ impl Project {
             && self.edits_read >= self.edits_done
     }
 
+    /// A count that moves whenever the project may have changed: a file
+    /// saved, a new git head, an edit asked or finished (here or
+    /// elsewhere), and a read that loads something other than the one
+    /// before (a change made outside Fenix, seen by the refresh timer).
+    /// Not on a reload that finds nothing new, nor on `r` alone: the
+    /// refresh timer reads every few seconds while a page is in view.
+    /// What was read from kiln with the count as it is now still shows the
+    /// project as it is (the Exports tab's dry run, before a publish).
+    pub fn changes(&self) -> u64 {
+        self.changes
+    }
+
     /// Whether a reload runs or waits.
     pub fn reloading(&self) -> bool {
         self.reading.is_some() || self.again
@@ -396,6 +414,9 @@ impl Project {
             // A read follows the probe anyway.
             Phase::Probing => {}
             Phase::Ready(_) => {
+                if matches!(why, Why::Saved | Why::Git | Why::Edit) {
+                    self.changes += 1;
+                }
                 if self.reading.is_some() {
                     if why != Why::Timer && !self.again {
                         self.again = true;
@@ -483,7 +504,29 @@ impl Project {
     /// reload included. Asked before kiln has been looked for, it starts
     /// that and runs once kiln is known to be usable.
     pub fn query<S: Into<String>>(&mut self, args: impl IntoIterator<Item = S>) -> QueryId {
-        self.ask(Job::new(args, Tag::Query { id: 0, edit: false }))
+        self.query_with(args, None, false)
+    }
+
+    /// [`Project::query`], stopped after `limit_ms` rather than
+    /// [`crate::kiln::TIMEOUT_MS`] when given, and with `keep_running` not
+    /// stopped when another kiln is chosen ([`crate::kiln::Job`]). For a
+    /// command that is no edit and may take long: `kiln export`, which
+    /// writes generated files, not items, or publishes to Confluence, and
+    /// after which there is nothing to read again.
+    pub fn query_with<S: Into<String>>(
+        &mut self,
+        args: impl IntoIterator<Item = S>,
+        limit_ms: Option<u32>,
+        keep_running: bool,
+    ) -> QueryId {
+        let mut job = Job::new(args, Tag::Query { id: 0, edit: false });
+        if let Some(ms) = limit_ms {
+            job = job.limit(ms);
+        }
+        if keep_running {
+            job = job.keep_running();
+        }
+        self.ask(job)
     }
 
     /// An editing command (`["set", "TASK-004", "status=doing"]`), with
@@ -498,6 +541,7 @@ impl Project {
     ) -> QueryId {
         let mut job = Job::new(args, Tag::Query { id: 0, edit: true });
         job.stdin = stdin;
+        self.changes += 1;
         self.ask(job)
     }
 
@@ -728,7 +772,11 @@ impl Project {
                 let plan = reading
                     .plan
                     .unwrap_or_else(|| Err("kiln status gave no answer".into()));
-                self.loaded = Some(Loaded::new(version, items, plan, findings));
+                let loaded = Loaded::new(version, items, plan, findings);
+                if self.loaded.as_ref() != Some(&loaded) {
+                    self.changes += 1;
+                }
+                self.loaded = Some(loaded);
                 self.loads += 1;
                 self.edits_read = reading.covers;
                 self.error = None;
@@ -1243,6 +1291,50 @@ mod tests {
                 "/usr/bin/kiln show REQ-001 --format json".into()
             ]
         );
+    }
+
+    #[test]
+    fn changes_move_on_saves_edits_and_new_reads_not_on_reads_that_find_nothing() {
+        let fake = demo();
+        let mut p = Project::default();
+        p.start();
+        settle(&fake, &mut p);
+        let first = p.changes();
+        assert!(first > 0, "the first read is new");
+        // The refresh timer, or a page in view, reading the same project.
+        p.reload(Why::Timer);
+        settle(&fake, &mut p);
+        p.reload(Why::Asked);
+        settle(&fake, &mut p);
+        assert_eq!(p.changes(), first, "nothing new was read");
+        p.saved("design/requirements/REQ-001.md");
+        assert_eq!(p.changes(), first + 1, "a save, at once");
+        settle(&fake, &mut p);
+        assert_eq!(p.changes(), first + 1);
+        fake.on_spawn("kiln set", Run::ok("TASK-003: status todo → doing\n"));
+        p.edit(["set", "TASK-003", "status=doing"], None);
+        assert_eq!(p.changes(), first + 2, "an edit, as it's asked");
+        settle(&fake, &mut p);
+        assert_eq!(p.changes(), first + 3, "and as it ends");
+        // Changed outside Fenix, seen by a timer's read: one fewer item.
+        let fewer = fixture("demo/list.json").replacen("\"TASK-008\"", "\"TASK-080\"", 1);
+        fake.on_spawn("kiln list --format json", Run::ok(fewer));
+        p.reload(Why::Timer);
+        settle(&fake, &mut p);
+        assert_eq!(p.changes(), first + 4, "a read that differs");
+        // A long query isn't an edit: no reload after it.
+        fake.take();
+        fake.on_spawn("kiln export", Run::running(""));
+        p.query_with(["export", "--format", "json"], Some(600_000), false);
+        assert!(
+            fake.timers().iter().any(|t| t.millis == 600_000),
+            "its own limit"
+        );
+        let export = fake.process("kiln export").unwrap().id;
+        p.exited(export, Some(0));
+        settle(&fake, &mut p);
+        assert_eq!(lines(&fake), ["/usr/bin/kiln export --format json"]);
+        assert_eq!(p.changes(), first + 4);
     }
 
     #[test]

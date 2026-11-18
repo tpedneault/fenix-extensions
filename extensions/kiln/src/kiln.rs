@@ -20,9 +20,18 @@
 //!   `kiln` (beside Fenix, its tools folder, the `PATH`). A path that's set
 //!   is never silently replaced by another kiln found elsewhere: when it's
 //!   wrong, starting it fails and says so.
-//! - **Bounded**: stdout past [`MAX_STDOUT`] bytes, or a run past
-//!   [`TIMEOUT_MS`], stops the process and fails the job saying which;
-//!   stderr keeps its last [`MAX_STDERR_LINES`] lines.
+//! - **Bounded**: stdout past [`MAX_STDOUT`] bytes, or a run past its
+//!   limit ([`TIMEOUT_MS`] unless the job gives its own, [`Job::limit`]),
+//!   stops the process and fails the job saying which; stderr keeps its
+//!   last [`MAX_STDERR_LINES`] lines.
+//! - **Long jobs.** A job may give a longer limit: the Exports tab's dry
+//!   run (it renders the document and may read Confluence) and its publish
+//!   (minutes against a large space). A job that must not be stopped half
+//!   done -- a publish -- is also kept running when another kiln is chosen
+//!   ([`Job::keep_running`], [`Kiln::clear`]): its answer still comes, and
+//!   the next job starts after it, with the new kiln. While a long job
+//!   runs, everything else waits behind it: one kiln at a time is the
+//!   rule, and the job's own limit bounds how long.
 //!
 //! What it deliberately doesn't do: read kiln's JSON (`model.rs`), decide
 //! when to reload or what an exit code means for a command (`project.rs`
@@ -44,10 +53,11 @@ pub const MAX_STDOUT: usize = 16 * 1024 * 1024;
 /// a summary or two; more is noise.
 pub const MAX_STDERR_LINES: usize = 50;
 
-/// How long one kiln run may take: 60 seconds. A reading command takes
-/// well under one; `check` with K207 on reads Jira (kiln caches it ten
-/// minutes). A run past this is stopped, so the queue never waits forever
-/// behind a kiln that hangs (a network share, a prompt nobody sees).
+/// How long one kiln run may take unless its job says otherwise: 60
+/// seconds. A reading command takes well under one; `check` with K207 on
+/// reads Jira (kiln caches it ten minutes). A run past this is stopped, so
+/// the queue never waits forever behind a kiln that hangs (a network
+/// share, a prompt nobody sees).
 pub const TIMEOUT_MS: u32 = 60_000;
 
 /// One kiln command line to run, and what its answer is for (`tag`, the
@@ -61,6 +71,12 @@ pub struct Job<T> {
     /// -`). Without it, stdin is closed at once: kiln never waits on it.
     pub stdin: Option<String>,
     pub tag: T,
+    /// How long it may run before it's stopped: [`TIMEOUT_MS`] unless
+    /// [`Job::limit`] says otherwise.
+    pub limit_ms: u32,
+    /// Not stopped by [`Kiln::clear`]: a publish, which stopped half done
+    /// leaves Confluence half updated until the next one.
+    pub keep_running: bool,
 }
 
 impl<T> Job<T> {
@@ -69,11 +85,26 @@ impl<T> Job<T> {
             args: args.into_iter().map(Into::into).collect(),
             stdin: None,
             tag,
+            limit_ms: TIMEOUT_MS,
+            keep_running: false,
         }
     }
 
     pub fn stdin(mut self, text: impl Into<String>) -> Job<T> {
         self.stdin = Some(text.into());
+        self
+    }
+
+    /// Stopped after `ms` instead of [`TIMEOUT_MS`] (never less than a
+    /// second).
+    pub fn limit(mut self, ms: u32) -> Job<T> {
+        self.limit_ms = ms.max(1_000);
+        self
+    }
+
+    /// Kept running when another kiln is chosen ([`Kiln::clear`]).
+    pub fn keep_running(mut self) -> Job<T> {
+        self.keep_running = true;
         self
     }
 
@@ -144,8 +175,9 @@ pub enum Failure {
     Exit { code: Option<i32>, line: String },
     /// Its stdout passed [`MAX_STDOUT`]; it was stopped.
     TooLarge,
-    /// It ran past [`TIMEOUT_MS`]; it was stopped.
-    TimedOut,
+    /// It ran past its limit, this many seconds ([`TIMEOUT_MS`] unless
+    /// its job gave another); it was stopped.
+    TimedOut(u32),
     /// Not run: kiln can't be used here now (too old, not found, no
     /// `kiln.toml`, another kiln chosen meanwhile). The line says why.
     Unusable(String),
@@ -161,10 +193,11 @@ impl Failure {
                 "kiln's answer was over {} MiB, so it was stopped and nothing of it was read",
                 MAX_STDOUT / 1024 / 1024
             ),
-            Failure::TimedOut => format!(
-                "kiln gave no answer in {} s, so it was stopped",
-                TIMEOUT_MS / 1000
+            Failure::TimedOut(s) if *s >= 120 && s % 60 == 0 => format!(
+                "kiln gave no answer in {} minutes, so it was stopped",
+                s / 60
             ),
+            Failure::TimedOut(s) => format!("kiln gave no answer in {s} s, so it was stopped"),
         }
     }
 
@@ -299,20 +332,25 @@ impl<T> Kiln<T> {
             return false;
         };
         api::process::kill(run.process);
-        self.end(Err(Failure::TimedOut));
+        let seconds = run.job.limit_ms / 1000;
+        self.end(Err(Failure::TimedOut(seconds)));
         true
     }
 
     /// Everything waiting dropped, and what runs stopped and forgotten (its
     /// answer, if it comes, is ignored): another kiln was chosen. The tags
     /// of the jobs dropped, the running one first, so their callers can be
-    /// answered.
+    /// answered. A running job that [`Job::keep_running`] isn't stopped: it
+    /// goes on, is answered as usual, and what's queued after it runs
+    /// with the kiln chosen now.
     pub fn clear(&mut self) -> Vec<T> {
         let mut dropped = Vec::new();
-        if let Some(run) = self.running.take() {
-            api::host::cancel_timer(run.timer);
-            api::process::kill(run.process);
-            dropped.push(run.job.tag);
+        if self.running.as_ref().is_some_and(|r| !r.job.keep_running) {
+            if let Some(run) = self.running.take() {
+                api::host::cancel_timer(run.timer);
+                api::process::kill(run.process);
+                dropped.push(run.job.tag);
+            }
         }
         dropped.extend(self.queue.drain(..).map(|j| j.tag));
         dropped
@@ -354,7 +392,7 @@ impl<T> Kiln<T> {
                         let _ = api::process::write(process, text.as_bytes());
                     }
                     api::process::close_stdin(process);
-                    let timer = api::host::set_timer(TIMEOUT_MS, false);
+                    let timer = api::host::set_timer(job.limit_ms, false);
                     self.running = Some(Running {
                         process,
                         job,
@@ -625,9 +663,60 @@ mod tests {
         assert!(k.timer(timer));
         pump(&fake, &mut k);
         let d = done(&mut k);
-        assert_eq!(d[0], ("check", Err(Failure::TimedOut)));
+        assert_eq!(d[0], ("check", Err(Failure::TimedOut(60))));
         assert!(d[1].1.is_ok());
         assert!(fake.process("kiln check").unwrap().killed);
+    }
+
+    #[test]
+    fn a_job_with_its_own_limit_is_stopped_on_it_and_says_how_long() {
+        let fake = Fake::new();
+        fake.install();
+        fake.program("kiln", "/bin/kiln")
+            .on_spawn("kiln", Run::running(""));
+        let mut k = Kiln::default();
+        k.push(Job::new(["export"], "long").limit(3_600_000));
+        let timer = fake
+            .timers()
+            .iter()
+            .find(|t| t.millis == 3_600_000)
+            .unwrap()
+            .id;
+        assert!(k.timer(timer));
+        let d = done(&mut k);
+        assert_eq!(d, [("long", Err(Failure::TimedOut(3600)))]);
+        assert_eq!(
+            Failure::TimedOut(3600).line(),
+            "kiln gave no answer in 60 minutes, so it was stopped"
+        );
+        assert_eq!(
+            Failure::TimedOut(60).line(),
+            "kiln gave no answer in 60 s, so it was stopped"
+        );
+        assert_eq!(
+            Job::new(["x"], ()).limit(5).limit_ms,
+            1_000,
+            "a second at least"
+        );
+    }
+
+    #[test]
+    fn a_job_that_keeps_running_isnt_stopped_by_another_kiln() {
+        let fake = Fake::new();
+        fake.install();
+        fake.program("kiln", "/bin/kiln")
+            .on_spawn("kiln", Run::running(""));
+        let mut k = Kiln::default();
+        k.push(Job::new(["export", "--yes"], "publish").keep_running());
+        k.push(Job::new(["list"], "list"));
+        let p = fake.spawned()[0].0;
+        assert_eq!(k.clear(), ["list"], "only what waited");
+        assert!(!fake.process("kiln export").unwrap().killed);
+        assert!(k.busy(), "it still runs");
+        k.exited(p, Some(0));
+        let d = done(&mut k);
+        assert_eq!(d.len(), 1);
+        assert_eq!(d[0].0, "publish", "and is answered");
     }
 
     #[test]

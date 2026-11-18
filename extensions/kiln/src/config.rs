@@ -47,10 +47,24 @@
 //! Types and roles keep `kiln.toml`'s order, as Kiln's do (`kiln new`'s
 //! list of types, the order `kiln list` sorts types by).
 //!
+//! # The export targets
+//!
+//! The Exports tab asks kiln about each `[[export]]` on its own (`kiln
+//! export --dry-run -- NAME`), because one target kiln can't plan (a
+//! Confluence target with no token, a server that doesn't answer) fails
+//! the whole command in kiln 1.0.0, and the other targets would then show
+//! nothing. So their names are read here, in `kiln.toml`'s order, with
+//! what a target's heading says before kiln has answered (its format,
+//! layout, path, and for Confluence the space and the page). A table
+//! without a string `name` is left out (Kiln reports it as K005); a name
+//! listed twice is kept once (kiln exports the first). kiln's answer is
+//! what the tab shows once it comes; this only names what to ask about.
+//!
 //! What it deliberately doesn't mirror: titles, plurals and folders (the
 //! edits show type names, and kiln picks the folder), `template`, `paths`,
 //! `[code]`, `[coverage]`, `[requirements]`, `[jira]`, `[signoff]`,
-//! `[check]` and the exports -- nothing an edit offers depends on them.
+//! `[check]` and the rest of the exports and `[confluence]` -- nothing an
+//! edit or the Exports tab's headings depend on.
 //! Unknown keys are ignored (Kiln reports them as K003; kiln's own check
 //! says so, not this). It never writes the file.
 
@@ -105,13 +119,43 @@ pub struct Role {
     pub inverse: String,
 }
 
-/// What an edit needs of `kiln.toml`.
+/// One `[[export]]`, as far as the Exports tab names it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Export {
+    /// `design-md`: what `kiln export NAME` takes.
+    pub name: String,
+    /// `markdown`, `html`, `docx`, `confluence`… (`""` when not given:
+    /// kiln calls that K005).
+    pub format: String,
+    /// `document` unless given.
+    pub layout: String,
+    /// A file target's file or folder.
+    pub path: Option<String>,
+    /// A Confluence target's space: its own, else `[confluence] space`.
+    pub space: Option<String>,
+    /// A Confluence target's `page`, else its `parent`.
+    pub page: Option<u64>,
+    /// It writes into an existing page (`page =`), rather than under a
+    /// parent.
+    pub adopts: bool,
+}
+
+impl Export {
+    /// Whether it publishes to Confluence rather than writing files.
+    pub fn is_confluence(&self) -> bool {
+        self.format == "confluence"
+    }
+}
+
+/// What an edit needs of `kiln.toml`, and the export targets' names.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Config {
     /// In `kiln.toml`'s order.
     pub types: Vec<Type>,
     /// In `kiln.toml`'s order.
     pub roles: Vec<Role>,
+    /// `[[export]]`, in `kiln.toml`'s order, each name once.
+    pub exports: Vec<Export>,
 }
 
 impl Config {
@@ -162,7 +206,54 @@ pub fn parse(text: &str) -> Result<Config, String> {
         Some(table) => roles(table, &types),
         None => Vec::new(),
     };
-    Ok(Config { types, roles })
+    let exports = exports(&root);
+    Ok(Config {
+        types,
+        roles,
+        exports,
+    })
+}
+
+/// `[[export]]`'s targets with a name, the first of each name.
+fn exports(root: &Table) -> Vec<Export> {
+    let space = root
+        .get("confluence")
+        .and_then(|c| c.get("space"))
+        .and_then(Value::as_str);
+    let mut out: Vec<Export> = Vec::new();
+    let Some(list) = root.get("export").and_then(Value::as_array) else {
+        return out;
+    };
+    for t in list.iter().filter_map(Value::as_table) {
+        let Some(name) = t.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+        if name.is_empty() || out.iter().any(|e| e.name == name) {
+            continue;
+        }
+        let text = |key: &str| t.get(key).and_then(Value::as_str).map(str::to_string);
+        let confluence = t.get("confluence").and_then(Value::as_table);
+        let number = |key: &str| {
+            confluence
+                .and_then(|c| c.get(key))
+                .and_then(Value::as_integer)
+                .and_then(|n| u64::try_from(n).ok())
+        };
+        out.push(Export {
+            name: name.to_string(),
+            format: text("format").unwrap_or_default(),
+            layout: text("layout").unwrap_or_else(|| "document".into()),
+            path: text("path"),
+            space: confluence
+                .and_then(|c| c.get("space"))
+                .and_then(Value::as_str)
+                .or(space)
+                .map(str::to_string),
+            page: number("page").or_else(|| number("parent")),
+            adopts: number("page").is_some(),
+        });
+    }
+    out
 }
 
 fn first_line(e: &toml::de::Error) -> String {
@@ -454,8 +545,52 @@ key = 1
             assert!(e.starts_with(said), "{text:?}: {e}");
         }
         // Odd shapes are skipped, not fatal.
+        let c = parse("format = 1\n[types.a]\nprefix = \"A\"\nstatuses = [\"x\"]\n[[export]]\nformat = \"html\"\n[[export]]\nname = \"x\"\n[[export]]\nname = \"x\"\nformat = \"html\"\n[[export]]\nname = \"c\"\nformat = \"confluence\"\n[export.confluence]\nparent = -4").unwrap();
+        assert_eq!(
+            c.exports.len(),
+            2,
+            "no name, and a name twice: {:?}",
+            c.exports
+        );
+        assert_eq!(
+            (c.exports[0].format.as_str(), c.exports[1].page),
+            ("", None)
+        );
         let c = parse("format = 1\n[types.a]\nprefix = \"A\"\nstatuses = [\"x\", 3]\nparents = 7\n[links]\nr = 1").unwrap();
         assert_eq!(c.types[0].statuses, ["x"]);
         assert!(c.roles.is_empty());
+    }
+
+    #[test]
+    fn the_export_targets_in_order_with_what_their_headings_say() {
+        let c = parse(&fixture("out/exports/kiln.toml")).unwrap();
+        let names: Vec<(&str, &str, &str)> = c
+            .exports
+            .iter()
+            .map(|e| (e.name.as_str(), e.format.as_str(), e.layout.as_str()))
+            .collect();
+        assert_eq!(
+            names,
+            [
+                ("design-doc", "markdown", "document"),
+                ("requirements-html", "html", "document"),
+                ("sections-md", "markdown", "sections"),
+                ("design-doc-confluence", "confluence", "document"),
+                ("adopted", "confluence", "document"),
+            ]
+        );
+        assert_eq!(
+            c.exports[0].path.as_deref(),
+            Some("docs/DESIGN-DOCUMENT.md")
+        );
+        let spec = &c.exports[3];
+        assert!(spec.is_confluence() && !c.exports[0].is_confluence());
+        assert_eq!(
+            (spec.space.as_deref(), spec.page),
+            (Some("DEMO"), Some(123456789))
+        );
+        assert_eq!(c.exports[4].page, Some(555), "page = before parent");
+        assert!(c.exports[4].adopts && !spec.adopts);
+        assert_eq!(demo().exports.len(), 1, "the demo's own design-doc");
     }
 }

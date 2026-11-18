@@ -21,6 +21,9 @@
 #   out/demo/  kiln's answers about the demo
 #   out/edits/ what the editing commands print, done and refused, run on
 #              a copy of the demo (see "The editing commands" below)
+#   out/exports/ what `kiln export` prints for the Exports tab, file targets
+#              and Confluence ones planned offline, run on copies of the
+#              demo (see "Exports" below)
 #   out/version.txt, out/errors/   `kiln --version`, and two errors
 #
 # `lsp-languages` in out/demo/ and out/own/ is `kiln lsp --languages
@@ -240,6 +243,189 @@ rec "$e" renumber txt renumber --to=TASK-020 -- TASK-008
 rec "$e" renumber-taken txt renumber --to=TASK-001 -- TASK-020
 rec "$e" renumber-prefix txt renumber --to=REQ-050 -- TASK-020
 rec "$e" renumber-dash txt renumber --to=-x -- TASK-020
+
+# -- Exports -----------------------------------------------------------------
+#
+# What `kiln export` prints, as the Exports tab runs it: one target named
+# after `--` (a name is never read as an option), `--dry-run --format json`
+# to read, `--format json` to write file targets, `--yes --format json` to
+# publish. On throwaway copies of the demo, so nothing above changes, in a
+# subshell whose HOME and XDG folders are in the temporary folder (kiln's
+# page cache and diagram cache go there, not into this machine's).
+#
+# Confluence is never reached. `[confluence] url` is http://127.0.0.1:9
+# (nothing listens there: a connection is refused at once), and a plan is
+# made offline from a snapshot written below (`--snapshot`, the format of
+# kiln-confluence's `Snapshot`, crates/kiln-confluence/src/model.rs). With
+# no token, kiln stops before connecting; recorded as this machine gives it:
+# with no Secret Service (a headless container), the credential store's
+# own error (exit 2); on a desktop with one and no token stored, kiln's
+# "no token for …" line instead, which the tests also read by hand
+# (../hand/README). When strace is installed, the publish without a token
+# is run under it and the script fails if kiln opened any network
+# connection. The one run with a token (a made-up one, in the environment
+# of that one command) points at 127.0.0.1:9 and records kiln's real exit
+# 3. What only a server gives -- `applied`, a refusal at publish, a publish
+# stopped half-way -- is hand-written in ../hand/.
+(
+x="$out/exports"
+export HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/home/config" XDG_STATE_HOME="$tmp/home/state" XDG_CACHE_HOME="$tmp/home/cache" XDG_DATA_HOME="$tmp/home/data"
+mkdir -p "$HOME"
+exp="$tmp/exports"
+cp -r "$demo" "$exp"
+cd "$exp"
+# A file target, read, written, read again unchanged, then after an edit.
+rec "$x" dry-run json export --dry-run --format json -- design-doc
+rec "$x" dry-run txt export --dry-run -- design-doc
+rec "$x" write json export --format json -- design-doc
+rec "$x" dry-run-unchanged json export --dry-run --format json -- design-doc
+rec "$x" dry-run-unchanged txt export --dry-run -- design-doc
+k set TASK-003 status=doing
+rec "$x" dry-run-update json export --dry-run --format json -- design-doc
+rec "$x" dry-run-update txt export --dry-run -- design-doc
+# A second file target whose template places only the requirements, so it
+# leaves the rest out; a target split into sections, whose template then
+# loses a section, so a file it wrote is removed.
+printf '# Requirements\n\n<!-- kiln:requirements -->\n' > design/templates/requirements.md
+cat >> kiln.toml <<'EOF'
+
+[[export]]
+name = "requirements-html"
+format = "html"
+title = "Demo — requirements"
+template = "design/templates/requirements.md"
+path = "docs/requirements.html"
+
+[[export]]
+name = "sections-md"
+format = "markdown"
+layout = "sections"
+title = "Demo — in sections"
+template = "design/templates/sections.md"
+path = "docs/sections"
+EOF
+printf '# Requirements\n\n<!-- kiln:requirements -->\n\n# Risks\n\n<!-- kiln:items type="risk" -->\n' > design/templates/sections.md
+git add kiln.toml design/templates
+commit "2026-03-02T10:00:00Z" "Demo: two more file targets"
+rec "$x" dry-run-left-out json export --dry-run --format json -- requirements-html
+rec "$x" dry-run-left-out txt export --dry-run -- requirements-html
+# Every target, none named, and the two named as W names them.
+rec "$x" dry-run-all json export --dry-run --format json
+rec "$x" write-two json export --format json -- design-doc requirements-html
+rec "$x" write-sections json export --format json -- sections-md
+printf '# Requirements\n\n<!-- kiln:requirements -->\n' > design/templates/sections.md
+rec "$x" dry-run-remove json export --dry-run --format json -- sections-md
+rec "$x" dry-run-remove txt export --dry-run -- sections-md
+git checkout -q -- design/templates/sections.md
+rec "$x" unknown out export --dry-run --format json -- nosuch
+
+# Confluence targets: a document under a parent page, and one adopting an
+# existing page.
+cat >> kiln.toml <<'EOF'
+
+[confluence]
+url = "http://127.0.0.1:9"
+space = "DEMO"
+
+[[export]]
+name = "design-doc-confluence"
+format = "confluence"
+title = "Demo — design document"
+template = "design/templates/design-doc.md"
+[export.confluence]
+parent = 123456789
+
+[[export]]
+name = "adopted"
+format = "confluence"
+title = "Demo — adopted"
+[export.confluence]
+page = 555
+EOF
+git add kiln.toml
+commit "2026-03-03T10:00:00Z" "Demo: two Confluence targets"
+# Its configuration now, for the extension's own reading of the targets.
+cp kiln.toml "$x/kiln.toml"
+snap="$tmp/snapshots"
+mkdir -p "$snap"
+# Nothing published yet: the parent page alone.
+cat > "$snap/empty.json" <<'EOF'
+{"anchorPage": 123456789, "anchorTitle": "Demo space home"}
+EOF
+# Published once, at another commit: the document's page is Kiln's (its
+# property), one page Kiln wrote is no longer produced, one isn't Kiln's.
+cat > "$snap/update.json" <<'EOF'
+{
+  "anchorPage": 123456789,
+  "anchorTitle": "Demo space home",
+  "root": {
+    "id": 2001, "title": "Demo — design document", "parentId": 123456789, "version": 3,
+    "versionAuthor": "Kiln", "versionWhen": "2026-01-05T10:00:00Z",
+    "property": {"schema": 1, "project": "Demo", "export": "design-doc-confluence", "key": "doc",
+      "items": {"REQ-001": "0000000000000000000000000000000000000000"},
+      "published": "0000000000000000000000000000000000000000",
+      "renderHash": "sha256:before", "remoteHash": "sha256:remote", "publishedVersion": 3}
+  },
+  "descendants": [
+    {"id": 2002, "title": "Old section", "parentId": 2001, "version": 2,
+     "property": {"schema": 1, "project": "Demo", "export": "design-doc-confluence", "key": "old-section",
+       "renderHash": "sha256:x", "remoteHash": "sha256:y", "publishedVersion": 2}},
+    {"id": 2003, "title": "Meeting notes", "parentId": 2001, "version": 1}
+  ]
+}
+EOF
+# The document's page edited in Confluence after Kiln's last write.
+cat > "$snap/drift.json" <<'EOF'
+{
+  "anchorPage": 123456789,
+  "anchorTitle": "Demo space home",
+  "root": {
+    "id": 2001, "title": "Demo — design document", "parentId": 123456789, "version": 5,
+    "versionAuthor": "Ana", "versionWhen": "2026-02-01T09:30:00Z",
+    "property": {"schema": 1, "project": "Demo", "export": "design-doc-confluence", "key": "doc",
+      "items": {"REQ-001": "0000000000000000000000000000000000000000"},
+      "renderHash": "sha256:before", "remoteHash": "sha256:remote", "publishedVersion": 3},
+    "bodyHash": "sha256:edited"
+  }
+}
+EOF
+# The page to adopt already has someone's content.
+cat > "$snap/adopt.json" <<'EOF'
+{"anchorPage": 555, "anchorTitle": "Team page", "root": {"id": 555, "title": "Team page", "parentId": 1, "version": 7, "empty": false}}
+EOF
+mkdir -p "$x/snapshots"
+cp "$snap"/*.json "$x/snapshots/"
+for s in empty update drift; do
+  rec "$x" "confluence-$s" json export --dry-run --snapshot "$snap/$s.json" --format json -- design-doc-confluence
+  rec "$x" "confluence-$s" txt export --dry-run --snapshot "$snap/$s.json" -- design-doc-confluence
+done
+rec "$x" confluence-adopt json export --dry-run --snapshot "$snap/adopt.json" --format json -- adopted
+rec "$x" confluence-adopt txt export --dry-run --snapshot "$snap/adopt.json" -- adopted
+# No token and no snapshot: the dry run, every target at once (one failing
+# target fails them all), a bare export as a task would run it (no file
+# written either), and a publish -- each stops before any connection.
+rec "$x" confluence-no-token json export --dry-run --format json -- design-doc-confluence
+rec "$x" all-no-token json export --dry-run --format json
+rec "$x" bare-no-token json export --format json
+rec "$x" publish-no-token json export --yes --format json -- design-doc-confluence
+if command -v strace >/dev/null; then
+  strace -f -e trace=connect -o "$tmp/strace.txt" "$KILN" export --yes --format json -- design-doc-confluence >/dev/null 2>&1 || true
+  if grep -E 'AF_INET6?' "$tmp/strace.txt" >/dev/null; then
+    echo "record.sh: kiln export --yes without a token opened a network connection:" >&2
+    grep -E 'AF_INET6?' "$tmp/strace.txt" >&2
+    exit 1
+  fi
+fi
+# A (made-up) token, so kiln connects: to 127.0.0.1:9, where nothing
+# listens. Its real network error, exit 3.
+(export KILN_CONFLUENCE_TOKEN=not-a-token; rec "$x" confluence-unreachable json export --dry-run --format json -- design-doc-confluence)
+# on_drift = "skip": the edited page is left alone, so the plan has nothing
+# to do.
+sed -i 's|^space = "DEMO"$|space = "DEMO"\non_drift = "skip"|' kiln.toml
+rec "$x" confluence-drift-skip json export --dry-run --snapshot "$snap/drift.json" --format json -- design-doc-confluence
+rec "$x" confluence-drift-skip txt export --dry-run --snapshot "$snap/drift.json" -- design-doc-confluence
+git checkout -q -- kiln.toml
+)
 
 own="$tmp/kiln"
 git clone -q --no-checkout "$KILN_SOURCE" "$own"

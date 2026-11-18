@@ -1,4 +1,4 @@
-  «accent:1 »«muted:Tree»   «accent:2 »«muted:Trace»   «accent:3 »«muted:Impact»   «accent:4 »«muted:Board»   «accent:5 »«title panel under=title:Roadmap»   «accent:6 »«muted:Decisions»   «accent:7 »«muted:Changes»   «accent:8 »«muted:Item»   «accent:9 »«muted:Check»   «title:Demo»«bad:  1 error»
+  «accent:1 »«muted:Tree»   «accent:2 »«muted:Trace»   «accent:3 »«muted:Impact»   «accent:4 »«muted:Board»   «accent:5 »«title panel under=title:Roadmap»   «accent:6 »«muted:Decisions»   «accent:7 »«muted:Changes»   «accent:8 »«muted:Item»   «accent:9 »«muted:Check» «muted:›» «title:Demo»«bad:  1 error»
   ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 > «accent:MS-001»      First release              «keyword:active»   due 2030-06-30     1/5 ██░░░░░░░░
     «accent:TASK-002»  Write readings to SQLite   «keyword:doing»                       «muted:· ana»

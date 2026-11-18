@@ -1718,7 +1718,7 @@ mod tests {
         let (flow, _) = Flow::start(Edit::Owner, Some("TASK-003"), &f);
         let mut flow = flow.unwrap();
         flow.answer("x", &f);
-        assert_eq!(flow.edited(&Err(Failure::TimedOut)).step, Step::Done);
+        assert_eq!(flow.edited(&Err(Failure::TimedOut(60))).step, Step::Done);
     }
 
     #[test]
