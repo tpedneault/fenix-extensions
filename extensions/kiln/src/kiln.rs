@@ -27,8 +27,9 @@
 //! - **Long jobs.** A job may give a longer limit: the Exports tab's dry
 //!   run (it renders the document and may read Confluence) and its publish
 //!   (minutes against a large space). A job that must not be stopped half
-//!   done -- a publish -- is also kept running when another kiln is chosen
-//!   ([`Job::keep_running`], [`Kiln::clear`]): its answer still comes, and
+//!   done -- a publish, the Jira sync, an edit -- is also kept running when
+//!   another kiln is chosen ([`Job::keep_running`], [`Kiln::clear`]), and is
+//!   never given up on ([`Kiln::cancel`]): its answer still comes, and
 //!   the next job starts after it, with the new kiln. While a long job
 //!   runs, everything else waits behind it: one kiln at a time is the
 //!   rule, and the job's own limit bounds how long.
@@ -85,8 +86,10 @@ pub struct Job<T> {
     /// How long it may run before it's stopped: [`TIMEOUT_MS`] unless
     /// [`Job::limit`] says otherwise.
     pub limit_ms: u32,
-    /// Not stopped by [`Kiln::clear`]: a publish, which stopped half done
-    /// leaves Confluence half updated until the next one.
+    /// Not stopped by [`Kiln::clear`] or [`Kiln::cancel`]: a publish, which
+    /// stopped half done leaves Confluence half updated until the next one,
+    /// and an edit, which stopped half done could leave a renumber half
+    /// written across the project's files.
     pub keep_running: bool,
     /// Yields to every job that isn't one ([`Job::background`]).
     pub background: bool,
@@ -361,7 +364,10 @@ impl<T> Kiln<T> {
             if run.stderr.len() >= MAX_STDERR_LINES {
                 run.stderr.pop_front();
             }
-            run.stderr.push_back(model::clip(line, 2000));
+            // kiln's line quotes the project's text (a title, a path): made
+            // visible text once, here, for every place that shows it --
+            // the pages, the message line, the doctor, an agent.
+            run.stderr.push_back(model::printable(line, 2000));
             return;
         }
         if run.stdout.len() + line.len() + 1 > MAX_STDOUT {
@@ -422,11 +428,16 @@ impl<T> Kiln<T> {
     /// `why`, so whoever asked hears once, as for any job. For a reading
     /// command no one waits for any more (an agent's tool call cancelled):
     /// the caller never names an edit, which stopped half done could leave
-    /// a file half written. How many there were.
+    /// a file half written. A [`Job::keep_running`] job is never given up
+    /// on here, whatever `is` says: stopping a publish half done is what
+    /// that flag is there to prevent, and it is answered as usual. How many
+    /// there were.
     pub fn cancel(&mut self, is: impl Fn(&T) -> bool, why: &str) -> usize {
         let mut n = 0;
-        let (gone, rest): (VecDeque<Job<T>>, VecDeque<Job<T>>) =
-            self.queue.drain(..).partition(|j| is(&j.tag));
+        let (gone, rest): (VecDeque<Job<T>>, VecDeque<Job<T>>) = self
+            .queue
+            .drain(..)
+            .partition(|j| !j.keep_running && is(&j.tag));
         self.queue = rest;
         for job in gone {
             n += 1;
@@ -436,7 +447,11 @@ impl<T> Kiln<T> {
                 result: Err(Failure::Unusable(why.to_string())),
             });
         }
-        if self.running.as_ref().is_some_and(|r| is(&r.job.tag)) {
+        if self
+            .running
+            .as_ref()
+            .is_some_and(|r| !r.job.keep_running && is(&r.job.tag))
+        {
             n += 1;
             if let Some(run) = &self.running {
                 api::process::kill(run.process);
@@ -926,5 +941,24 @@ mod tests {
             ]
         );
         assert_eq!(k.cancel(|t| *t == "zz", "x"), 0);
+    }
+
+    #[test]
+    fn a_job_that_keeps_running_is_never_given_up_on() {
+        let fake = Fake::new();
+        fake.install();
+        fake.program("kiln", "/bin/kiln")
+            .on_spawn("kiln", Run::running(""));
+        let mut k = Kiln::default();
+        k.push(Job::new(["export", "--yes"], "publish").keep_running());
+        k.push(Job::new(["set"], "edit").keep_running());
+        // Whatever the caller's test says, neither is stopped nor dropped.
+        assert_eq!(k.cancel(|_| true, "no one waits"), 0);
+        assert!(!fake.process("kiln export").unwrap().killed);
+        assert_eq!(k.waiting(), 1);
+        assert!(done(&mut k).is_empty());
+        let p = fake.spawned()[0].0;
+        k.exited(p, Some(0));
+        assert_eq!(done(&mut k)[0].0, "publish", "answered as usual");
     }
 }

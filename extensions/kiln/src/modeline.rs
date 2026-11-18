@@ -8,7 +8,7 @@
 //! differs from the last text set.
 //!
 //! What it deliberately doesn't do: say anything about the plan, offer a
-//! click or a command (the Check tab is `kiln.check`), or know the findings (kiln's counts, as [`crate::project::Loaded::counts`]
+//! click or a command (the Check tab is `kiln.findings`), or know the findings (kiln's counts, as [`crate::project::Loaded::counts`]
 //! has them, are all it uses).
 
 use crate::project::State;

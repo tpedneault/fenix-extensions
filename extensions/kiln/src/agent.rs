@@ -715,46 +715,12 @@ fn clean(v: Value) -> Value {
 
 // -- Text --------------------------------------------------------------------
 
-/// Unicode's format characters (Cf) and the variation selectors: none is
-/// seen, and between them they can carry text no one reads -- the tag
-/// characters spell ASCII (U+E0020-E007E), variation selectors can encode
-/// bytes, bidi controls reorder what's shown. As the Kubernetes extension
-/// has them.
-fn invisible(c: char) -> bool {
-    matches!(c,
-        '\u{00AD}' | '\u{034F}' | '\u{061C}' | '\u{0600}'..='\u{0605}' | '\u{06DD}' | '\u{070F}' | '\u{0890}'..='\u{0891}' | '\u{08E2}'
-        | '\u{115F}'..='\u{1160}' | '\u{17B4}'..='\u{17B5}' | '\u{180B}'..='\u{180F}' | '\u{200B}'..='\u{200F}' | '\u{202A}'..='\u{202E}'
-        | '\u{2060}'..='\u{206F}' | '\u{3164}' | '\u{FE00}'..='\u{FE0F}' | '\u{FEFF}' | '\u{FFA0}' | '\u{FFF9}'..='\u{FFFB}'
-        | '\u{110BD}' | '\u{110CD}' | '\u{13430}'..='\u{1343F}' | '\u{1BCA0}'..='\u{1BCA3}' | '\u{1D173}'..='\u{1D17A}'
-        | '\u{E0000}'..='\u{E007F}' | '\u{E0100}'..='\u{E01EF}')
-}
-
 /// Text written by people or other agents, for an agent: terminal escapes,
 /// control characters (but a newline and a tab) and every invisible
-/// character out ([`invisible`]). A body keeps its lines.
+/// character out -- the same rule as every other place text is shown
+/// ([`model::cleaned`]), keeping its lines, as a body needs.
 pub fn plain(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let mut chars = s.chars().peekable();
-    while let Some(c) = chars.next() {
-        if c == '\u{1b}' {
-            if chars.peek() == Some(&'[') {
-                chars.next();
-                for f in chars.by_ref() {
-                    if ('@'..='~').contains(&f) {
-                        break;
-                    }
-                }
-            } else {
-                chars.next();
-            }
-            continue;
-        }
-        if (c.is_control() && c != '\n' && c != '\t') || invisible(c) {
-            continue;
-        }
-        out.push(c);
-    }
-    out
+    model::cleaned(s, true)
 }
 
 /// A value as an error names it: printable, short.
@@ -914,7 +880,7 @@ impl Input {
         if s.chars().count() > MAX_TEXT {
             return Err(format!("{key} is over {MAX_TEXT} characters"));
         }
-        if s.chars().any(|c| c.is_control() || invisible(c)) {
+        if s.chars().any(|c| c.is_control() || model::invisible(c)) {
             return Err(format!(
                 "{key} is one line of visible text: no newlines, control or invisible characters"
             ));

@@ -250,7 +250,10 @@ impl Mirror {
         self.tickets.as_ref()
     }
 
-    /// Whether the last read failed for want of a token (`A` signs in).
+    /// Whether the last read failed for want of a token. The pages hear it
+    /// from [`Heard::Failed`]'s `token` as it happens (`Plan::set_signin`);
+    /// this is for the tests to see what the mirror kept.
+    #[cfg(test)]
     pub fn needs_token(&self) -> bool {
         self.failed.as_ref().is_some_and(|f| wants_token(&f.line))
     }

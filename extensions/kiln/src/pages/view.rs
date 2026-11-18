@@ -163,7 +163,7 @@ pub struct Row {
     pub kind: Kind,
     pub depth: usize,
     pub cells: Vec<Cell>,
-    /// The item it's about, for `v`, `i` and the edits to come.
+    /// The item it's about, for `v`, `i` and the edits.
     pub id: Option<String>,
     /// Where `Enter` opens.
     pub place: Option<Place>,
@@ -416,7 +416,7 @@ pub enum Reply {
     /// project is read again after. Its outcome -- kiln's stdout, or its
     /// error line -- is said on the bottom line, then handed to
     /// [`View::edited`] with `tag` (a refusal may want the flow asked
-    /// again). For E2's edits: no tab of E1 replies with it.
+    /// again).
     Edit {
         tag: String,
         args: Vec<String>,

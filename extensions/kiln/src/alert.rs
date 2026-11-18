@@ -26,7 +26,7 @@ pub const SETTING: &str = "kiln.notify_errors";
 pub const TAG: &str = "kiln.check-errors";
 
 /// The command its action runs: the plan's Check tab.
-pub const OPEN_CHECK: &str = "kiln.check";
+pub const OPEN_CHECK: &str = "kiln.findings";
 
 /// What to do about the notification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -313,7 +313,7 @@ mod wiring {
         );
         assert_eq!(t.tag.as_deref(), Some(TAG));
         assert_eq!(t.actions.len(), 1);
-        assert_eq!(t.actions[0].command, "kiln.check");
+        assert_eq!(t.actions[0].command, "kiln.findings");
         assert_eq!(t.urgency, crate::api::Urgency::Normal);
         // Saved again with the error still there: no second one.
         h.saved(SAVED);
@@ -421,7 +421,7 @@ mod wiring {
         assert!(h.screen(page).contains("K102"), "{}", h.screen(page));
         // The plan already open on another tab: the same page, shown there.
         h.keys(page, "1");
-        h.command("kiln.check").unwrap();
+        h.command("kiln.findings").unwrap();
         assert_eq!(h.ext.pages.len(), 1);
         assert_eq!(h.ext.pages[&page].plan.tab(), crate::pages::Tab::Check);
     }

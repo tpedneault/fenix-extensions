@@ -100,9 +100,12 @@ pub struct Index {
     paths: Vec<String>,
 }
 
-/// `text` without control characters, cut to `most` characters with `…`.
+/// `text` as one line of visible text ([`crate::model::plain`]: no control,
+/// escape or invisible character -- a bidi override beside an ID in your
+/// code would make the line read as another), cut to `most` characters
+/// with `…`.
 fn cut(text: &str, most: usize) -> String {
-    let clean: String = text.chars().filter(|c| !c.is_control()).collect();
+    let clean = crate::model::plain(text, usize::MAX);
     let clean = clean.trim();
     if clean.chars().count() <= most {
         return clean.to_string();
@@ -591,9 +594,20 @@ mod tests {
         let c = cut(&long, 40);
         assert_eq!(c.chars().count(), 40);
         assert!(c.ends_with('…'));
-        assert_eq!(cut("a\u{7}b\nc", 40), "abc");
+        // A control character, a newline, is a space on one line.
+        assert_eq!(cut("a\u{7}b\nc", 40), "a b c");
         // Cut where a space was: no space before the ellipsis.
         assert_eq!(cut("abcd efgh", 6), "abcd…");
+    }
+
+    /// Drawn in your code beside an ID, a title's bidi override would make
+    /// the line read as another; an escape sequence or a zero-width or tag
+    /// character would hide text. The same rule as every other place a
+    /// title is shown (`model::cleaned`).
+    #[test]
+    fn a_title_beside_an_id_has_no_bidi_escape_or_invisible_character() {
+        let c = cut("ok\u{202E}evil\u{2066} \u{1b}[31mred\u{200B}\u{E0041}x", 40);
+        assert_eq!(c, "okevil redx");
     }
 
     #[test]

@@ -17,7 +17,7 @@
 //! JSON, a wrong type or a number out of range is an `Err`.
 //!
 //! What it deliberately doesn't do: run kiln (that's `kiln.rs`), decide
-//! what to show, or type the answers only later pages read (`trace`,
+//! what to show, or type the answers only one tab reads (`trace`,
 //! `impact`, `diff`, `export --dry-run`): those come raw through
 //! `Project::query`, and their pages type them. Recorded output for all of
 //! them is in `tests/fixtures/out/`.
@@ -487,27 +487,77 @@ fn kind_of(v: &serde_json::Value) -> &'static str {
     }
 }
 
-/// `s` with every control character -- a newline, a tab, an escape
-/// sequence's ESC and BEL -- and every bidirectional override (which could
-/// make a line read as another) made a space, the ends trimmed, and cut to
+/// Unicode's format characters (Cf) and the variation selectors: none is
+/// seen, and between them they can carry text no one reads -- the tag
+/// characters spell ASCII (U+E0020-E007E), variation selectors can encode
+/// bytes, bidi controls reorder what's shown (a line read as another). As
+/// the Kubernetes extension has them.
+pub fn invisible(c: char) -> bool {
+    matches!(c,
+        '\u{00AD}' | '\u{034F}' | '\u{061C}' | '\u{0600}'..='\u{0605}' | '\u{06DD}' | '\u{070F}' | '\u{0890}'..='\u{0891}' | '\u{08E2}'
+        | '\u{115F}'..='\u{1160}' | '\u{17B4}'..='\u{17B5}' | '\u{180B}'..='\u{180F}' | '\u{200B}'..='\u{200F}' | '\u{202A}'..='\u{202E}'
+        | '\u{2060}'..='\u{206F}' | '\u{3164}' | '\u{FE00}'..='\u{FE0F}' | '\u{FEFF}' | '\u{FFA0}' | '\u{FFF9}'..='\u{FFFB}'
+        | '\u{110BD}' | '\u{110CD}' | '\u{13430}'..='\u{1343F}' | '\u{1BCA0}'..='\u{1BCA3}' | '\u{1D173}'..='\u{1D17A}'
+        | '\u{E0000}'..='\u{E007F}' | '\u{E0100}'..='\u{E01EF}')
+}
+
+/// The one rule for text kiln hands on from people or other agents --
+/// titles, bodies, comments, tickets, kiln's own lines quoting them --
+/// wherever it is shown: on a page, the message line, Home, a
+/// notification, the doctor, beside an ID in a buffer, or to an agent.
+/// Terminal escape sequences go whole (an ESC and what it starts), every
+/// invisible character goes ([`invisible`]), and the other control
+/// characters go too -- made a space on one line (`lines` false, so `a\nb`
+/// reads `a b`), dropped when the text keeps its lines (`lines` true: a
+/// body, which keeps `\n` and tab). Nothing in it is interpreted. One
+/// function, so no display path cleans less than another.
+pub fn cleaned(s: &str, lines: bool) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' {
+            match chars.next() {
+                // CSI (colours, cursor moves): to its final byte.
+                Some('[') => {
+                    for f in chars.by_ref() {
+                        if ('@'..='~').contains(&f) {
+                            break;
+                        }
+                    }
+                }
+                // OSC (a hyperlink, a window title), DCS, SOS, PM, APC: to
+                // BEL or ESC \.
+                Some(']' | 'P' | 'X' | '^' | '_') => {
+                    while let Some(f) = chars.next() {
+                        if f == '\u{7}' || (f == '\u{1b}' && chars.next_if_eq(&'\\').is_some()) {
+                            break;
+                        }
+                    }
+                }
+                _ => {}
+            }
+            continue;
+        }
+        if lines && (c == '\n' || c == '\t') {
+            out.push(c);
+        } else if c.is_control() {
+            if !lines {
+                out.push(' ');
+            }
+        } else if !invisible(c) {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// `s` on one line ([`cleaned`]: every control character a space, escape
+/// sequences and invisible characters gone), the ends trimmed, and cut to
 /// `n` characters. Inner spacing stays: kiln aligns its plan's lines with
 /// it. For text that is kiln's but holds other people's words (a ticket's
-/// summary in a plan line).
+/// summary in a plan line), and every cell a page draws.
 pub fn printable(s: &str, n: usize) -> String {
-    let spaced: String = s
-        .chars()
-        .map(|c| {
-            let bidi = matches!(c, '\u{061C}' | '\u{200E}' | '\u{200F}')
-                || ('\u{202A}'..='\u{202E}').contains(&c)
-                || ('\u{2066}'..='\u{2069}').contains(&c);
-            if c.is_control() || bidi {
-                ' '
-            } else {
-                c
-            }
-        })
-        .collect();
-    clip(spaced.trim(), n)
+    clip(cleaned(s, false).trim(), n)
 }
 
 /// Other people's writing (a Jira status, a Confluence comment's author)

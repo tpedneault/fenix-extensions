@@ -397,6 +397,10 @@ impl Kiln {
                                 let effects = p.plan.edited(tab, &tag, &result, now);
                                 pages_api::refresh(page);
                                 self.perform(page, effects);
+                            } else {
+                                // Its page closed: kiln did it all the same.
+                                let (line, role) = pages::frame::outcome(&result);
+                                tell(&line, role == fenix_ui_kit::Role::Bad);
                             }
                         }
                         Some(For::Here { serial }) => self.here_edited(serial, &result),
@@ -413,6 +417,20 @@ impl Kiln {
                                 let effects = p.plan.ran(tab, &tag, &result, now);
                                 pages_api::refresh(page);
                                 self.perform(page, effects);
+                            } else if tab == Tab::Exports {
+                                // Its page closed while kiln ran (a publish
+                                // outlives it): what kiln did to Confluence or
+                                // Jira is said on the message line, and after a
+                                // sync, which wrote keys into items, the
+                                // project is read again as the page would have.
+                                if let Some((line, bad, reload)) =
+                                    pages::exports::unseen(&tag, &result)
+                                {
+                                    tell(&line, bad);
+                                    if reload {
+                                        self.reload();
+                                    }
+                                }
                             }
                         }
                         Some(For::Mirror) => {
@@ -931,7 +949,14 @@ impl Kiln {
     fn perform(&mut self, page: u64, effects: Vec<Effect>) {
         for effect in effects {
             match effect {
-                Effect::Open(place) => self.open_place(&place),
+                Effect::Open(place) => {
+                    if let Err(why) = self.open_place(&place) {
+                        if let Some(p) = self.pages.get_mut(&page) {
+                            p.plan.tell(&why, true);
+                            pages_api::refresh(page);
+                        }
+                    }
+                }
                 Effect::Reload => self.reload(),
                 Effect::Ask {
                     tab,
@@ -1045,11 +1070,12 @@ impl Kiln {
         }
     }
 
-    /// A file of the project opened at a line, in Fenix.
-    fn open_place(&self, place: &pages::view::Place) {
+    /// A file of the project opened at a line, in Fenix; else why not.
+    fn open_place(&self, place: &pages::view::Place) -> Result<(), String> {
         let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
-        let path = root.join(&place.path);
+        let path = in_project(&root, &place.path)?;
         api::host::open_file(&path.to_string_lossy(), place.line);
+        Ok(())
     }
 
     /// A prompt's text or a picker's choice, `answer`, to whoever asked
@@ -1083,7 +1109,7 @@ impl Kiln {
             Asker::Here { serial } => {
                 let State::Loaded { loaded, .. } = now.state else {
                     self.here.cancel(serial);
-                    api::notify(&format!("Kiln: {}", edit::DROPPED));
+                    tell(edit::DROPPED, false);
                     return;
                 };
                 let facts = Facts {
@@ -1104,7 +1130,9 @@ impl Kiln {
     /// dropped.
     fn here_turn(&mut self, turn: edit::Turn) {
         if let Some(place) = &turn.open {
-            self.open_place(place);
+            if let Err(why) = self.open_place(place) {
+                tell(&why, true);
+            }
         }
         let serial = self.here.serial();
         match turn.step {
@@ -1120,7 +1148,7 @@ impl Kiln {
                 let id = self.project.edit(args, None);
                 self.asked.insert(id, For::Here { serial });
             }
-            Step::Say(text) => api::notify(&format!("Kiln: {text}")),
+            Step::Say(text) => tell(&text, false),
             Step::Done => {}
         }
     }
@@ -1137,11 +1165,7 @@ impl Kiln {
         let own_word = matches!(ended.as_ref().map(|e| &e.turn.step), Some(Step::Say(_)));
         if !own_word {
             let (line, role) = pages::frame::outcome(result);
-            api::notify(&if role == fenix_ui_kit::Role::Bad {
-                line
-            } else {
-                format!("Kiln: {line}")
-            });
+            tell(&line, role == fenix_ui_kit::Role::Bad);
         }
         if let Some(ended) = ended {
             self.here_turn(ended.turn);
@@ -1186,7 +1210,7 @@ impl Kiln {
     fn show_item(&mut self, id: &str, to: Tab) {
         let known = self.project.loaded().is_some_and(|l| l.item(id).is_some());
         if !known {
-            api::notify(&format!("Kiln: {id} isn't in the project any more"));
+            tell(&format!("{id} isn't in the project any more"), true);
             return;
         }
         let page = self.plan_page();
@@ -1210,7 +1234,7 @@ impl Kiln {
             other => {
                 let why = unusable(&other);
                 self.wanted = None;
-                api::notify(&format!("Kiln: {why}"));
+                tell(&why, true);
                 return false;
             }
         };
@@ -1221,21 +1245,24 @@ impl Kiln {
                     true
                 }
                 Err(why) => {
-                    api::notify(&format!("Kiln: {why}"));
+                    tell(&why, false);
                     false
                 }
             },
             Some(Wanted::Find) => {
                 let items = &loaded.items;
                 if items.is_empty() {
-                    api::notify("Kiln: the project has no items yet: kiln new adds one");
+                    tell("the project has no items yet: kiln new adds one", false);
                     return false;
                 }
                 if items.len() > MOST_CHOICES {
-                    api::notify(&format!(
-                        "Kiln: the picker has the first {MOST_CHOICES} of {} items",
-                        items.len()
-                    ));
+                    tell(
+                        &format!(
+                            "the picker has the first {MOST_CHOICES} of {} items",
+                            items.len()
+                        ),
+                        false,
+                    );
                 }
                 let choices: Vec<Choice> = items
                     .iter()
@@ -1251,7 +1278,7 @@ impl Kiln {
             }
             Some(Wanted::Edit { spot, edit }) => {
                 if let Some(why) = edit::blocked(&state, self.project.settled()) {
-                    api::notify(&format!("Kiln: {why}"));
+                    tell(&why, false);
                     return false;
                 }
                 // A new item is about no item; the rest are about the one
@@ -1262,7 +1289,7 @@ impl Kiln {
                     match spot::item_at(loaded, &spot) {
                         Ok(id) => Some(id),
                         Err(why) => {
-                            api::notify(&format!("Kiln: {why}"));
+                            tell(&why, false);
                             return false;
                         }
                     }
@@ -1281,7 +1308,7 @@ impl Kiln {
             Some(Wanted::Start { spot }) => {
                 match spot::item_at(loaded, &spot) {
                     Ok(id) => self.start_item(Surface::Buffer, &id),
-                    Err(why) => api::notify(&format!("Kiln: {why}")),
+                    Err(why) => tell(&why, false),
                 }
                 false
             }
@@ -1394,11 +1421,7 @@ impl Kiln {
     fn start_edited(&mut self, serial: u64, result: &Result<kiln::Ran, kiln::Failure>) {
         let Some(s) = self.starting.as_mut().filter(|s| s.serial == serial) else {
             let (line, role) = pages::frame::outcome(result);
-            api::notify(&if role == fenix_ui_kit::Role::Bad {
-                line
-            } else {
-                format!("Kiln: {line}")
-            });
+            tell(&line, role == fenix_ui_kit::Role::Bad);
             return;
         };
         let surface = s.surface;
@@ -1431,16 +1454,7 @@ impl Kiln {
                 return;
             }
         }
-        if bad {
-            let said = if text.starts_with("kiln:") {
-                text.to_string()
-            } else {
-                format!("Kiln: {text}")
-            };
-            api::host::notify(api::Level::Error, &said);
-        } else {
-            api::notify(&format!("Kiln: {text}"));
-        }
+        tell(text, bad);
     }
 
     /// A plan page, `page`, kept: in view.
@@ -1478,7 +1492,7 @@ impl Extension for Kiln {
             "kiln.edit" => self.want_edit(Edit::More),
             "kiln.start" => self.want_start(),
             // The notification's action and the doctor's fix row.
-            "kiln.check" => {
+            "kiln.findings" => {
                 let page = self.plan_page();
                 if let Some(p) = self.pages.get_mut(&page) {
                     p.plan.show(Tab::Check);
@@ -1682,6 +1696,53 @@ fn picker_items(choices: &[Choice]) -> Vec<PickerItem> {
         .collect()
 }
 
+/// `path`, kiln's path of a file of the project (an item's, a finding's, a
+/// code location's, a new item's), under `root`; else why it isn't opened.
+/// kiln names files relative to the project's top, so an absolute path, a
+/// drive or `..` is no file of the project's -- whatever wrote it, `Enter`
+/// never opens a file outside the project on its word. (Fenix holds the
+/// extension to `project-read` as well; this says why in the page's words.)
+fn in_project(root: &std::path::Path, path: &str) -> Result<PathBuf, String> {
+    use std::path::Component;
+    let p = std::path::Path::new(path);
+    let inside = !path.is_empty()
+        && !path.starts_with('/')
+        && !path.starts_with('\\')
+        && p.components()
+            .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
+        && !path
+            .split(['/', '\\'])
+            .any(|part| part == ".." || part.contains(':'));
+    if inside {
+        Ok(root.join(p))
+    } else {
+        Err(format!(
+            "not opening {}: it isn't a file under the project's folder",
+            model::plain(path, 80)
+        ))
+    }
+}
+
+/// A line on Fenix's message line, for what is said with no page to say it
+/// on: one line of visible text ([`model::printable`]: kiln's line quotes
+/// the project's), after `Kiln: ` -- but kiln's own `kiln: …` line as kiln
+/// wrote it, never `Kiln: kiln: …` -- and in the error look when it is bad
+/// news. Every message the extension gives goes through here, so they all
+/// read alike.
+fn tell(text: &str, bad: bool) {
+    let text = model::printable(text, 500);
+    let said = if text.starts_with("kiln: ") || text.starts_with("Kiln: ") {
+        text
+    } else {
+        format!("Kiln: {text}")
+    };
+    if bad {
+        api::host::notify(api::Level::Error, &said);
+    } else {
+        api::notify(&said);
+    }
+}
+
 /// Why a project that isn't loaded can't be used, in its own words.
 fn unusable(state: &State) -> String {
     match state {
@@ -1871,6 +1932,48 @@ pub(crate) mod tests {
         assert!(h
             .screen(page)
             .contains("\nrequirement  3 items  2 gaps  columns: implements | verifies\n"));
+    }
+
+    /// kiln names files from the project's top; a path that would leave it
+    /// -- `..`, absolute, a drive -- is never opened on its word, whatever
+    /// wrote it into kiln's answer.
+    #[test]
+    fn enter_never_opens_a_file_outside_the_project() {
+        let fake = demo();
+        let list = fixture("demo/list.json").replacen(
+            "design/requirements/REQ-003-the-log-exports-as-csv.md",
+            "../../outside/REQ-003.md",
+            1,
+        );
+        fake.on_spawn("kiln list --format json", Ran::ok(list));
+        let (mut h, page) = opened(&fake);
+        fake.take();
+        h.keys(page, "jj<Enter>");
+        assert!(
+            !fake.take().iter().any(|c| c.starts_with("open ")),
+            "nothing opened"
+        );
+        assert_eq!(
+            foot(&mut h, page),
+            "not opening ../../outside/REQ-003.md: it isn't a file under the project's folder"
+        );
+        let root = std::path::Path::new("/project");
+        for bad in [
+            "/etc/passwd",
+            "\\\\server\\x",
+            "C:\\x.md",
+            "a/../../b",
+            "..",
+            "",
+        ] {
+            assert!(in_project(root, bad).is_err(), "{bad}");
+        }
+        assert_eq!(
+            in_project(root, "design/tasks/TASK-001.md"),
+            Ok(std::path::PathBuf::from(
+                "/project/design/tasks/TASK-001.md"
+            ))
+        );
     }
 
     #[test]
@@ -2487,7 +2590,7 @@ pub(crate) mod tests {
         );
         assert_eq!(
             r[3],
-            "kiln check Bad 1 error, 2 warnings -> open the Check tab (kiln.check)"
+            "kiln check Bad 1 error, 2 warnings -> open the Check tab (kiln.findings)"
         );
         // The tasks run the kiln found, in the project.
         let state = fake.state();
@@ -3011,6 +3114,31 @@ pub(crate) mod tests {
         assert_eq!(h.ext.pages[&page].plan.tab(), Tab::Item);
         assert!(h.screen(page).contains("REQ-001"));
         assert!(fake.notifications().is_empty());
+    }
+
+    /// kiln's own line is said as kiln wrote it, never `Kiln: kiln: …`, and
+    /// bad news in the error look; with an escape sequence in it gone.
+    #[test]
+    fn a_command_on_a_project_kiln_cant_read_says_kilns_line_once() {
+        let fake = in_file("src/log.rs", "// implements: REQ-001\n", 0, 17);
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(
+                2,
+                "kiln: design/a.md:3: front matter \u{1b}[31mcan't be parsed",
+            ),
+        );
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.show").unwrap();
+        h.settle();
+        assert_eq!(
+            fake.notifications(),
+            ["kiln: design/a.md:3: front matter can't be parsed"]
+        );
+        assert!(fake
+            .calls()
+            .iter()
+            .any(|c| c == "notify error kiln: design/a.md:3: front matter can't be parsed"));
     }
 
     #[test]

@@ -137,9 +137,12 @@ impl View for Impact {
         "no item yet: press i on an item in another tab".into()
     }
 
+    /// Only an ID is asked about, as on the Item tab: never a word kiln
+    /// would read as an option.
     fn queries(&self, _ctx: &Ctx) -> Vec<Query> {
         self.id
             .iter()
+            .filter(|id| crate::agent::is_id(id))
             .map(|id| {
                 Query::new(
                     &format!("{TAG}{id}"),

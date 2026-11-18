@@ -50,7 +50,7 @@
 //! would. "No kiln.toml" is kiln's own word for it (exit 2, `kiln: no
 //! kiln.toml in …`), read from its line, not from the filesystem.
 //!
-//! # For later pages
+//! # What the pages and tools ask
 //!
 //! - [`Project::query`]: any other reading command (`show`, `trace`,
 //!   `impact`, `diff`, `export --dry-run`), its answer a [`Notice::Answer`]
@@ -491,8 +491,9 @@ impl Project {
         self.restart_refresh();
     }
 
-    /// `kiln.path` changed: another kiln. What runs is stopped, waiting
-    /// queries are answered that it changed, and kiln is looked for again
+    /// `kiln.path` changed: another kiln. What runs is stopped (but an edit
+    /// or a publish, which run to their end and are answered as usual),
+    /// waiting queries are answered that it changed, and kiln is looked for again
     /// if it had been; what was loaded goes, since another kiln may read
     /// the project differently.
     pub fn kiln_changed(&mut self) {
@@ -585,12 +586,18 @@ impl Project {
     /// answer comes as [`Notice::Answer`], and the project is then read
     /// again, whether kiln changed anything or refused (a refusal means
     /// what's shown may be stale).
+    ///
+    /// It runs to its end even when another kiln is chosen meanwhile
+    /// ([`crate::kiln::Job::keep_running`]): `kiln renumber` rewrites every
+    /// file that names the item, and stopped half way it would leave the
+    /// project half renumbered. Its answer comes as usual, and the read the
+    /// new kiln makes is after it.
     pub fn edit<S: Into<String>>(
         &mut self,
         args: impl IntoIterator<Item = S>,
         stdin: Option<String>,
     ) -> QueryId {
-        let mut job = Job::new(args, Tag::Query { id: 0, edit: true });
+        let mut job = Job::new(args, Tag::Query { id: 0, edit: true }).keep_running();
         job.stdin = stdin;
         self.changes += 1;
         self.ask(job)
@@ -1531,6 +1538,45 @@ mod tests {
                 patch: 0
             })
         );
+    }
+
+    /// A renumber stopped half way leaves the project half renumbered: an
+    /// edit that runs when another kiln is chosen runs to its end, is
+    /// answered, and the new kiln's read comes after it.
+    #[test]
+    fn an_edit_running_when_another_kiln_is_chosen_runs_to_its_end() {
+        let fake = demo();
+        let mut p = Project::default();
+        p.start();
+        settle(&fake, &mut p);
+        fake.on_spawn("kiln renumber", Run::running(""));
+        let id = p.edit(["renumber", "--to=TASK-020", "--", "TASK-008"], None);
+        let edit = fake.process("kiln renumber").unwrap().id;
+        p.take_notices();
+        fake.setting("kiln.path", "/opt/kiln");
+        fake.on_spawn("/opt/kiln --version", Run::ok("kiln 1.1.0\n"));
+        p.kiln_changed();
+        assert!(
+            !fake.process("kiln renumber").unwrap().killed,
+            "not stopped"
+        );
+        assert!(
+            !p.take_notices()
+                .iter()
+                .any(|n| matches!(n, Notice::Answer { id: i, .. } if *i == id)),
+            "not answered as dropped"
+        );
+        assert!(!p.settled(), "the edit still runs");
+        p.exited(edit, Some(0));
+        let n = p.take_notices();
+        assert!(
+            n.iter()
+                .any(|n| matches!(n, Notice::Answer { id: i, result: Ok(_), .. } if *i == id)),
+            "{n:?}"
+        );
+        settle(&fake, &mut p);
+        assert_eq!(p.version().map(|v| v.minor), Some(1), "then the new kiln");
+        assert!(p.settled());
     }
 
     #[test]

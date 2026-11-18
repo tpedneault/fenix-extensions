@@ -1359,6 +1359,39 @@ fn sync_outcome(result: &Result<Ran, Failure>) -> (String, Look) {
     }
 }
 
+/// What a command this tab ran (`w`, `W`, a publish, the sync) came to,
+/// when the page that ran it closed before kiln answered: the line the tab
+/// would have said, whether it is bad news, and whether the project must
+/// be read again (a sync writes ticket keys into items and `kiln.toml`).
+/// `None` for a tag that isn't one of this tab's commands. What kiln did
+/// to Confluence or Jira is never dropped for want of a page to say it on.
+pub fn unseen(tag: &str, result: &Result<Ran, Failure>) -> Option<(String, bool, bool)> {
+    if let Err(Failure::Unusable(why)) = result {
+        return Some((why.clone(), true, false));
+    }
+    if tag == JIRA_RUN {
+        let (line, look) = sync_outcome(result);
+        return Some((line, look == Look::Bad, true));
+    }
+    if tag == WRITE {
+        return Some(match targets(result) {
+            Ok(list) if list.is_empty() => ("kiln wrote nothing, and said so".into(), false, false),
+            Ok(list) => (
+                list.iter()
+                    .map(|t| format!("{}: {}", t.name, wrote(t)))
+                    .collect::<Vec<_>>()
+                    .join("; "),
+                false,
+                false,
+            ),
+            Err(f) => (f.line, true, false),
+        });
+    }
+    let name = tag.strip_prefix(PUBLISH)?;
+    let (line, look) = publish_outcome(name, result, None);
+    Some((line, look == Look::Bad, false))
+}
+
 /// What the prompt says before the name is typed: that it writes to
 /// Confluence, where, how many pages, and how to confirm.
 fn confirm_label(name: &str, t: &Target, totals: &Totals, ctx: &Ctx) -> String {

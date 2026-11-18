@@ -1830,6 +1830,67 @@ mod page {
         assert!(h.ext.publishing.is_none());
     }
 
+    /// What kiln did to Confluence or Jira is never dropped for want of a
+    /// page: with the page closed, it is said on the message line -- and
+    /// after a sync, which wrote keys into items, the project is read again.
+    #[test]
+    fn a_publish_or_sync_whose_page_closed_says_what_kiln_did() {
+        let (fake, mut h, page) = ready("closed-said");
+        fake.on_prompt(
+            "Type design-doc-confluence to publish",
+            "design-doc-confluence",
+        )
+        .on_spawn("kiln export --yes", Run::running(""));
+        h.keys(page, "P");
+        let process = fake.process("kiln export --yes").unwrap();
+        h.close(page);
+        let stderr = fixture("../hand/export-publish-network.stderr");
+        h.said(process.id, stderr.trim(), true);
+        h.exited(process.id, Some(3));
+        h.settle();
+        let said = fake.notifications();
+        assert_eq!(
+            said.last().map(String::as_str),
+            Some(
+                format!(
+                    "{} -- the next publish finishes what this one started",
+                    stderr.trim()
+                )
+                .as_str()
+            ),
+            "{said:?}"
+        );
+        assert!(fake.calls().iter().any(
+            |c| c.starts_with("notify error kiln: publishing `design-doc-confluence` stopped")
+        ));
+
+        let (fake, mut h, page) = jira_ready("jira-closed-said");
+        fake.on_prompt(
+            "Sync Jira: creates, updates and moves tickets, jira (DEMO) → DEMO-100 \"Kiln: Demo\": 3 operations (1 create, 1 update, 1 move, 2 unchanged). Type DEMO to sync",
+            "DEMO",
+        )
+        .on_spawn("kiln jira sync --yes", Run::running(""));
+        h.keys(page, "P");
+        let process = fake.process("kiln jira sync --yes").unwrap().id;
+        h.close(page);
+        fake.take();
+        for line in fixture("../hand/jira-sync-applied.out").lines() {
+            h.said(process, line, false);
+        }
+        h.exited(process, Some(0));
+        h.settle();
+        assert_eq!(
+            fake.notifications().last().map(String::as_str),
+            Some("Kiln: jira: 1 created, 1 updated, 1 moved; 1 file gained ticket keys (commit them)")
+        );
+        assert!(
+            spawned(&fake)
+                .iter()
+                .any(|l| l.ends_with("kiln list --format json")),
+            "the project read again: the sync wrote keys"
+        );
+    }
+
     // -- Jira, on a page --------------------------------------------------------------
 
     /// The exports demo with `[jira]` (a url and a project) and `jira sync

@@ -47,8 +47,10 @@ filesystem = "project-read"
 editor = "read"
 
 [contributes]
-# Told when a file is saved, and when the repository's head moves, so the
-# project is read again on the change, not on a guess. view: the lines
+# Told when a file is saved; and git, which lets it look at the
+# repository's branch and head (git_state, every 2 s as Fenix allows), so
+# the project is read again on a change -- a save, a commit, a checkout --
+# not on a guess. view: the lines
 # each pane shows, and changed: a shown file's text once typing stops,
 # for the titles after IDs (kiln.decorations), worked out only for the
 # lines shown, of files in the project.
@@ -227,9 +229,11 @@ id = "kiln.start"
 title = "Kiln: start working on the item here"
 
 # The plan's Check tab: what the notification about new errors and the
-# doctor's fix row for kiln check open.
+# doctor's fix row for kiln check open. Not kiln.check: that is the
+# kiln_check tool's service, which runs kiln check -- Fenix keeps commands
+# and services apart, but one id doing two things would read as one.
 [[contributes.commands]]
-id = "kiln.check"
+id = "kiln.findings"
 title = "Kiln: open the plan's Check tab"
 
 # Needs no item: a type, a title, and the new item's file opens.

@@ -126,7 +126,7 @@ use crate::config::Config;
 use crate::edit::{self, Edit, Facts, Step, Turn};
 use crate::jira::{self, Tickets};
 use crate::kiln::{Failure, Ran};
-use crate::model::{count, MIN_VERSION};
+use crate::model::{self, count, MIN_VERSION};
 use crate::project::{Loaded, QueryId, State};
 
 /// The project now, as the frame needs it: its state, and how many reads
@@ -247,6 +247,11 @@ const GAP: usize = 2;
 /// The narrowest the giving column gets before the others are cut.
 const MIN_FLEX: usize = 8;
 
+/// The most characters a cell or the bottom line keeps: past any page's
+/// width, so nothing shown is lost, while a title of megabytes costs no
+/// more to measure than one of a line.
+const MAX_CELL: usize = 500;
+
 /// A tab: its view and what was built from it.
 struct Pane {
     view: Box<dyn View>,
@@ -314,6 +319,19 @@ impl Pane {
         self.rows = self.view.rows(ctx);
         if let Some(tickets) = tickets.filter(|t| !t.is_empty()) {
             add_tickets(&mut self.rows, ctx, tickets);
+        }
+        // Every cell of every tab is other people's writing or kiln's line
+        // quoting it: made one line of visible text here, once a build and
+        // in one place, so no tab can forget to ([`crate::model::cleaned`]).
+        for cell in self.rows.iter_mut().flat_map(|r| r.cells.iter_mut()) {
+            if cell
+                .text
+                .chars()
+                .any(|c| c.is_control() || model::invisible(c))
+                || cell.text.len() > MAX_CELL
+            {
+                cell.text = model::clip(&model::cleaned(&cell.text, false), MAX_CELL);
+            }
         }
         self.hay = self
             .rows
@@ -1318,8 +1336,10 @@ impl Plan {
         Vec::new()
     }
 
+    /// The bottom line: often kiln's line, which quotes the project's text,
+    /// so cleaned as a cell is.
     fn say(&mut self, text: &str, role: Role) {
-        self.message = Some((text.to_string(), role));
+        self.message = Some((model::printable(text, MAX_CELL), role));
     }
 
     // -- Drawing ---------------------------------------------------------------
@@ -2235,6 +2255,30 @@ pub(crate) mod tests {
         Loaded::new(version(), items, Err("none".into()), Ok(vec![]))
     }
 
+    /// Every tab, not only the Tree, built and drawn from 2,000 items with
+    /// a hostile title among them: well inside a page call, and the title
+    /// shown as one line of visible text.
+    #[test]
+    fn every_tab_builds_two_thousand_items_inside_a_call_and_cleans_every_cell() {
+        let mut l = big();
+        l.items[3].title = "evil\u{202E}txt.exe\u{1b}[2J\nnext line".into();
+        let l = Loaded::new(l.version, l.items, l.plan, l.findings);
+        let mut p = Plan::new();
+        let started = std::time::Instant::now();
+        for tab in Tab::ALL {
+            p.show(tab);
+            let now = loaded(&l, 1);
+            screen(&mut p, now, 120, 40);
+            keys(&mut p, "G", now);
+        }
+        let each = started.elapsed() / Tab::ALL.len() as u32;
+        assert!(each.as_millis() < 250, "{each:?} a tab");
+        p.show(Tab::Tree);
+        let s = screen(&mut p, loaded(&l, 1), 120, 2000);
+        assert!(s.contains("eviltxt.exe next line"), "{s}");
+        assert!(!s.contains('\u{202E}') && !s.contains('\u{1b}'));
+    }
+
     #[test]
     fn two_thousand_items_build_and_draw_well_inside_a_call() {
         let l = big();
@@ -2255,7 +2299,7 @@ pub(crate) mod tests {
         assert!(each.as_millis() < 250, "{each:?} a read");
     }
 
-    // -- E3.3 and E3.4: links, Jira, held-back queries -------------------------------
+    // -- Links, Jira, held-back queries ---------------------------------------------
 
     /// A view whose `x` replies `reply`, and that wants `queries`.
     struct Says {

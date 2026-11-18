@@ -5,8 +5,7 @@ decisions, milestones, tasks, tests and risks as Markdown in the
 repository. This extension is its place in Fenix; it works by running the
 `kiln` program and shows what kiln says.
 
-**This version is the start of it.** A folder with a `kiln.toml` at its
-top is a `KILN` project. `Kiln: open the plan` looks for kiln (1.0.0 or
+A folder with a `kiln.toml` at its top is a `KILN` project. `Kiln: open the plan` looks for kiln (1.0.0 or
 later), reads the project (`kiln list`, `kiln status`, `kiln check`) and
 opens the plan: a page with a tab per view of it, in the order Kiln's own
 GUI has them, the project's name and the check's errors on its top line.
@@ -107,7 +106,10 @@ a read known to be out of date. The project is read again after every edit.
 One edit at a time: on a page, a new one replaces the flow under way; from a
 buffer, a new command replaces the one under way (one for the extension),
 and what you answer to a replaced one is dropped. Closing a pick or prompt
-with nothing ends the flow, and nothing runs.
+with nothing ends the flow, and nothing runs. An edit kiln has started runs
+to its end -- a renumber stopped half way would leave the project half
+renumbered -- even when you choose another kiln (`kiln.path`) meanwhile, or
+close the page (its outcome then goes to the message line).
 
 If an item's file is open in a buffer when kiln rewrites it, Fenix notices
 (it looks at open files on disk a couple of times a second and when its
@@ -119,7 +121,9 @@ refuses to write a file that changed on disk since it read it.
 
 On every tab, the cursor stays on the same item when the project is read
 again (or where it was, when that item went away), `/` narrows the rows as
-you type, `Enter` opens the item's file at its line, and the page reopens
+you type, `Enter` opens the item's file at its line (only a file under the
+project's folder: a path in kiln's answer that would leave it is refused,
+saying so), and the page reopens
 with your next session as you left it: the tab, and each tab's cursor,
 filter and `a`. Several plan pages can be open in different panes, each
 with its own.
@@ -238,7 +242,7 @@ open and read, not on Home of a folder with no `kiln.toml`.
 at least one: `Kiln: 1 error after saving TASK-006-draft-the-user-guide.md`,
 its body the first error (`design/tasks/TASK-006-….md:11  K102  reference
 REQ-099 doesn't exist`), and one action, `Open the Check tab`
-(`kiln.check`, `Kiln: open the plan's Check tab`, `SPC m c`). It is tagged,
+(`kiln.findings`, `Kiln: open the plan's Check tab`, `SPC m c`). It is tagged,
 so a newer one replaces it, and it goes away when a later check has no
 errors. Only that transition, and only after a save: not the first read of a
 project that already has errors, not every read while they persist, not
@@ -333,7 +337,9 @@ done until the next one). One runs at a time, for every plan page, the Jira
 sync (see "Jira") included; while it does, every tab's bottom line says
 `publishing NAME to Confluence…` (or `syncing Jira…`), and a second `P`
 says one runs. Choosing another kiln (`kiln.path`) or
-closing the page doesn't stop it.
+closing the page doesn't stop it; with the page closed, what kiln did is
+said on the message line instead (and after a Jira sync the project is read
+again, as the page would have).
 
 **Signing in.** With no token, the target's line is kiln's (`no token for
 …: run kiln auth confluence`, or the credential store's own error), and
@@ -448,9 +454,13 @@ terminal when it's a missing token. With `kiln.toml` read and no Confluence
 target in it, the tab says so and asks kiln nothing.
 
 Comment text is other people's writing: it is shown as plain text on one
-line, never interpreted -- control characters (an escape sequence, a
-newline) become spaces and the length is cut, and no Markdown, link or
-markup in it does anything. The only thing done with a comment is `o`.
+line, never interpreted -- an escape sequence goes whole (a terminal
+hyperlink's hidden target with it), other control characters (a newline, a
+tab) become spaces, invisible ones (bidi overrides, zero-width and tag
+characters) go, and the length is cut; no Markdown, link or markup in it
+does anything. The same rule holds for every title, message and line of
+kiln's the extension shows, on every tab, the message line, Home, the
+doctor and beside IDs. The only thing done with a comment is `o`.
 It never answers or resolves one: that is Confluence's.
 
 ## For coding agents
@@ -596,7 +606,7 @@ After `SPC m`, in a Kiln project. The item's keys are the plan's (`v` `i`
 | `SPC m N` | `kiln.new_child` | A new child of the item here; its file opens |
 | `SPC m E` | `kiln.edit` | The menu of every edit: title, parent, owner, due date, renumber and the rest |
 | `SPC m S` | `kiln.start` | Start working on the item here: claim it, then clock in on the agenda |
-| `SPC m c` | `kiln.check` | Open the plan on its Check tab |
+| `SPC m c` | `kiln.findings` | Open the plan on its Check tab |
 
 `SPC m s` was `kiln.show` until the edits came; status is `s` on the plan
 and in Kiln's GUI, so show moved to `v`, which is its key on the plan.

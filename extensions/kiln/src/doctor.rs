@@ -36,7 +36,7 @@ pub const INSTALL_HELP: &str = "kiln.install_help";
 
 /// The command that opens the plan on its Check tab, which lists what
 /// `kiln check` found.
-pub const OPEN: &str = "kiln.check";
+pub const OPEN: &str = "kiln.findings";
 
 /// Where Kiln's install instructions are: a page of Kiln's wiki. Opening
 /// it is all the extension does about a missing kiln.
@@ -245,7 +245,7 @@ mod tests {
                 "kiln Ok kiln 1.0.0, /usr/bin/kiln",
                 "kiln.toml Ok read, 16 items",
                 "language server Ok kiln lsp, for markdown, rust",
-                "kiln check Bad 1 error, 2 warnings -> open the Check tab (kiln.check)",
+                "kiln check Bad 1 error, 2 warnings -> open the Check tab (kiln.findings)",
             ]
         );
     }
@@ -275,7 +275,7 @@ mod tests {
         let got = rows(&input(state(&l), &status)).unwrap();
         assert_eq!(
             row(&got[3]),
-            "kiln check Warn 1 warning -> open the Check tab (kiln.check)"
+            "kiln check Warn 1 warning -> open the Check tab (kiln.findings)"
         );
         let l = loaded("[]");
         let got = rows(&input(state(&l), &status)).unwrap();

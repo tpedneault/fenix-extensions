@@ -277,8 +277,14 @@ fn other_peoples_writing_is_plain_text_on_one_line() {
     for shown in [who, text] {
         assert!(!shown.chars().any(|c| c.is_control()), "{shown:?}");
     }
-    assert_eq!(who, "Mal [31m Lory · 2026-10-15");
-    assert!(text.starts_with("<script>alert(1)</script> **not bold** [[REQ-002]] ]8;;http://evil.example/ click ]8;; and a new line"), "{text}");
+    assert_eq!(who, "Mal Lory · 2026-10-15");
+    // The terminal hyperlink (OSC 8) goes whole, its hidden target with it:
+    // only what a reader would see is left, as text.
+    assert!(
+        text.starts_with("<script>alert(1)</script> **not bold** [[REQ-002]] click and a new line"),
+        "{text}"
+    );
+    assert!(!text.contains("evil.example"), "{text}");
     // Every cell of every row is one line.
     assert!(rows
         .iter()

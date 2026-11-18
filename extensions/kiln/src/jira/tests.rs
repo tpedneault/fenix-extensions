@@ -113,7 +113,9 @@ fn jiras_words_are_plain_text_on_one_line() {
     .to_string();
     let t = Tickets::parse(&json).unwrap();
     let cell = t.cell("DEMO-1").unwrap();
-    assert_eq!(cell.text, "DEMO-1 In Review [31m · Al ice Smith");
+    // The escape sequence goes whole, the bidi override goes, the rest of
+    // the controls are spaces.
+    assert_eq!(cell.text, "DEMO-1 In Review · Alice Smith");
     assert!(!cell.text.chars().any(|c| c.is_control()));
     assert!(!cell.text.contains('\u{202e}'));
 }

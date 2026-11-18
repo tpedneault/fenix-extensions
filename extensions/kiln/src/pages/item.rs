@@ -136,8 +136,12 @@ impl View for ItemView {
         "no item yet: press v on an item in another tab".into()
     }
 
+    /// Only an ID is asked about: what was handed on or restored with the
+    /// page is kiln's argument, and one that isn't an ID (`--yes`, from a
+    /// saved state someone wrote) is never put where kiln reads options.
     fn queries(&self, _ctx: &Ctx) -> Vec<Query> {
         self.current()
+            .filter(|id| crate::agent::is_id(id))
             .map(|id| Query::new("show", ["show", id, "--format", "json"]))
             .into_iter()
             .collect()
@@ -667,6 +671,23 @@ mod tests {
             v.queries(&ctx_of(&l)),
             [Query::new("show", ["show", "REQ-002", "--format", "json"])]
         );
+    }
+
+    /// A saved state is someone's text: what isn't an ID in it is never
+    /// put to kiln, where `--yes` or `--format=x` would be read as options.
+    #[test]
+    fn what_isnt_an_id_is_never_asked_about() {
+        let l = demo_loaded();
+        let mut v = ItemView::default();
+        v.restore(&json!({"history": ["--yes"], "at": 0}));
+        assert!(v.queries(&ctx_of(&l)).is_empty());
+        v.hand("-x");
+        assert!(v.queries(&ctx_of(&l)).is_empty());
+        let mut i = super::super::impact::Impact::default();
+        i.restore(&json!({"id": "--format=gitlab"}));
+        assert!(i.queries(&ctx_of(&l)).is_empty());
+        i.hand("REQ-001");
+        assert_eq!(i.queries(&ctx_of(&l)).len(), 1);
     }
 
     // -- the page ------------------------------------------------------------
