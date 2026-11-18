@@ -417,6 +417,35 @@ impl<T> Kiln<T> {
         dropped
     }
 
+    /// The jobs `is` says yes to given up on: stopped if one runs, dropped
+    /// if they wait, each finished with [`Failure::Unusable`] saying
+    /// `why`, so whoever asked hears once, as for any job. For a reading
+    /// command no one waits for any more (an agent's tool call cancelled):
+    /// the caller never names an edit, which stopped half done could leave
+    /// a file half written. How many there were.
+    pub fn cancel(&mut self, is: impl Fn(&T) -> bool, why: &str) -> usize {
+        let mut n = 0;
+        let (gone, rest): (VecDeque<Job<T>>, VecDeque<Job<T>>) =
+            self.queue.drain(..).partition(|j| is(&j.tag));
+        self.queue = rest;
+        for job in gone {
+            n += 1;
+            self.finished.push_back(Finished {
+                line: job.line(),
+                tag: job.tag,
+                result: Err(Failure::Unusable(why.to_string())),
+            });
+        }
+        if self.running.as_ref().is_some_and(|r| is(&r.job.tag)) {
+            n += 1;
+            if let Some(run) = &self.running {
+                api::process::kill(run.process);
+            }
+            self.end(Err(Failure::Unusable(why.to_string())));
+        }
+        n
+    }
+
     fn end(&mut self, result: Result<Ran, Failure>) {
         if let Some(run) = self.running.take() {
             api::host::cancel_timer(run.timer);
@@ -869,5 +898,33 @@ mod tests {
         k.push(Job::new(["status"], "status"));
         assert_eq!(done(&mut k), [("mirror", Err(Failure::Yielded))]);
         assert_eq!(k.waiting(), 1, "only the status waits");
+    }
+
+    #[test]
+    fn a_job_given_up_on_is_stopped_or_dropped_and_the_next_runs() {
+        let fake = Fake::new();
+        fake.install();
+        fake.program("kiln", "/bin/kiln")
+            .on_spawn("kiln", Run::running(""));
+        let mut k = Kiln::default();
+        k.push(Job::new(["show"], "a"));
+        k.push(Job::new(["list"], "b"));
+        k.push(Job::new(["check"], "c"));
+        // One waiting: dropped, nothing stopped.
+        assert_eq!(k.cancel(|t| *t == "b", "no one waits"), 1);
+        assert_eq!(k.waiting(), 1);
+        assert!(!fake.process("kiln show").unwrap().killed);
+        // The one running: stopped, and the next starts.
+        assert_eq!(k.cancel(|t| *t == "a", "no one waits"), 1);
+        assert!(fake.process("kiln show").unwrap().killed);
+        assert!(fake.process("kiln check").is_some(), "the next runs");
+        assert_eq!(
+            done(&mut k),
+            [
+                ("b", Err(Failure::Unusable("no one waits".into()))),
+                ("a", Err(Failure::Unusable("no one waits".into())))
+            ]
+        );
+        assert_eq!(k.cancel(|t| *t == "zz", "x"), 0);
     }
 }

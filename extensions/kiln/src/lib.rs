@@ -1,5 +1,5 @@
 //! Kiln in Fenix: a Kiln project's plan on pages, edits to its items,
-//! exports and read tools for coding agents -- all by running the `kiln`
+//! exports and tools for coding agents -- all by running the `kiln`
 //! program (`--format json` to read; `set`, `link` and `new` to change).
 //!
 //! What it deliberately doesn't do: it never writes an item file itself,
@@ -52,11 +52,38 @@
 //! doesn't reload the file a flow edits: kiln rewrites it, and Fenix
 //! re-reads a clean buffer that changed on disk by itself.
 //!
+//! The agent tools ([`agent`]) are services Fenix's MCP server calls for a
+//! coding agent: each one kiln command through the same queue, first in,
+//! first out among the pages' jobs ([`For::Agent`]), answered later with
+//! `answer` -- or at once when it can't run: its input refused, the edits
+//! turned off (`fenix.kiln.agent_edits`), an edit [`edit::blocked`] or
+//! refused for sign-off ([`agent::check_edit`]), or a publish holding the
+//! queue for minutes ([`Kiln::publishing`]). A read changes nothing: no
+//! reload, no page's state. A tool's job is an ordinary one, not
+//! [`kiln::Job::background`]: an agent waits on it, and a background job is
+//! stopped by every reload, edit and tab's query, so a busy page could keep
+//! an agent waiting into its deadline; kiln answers a read in well under a
+//! second, so going in turn costs the pages little. Like any job it stops
+//! the Jira mirror's background read, which is asked again when the queue
+//! is quiet. An edit is read back as any edit is. A call
+//! Fenix gives up on (`service_cancelled`) drops its answer, and a read
+//! that waits or runs for it is dropped or stopped; an edit runs on.
+//!
+//! **Who may call them.** On the extension's API, 1.5, a service can't
+//! tell who called it (`called_by` and `[contributes.service_callers]`
+//! are 1.6), so any installed extension's `call_service` reaches
+//! `kiln.set`, `kiln.link` and `kiln.new` as an agent's tool call does,
+//! without Fenix's ask, which only agents' calls go through. That is why
+//! the edit tools are off until the user turns `fenix.kiln.agent_edits`
+//! on; Fenix's control channel's `fenix/tools.call` is held back by the
+//! tools' `writes = true` unless the user's rules allow it.
+//!
 //! The project is read once as the extension loads (a `kiln.toml` at the
 //! project's top, or a `kiln.*` command): the language server is wanted
 //! from the start, not only once a page opens, and deciding it needs kiln
 //! found and the project read.
 
+pub mod agent;
 pub mod config;
 pub mod doctor;
 pub mod edit;
@@ -118,6 +145,16 @@ enum For {
     /// `kiln list --jira`, for [`jira::Mirror`]: no page's, every page's
     /// rows.
     Mirror,
+    /// An agent's tool call `call` ([`agent`]): its answer goes to Fenix
+    /// with `answer`, unless Fenix gave up on it meanwhile.
+    Agent { call: u64 },
+}
+
+/// An agent's tool call that kiln runs for: the query or edit asked, and
+/// what was asked, to shape kiln's answer ([`agent::answer`]).
+struct AgentCall {
+    query: QueryId,
+    request: agent::Request,
 }
 
 /// The publish running: its query, and the Confluence target it publishes.
@@ -220,6 +257,12 @@ struct Kiln {
     publishing: Option<Publishing>,
     /// The Jira mirror, and when it is read next.
     mirror: jira::Mirror,
+    /// Agents' tool calls kiln runs for, by Fenix's call id.
+    agent: HashMap<u64, AgentCall>,
+    /// Their answers, to give Fenix once [`Kiln::pass_on`] is done -- but
+    /// the call being served now, which `serve` answers itself.
+    agent_ready: Vec<(u64, Result<String, String>)>,
+    serving: Option<u64>,
 }
 
 /// The project now, for a page: its state, its reads, `kiln.toml`,
@@ -317,6 +360,12 @@ impl Kiln {
                             let heard = self.mirror.answered(id, &result);
                             self.mirrored(heard);
                         }
+                        Some(For::Agent { call }) => {
+                            if let Some(c) = self.agent.remove(&call) {
+                                let said = agent::answer(&c.request, &result, agent::MAX_ANSWER);
+                                self.agent_ready.push((call, said));
+                            }
+                        }
                         None => {}
                     },
                 }
@@ -347,6 +396,74 @@ impl Kiln {
         if touched {
             self.publish();
         }
+        self.answer_agents();
+    }
+
+    /// Agents' answers that came, given to Fenix: all but the call `serve`
+    /// is answering now, which it returns itself.
+    fn answer_agents(&mut self) {
+        let serving = self.serving;
+        let (now, later): (Vec<_>, Vec<_>) = std::mem::take(&mut self.agent_ready)
+            .into_iter()
+            .partition(|(c, _)| Some(*c) != serving);
+        self.agent_ready = later;
+        for (call, said) in now {
+            api::answer(call, said);
+        }
+    }
+
+    /// An agent's tool call: refused at once, or kiln asked and answered
+    /// later (`None`) -- or at once, when kiln can't run now and says so
+    /// in the same call. Never disturbs a page: a read is a query like a
+    /// tab's, which no page waits for and which reads nothing again.
+    fn agent_call(
+        &mut self,
+        call: u64,
+        name: &str,
+        payload: &str,
+    ) -> Option<Result<String, String>> {
+        if self.config.is_none() {
+            self.read_config();
+        }
+        let request = match agent::request(name, payload) {
+            Ok(r) => r,
+            Err(why) => return Some(Err(why)),
+        };
+        let edits = request.tool().edits();
+        if edits && api::setting(agent::EDITS_SETTING).as_deref().map(str::trim) != Some("true") {
+            return Some(Err(agent::EDITS_OFF.into()));
+        }
+        // A publish holds the queue for minutes: said now, rather than the
+        // agent waiting into its deadline.
+        if let Some(p) = &self.publishing {
+            return Some(Err(agent::busy(&p.target)));
+        }
+        let query = if edits {
+            let state = self.project.state();
+            if let Some(why) = edit::blocked(&state, self.project.settled()) {
+                return Some(Err(why));
+            }
+            let State::Loaded { loaded, .. } = state else {
+                return Some(Err("the project isn't read yet: edits wait for it".into()));
+            };
+            let config = now_of(&self.project, &self.config, &self.publishing, &self.mirror).config;
+            if let Err(why) = agent::check_edit(&request, loaded, config) {
+                return Some(Err(why));
+            }
+            self.project.edit(request.args(), request.stdin())
+        } else {
+            self.project.query(request.args())
+        };
+        self.asked.insert(query, For::Agent { call });
+        self.agent.insert(call, AgentCall { query, request });
+        api::progress(call, "kiln runs", None);
+        self.serving = Some(call);
+        self.pass_on();
+        self.serving = None;
+        let at = self.agent_ready.iter().position(|(c, _)| *c == call);
+        let now = at.map(|i| self.agent_ready.remove(i).1);
+        self.answer_agents();
+        now
     }
 
     /// The doctor's rows, the tasks and the modeline item, given to Fenix
@@ -1175,6 +1292,27 @@ impl Extension for Kiln {
         self.answers
             .retain(|_, a| !matches!(a, Asker::View { page: p, .. } if *p == page));
         self.shown_changed();
+        self.pass_on();
+    }
+
+    /// An agent's tool call ([`agent`]).
+    fn serve(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        self.agent_call(call, name, payload)
+    }
+
+    /// Fenix gave up on an agent's call (the agent cancelled, or its
+    /// `timeout_ms` passed): its answer is dropped, and a read that waits
+    /// or runs for it is dropped or stopped. An edit runs on: stopped half
+    /// done it could leave a file half written; the project is read again
+    /// after it as after any edit.
+    fn service_cancelled(&mut self, call: u64) {
+        self.agent_ready.retain(|(c, _)| *c != call);
+        if let Some(c) = self.agent.remove(&call) {
+            self.asked.remove(&c.query);
+            if !c.request.tool().edits() {
+                self.project.cancel_query(c.query);
+            }
+        }
         self.pass_on();
     }
 

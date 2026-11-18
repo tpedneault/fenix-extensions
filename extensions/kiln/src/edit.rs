@@ -605,7 +605,7 @@ impl Flow {
                 if value.is_empty() {
                     return Step::Done;
                 }
-                self.run(args(["link", "--", &id, &role, value]), After::Same)
+                self.run(link_args(&id, &role, value), After::Same)
             }
             Stage::Unlink => match value.split_once(' ') {
                 Some((role, target)) => self.pick(
@@ -699,17 +699,13 @@ impl Flow {
                 if value.is_empty() {
                     return Step::Say("no title, so nothing was made".into());
                 }
-                let mut a = vec!["new".to_string()];
-                if child {
-                    a.push(format!("--parent={}", self.id));
-                }
-                a.extend([
-                    format!("--title={value}"),
-                    "--format".into(),
-                    "json".into(),
-                    "--".into(),
-                    kind,
-                ]);
+                let parent = child.then_some(self.id.as_str());
+                let a = new_args(&NewItem {
+                    kind: &kind,
+                    title: value,
+                    parent,
+                    ..NewItem::default()
+                });
                 self.run(a, After::Made)
             }
             _ => Step::Done,
@@ -825,7 +821,61 @@ fn made(stdout: &str) -> Result<Made, String> {
 /// `set -- ID KEY=VALUE`: the value inside its one argument, so it can't
 /// be an option whatever it starts with.
 fn set(id: &str, key: &str, value: &str) -> Vec<String> {
-    args(["set", "--", id, &format!("{key}={value}")])
+    set_args(id, &[(key, value)])
+}
+
+// -- The argument lists ------------------------------------------------------
+//
+// Every kiln editing command this extension runs is built by one of these
+// (or `unlink` and `renumber` in the flows above), the flows' and the
+// agent tools' alike ([`crate::agent`]): one way to build each, so what
+// keeps a value from being read as an option is written once. Values ride
+// inside one argument (`KEY=VALUE`, `--title=…`, `--parent=…`,
+// `--link=ROLE=ID`, `--tag=…`) and positionals come after `--`.
+
+/// `set -- ID KEY=VALUE…`: each value inside its one argument, in the order
+/// given (kiln applies them in one write).
+pub fn set_args(id: &str, pairs: &[(&str, &str)]) -> Vec<String> {
+    let mut a = args(["set", "--", id]);
+    a.extend(pairs.iter().map(|(k, v)| format!("{k}={v}")));
+    a
+}
+
+/// `link -- ID ROLE TARGET`.
+pub fn link_args(id: &str, role: &str, target: &str) -> Vec<String> {
+    args(["link", "--", id, role, target])
+}
+
+/// What `kiln new` is given: a type and a title, and what else an item
+/// starts with, so its file is written once.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewItem<'a> {
+    pub kind: &'a str,
+    pub title: &'a str,
+    pub parent: Option<&'a str>,
+    /// `(role, target)`, each `--link=ROLE=ID`.
+    pub links: &'a [(String, String)],
+    pub tags: &'a [String],
+    /// The body comes on stdin (`--body-file=-`): the caller gives the
+    /// queue the text ([`crate::project::Project::edit`]).
+    pub body: bool,
+}
+
+/// `new [--parent=ID] --title=… [--link=ROLE=ID]… [--tag=TAG]…
+/// [--body-file=-] --format json -- TYPE`.
+pub fn new_args(n: &NewItem) -> Vec<String> {
+    let mut a = vec!["new".to_string()];
+    if let Some(p) = n.parent {
+        a.push(format!("--parent={p}"));
+    }
+    a.push(format!("--title={}", n.title));
+    a.extend(n.links.iter().map(|(r, t)| format!("--link={r}={t}")));
+    a.extend(n.tags.iter().map(|t| format!("--tag={t}")));
+    if n.body {
+        a.push("--body-file=-".into());
+    }
+    a.extend(args(["--format", "json", "--", n.kind]));
+    a
 }
 
 fn args<'a>(a: impl IntoIterator<Item = &'a str>) -> Vec<String> {

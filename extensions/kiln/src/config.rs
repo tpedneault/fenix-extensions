@@ -70,11 +70,28 @@
 //! `types`, `[jira.status]` are kiln's to apply), and a value that isn't a
 //! string is as good as absent.
 //!
+//! # Sign-off
+//!
+//! `[signoff]` says which statuses are a person's call (Kiln's K19, `kiln
+//! signoff`): the agent tools refuse to set one ([`crate::agent`]), since
+//! Kiln's own rule for agents is to leave sign-off to people. Read as
+//! Kiln's `signoff` and `Config::signoff_statuses` read it
+//! (`crates/kiln-parse/src/config.rs`, `crates/kiln-model/src/config.rs`):
+//! written as a table, it replaces the defaults -- each key a type, its
+//! value the statuses, those the type doesn't have (or that aren't strings)
+//! dropped, a type it doesn't name having none; not written, or not a table
+//! (Kiln reports that and goes on as if it weren't there), the defaults
+//! apply where the type has them: a requirement's `approved` and
+//! `verified`, a decision's `accepted` and `rejected`, a risk's `accepted`
+//! and `closed`, a milestone's `done` ([`DEFAULT_SIGNOFF`]). Here this is a
+//! check, unlike the rest: what it gets wrong refuses an agent's edit (a
+//! person can still make it), which is the side to err on.
+//!
 //! What it deliberately doesn't mirror: titles, plurals and folders (the
 //! edits show type names, and kiln picks the folder), `template`, `paths`,
-//! `[code]`, `[coverage]`, `[requirements]`, the rest of `[jira]`, `[signoff]`,
+//! `[code]`, `[coverage]`, `[requirements]`, the rest of `[jira]`,
 //! `[check]` and the rest of the exports and `[confluence]` -- nothing an
-//! edit or the Exports tab's headings depend on.
+//! edit, the agent tools or the Exports tab's headings depend on.
 //! Unknown keys are ignored (Kiln reports them as K003; kiln's own check
 //! says so, not this). It never writes the file.
 
@@ -178,7 +195,22 @@ pub struct Config {
     pub exports: Vec<Export>,
     /// `[jira]`, when the table is there.
     pub jira: Option<Jira>,
+    /// `[signoff]` as written, type by type, in `kiln.toml`'s order; `None`
+    /// when it isn't written as a table, so the defaults apply
+    /// ([`Config::signoff_statuses`]).
+    pub signoff: Option<Vec<(String, Vec<String>)>>,
 }
+
+/// The sign-off statuses when `[signoff]` isn't written, as Kiln's
+/// `DEFAULT_SIGNOFF` has them: its agent guide's rule (approving a
+/// requirement, accepting or rejecting a decision, accepting or closing a
+/// risk, finishing a milestone), and a requirement's `verified`.
+pub const DEFAULT_SIGNOFF: &[(&str, &[&str])] = &[
+    ("requirement", &["approved", "verified"]),
+    ("decision", &["accepted", "rejected"]),
+    ("risk", &["accepted", "closed"]),
+    ("milestone", &["done"]),
+];
 
 impl Config {
     /// The names of the file targets (Markdown, HTML, Word), in order:
@@ -212,6 +244,30 @@ impl Config {
             .as_ref()
             .and_then(|j| j.project.as_deref())
             .filter(|p| !p.trim().is_empty())
+    }
+
+    /// The statuses of type `kind` that are a person's call: `[signoff]`'s
+    /// list when it's written (and then only what it says), else the
+    /// defaults the type has. None for a type `kiln.toml` doesn't have.
+    pub fn signoff_statuses(&self, kind: &str) -> Vec<&str> {
+        let Some(t) = self.kind(kind) else {
+            return Vec::new();
+        };
+        let has = |s: &&str| t.statuses.iter().any(|x| x == s);
+        match &self.signoff {
+            Some(written) => written
+                .iter()
+                .filter(|(name, _)| name == kind)
+                .flat_map(|(_, statuses)| statuses.iter().map(String::as_str))
+                .filter(has)
+                .collect(),
+            None => DEFAULT_SIGNOFF
+                .iter()
+                .filter(|(name, _)| *name == kind)
+                .flat_map(|(_, statuses)| statuses.iter().copied())
+                .filter(has)
+                .collect(),
+        }
     }
 
     pub fn kind(&self, name: &str) -> Option<&Type> {
@@ -269,11 +325,17 @@ pub fn parse(text: &str) -> Result<Config, String> {
             project: text("project"),
         }
     });
+    let signoff = root.get("signoff").and_then(Value::as_table).map(|t| {
+        t.iter()
+            .map(|(name, statuses)| (name.clone(), strings(Some(statuses))))
+            .collect()
+    });
     Ok(Config {
         types,
         roles,
         exports,
         jira,
+        signoff,
     })
 }
 
@@ -688,5 +750,42 @@ key = 1
         );
         let odd = parse(&format!("{base}[jira]\nurl = \"\"\nproject = 4\n")).unwrap();
         assert_eq!((odd.jira_url(), odd.jira_project()), (None, None));
+    }
+
+    #[test]
+    fn sign_off_is_kilns_defaults_unless_signoff_is_written() {
+        // The demo writes none: the defaults its types have.
+        let c = demo();
+        assert_eq!(c.signoff, None);
+        assert_eq!(c.signoff_statuses("requirement"), ["approved", "verified"]);
+        assert_eq!(c.signoff_statuses("decision"), ["accepted", "rejected"]);
+        assert_eq!(c.signoff_statuses("risk"), ["accepted", "closed"]);
+        assert_eq!(c.signoff_statuses("milestone"), ["done"]);
+        assert!(c.signoff_statuses("task").is_empty());
+        assert!(c.signoff_statuses("nosuch").is_empty());
+        // A default the type doesn't have isn't one.
+        let base = "format = 1\n[types.requirement]\nprefix = \"REQ\"\nstatuses = [\"draft\", \"approved\"]\n[types.task]\nprefix = \"T\"\nstatuses = [\"todo\", \"done\"]\n";
+        assert_eq!(
+            parse(base).unwrap().signoff_statuses("requirement"),
+            ["approved"]
+        );
+        // Written, it replaces them: only what it says, of the type's own.
+        let written = parse(&format!(
+            "{base}[signoff]\nrequirement = [\"draft\", \"signed\"]\ntask = [\"done\", 3]\nwidget = [\"x\"]\n"
+        ))
+        .unwrap();
+        assert_eq!(written.signoff_statuses("requirement"), ["draft"]);
+        assert_eq!(written.signoff_statuses("task"), ["done"]);
+        let only = parse(&format!("{base}[signoff]\ntask = [\"done\"]\n")).unwrap();
+        assert!(
+            only.signoff_statuses("requirement").is_empty(),
+            "written, no defaults"
+        );
+        // An empty table is written: nothing is sign-off.
+        let none = parse(&format!("{base}[signoff]\n")).unwrap();
+        assert!(none.signoff_statuses("requirement").is_empty());
+        // Not a table: as if it weren't there, as Kiln reads it.
+        let odd = parse(&format!("signoff = 4\n{base}")).unwrap();
+        assert_eq!(odd.signoff_statuses("requirement"), ["approved"]);
     }
 }

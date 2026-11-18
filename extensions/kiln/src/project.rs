@@ -579,6 +579,25 @@ impl Project {
         self.ask(job)
     }
 
+    /// Reading query `id` given up on (an agent's tool call cancelled):
+    /// dropped if it waits or is held, stopped if it runs, so nothing runs
+    /// for no one; its answer, if one comes, says so. Never an edit: one
+    /// asked runs to its end, and the project is read again after it.
+    pub fn cancel_query(&mut self, id: QueryId) {
+        const WHY: &str = "given up on before kiln answered";
+        let held = self.held.len();
+        self.held
+            .retain(|(q, j)| !(*q == id && matches!(j.tag, Tag::Query { edit: false, .. })));
+        if self.held.len() != held {
+            self.answer(id, String::new(), Err(Failure::Unusable(WHY.into())));
+        }
+        self.kiln.cancel(
+            |t| matches!(t, Tag::Query { id: q, edit: false } if *q == id),
+            WHY,
+        );
+        self.pump();
+    }
+
     // -- Events, from lib.rs -------------------------------------------------
 
     /// A line of a process's output.

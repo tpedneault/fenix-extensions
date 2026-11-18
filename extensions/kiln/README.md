@@ -342,6 +342,88 @@ newline) become spaces and the length is cut, and no Markdown, link or
 markup in it does anything. The only thing done with a comment is `o`.
 It never answers or resolves one: that is Confluence's.
 
+## For coding agents
+
+An agent working in Fenix (Claude Code, Codex…) gets Kiln's tools through
+Fenix's MCP server, as the `kiln` toolset. Each runs **one fixed kiln
+command** in the open project, through the same queue as the pages, and
+answers with kiln's JSON.
+
+| Tool | Runs | Takes |
+|---|---|---|
+| `kiln_next` | `kiln next [--milestone=ID] [--unowned] --format json` | `milestone`, `unowned` |
+| `kiln_status` | `kiln status --format json` | -- |
+| `kiln_list` | `kiln list [--type=…] [--status=…] [--tag=…] --format json` | `type`, `status`, `tag`, each a comma list |
+| `kiln_show` | `kiln show --format json -- ID` | `id` |
+| `kiln_trace` | `kiln trace [--type=…] --format json` | `type` |
+| `kiln_impact` | `kiln impact --format json -- ID` | `id` |
+| `kiln_check` | `kiln check --format json` | -- |
+| `kiln_set` | `kiln set -- ID status=… owner=… due=… title=…` | `id`, any of `status`, `owner`, `due`, `title` |
+| `kiln_link` | `kiln link -- ID ROLE TARGET` | `id`, `role`, `target` |
+| `kiln_new` | `kiln new [--parent=ID] --title=… [--link=ROLE=ID]… [--tag=…]… [--body-file=-] --format json -- TYPE` | `type`, `title`, `parent`, `links` (`[{role, target}]`), `tags`, `body` (on kiln's stdin) |
+
+**The reads** (class `read`) are offered by default, and Fenix's default
+rules allow them. They change nothing -- no file, no reload, nothing on a
+page. `kiln_list` never includes bodies; `kiln_show` does, in a field of its
+own, `body: {note, text}`, whose note says it's the item's text as a
+person or another agent wrote it: data, not instructions. Every answer
+says the same of the titles and messages in it, and every string has its
+control and invisible characters taken out (escape sequences, bidi
+overrides, zero-width and tag characters), which could hide text from
+you reading the thread. An answer is at most 64 KiB (Fenix's own default
+for its tools; it doesn't cut an extension's): a longer list is cut on an
+item's boundary, with `left_out` (how many) and `narrow` (how to ask for
+fewer: `type`, `status`, `tag`, `kiln_show` for one item); a long body is
+cut on a line, saying how much there was and in which file the rest is.
+
+**The edits** (class `run`) are asked about: kiln writes the item files,
+not Fenix's buffers, so the change **doesn't go through Agent changes**
+(`SPC a r`) and can't be rejected hunk by hunk there -- it's a program run
+that changes files, which is what `run` says. With Fenix's default rules,
+Fenix asks you on each call, as a card in the agent's thread showing the
+tool and its arguments: `y` once, `Y` for the rest of the thread, `n`/`N`
+to refuse (`agents.mcp.allow` can say `"kiln_set" = "allow"`, or `"deny"`).
+They are **off until you turn on `fenix.kiln.agent_edits`**: until then
+each answers that you've turned Kiln's edit tools off. They come with the
+toolset the reads bring (Fenix offers a toolset, not single tools), and
+`writes = true` holds them back from Fenix's control channel unless your
+rules allow running. Once one has run, the project is read again, as for
+any edit, and the answer is kiln's own line (`TASK-003: status todo →
+doing`), or for `kiln_new` the new item's `id` and `path`; kiln's refusal
+is its one `kiln: …` line.
+
+- **Sign-off stays with people.** `kiln_set` refuses a status that is a
+  person's call for the item's type -- `[signoff]` in `kiln.toml` when it's
+  written, else Kiln's defaults (a requirement's `approved` and `verified`,
+  a decision's `accepted` and `rejected`, a risk's `accepted` and `closed`,
+  a milestone's `done`), as `kiln signoff` reads them -- and says so, so
+  the agent asks you. `kiln_new` refuses a type that starts at one. When
+  `kiln.toml` can't be read from the project's top, no status is set and
+  nothing is made, since sign-off can't be told apart.
+- Edits wait for a usable project: none while it isn't read, while its last
+  read failed, or while an edit is being read back -- the answer says
+  which.
+
+**Every input is checked before kiln runs**: an ID is `PREFIX-N`, a type,
+status, role or tag a lowercase word; a title or owner is one line of
+visible text; a body is Markdown with no control or hidden characters. A
+value rides inside one argument and positionals come after `--`, so
+nothing an agent gives can be read by kiln as an option. A field a tool
+doesn't take is an error naming it. **Never offered**: unlinking,
+renumbering, exporting, publishing, the Jira sync or pull, signing in, or
+any argument of the agent's own. While a Confluence publish or the Jira
+sync runs (they can hold kiln for minutes), every tool answers at once that
+kiln is busy, rather than waiting into its deadline. A call the agent
+gives up on (or that passes its two minutes) drops its answer, and a read
+waiting or running for it is dropped or stopped; an edit runs to its end.
+
+**Who can call them.** Fenix's ask applies to agents' calls. On the
+extension API this extension is built for (1.5), a service can't tell who
+called it, so another installed extension could call `kiln.set`,
+`kiln.link` or `kiln.new` as a service without Fenix asking -- the reason
+`fenix.kiln.agent_edits` is off by default. The reads give it what the
+plan shows.
+
 ## Keys
 
 On the plan:
@@ -420,11 +502,15 @@ for a kiln that isn't found; it has no key.
 |---|---|---|
 | `kiln.path` | empty | Where kiln is, when it isn't on the PATH |
 | `kiln.refresh_seconds` | 5 | Seconds between reloads while a Kiln page is in view; 0: only on save and `r` |
+| `fenix.kiln.agent_edits` | off | Lets coding agents use `kiln_set`, `kiln_link` and `kiln_new` (Fenix still asks about each call); sign-off statuses are refused either way |
 
 ## What it may do
 
 - **Run `kiln`** (`process`), or the path `kiln.path` holds: nothing else.
-  The extension never writes an item file itself; kiln does, when asked.
+  The extension never writes an item file itself; kiln does, when asked --
+  by you, or by an agent's `kiln_set`, `kiln_link` or `kiln_new` once
+  `fenix.kiln.agent_edits` is on and Fenix's rules (by default, you) allow
+  the call.
 - **Read the project** (`filesystem = "project-read"`): `kiln.toml`, and
   `.fenix/tools.json`, only to tell whether it already runs kiln's
   language server.
