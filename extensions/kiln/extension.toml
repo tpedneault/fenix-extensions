@@ -39,13 +39,20 @@ process = ["kiln", "${setting:kiln.path}"]
 filesystem = "project-read"
 # Where you are, for the commands that start in a buffer (Kiln: show the
 # item under the cursor, Kiln: set the status of the item here…): the file, the cursor's line
-# and column, the project's folder. Never changes a buffer.
+# and column, the project's folder. And, for the titles after IDs, the
+# lines the panes show of the open files in the project (a file's whole
+# text is what Fenix gives; only the shown lines of it are looked at),
+# with decorations set on those buffers -- text drawn beside, never in
+# them. Never changes a buffer.
 editor = "read"
 
 [contributes]
 # Told when a file is saved, and when the repository's head moves, so the
-# project is read again on the change, not on a guess.
-events = ["saved", "git"]
+# project is read again on the change, not on a guess. view: the lines
+# each pane shows, and changed: a shown file's text once typing stops,
+# for the titles after IDs (kiln.decorations), worked out only for the
+# lines shown, of files in the project.
+events = ["saved", "git", "view", "changed"]
 # Coding agents' tools, one service each (below). On API 1.5 a service
 # can't tell who called it, so any installed extension can call these as
 # an agent can: the reads give what a page shows; the edits answer nothing
@@ -243,6 +250,15 @@ kind = "int"
 label = "Refresh every"
 description = "Seconds between reloads while a Kiln page is in view. 0: only when a file is saved and when you press r."
 default = "5"
+
+# Titles after IDs: after an ID the project lists, in the lines shown of
+# a file in the project, its title and status, muted.
+[[contributes.settings]]
+key = "kiln.decorations"
+kind = "bool"
+label = "Titles after IDs"
+description = "After an item ID in a file of the project -- [[REQ-014]], parent = \"REQ-014\", // implements: REQ-014 -- its title and status, muted. Hover (kiln lsp) still gives the rest."
+default = "true"
 
 # The agent tools' safety switch, under the extension's full id so no
 # other extension can claim the name and set it. Off by default: Fenix asks

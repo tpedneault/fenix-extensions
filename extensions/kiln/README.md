@@ -165,6 +165,36 @@ error: message`, which the task pane turns into quickfix entries.
 **The modeline** shows the last check's findings when there are any, `kiln 1
 error, 2 warnings`, and nothing when there are none.
 
+## Titles after IDs
+
+In the files of the project you have open, an item ID the project lists
+is followed by its title and status, muted, the status in the colour its
+meaning has (done green, blocked red…):
+
+```text
+parent = "MS-001" · First release · active
+Anything slower; see [[ADR-001]] · Store readings in SQLite · accepted.
+// verifies: TASK-005 · Ask about retention rules · blocked, TASK-004 · Add the export button · todo
+```
+
+The text goes after a `[[…]]` mention's `]]` and a quoted ID's closing
+quote, titles are cut at 40 characters, and nothing is written into the
+file: it's drawn beside the text, and moves with it as you type until it's
+worked out again (when you stop typing, when you scroll, and when the
+project is read again). Only IDs the project has, as whole words: not
+inside a file name (`TASK-002-write-readings.md`), a path or a URL, not
+on an item's own `id = "…"` line, nor where the line already shows the
+title (a heading); an unknown ID is `kiln check`'s and the language
+server's to point out. Any file under the project's folder counts, item
+files and code alike, but only the lines in view (and a margin) are looked
+at, and a file over 4 MiB not at all. When kiln or the project is lost
+they go, rather than show stale titles; an ordinary reload keeps them.
+
+Turn them off with `kiln.decorations` (Settings): they go at once. Hover
+on an ID still comes from Kiln's language server (`kiln lsp`), with the
+type, parent, links and coverage; it gives no inlay hints of its own, so
+nothing is shown twice.
+
 ## Exports and publishing
 
 The Exports tab (`0`) shows `kiln export --dry-run` for each `[[export]]`
@@ -502,6 +532,7 @@ for a kiln that isn't found; it has no key.
 |---|---|---|
 | `kiln.path` | empty | Where kiln is, when it isn't on the PATH |
 | `kiln.refresh_seconds` | 5 | Seconds between reloads while a Kiln page is in view; 0: only on save and `r` |
+| `kiln.decorations` | on | Titles and statuses after item IDs in the project's files ("Titles after IDs"); off takes them away at once |
 | `fenix.kiln.agent_edits` | off | Lets coding agents use `kiln_set`, `kiln_link` and `kiln_new` (Fenix still asks about each call); sign-off statuses are refused either way |
 
 ## What it may do
@@ -517,7 +548,10 @@ for a kiln that isn't found; it has no key.
 - **Read the editor** (`editor = "read"`): where you are when you run
   `kiln.show`, `kiln.set_status` and the other commands on "the item here"
   -- the file, the cursor's line and column -- to find the item ID under
-  the cursor. It changes no buffer.
+  the cursor; and, for the titles after IDs, the lines the panes show of
+  the project's open files (Fenix gives a file's text whole; only the
+  shown lines of it are looked at). It changes no buffer: the titles are
+  decorations, drawn beside the text.
 
 No network and no secrets: Confluence and Jira credentials stay Kiln's.
 Publishing to Confluence is kiln's own network access, run by `P` on the

@@ -78,6 +78,13 @@
 //! on; Fenix's control channel's `fenix/tools.call` is held back by the
 //! tools' `writes = true` unless the user's rules allow it.
 //!
+//! Titles after IDs ([`decor`]): for the lines each pane shows of the
+//! project's files (`view_changed`), done again when the view moves, a
+//! shown buffer changes (`buffer_changed`) or a read loads; taken away
+//! when the project isn't usable or `kiln.decorations` is off. The text is
+//! `buffer::text`'s and only the shown lines of it are looked at; nothing
+//! is ever written to a buffer.
+//!
 //! The project is read once as the extension loads (a `kiln.toml` at the
 //! project's top, or a `kiln.*` command): the language server is wanted
 //! from the start, not only once a page opens, and deciding it needs kiln
@@ -85,6 +92,7 @@
 
 pub mod agent;
 pub mod config;
+pub mod decor;
 pub mod doctor;
 pub mod edit;
 pub mod jira;
@@ -106,7 +114,8 @@ pub(crate) use fenix_extension_api as api;
 pub(crate) use fenix_test_kit::api;
 
 use api::{
-    page as pages_api, Event, Extension, Key, KeyPress, KeyScheme, MouseEvent, Page, PickerItem,
+    page as pages_api, Changed, Event, Extension, Key, KeyPress, KeyScheme, MouseEvent, Page,
+    PickerItem, TextView,
 };
 use edit::{Edit, Facts, Step};
 use lsp::Lsp;
@@ -263,6 +272,14 @@ struct Kiln {
     /// the call being served now, which `serve` answers itself.
     agent_ready: Vec<(u64, Result<String, String>)>,
     serving: Option<u64>,
+    /// Titles after IDs: the views, the index, what each buffer was given.
+    decor: decor::Decor,
+    /// How many times `kiln.toml` was read to something new: the
+    /// decorations' statuses are coloured by its types.
+    config_reads: u64,
+    /// The project's folder as Fenix names it (`here()`), once known: a
+    /// view's file is the project's when it's under it.
+    fenix_root: Option<String>,
 }
 
 /// The project now, for a page: its state, its reads, `kiln.toml`,
@@ -395,8 +412,39 @@ impl Kiln {
         }
         if touched {
             self.publish();
+            self.decorate();
         }
         self.answer_agents();
+    }
+
+    /// The decorations given to the buffers that need them again ([`decor`]):
+    /// the project told first (usable or not, which read), then each
+    /// shown buffer worked out from its text. One `decorations::set` a
+    /// buffer whose decorations changed; nothing at all when nothing did.
+    fn decorate(&mut self) {
+        let usable = match self.project.state() {
+            State::Loaded { loaded, .. } => Some(loaded),
+            _ => None,
+        };
+        let config = match &self.config {
+            Some(Ok(c)) => Some(c),
+            _ => None,
+        };
+        self.decor.project(
+            usable.map(|l| (l, self.project.loads(), config)),
+            self.config_reads,
+        );
+        if !self.decor.pending() {
+            return;
+        }
+        if self.fenix_root.is_none() {
+            self.fenix_root = api::here().and_then(|h| h.project).map(|p| p.root);
+        }
+        let root = self.fenix_root.clone();
+        for (path, decorations) in self.decor.take(root.as_deref(), api::buffer::text) {
+            // A buffer closed meanwhile can't take them: nothing to undo.
+            let _ = api::decorations::set(&api::decorations::file(path), &decorations);
+        }
     }
 
     /// Agents' answers that came, given to Fenix: all but the call `serve`
@@ -621,6 +669,7 @@ impl Kiln {
             },
         };
         if self.config.as_ref() != Some(&read) {
+            self.config_reads += 1;
             let first = self.config.is_none();
             let jira_url = |c: &Option<Result<config::Config, String>>| {
                 c.as_ref()
@@ -1151,6 +1200,8 @@ impl Kiln {
 impl Extension for Kiln {
     /// The project read at once, for the language server.
     fn activate(&mut self) -> Result<(), String> {
+        self.decor
+            .switch(decor::enabled(api::setting(decor::SETTING).as_deref()));
         self.project.start();
         self.decide = true;
         self.pass_on();
@@ -1213,6 +1264,11 @@ impl Extension for Kiln {
                     self.decide = true;
                 }
                 "kiln.refresh_seconds" => self.project.refresh_changed(),
+                decor::SETTING => {
+                    self.decor
+                        .switch(decor::enabled(api::setting(decor::SETTING).as_deref()));
+                    self.decorate();
+                }
                 _ => {}
             },
             _ => {}
@@ -1228,6 +1284,22 @@ impl Extension for Kiln {
         self.decide = true;
         self.project.saved(path);
         self.pass_on();
+    }
+
+    /// The lines the panes show moved: the buffers whose lines did are
+    /// decorated again, for the lines shown.
+    fn view_changed(&mut self, views: Vec<TextView>) {
+        self.decor.viewed(&views);
+        self.decorate();
+    }
+
+    /// A shown file's text changed (Fenix tells it once typing stops):
+    /// its decorations worked out again.
+    fn buffer_changed(&mut self, what: Changed) {
+        if let Changed::File(path) = what {
+            self.decor.changed(&path);
+            self.decorate();
+        }
     }
 
     fn page(&mut self, page: u64, width: u32, height: u32) -> Page {
@@ -2699,5 +2771,246 @@ pub(crate) mod tests {
             h.command("kiln.nope"),
             Err("no command kiln.nope".to_string())
         );
+    }
+
+    // -- Titles after IDs ----------------------------------------------------
+
+    const LOG: &str = "/home/me/demo/src/log.rs";
+    const GUIDE: &str = "/home/me/demo/design/tasks/TASK-006-draft-the-user-guide.md";
+
+    /// The demo read, in `/home/me/demo`, with `src/log.rs` open: line
+    /// `n` (from 0) says `// implements: REQ-001` on every tenth line.
+    fn decorated() -> (Fake, Harness<Kiln>) {
+        let fake = demo();
+        let log: String = (0..300)
+            .map(|n| {
+                if n % 10 == 0 {
+                    format!("// {n} implements: REQ-001\n")
+                } else {
+                    format!("fn f{n}() {{}}\n")
+                }
+            })
+            .collect();
+        fake.project("demo", "/home/me/demo")
+            .buffer(LOG, &log)
+            .buffer(GUIDE, "+++\nid = \"TASK-006\"\nparent = \"MS-001\"\n+++\n");
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        (fake, h)
+    }
+
+    fn view(path: &str, pane: u64, first: u32, last: u32) -> TextView {
+        TextView {
+            buffer: api::TextBuffer::File(path.into()),
+            pane,
+            first,
+            last,
+        }
+    }
+
+    fn views(h: &mut Harness<Kiln>, views: Vec<TextView>) {
+        h.ext.view_changed(views);
+        h.settle();
+    }
+
+    /// The lines decorated in `path`, and what's drawn on the first.
+    fn decorated_lines(fake: &Fake, path: &str) -> (Vec<u32>, String) {
+        let ds = fake.decorations(path);
+        let mut lines: Vec<u32> = ds.iter().map(|d| d.start.0).collect();
+        lines.dedup();
+        let first: String = ds
+            .iter()
+            .take(2)
+            .map(|d| match &d.look {
+                api::DecorationLook::Text(t) => t.text.clone(),
+                _ => String::new(),
+            })
+            .collect();
+        (lines, first)
+    }
+
+    fn sets(fake: &Fake) -> usize {
+        fake.calls()
+            .iter()
+            .filter(|c| c.starts_with("decorations "))
+            .count()
+    }
+
+    #[test]
+    fn the_lines_in_view_get_titles_and_follow_the_view() {
+        let (fake, mut h) = decorated();
+        assert_eq!(sets(&fake), 0, "nothing shown, nothing set");
+        views(&mut h, vec![view(LOG, 1, 100, 129)]);
+        let (lines, first) = decorated_lines(&fake, LOG);
+        // 30 lines shown, 30 more either side: every tenth of 70..=159.
+        assert_eq!(lines, [70, 80, 90, 100, 110, 120, 130, 140, 150]);
+        assert_eq!(first, " · Readings are logged every second · approved");
+        assert_eq!(fake.decorations(LOG)[0].start, (70, 24));
+        // Moved: the new lines; the same view again sets nothing.
+        views(&mut h, vec![view(LOG, 1, 260, 289)]);
+        assert_eq!(
+            decorated_lines(&fake, LOG).0,
+            [230, 240, 250, 260, 270, 280, 290]
+        );
+        let before = sets(&fake);
+        views(&mut h, vec![view(LOG, 1, 260, 289)]);
+        assert_eq!(sets(&fake), before);
+        // Out of every pane: taken away.
+        views(&mut h, vec![]);
+        assert!(fake.decorations(LOG).is_empty());
+    }
+
+    #[test]
+    fn two_panes_on_one_buffer_both_get_theirs_in_one_set() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(LOG, 1, 0, 9), view(LOG, 2, 200, 209)]);
+        assert_eq!(decorated_lines(&fake, LOG).0, [0, 10, 190, 200, 210]);
+        assert_eq!(sets(&fake), 1);
+    }
+
+    #[test]
+    fn a_change_to_a_shown_buffer_is_decorated_again() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(GUIDE, 1, 0, 3)]);
+        // Its own id line has none; its parent has the milestone's.
+        assert_eq!(decorated_lines(&fake, GUIDE).0, [2]);
+        assert_eq!(decorated_lines(&fake, GUIDE).1, " · First release · active");
+        h.changed(
+            Changed::File(GUIDE.into()),
+            Some("+++\nid = \"TASK-006\"\nparent = \"MS-002\"\n[links]\nimplements = [\"REQ-003\"]\n+++\n"),
+        );
+        let (lines, first) = decorated_lines(&fake, GUIDE);
+        assert_eq!(lines, [2, 4]);
+        assert_eq!(first, " · Second release · planned");
+        // A buffer no pane shows: nothing worked out.
+        let before = sets(&fake);
+        h.changed(Changed::File(LOG.into()), Some("REQ-001\n"));
+        assert_eq!(sets(&fake), before);
+    }
+
+    #[test]
+    fn a_new_read_updates_every_shown_buffer_and_a_lost_project_clears_them() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(LOG, 1, 0, 9), view(GUIDE, 2, 0, 3)]);
+        let list = fixture("demo/list.json")
+            .replace(
+                "Readings are logged every second",
+                "Readings are logged each second",
+            )
+            .replace("\"First release\"", "\"The first release\"");
+        fake.on_spawn("kiln list", Ran::ok(list));
+        h.command("kiln.reload").unwrap();
+        assert_eq!(
+            decorated_lines(&fake, LOG).1,
+            " · Readings are logged each second · approved"
+        );
+        assert_eq!(
+            decorated_lines(&fake, GUIDE).1,
+            " · The first release · active"
+        );
+        // A reload that finds the same: nothing set again.
+        let before = sets(&fake);
+        h.command("kiln.reload").unwrap();
+        assert_eq!(sets(&fake), before);
+        // One that runs, then fails: the last read's stay meanwhile and after.
+        fake.on_spawn("kiln list", Ran::running(""));
+        h.command("kiln.reload").unwrap();
+        assert!(!fake.decorations(LOG).is_empty());
+        let list = fake.process("kiln list").unwrap().id;
+        h.said(list, "kiln: design/x.md:1: broken", true);
+        h.exited(list, Some(2));
+        assert!(matches!(
+            h.ext.project.state(),
+            State::Loaded { error: Some(_), .. }
+        ));
+        assert_eq!(sets(&fake), before);
+        // kiln gone: stale titles would mislead, so they go.
+        fake.on_spawn_error("/nowhere/kiln", "no such file");
+        h.set_setting("kiln.path", Some("/nowhere/kiln"));
+        assert!(matches!(h.ext.project.state(), State::NotFound(_)));
+        assert!(fake.decorations(LOG).is_empty());
+        assert!(fake.decorations(GUIDE).is_empty());
+    }
+
+    #[test]
+    fn turned_off_they_go_at_once_and_nothing_is_worked_out() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(LOG, 1, 0, 9)]);
+        assert!(!fake.decorations(LOG).is_empty());
+        h.set_setting(decor::SETTING, Some("false"));
+        assert!(fake.decorations(LOG).is_empty());
+        let before = sets(&fake);
+        views(&mut h, vec![view(LOG, 1, 50, 59)]);
+        h.changed(Changed::File(LOG.into()), None);
+        h.command("kiln.reload").unwrap();
+        assert_eq!(sets(&fake), before);
+        // On again: back, for the lines shown now.
+        h.set_setting(decor::SETTING, Some("true"));
+        assert_eq!(decorated_lines(&fake, LOG).0, [40, 50, 60]);
+        // Off from the start.
+        let fake = demo();
+        fake.project("demo", "/home/me/demo")
+            .buffer(LOG, "REQ-001\n");
+        fake.setting(decor::SETTING, "false");
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        views(&mut h, vec![view(LOG, 1, 0, 9)]);
+        assert_eq!(sets(&fake), 0);
+    }
+
+    #[test]
+    fn a_file_outside_the_project_gets_nothing() {
+        let (fake, mut h) = decorated();
+        fake.buffer("/home/me/other/notes.md", "see REQ-001\n");
+        views(&mut h, vec![view("/home/me/other/notes.md", 1, 0, 9)]);
+        assert_eq!(sets(&fake), 0);
+        assert!(fake.decorations("/home/me/other/notes.md").is_empty());
+    }
+
+    #[test]
+    fn two_thousand_items_and_twenty_thousand_lines_take_milliseconds() {
+        let items: Vec<serde_json::Value> = (1..=2000)
+            .map(|n| {
+                serde_json::json!({
+                    "id": format!("REQ-{n:04}"), "type": "requirement",
+                    "title": format!("Requirement number {n} with a title long enough to be cut somewhere"),
+                    "status": if n % 2 == 0 { "approved" } else { "draft" },
+                    "path": format!("design/requirements/REQ-{n:04}-r.md"), "line": 2
+                })
+            })
+            .collect();
+        let fake = demo();
+        fake.on_spawn(
+            "kiln list",
+            Ran::ok(serde_json::Value::from(items).to_string()),
+        );
+        let long: String = (0..20_000)
+            .map(|n| {
+                format!(
+                    "// {n} implements: REQ-{:04}, REQ-{:04} and see [[REQ-{:04}]]\n",
+                    n % 2000 + 1,
+                    (n * 7) % 2000 + 1,
+                    (n * 13) % 2000 + 1
+                )
+            })
+            .collect();
+        fake.project("demo", "/home/me/demo").buffer(LOG, &long);
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        let started = std::time::Instant::now();
+        views(&mut h, vec![view(LOG, 1, 19_940, 19_999)]);
+        let viewed = started.elapsed();
+        let started = std::time::Instant::now();
+        h.changed(Changed::File(LOG.into()), None);
+        let changed = started.elapsed();
+        // 120 lines (60 shown, 60 above), three IDs each, two decorations
+        // an ID.
+        assert_eq!(fake.decorations(LOG).len(), 120 * 3 * 2);
+        // Generous for an unoptimised test build on a loaded machine: about
+        // 3 ms here, 2 ms in release, most of it the 1.3 MB text copied
+        // and its lines counted to the end.
+        eprintln!("2,000 items, 20,000 lines: view {viewed:?}, change {changed:?}");
+        assert!(viewed.as_millis() < 50, "view: {viewed:?}");
+        assert!(changed.as_millis() < 50, "change: {changed:?}");
     }
 }

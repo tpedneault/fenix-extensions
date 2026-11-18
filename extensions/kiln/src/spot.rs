@@ -21,6 +21,10 @@
 //! as it is: a Windows path typed in another case is not matched (said
 //! as "isn't an item's file", not guessed at).
 //!
+//! The words and the paths are shared with the decorations ([`crate::decor`]),
+//! which find IDs in a line and tell a project's file from another the
+//! same way.
+//!
 //! What it deliberately doesn't do: call the host (`lib.rs` hands it what
 //! `here()` and `cursor()` said, so it's tested natively), read a file,
 //! or guess at an ID kiln doesn't list.
@@ -52,7 +56,7 @@ pub struct Spot {
 const PROJECT: &str = "/project";
 
 /// `path` with `\` read as `/`.
-fn slashes(path: &str) -> String {
+pub(crate) fn slashes(path: &str) -> String {
     path.replace('\\', "/")
 }
 
@@ -88,24 +92,33 @@ fn item_of_file<'a>(loaded: &'a Loaded, path: &str, root: Option<&str>) -> Optio
     // first, so `a/design/x.md` isn't taken for `design/x.md`'s twin.
     let mut found: Option<(&str, usize)> = None;
     for (p, id) in &by_path {
-        let ends = path.len() > p.len()
-            && path.ends_with(p.as_str())
-            && path.as_bytes()[path.len() - p.len() - 1] == b'/';
-        if ends && found.is_none_or(|(_, n)| p.len() > n) {
+        if ends_with_path(&path, p) && found.is_none_or(|(_, n)| p.len() > n) {
             found = Some((id, p.len()));
         }
     }
     found.map(|(id, _)| id)
 }
 
-/// The words of `text` an ID may be in: runs of letters, digits, `-` and
-/// `_`, each with where it starts and ends, in characters.
-fn words(text: &str) -> Vec<(usize, usize, String)> {
+/// Whether `path` (its backslashes read as `/` already) ends with `/` and the
+/// whole of `item`, an item's path from the project's top: an item's file
+/// in a Kiln project below the folder Fenix opened.
+pub(crate) fn ends_with_path(path: &str, item: &str) -> bool {
+    path.len() > item.len()
+        && path.ends_with(item)
+        && path.as_bytes()[path.len() - item.len() - 1] == b'/'
+}
+
+/// The words of `text` an ID may be in: runs of ASCII letters, digits,
+/// `-` and `_`, each with where it starts and ends, in characters. ASCII
+/// only, because an ID is (`PREFIX-N`): text in a script written without
+/// spaces (`参见REQ-001。`) ends a word rather than running into the ID,
+/// and a column past it still counts every character as one.
+pub(crate) fn words(text: &str) -> Vec<(usize, usize, String)> {
     let mut out = Vec::new();
     let mut word = String::new();
     let mut start = 0;
     for (n, c) in text.chars().enumerate() {
-        if c.is_alphanumeric() || c == '-' || c == '_' {
+        if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
             if word.is_empty() {
                 start = n;
             }
