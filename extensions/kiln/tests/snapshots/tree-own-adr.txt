@@ -37,4 +37,4 @@ ADR-019    An editor the user names for Kiln comes before Fenix; VISUAL and EDIT
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-/adr-01  Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab
+/adr-01  Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

@@ -37,4 +37,4 @@ crates/kiln/src/project.rs:161     verifies REQ-013, child of REQ-001
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  v item  i impact  r reload  Tab next tab
+Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

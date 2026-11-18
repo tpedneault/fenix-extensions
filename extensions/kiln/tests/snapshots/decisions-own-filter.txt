@@ -27,4 +27,4 @@ ADR-024  Requirements are one tree on the page, and an item's facts are a …  a
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-/013  Enter open  / filter  v item  i impact  r reload  Tab next tab
+/013  Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

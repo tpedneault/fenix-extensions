@@ -23,4 +23,4 @@ TASK-019  kiln affected: the requirements a change reaches, and what to re-check
 TASK-020  kiln log: an item's history from git                                            · claude
 TASK-021  kiln signoff: sign-off changes since a revision, with their authors             · claude
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab
+H L move  Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

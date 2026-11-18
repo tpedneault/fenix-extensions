@@ -23,4 +23,4 @@ TASK-003  Export the log as CSV                owner (none) → bo
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-b baseline  Enter open  / filter  v item  i impact  r reload  Tab next tab
+b baseline  Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

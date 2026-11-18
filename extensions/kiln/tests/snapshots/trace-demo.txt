@@ -23,4 +23,4 @@ REQ-003  The log exports as CSV               TASK-003            gap
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-m only gaps  T next type  Enter open  / filter  v item  i impact  r reload  Tab next tab
+m only gaps  T next type  Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

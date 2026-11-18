@@ -21,4 +21,4 @@ TASK-008    Tidy the build scripts               todo                          �
 test  1 item                                                                   │
 TEST-001    Readings arrive every second         passing                       │
 ────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab
+Enter open  / filter  a show closed  s status  E edits  v item  i impact

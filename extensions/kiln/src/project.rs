@@ -254,6 +254,9 @@ enum Tag {
 struct Reading {
     items: Option<Vec<Item>>,
     plan: Option<Result<Status, String>>,
+    /// How many edits had finished when it began: a read that loads
+    /// shows them all.
+    covers: u64,
 }
 
 #[derive(Debug, Default)]
@@ -281,6 +284,10 @@ pub struct Project {
     notices: Vec<Notice>,
     /// How many reads have loaded ([`Project::loads`]).
     loads: u64,
+    /// How many edits have finished, and how many of those the last read
+    /// that loaded shows ([`Project::settled`]).
+    edits_done: u64,
+    edits_read: u64,
 }
 
 impl Project {
@@ -330,6 +337,20 @@ impl Project {
     /// which a reload starting or failing brings too.
     pub fn loads(&self) -> u64 {
         self.loads
+    }
+
+    /// Whether what's loaded shows every edit asked so far: none waits
+    /// or runs, and the last read that loaded began after the last one
+    /// ended. An edit started while it isn't would be chosen from a read
+    /// already known to be out of date (the item just moved, renamed or
+    /// renumbered), so the edits wait for it. A reload for any other
+    /// reason (the refresh timer, a save) doesn't unsettle it: what's
+    /// shown is the latest known, and kiln checks every edit anyway.
+    pub fn settled(&self) -> bool {
+        let is_edit = |t: &Tag| matches!(t, Tag::Query { edit: true, .. });
+        !self.kiln.any(is_edit)
+            && !self.held.iter().any(|(_, j)| is_edit(&j.tag))
+            && self.edits_read >= self.edits_done
     }
 
     /// Whether a reload runs or waits.
@@ -564,7 +585,10 @@ impl Project {
     }
 
     fn begin_reading(&mut self) {
-        self.reading = Some(Reading::default());
+        self.reading = Some(Reading {
+            covers: self.edits_done,
+            ..Reading::default()
+        });
         self.notices.push(Notice::Changed);
         self.kiln.push(Job::new(
             ["list", "--format", "json"],
@@ -587,6 +611,7 @@ impl Project {
             Tag::Query { id, edit } => {
                 self.answer(id, done.line, done.result);
                 if edit {
+                    self.edits_done += 1;
                     self.reload(Why::Edit);
                 }
             }
@@ -705,6 +730,7 @@ impl Project {
                     .unwrap_or_else(|| Err("kiln status gave no answer".into()));
                 self.loaded = Some(Loaded::new(version, items, plan, findings));
                 self.loads += 1;
+                self.edits_read = reading.covers;
                 self.error = None;
                 self.no_project = None;
                 self.end_reading();

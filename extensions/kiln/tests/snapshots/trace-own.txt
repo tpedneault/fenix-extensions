@@ -37,4 +37,4 @@ REQ-025  A one-page document reads top-dow…  assemble.rs:397                te
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-m only gaps  T next type  Enter open  / filter  v item  i impact  r reload  Tab next tab
+m only gaps  T next type  Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

@@ -37,4 +37,4 @@ ADR-007    Links are written once, on their source side                         
 ADR-008    Code references are matched on text, not parsed                                       accepted    │
 ADR-009    Exports kept in the repository name no commit                                         accepted    │
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab
+Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

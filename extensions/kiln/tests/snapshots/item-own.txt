@@ -27,4 +27,4 @@ mentioned by  ADR-014  Kiln pushes the tasks it manages to Jira                 
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  v item  i impact  r reload  Tab next tab
+Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

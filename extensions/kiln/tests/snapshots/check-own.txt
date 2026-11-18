@@ -23,4 +23,4 @@ no findings: kiln check is clean
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-e errors only  Enter open  / filter  v item  i impact  r reload  Tab next tab
+e errors only  Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

@@ -15,8 +15,9 @@
 //!
 //! `j` `k` `↓` `↑`, `g g` `G` `Home` `End`, `C-d` `C-u` `PgDn` `PgUp` (half
 //! a page), `Tab` `]` `[` `S-Tab` `1`–`9`, `/` (then everything until
-//! `Enter` or `Esc`), `Enter`, `r`, `a`, `v`, `i`. A view gets every other
-//! key. `q` and `Esc` close the page and Space is the leader: Fenix's.
+//! `Enter` or `Esc`), `Enter`, `r`, `a`, `v`, `i`, and the edits: `s` `l`
+//! `U` `n` `N` `E`, `H` `L` (see below). A view gets every other key. `q`
+//! and `Esc` close the page and Space is the leader: Fenix's.
 //!
 //! # When rows are built
 //!
@@ -37,6 +38,23 @@
 //! way -- so a flow is a chain of them. An edit's outcome is said on the
 //! bottom line before the view hears it.
 //!
+//! # The edits
+//!
+//! The editing keys work on the item under the cursor on every tab, so
+//! the frame owns them and runs their flows ([`crate::edit`]) itself,
+//! not each view: `s` status, `l` link, `U` unlink, `n` new item, `N` new
+//! child, `E` the menu of every edit (title, parent, owner, due date,
+//! renumber, and the rest), and `H` `L` on the Board (the previous and
+//! next status). A flow's prompts, picks and kiln command are [`Effect`]s
+//! like a view's, tagged [`EDIT_TAG`] and a serial number, so their
+//! answers come back to the frame's flow, not to a view, and an answer
+//! for a flow since replaced is dropped. One flow at a time per page.
+//! After an edit, the cursor follows its item by ID (the new ID after a
+//! renumber, the new item after `n`/`N`, whose file opens). No edit
+//! starts while the project isn't read, its last read failed, or kiln is
+//! still reading back the last edit ([`crate::edit::blocked`]): the
+//! choices would come from a read known to be stale.
+//!
 //! What it deliberately doesn't do: call Fenix (it returns [`Effect`]s and
 //! [`Ask`]s for `lib.rs` to perform, so it is tested natively as it is),
 //! run kiln, or know what any tab shows.
@@ -52,17 +70,36 @@ use serde_json::{json, Value};
 
 use super::view::{stdout, Choice, Ctx, Kind, Looks, Place, Reply, Row, View};
 use super::Tab;
+use crate::config::Config;
+use crate::edit::{self, Edit, Facts, Step};
 use crate::kiln::{Failure, Ran};
 use crate::model::{count, MIN_VERSION};
 use crate::project::{Loaded, QueryId, State};
 
 /// The project now, as the frame needs it: its state, and how many reads
 /// have loaded ([`crate::project::Project::loads`]), so a new read is
-/// told from the one the rows were built from.
+/// told from the one the rows were built from; `kiln.toml` as the
+/// extension read it, or why it couldn't ([`crate::config`]); and whether
+/// every edit has been read back ([`crate::project::Project::settled`]).
 #[derive(Clone, Copy)]
 pub struct Now<'a> {
     pub state: State<'a>,
     pub loads: u64,
+    pub config: Result<&'a Config, &'a str>,
+    pub settled: bool,
+}
+
+/// The tag of an edit flow's prompts, picks and edits, before its serial
+/// number: their answers go to the frame's flow, not a view's. No view
+/// tags with it.
+pub const EDIT_TAG: &str = "kiln.edit#";
+
+/// The edit flow under way on a page: its serial (in its tags), the tab
+/// it started on, and where it is.
+struct Going {
+    serial: u64,
+    tab: Tab,
+    flow: edit::Flow,
 }
 
 /// Keys of Fenix's own that the frame names, looked up as the page is
@@ -152,6 +189,10 @@ struct Pane {
     asked: HashMap<String, (Vec<String>, u64)>,
     /// Each query out, by tag: its args and id.
     out: HashMap<String, (Vec<String>, QueryId)>,
+    /// An ID the cursor goes to once a read newer than the one given has
+    /// loaded: an edit's item (a new ID, a new item), which the read
+    /// before the edit doesn't have yet.
+    follow: Option<(String, u64)>,
 }
 
 impl Pane {
@@ -171,6 +212,7 @@ impl Pane {
             dirty: true,
             asked: HashMap::new(),
             out: HashMap::new(),
+            follow: None,
         }
     }
 
@@ -367,6 +409,10 @@ pub struct Plan {
     message: Option<(String, Role)>,
     /// The rows' rectangle when last drawn, for the mouse and half pages.
     body: Rect,
+    /// The edit flow under way, if any.
+    flow: Option<Going>,
+    /// The last flow's serial.
+    serial: u64,
 }
 
 impl Default for Plan {
@@ -386,6 +432,8 @@ impl Plan {
             g: false,
             message: None,
             body: Rect::default(),
+            flow: None,
+            serial: 0,
         }
     }
 
@@ -469,14 +517,31 @@ impl Plan {
             return;
         };
         if self.looked != Some(now.loads) {
-            self.looks = Looks::new(loaded);
+            self.looks = Looks::with(loaded, now.config.ok());
             self.looked = Some(now.loads);
         }
         let pane = &mut self.panes[self.tabs.active];
+        if let Some((id, before)) = pane.follow.take() {
+            if now.loads > before {
+                pane.at = Some(id);
+                pane.dirty = true;
+            } else {
+                pane.follow = Some((id, before));
+            }
+        }
         if pane.built != Some(now.loads) || pane.dirty {
             let ctx = ctx(loaded, pane, &self.looks);
             pane.build(&ctx);
             pane.built = Some(now.loads);
+        }
+    }
+
+    /// `kiln.toml` read again, and different: what statuses mean and their
+    /// order are worked out again, and every tab's rows built again.
+    pub fn reconfigure(&mut self) {
+        self.looked = None;
+        for pane in &mut self.panes {
+            pane.dirty = true;
         }
     }
 
@@ -639,6 +704,11 @@ impl Plan {
                     );
                 }
             }
+            Key::Char(c) if Edit::by_key(c).is_some() => {
+                if let Some(edit) = Edit::by_key(c) {
+                    return self.start_edit(edit, now);
+                }
+            }
             Key::Char(c @ ('v' | 'i')) => {
                 let to = if c == 'v' { Tab::Item } else { Tab::Impact };
                 match pane.row().and_then(|r| r.id.clone()) {
@@ -649,6 +719,132 @@ impl Plan {
             _ => return self.pass_to_view(press, now),
         }
         Vec::new()
+    }
+
+    // -- The edits --------------------------------------------------------------
+
+    /// `edit` started on the item under the cursor: its first step, or why
+    /// it can't start ([`edit::blocked`], `H`/`L` off the Board).
+    fn start_edit(&mut self, edit: Edit, now: Now) -> Vec<Effect> {
+        if let Some(why) = edit::blocked(&now.state, now.settled) {
+            self.say(&why, Role::Muted);
+            return Vec::new();
+        }
+        let State::Loaded { loaded, .. } = now.state else {
+            return Vec::new();
+        };
+        let tab = self.tab();
+        if matches!(edit, Edit::Back | Edit::Forward) && tab != Tab::Board {
+            self.say("H and L move an item's status on the Board", Role::Muted);
+            return Vec::new();
+        }
+        let id = self.panes[tab.index()].row().and_then(|r| r.id.clone());
+        let facts = Facts {
+            loaded,
+            config: now.config,
+        };
+        let (flow, step) = edit::Flow::start(edit, id.as_deref(), &facts);
+        self.serial += 1;
+        self.flow = flow.map(|flow| Going {
+            serial: self.serial,
+            tab,
+            flow,
+        });
+        self.flow_step(step)
+    }
+
+    /// A flow's step, done: a pick, a prompt or kiln's command as an
+    /// [`Effect`] tagged for the flow; a word said, or nothing, ending it.
+    fn flow_step(&mut self, step: Step) -> Vec<Effect> {
+        let going = self
+            .flow
+            .as_ref()
+            .map(|g| (g.tab, format!("{EDIT_TAG}{}", g.serial)));
+        match (step, going) {
+            (Step::Pick { title, items }, Some((tab, tag))) => vec![Effect::Pick {
+                tab,
+                tag,
+                title,
+                items,
+            }],
+            (Step::Ask { label, initial }, Some((tab, tag))) => vec![Effect::Ask {
+                tab,
+                tag,
+                label,
+                initial,
+            }],
+            (Step::Run(args), Some((tab, tag))) => vec![Effect::Edit {
+                tab,
+                tag,
+                args,
+                stdin: None,
+            }],
+            (Step::Say(text), _) => {
+                self.flow = None;
+                self.say(&text, Role::Text);
+                Vec::new()
+            }
+            _ => {
+                self.flow = None;
+                Vec::new()
+            }
+        }
+    }
+
+    /// The flow `tag` names, if it's still the one under way.
+    fn going(&mut self, tag: &str) -> Option<&mut Going> {
+        let serial: u64 = tag.strip_prefix(EDIT_TAG)?.parse().ok()?;
+        self.flow.as_mut().filter(|g| g.serial == serial)
+    }
+
+    /// A flow's prompt or pick answered.
+    fn answer_flow(&mut self, tag: &str, value: &str, now: Now) -> Vec<Effect> {
+        let State::Loaded { loaded, .. } = now.state else {
+            self.flow = None;
+            self.say(
+                "the project isn't read now, so the answer was dropped",
+                Role::Muted,
+            );
+            return Vec::new();
+        };
+        let facts = Facts {
+            loaded,
+            config: now.config,
+        };
+        let Some(going) = self.going(tag) else {
+            return Vec::new();
+        };
+        let step = going.flow.answer(value, &facts);
+        self.flow_step(step)
+    }
+
+    /// A flow's kiln command ended (its outcome said already): the cursor
+    /// follows its item, a new item's file opens, or a refused value is
+    /// asked for again.
+    fn flow_edited(&mut self, tag: &str, result: &Result<Ran, Failure>, now: Now) -> Vec<Effect> {
+        if !matches!(now.state, State::Loaded { .. }) {
+            self.flow = None;
+            return Vec::new();
+        }
+        let Some(going) = self.going(tag) else {
+            return Vec::new();
+        };
+        let (tab, old) = (going.tab, going.flow.id().to_string());
+        let out = going.flow.edited(result);
+        // Followed once the read after the edit has loaded: the one now
+        // may not have the ID yet (a new item, a renumber), and building
+        // on it would put the cursor elsewhere.
+        if let Some(to) = &out.follow {
+            for (i, pane) in self.panes.iter_mut().enumerate() {
+                let was = !old.is_empty() && pane.at.as_deref() == Some(old.as_str());
+                if i == tab.index() || was {
+                    pane.follow = Some((to.clone(), now.loads));
+                }
+            }
+        }
+        let mut effects: Vec<Effect> = out.open.into_iter().map(Effect::Open).collect();
+        effects.extend(self.flow_step(out.step));
+        effects
     }
 
     /// Item `id` handed to tab `to`'s view, and that tab shown.
@@ -717,12 +913,18 @@ impl Plan {
     /// read (kiln gone since it asked), there's nothing to act on: it's
     /// said, and dropped.
     pub fn typed(&mut self, tab: Tab, tag: &str, text: &str, now: Now) -> Vec<Effect> {
+        if tag.starts_with(EDIT_TAG) {
+            return self.answer_flow(tag, text, now);
+        }
         self.answer_view(tab, now, |view, ctx| view.typed(tag, text, ctx))
     }
 
     /// The value picked in the picker tab `tab`'s view asked for with
     /// `tag`, handed to it, as [`Plan::typed`] does.
     pub fn picked(&mut self, tab: Tab, tag: &str, value: &str, now: Now) -> Vec<Effect> {
+        if tag.starts_with(EDIT_TAG) {
+            return self.answer_flow(tag, value, now);
+        }
         self.answer_view(tab, now, |view, ctx| view.picked(tag, value, ctx))
     }
 
@@ -738,6 +940,9 @@ impl Plan {
     ) -> Vec<Effect> {
         let (line, role) = outcome(result);
         self.say(&line, role);
+        if tag.starts_with(EDIT_TAG) {
+            return self.flow_edited(tag, result, now);
+        }
         if !matches!(now.state, State::Loaded { .. }) {
             return Vec::new();
         }
@@ -996,6 +1201,9 @@ impl Plan {
         let mut keys: Vec<(&str, &str)> = Vec::new();
         if let State::Loaded { .. } = now.state {
             keys.extend(pane.view.keys());
+            if self.tab() == Tab::Board {
+                keys.push(("H L", "move"));
+            }
             keys.extend([("Enter", "open"), ("/", "filter")]);
             if pane.view.hides_closed() {
                 keys.push((
@@ -1007,7 +1215,11 @@ impl Plan {
                     },
                 ));
             }
+            // The edits, compactly: `s` alone has its own word; `E`'s menu
+            // lists every edit with its key (README, "Keys").
             keys.extend([
+                ("s", "status"),
+                ("E", "edits"),
                 ("v", "item"),
                 ("i", "impact"),
                 ("r", "reload"),
@@ -1105,7 +1317,7 @@ pub(crate) mod tests {
         )
     }
 
-    fn loaded(l: &Loaded, loads: u64) -> Now<'_> {
+    pub(crate) fn loaded(l: &Loaded, loads: u64) -> Now<'_> {
         Now {
             state: State::Loaded {
                 loaded: l,
@@ -1113,6 +1325,8 @@ pub(crate) mod tests {
                 error: None,
             },
             loads,
+            config: Err("not read in this test"),
+            settled: true,
         }
     }
 
@@ -1527,6 +1741,8 @@ pub(crate) mod tests {
         let gone = Now {
             state: State::Failed("kiln: kiln.toml:4: unknown key `nmae`"),
             loads: 1,
+            config: Err("none"),
+            settled: true,
         };
         assert!(p.typed(Tab::Check, "target", "TEST-001", gone).is_empty());
         assert_eq!(
@@ -1556,6 +1772,8 @@ pub(crate) mod tests {
         let now = Now {
             state: State::Loading,
             loads: 0,
+            config: Err("none"),
+            settled: true,
         };
         assert!(screen(&mut p, now, 60, 8).contains("reading the project…"));
         keys(&mut p, "5", now);
@@ -1563,6 +1781,60 @@ pub(crate) mod tests {
         assert!(
             s.contains("reading the project…") && s.contains("r try again"),
             "{s}"
+        );
+    }
+
+    #[test]
+    fn the_frame_runs_the_edit_keys_and_drops_a_replaced_flows_answers() {
+        let d = demo();
+        let now = loaded(&d, 1);
+        let mut p = Plan::new();
+        screen(&mut p, now, 80, 14);
+        assert_eq!(p.id(), Some("REQ-001"));
+        let ask = |serial: u64| Effect::Ask {
+            tab: Tab::Tree,
+            tag: format!("{EDIT_TAG}{serial}"),
+            label: "Status of REQ-001 (now approved)".into(),
+            initial: String::new(),
+        };
+        // No kiln.toml in `now`: the status is typed.
+        assert_eq!(key(&mut p, Key::Char('s'), now), [ask(1)]);
+        assert_eq!(key(&mut p, Key::Char('s'), now), [ask(2)]);
+        assert!(
+            p.typed(Tab::Tree, &format!("{EDIT_TAG}1"), "verified", now)
+                .is_empty(),
+            "replaced"
+        );
+        assert_eq!(
+            p.typed(Tab::Tree, &format!("{EDIT_TAG}2"), "verified", now),
+            [Effect::Edit {
+                tab: Tab::Tree,
+                tag: format!("{EDIT_TAG}2"),
+                args: ["set", "--", "REQ-001", "status=verified"]
+                    .map(String::from)
+                    .to_vec(),
+                stdin: None,
+            }]
+        );
+        // A view never hears the flow's answers.
+        p.set_view(Tab::Check, Box::<Flow>::default());
+        keys(&mut p, "9", now);
+        assert!(
+            key(&mut p, Key::Char('s'), now).is_empty(),
+            "Check's rows have no item"
+        );
+        assert_eq!(foot_line(&mut p, now), "no item here");
+        // Nothing read: said, nothing asked.
+        let reading = Now {
+            state: State::Loading,
+            loads: 0,
+            config: Err("none"),
+            settled: true,
+        };
+        assert!(key(&mut p, Key::Char('n'), reading).is_empty());
+        assert_eq!(
+            foot_line(&mut p, reading),
+            "the project isn't read yet: edits wait for it"
         );
     }
 

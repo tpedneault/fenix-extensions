@@ -23,4 +23,4 @@ TASK-001  Set up the logger
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab
+H L move  Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

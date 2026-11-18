@@ -23,4 +23,4 @@ TASK-008    Tidy the build scripts     todo     ready
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab
+Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

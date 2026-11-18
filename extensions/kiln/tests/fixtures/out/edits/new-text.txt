@@ -1,0 +1,1 @@
+design/risks/RISK-002-power-fails-mid-write.md

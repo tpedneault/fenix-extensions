@@ -23,5 +23,5 @@
 
 
   ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  «accent:Enter» «muted:open»  «accent:/» «muted:filter»  «accent:a» «muted:show closed»  «accent:v» «muted:item»  «accent:i» «muted:impact»  «accent:r» «muted:reload»  «accent:Tab» «muted:next tab»
+  «accent:Enter» «muted:open»  «accent:/» «muted:filter»  «accent:a» «muted:show closed»  «accent:s» «muted:status»  «accent:E» «muted:edits»  «accent:v» «muted:item»  «accent:i» «muted:impact»  «accent:r» «muted:reload»  «accent:Tab» «muted:next tab»
 [more keys, mouse]

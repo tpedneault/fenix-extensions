@@ -70,7 +70,7 @@ own: show it as a `Row::note`. Only the tab shown asks.
 ## Keys
 
 The frame owns `j k ↓ ↑ g G Home End C-d C-u PgUp PgDn Tab S-Tab ] [ 1–9
-/ Enter r a v i`; Fenix owns `q`, `Esc` and Space, and keeps its own
+/ Enter r a v i` and the edits' `s l U n N E H L`; Fenix owns `q`, `Esc` and Space, and keeps its own
 chords from every page -- Ctrl+O and Ctrl+I among them (its jump list),
 so a tab can't rely on them (in a terminal `C-i` is `Tab` anyway).
 Everything else is yours: match on `key.key`, `key.mods.ctrl`. Return
@@ -78,8 +78,10 @@ Everything else is yours: match on `key.key`, `key.mods.ctrl`. Return
 line, `Reply::Ignored` otherwise.
 
 Taken by tabs now: Trace `m` `T`, Changes `b`, Item `<` `>` (and `C-o`
-`C-i` when they arrive), Check `e`. Kept for the edits (E2), on every tab:
-`s` `l` `U` `n` `N`, and `H` `L` on the Board.
+`C-i` when they arrive), Check `e`. The edits are the frame's, on every
+tab: `s` `l` `U` `n` `N` `E`, and `H` `L` (Board only). The frame runs
+their flows (`src/edit.rs`) on the row's `id`, so a row that is an item
+gets them with nothing more; a row without one says "no item here".
 
 ## Asking the user, and editing
 
@@ -112,7 +114,8 @@ kiln's stdout (`REQ-014: status draft → approved`), or its error line
 replaces it. The project is read again after every edit, whether kiln
 changed anything or refused. Your rows are built again after every
 answer, whatever you reply. Tag answers you can tell apart: the tag is
-all that says which step an answer is for.
+all that says which step an answer is for. Tags starting `kiln.edit#` are
+the frame's own edit flows: don't use it.
 
 ## Tests
 

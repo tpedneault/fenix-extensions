@@ -27,4 +27,4 @@ MS-021  K20: one-page documents read top-down, requirements as one tree  done  u
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  a show closed  v item  i impact  r reload  Tab next tab
+Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

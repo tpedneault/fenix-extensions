@@ -13,18 +13,19 @@
 //! can't know: a type that has `done` statuses but no item at one yet and
 //! no work in the plan is left out, until one is.
 //!
-//! The order of the statuses. `list` doesn't give a type's statuses in
-//! their order, and nothing in the loaded project does, so the order is by
-//! meaning ([`Meaning`]: initial, in progress, blocked, done, closed), then
-//! by name within a meaning. Two in-progress statuses (`doing`, `review`)
-//! therefore come in alphabetical order, not the type's. A type's
-//! statuses in order (`kiln list` or `show` carrying them) would fix it:
-//! reported as needed from kiln.
+//! The order of the statuses: the type's own, from `kiln.toml`, when the
+//! extension could read it ([`crate::config`], through
+//! [`super::view::Looks::order`]). Without it -- `list` doesn't give a
+//! type's statuses in order -- by meaning ([`Meaning`]: initial, in
+//! progress, blocked, done, closed), then by name within a meaning, so two
+//! in-progress statuses (`doing`, `review`) come in alphabetical order. A
+//! status `kiln.toml` doesn't list (kiln's check reports it) comes after
+//! the type's, by meaning.
 //!
 //! What it deliberately doesn't do: recompute ready or waiting (it takes
 //! them from `kiln status`'s groups, [`crate::project::Loaded::groups`],
 //! the definition `kiln next` shares), ask kiln anything, or move an item
-//! between statuses (`H`/`L` are editing, a later task).
+//! between statuses (`H`/`L` are the frame's, [`crate::edit`]).
 
 use std::collections::{HashMap, HashSet};
 
@@ -71,7 +72,8 @@ impl View for Board {
         }
 
         // Types in kiln's order (as the items first show them), then
-        // statuses by meaning, then name.
+        // statuses in the type's order when it's known, else by meaning,
+        // then name.
         let mut first_of_kind: HashMap<&str, usize> = HashMap::new();
         for (n, b) in buckets.iter().enumerate() {
             first_of_kind.entry(b.kind).or_insert(n);
@@ -84,7 +86,12 @@ impl View for Board {
         let mut order: Vec<usize> = (0..buckets.len()).collect();
         order.sort_by_key(|&n| {
             let b = &buckets[n];
-            (first_of_kind[b.kind], meaning(b).rank(), b.status)
+            (
+                first_of_kind[b.kind],
+                ctx.looks.order(b.kind, b.status).unwrap_or(usize::MAX),
+                meaning(b).rank(),
+                b.status,
+            )
         });
 
         let mut rows = Vec::new();
@@ -156,8 +163,9 @@ fn row(item: &Item, mark: Option<&Mark>) -> Row {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::{self, Config};
     use crate::model::{self, tests::fixture};
-    use crate::pages::view::{Kind, Looks};
+    use crate::pages::view::{Kind, Looks, Meaning};
     use crate::project::Loaded;
     use crate::tests::{at, demo, foot, opened, own};
     use fenix_test_kit::assert_snapshot;
@@ -172,7 +180,11 @@ mod tests {
     }
 
     fn rows(l: &Loaded, closed: bool) -> Vec<String> {
-        let looks = Looks::new(l);
+        rows_with(l, closed, None)
+    }
+
+    fn rows_with(l: &Loaded, closed: bool, config: Option<&Config>) -> Vec<String> {
+        let looks = Looks::with(l, config);
         let ctx = Ctx {
             loaded: l,
             closed,
@@ -276,6 +288,63 @@ mod tests {
                 "S-2 | b |  | "
             ],
             "no risks (no done status seen), no milestones"
+        );
+    }
+
+    #[test]
+    fn with_kiln_toml_statuses_come_in_the_types_order() {
+        let list = r#"[
+          {"id":"S-1","type":"story","title":"a","status":"building","done":false,"closed":false},
+          {"id":"S-2","type":"story","title":"b","status":"review","done":false,"closed":false},
+          {"id":"S-3","type":"story","title":"c","status":"shipped","done":true,"closed":false},
+          {"id":"S-4","type":"story","title":"d","status":"sketch","done":false,"closed":false}
+        ]"#;
+        let l = Loaded::new(
+            model::Version::parse("kiln 1.0.0").unwrap(),
+            model::list(list).unwrap(),
+            Err("none".into()),
+            Ok(vec![]),
+        );
+        let headings = |r: Vec<String>| -> Vec<String> {
+            r.into_iter().filter(|r| r.starts_with("# ")).collect()
+        };
+        // Without it: by meaning, then name -- `building` before `review`,
+        // and `sketch` isn't known to be first.
+        assert_eq!(
+            headings(rows(&l, false)),
+            [
+                "# building | 1 item",
+                "# review | 1 item",
+                "# sketch | 1 item",
+                "# shipped | 1 item"
+            ]
+        );
+        let c = config::parse(
+            "format = 1\n[types.story]\nprefix = \"S\"\nstatuses = [\"sketch\", \"review\", \"building\", \"shipped\"]\ndone = [\"shipped\"]\n",
+        )
+        .unwrap();
+        assert_eq!(
+            headings(rows_with(&l, false, Some(&c))),
+            [
+                "# sketch | 1 item",
+                "# review | 1 item",
+                "# building | 1 item",
+                "# shipped | 1 item"
+            ]
+        );
+        // And `sketch` means first: kiln.toml's initial.
+        let looks = Looks::with(&l, Some(&c));
+        assert_eq!(
+            looks.meaning("story", "sketch", false, false),
+            Meaning::Initial
+        );
+        assert_eq!(
+            looks.meaning("story", "shipped", false, false),
+            Meaning::Done
+        );
+        assert_eq!(
+            Looks::new(&l).meaning("story", "sketch", false, false),
+            Meaning::InProgress
         );
     }
 

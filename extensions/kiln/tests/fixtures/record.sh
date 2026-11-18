@@ -17,8 +17,10 @@
 #              commands (init, new, set, link), so every state a page shows
 #              is in it -- see "The demo" below. Its source is committed so
 #              later tests can read it; this script is what makes it.
-#   out/own/   kiln's answers about Kiln's own project
+#   out/own/   kiln's answers about Kiln's own project, and its kiln.toml
 #   out/demo/  kiln's answers about the demo
+#   out/edits/ what the editing commands print, done and refused, run on
+#              a copy of the demo (see "The editing commands" below)
 #   out/version.txt, out/errors/   `kiln --version`, and two errors
 #
 # `lsp-languages` in out/demo/ and out/own/ is `kiln lsp --languages
@@ -192,6 +194,53 @@ rec "$out/errors" bad-id out show NOPE-1 --format json
 rec "$out/errors" bad-status out set TASK-001 status=finished
 rec "$out/errors" diff-unknown-rev out diff v9.9 --format json
 
+# -- The editing commands ----------------------------------------------------
+#
+# What each edit prints, done and refused, as the extension runs it: its
+# values as one argument each (`--title=…`, `--to=…`), `--` before the
+# positional ones, so a title or ID starting with `-` is never an option.
+# On a throwaway copy of the demo, so nothing recorded above changes, and
+# in this order (each edit sees the ones before it). out/edits/NAME.*.
+#
+# Not recordable from here: exit 1, "changed on disk", which needs a file
+# changed between kiln's read and its write; the tests write that line by
+# hand.
+edits="$tmp/edits"
+cp -r "$demo" "$edits"
+cd "$edits"
+e="$out/edits"
+rec "$e" set-status txt set -- TASK-003 status=doing
+rec "$e" set-status-unknown txt set -- TASK-003 status=finished
+rec "$e" set-parent-cycle txt set -- TASK-002 parent=TASK-007
+rec "$e" set-parent txt set -- TASK-008 parent=TASK-002
+rec "$e" set-parent-none txt set -- TASK-008 parent=
+rec "$e" set-due-bad txt set -- TASK-003 due=soon
+rec "$e" set-due txt set -- TASK-003 due=2030-01-31
+rec "$e" set-due-none txt set -- TASK-003 due=
+rec "$e" set-owner txt set -- TASK-008 owner=ana
+rec "$e" set-owner-none txt set -- TASK-008 owner=
+rec "$e" set-title-dash txt set -- TASK-008 "title=-v, a title like an option"
+rec "$e" set-title-empty txt set -- TASK-008 title=
+rec "$e" link txt link -- TASK-003 implements REQ-002
+rec "$e" link-twice txt link -- TASK-003 implements REQ-002
+rec "$e" link-wrong-source txt link -- REQ-001 verifies TEST-001
+rec "$e" link-inverse txt link -- TEST-001 verified-by REQ-001
+rec "$e" unlink txt unlink -- TASK-003 implements REQ-002
+rec "$e" unlink-missing txt unlink -- TASK-003 implements REQ-002
+rec "$e" new json new "--title=Write the manual" --format json -- task
+rec "$e" new-text txt new "--title=Power fails mid-write" -- risk
+rec "$e" new-child json new --parent=TASK-002 "--title=Index the readings" --format json -- task
+rec "$e" new-child-wrong json new --parent=REQ-001 --title=Misplaced --format json -- task
+rec "$e" new-unknown-type json new --title=x --format json -- nosuch
+# A title like an option, given safely, then as `--title VALUE` would
+# give it: clap takes it for an option and refuses.
+rec "$e" new-dash json new "--title=-v, a title like an option" --format json -- task
+rec "$e" new-dash-unsafe json new task --title "-v, a title like an option" --format json
+rec "$e" renumber txt renumber --to=TASK-020 -- TASK-008
+rec "$e" renumber-taken txt renumber --to=TASK-001 -- TASK-020
+rec "$e" renumber-prefix txt renumber --to=REQ-050 -- TASK-020
+rec "$e" renumber-dash txt renumber --to=-x -- TASK-020
+
 own="$tmp/kiln"
 git clone -q --no-checkout "$KILN_SOURCE" "$own"
 cd "$own"
@@ -200,6 +249,8 @@ rev="$(git rev-parse -q --verify "origin/$KILN_REV^{commit}" || git rev-parse --
 git checkout -q --detach "$rev"
 mkdir -p "$out/own"
 git rev-parse HEAD > "$out/own/commit.txt"
+# Its configuration, for the extension's own reading of kiln.toml.
+cp kiln.toml "$out/own/kiln.toml"
 record_project "$out/own" REQ-001 ADR-001 MS-002 TASK-001
 rec "$out/own" impact-REQ-001 json impact REQ-001 --format json
 

@@ -18,6 +18,7 @@ use std::collections::HashMap;
 
 use fenix_ui_kit::{KeyPress, Role, Style};
 
+use crate::config::{Config, Type};
 use crate::kiln::{Failure, Ran};
 use crate::model::Item;
 use crate::project::Loaded;
@@ -452,18 +453,28 @@ const INITIAL_NAMES: &[&str] = &[
     "draft", "todo", "to-do", "new", "open", "proposed", "planned", "idea", "backlog",
 ];
 
-/// What each type's first status is, as far as kiln says: `status` lists
-/// work that's ready, which is work at its first status, so a ready item's
-/// status is its type's. Built once a read ([`Looks::new`]); a type with
-/// no ready work falls back on the name (`draft`, `todo`...), since
-/// `list` doesn't give a type's statuses.
+/// What each type's statuses mean. From `kiln.toml` when it was read
+/// ([`crate::config`]): each type's statuses in order, its `initial`, its
+/// `done` and `closed`. Otherwise as far as kiln says: `status` lists work
+/// that's ready, which is work at its first status, so a ready item's
+/// status is its type's first; a type with no ready work falls back on
+/// the name (`draft`, `todo`...). Built once a read ([`Looks::new`],
+/// [`Looks::with`]).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Looks {
     initial: HashMap<String, String>,
+    /// `kiln.toml`'s types, by name.
+    kinds: HashMap<String, Type>,
 }
 
 impl Looks {
+    /// Without `kiln.toml`: from what kiln says alone.
     pub fn new(loaded: &Loaded) -> Looks {
+        Looks::with(loaded, None)
+    }
+
+    /// With `kiln.toml`'s types, when it was read: they say first.
+    pub fn with(loaded: &Loaded, config: Option<&Config>) -> Looks {
         let mut initial = HashMap::new();
         for group in loaded.groups() {
             for work in &group.ready {
@@ -474,25 +485,43 @@ impl Looks {
                 }
             }
         }
-        Looks { initial }
+        let kinds = config
+            .map(|c| {
+                c.types
+                    .iter()
+                    .map(|t| (t.name.clone(), t.clone()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        Looks { initial, kinds }
     }
 
-    /// What `status` means for an item of type `kind`.
+    /// What `status` means for an item of type `kind`; `done` and
+    /// `closed` as kiln said them of an item, when it did.
     pub fn meaning(&self, kind: &str, status: &str, done: bool, closed: bool) -> Meaning {
-        if closed {
+        let t = self.kinds.get(kind);
+        let has = |list: Option<&Vec<String>>| list.is_some_and(|l| l.iter().any(|s| s == status));
+        if closed || has(t.map(|t| &t.closed)) {
             Meaning::Closed
-        } else if done {
+        } else if done || has(t.map(|t| &t.done)) {
             Meaning::Done
         } else if status == "blocked" {
             Meaning::Blocked
-        } else if match self.initial.get(kind) {
-            Some(first) => first == status,
-            None => INITIAL_NAMES.contains(&status),
+        } else if match (t, self.initial.get(kind)) {
+            (Some(t), _) => t.initial == status,
+            (None, Some(first)) => first == status,
+            (None, None) => INITIAL_NAMES.contains(&status),
         } {
             Meaning::Initial
         } else {
             Meaning::InProgress
         }
+    }
+
+    /// Where `status` comes in type `kind`'s order, when `kiln.toml` was
+    /// read and has it.
+    pub fn order(&self, kind: &str, status: &str) -> Option<usize> {
+        self.kinds.get(kind)?.position(status)
     }
 }
 

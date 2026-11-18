@@ -16,7 +16,7 @@ page is in view; a read that fails keeps the last one on screen with
 kiln's line under it. When kiln isn't there, is too old, or finds no
 `kiln.toml`, every tab says so in kiln's own words.
 
-The tabs, read-only for now (editing comes next); statuses are coloured
+The tabs (each can edit the item under the cursor, below); statuses are coloured
 by what they mean for their type (done, in progress, first, blocked,
 closed), the same on every tab:
 
@@ -48,6 +48,26 @@ closed), the same on every tab:
   a row each; `v` on a row follows it, `<` and `>` go back and forward.
 - **Check**: `kiln check`'s findings under their file, in line order;
   `Enter` opens the line, `e` keeps the errors only.
+
+**Editing**, on every tab, on the item under the cursor: each edit is a
+pick or two and a prompt in Fenix's own picker and prompt, then **one**
+kiln command (`kiln set`, `link`, `unlink`, `new` or `renumber`); the
+extension never writes an item file. The bottom line shows what kiln
+printed (`TASK-003: status todo → doing`), or its refusal in the error
+look (a file changed on disk, a value kiln doesn't allow), and a value you
+typed is asked for again with what you typed (three times at most). The
+project is read again after every edit, and the cursor follows the item
+-- to its new ID after a renumber, to a new item, whose file opens. The
+choices come from the project and its `kiln.toml` (each type's statuses in
+order, which types may be a parent, the roles a type may start and what
+they may point at), read by the extension from the project's top when it
+loads, on `r`, and when `kiln.toml` is saved. They are only offered: kiln
+checks every edit. Without a `kiln.toml` it can read (or one above the
+project's folder), the status, the role and the target are typed instead,
+and `H`/`L` say why they can't. No edit starts while the project isn't
+read, its last read failed, or kiln is still reading the last edit back.
+With `kiln.toml` read, the Board's status headings come in each type's own
+order.
 
 On every tab, the cursor stays on the same item when the project is read
 again (or where it was, when that item went away), `/` narrows the rows as
@@ -107,6 +127,18 @@ On the plan:
 | `b` | Changes: the baseline, typed in Fenix's prompt |
 | `<`, `>` | Item: the item viewed before, after (Kiln's `C-o` and `C-i` are Fenix's own here) |
 | `e` | Check: errors only, or everything again |
+| `s` | Status: pick one of the item's type's statuses (the current one says `now`) |
+| `H`, `L` | Board: the previous / next status in the type's order (at the first or last, it says so) |
+| `l` | Link: pick a role its type may start, then a target the role allows that isn't linked yet |
+| `U` | Unlink: pick one of its links, then `yes` (`no` comes first) |
+| `n` | A new item: pick its type, type its title; its file opens |
+| `N` | A new child of the item: pick a type that may have it as parent, type its title; its file opens |
+| `E` | Every edit, in a pick: title, parent (an item of an allowed type, or none), owner, due date (`YYYY-MM-DD`; empty removes it), renumber (the next free ID offered, then `yes`), and the ones above |
+
+The bottom line shows `s status` and `E edits` only, to stay readable;
+`E`'s pick names each edit's own key. Kiln's GUI has title, parent, owner,
+due and renumber under `SPC e`, which a page in Fenix can't use (Space is
+Fenix's leader), so `E` stands for it.
 
 The mouse: a click on a tab shows it, on a row moves the cursor there, a
 double click opens it; the wheel moves three rows. `q` and `Esc` close the

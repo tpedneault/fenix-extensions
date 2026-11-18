@@ -240,6 +240,12 @@ impl<T> Kiln<T> {
         self.running.is_some() || !self.queue.is_empty()
     }
 
+    /// Whether a job running or waiting has a tag `is` says yes to (an
+    /// edit not yet done, say).
+    pub fn any(&self, is: impl Fn(&T) -> bool) -> bool {
+        self.running.iter().any(|r| is(&r.job.tag)) || self.queue.iter().any(|j| is(&j.tag))
+    }
+
     /// How many jobs wait, not counting the one running.
     pub fn waiting(&self) -> usize {
         self.queue.len()

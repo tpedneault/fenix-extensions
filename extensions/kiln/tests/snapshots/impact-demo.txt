@@ -23,4 +23,4 @@ TASK-007  child of TASK-002, implements REQ-001  Batch the writes
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  v item  i impact  r reload  Tab next tab
+Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

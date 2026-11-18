@@ -23,4 +23,4 @@ press b to set one: a tag, a branch or a commit (v1.0, main, 1a2b3c4), or A..B f
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-b baseline  Enter open  / filter  v item  i impact  r reload  Tab next tab
+b baseline  Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

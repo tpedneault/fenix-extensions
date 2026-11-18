@@ -23,6 +23,9 @@
 //! ([`pages::frame::Effect`]) is Fenix's own, asked here, and its answer
 //! routed back to the page, tab and view that asked ([`Asker`]); a tab's
 //! edit runs through the project's queue like a query ([`For::Edit`]).
+//! The edits' flows ([`edit`]) offer choices from the project's
+//! `kiln.toml`, read here ([`Kiln::read_config`]) when the extension
+//! loads, on `r`, and when `kiln.toml` is saved.
 //! The commands that start in a buffer (`kiln.show`, `kiln.impact`,
 //! `kiln.find`) take what `here()` and `cursor()` say as they run
 //! ([`spot`]) and act once the project is read ([`Wanted`]).
@@ -32,7 +35,9 @@
 //! from the start, not only once a page opens, and deciding it needs kiln
 //! found and the project read.
 
+pub mod config;
 pub mod doctor;
+pub mod edit;
 pub mod kiln;
 pub mod lsp;
 pub mod model;
@@ -150,11 +155,30 @@ struct Kiln {
     wanted: Option<Wanted>,
     /// The project's folder when it isn't [`PROJECT`]: a test's.
     root: Option<PathBuf>,
+    /// `kiln.toml` as last read ([`config`]), or why it couldn't be;
+    /// `None` before the first read.
+    config: Option<Result<config::Config, String>>,
     /// The language server's inputs moved (a save, `r`, another kiln)
     /// without the project saying anything: decide it on the next
     /// [`Kiln::pass_on`].
     decide: bool,
     told: Told,
+}
+
+/// The project now, for a page: its state, its reads, `kiln.toml`, and
+/// whether every edit has been read back. A function of the two fields,
+/// not a method, so a page (another field) can be borrowed beside it.
+fn now_of<'a>(project: &'a Project, config: &'a Option<Result<config::Config, String>>) -> Now<'a> {
+    Now {
+        state: project.state(),
+        loads: project.loads(),
+        config: match config {
+            Some(Ok(c)) => Ok(c),
+            Some(Err(why)) => Err(why.as_str()),
+            None => Err("kiln.toml hasn't been read yet"),
+        },
+        settled: project.settled(),
+    }
 }
 
 impl Kiln {
@@ -173,6 +197,9 @@ impl Kiln {
     /// Not on every call: a line of kiln's output brings no notice, and
     /// deciding looks for the kiln program.
     fn pass_on(&mut self) {
+        if self.config.is_none() {
+            self.read_config();
+        }
         let mut changed = false;
         let mut decide = std::mem::take(&mut self.decide);
         // Anything that can move what Fenix is told: not a line of kiln's
@@ -197,10 +224,7 @@ impl Kiln {
                             }
                         }
                         Some(For::Edit { page, tab, tag }) => {
-                            let now = Now {
-                                state: self.project.state(),
-                                loads: self.project.loads(),
-                            };
+                            let now = now_of(&self.project, &self.config);
                             if let Some(p) = self.pages.get_mut(&page) {
                                 let effects = p.plan.edited(tab, &tag, &result, now);
                                 pages_api::refresh(page);
@@ -359,9 +383,43 @@ impl Kiln {
         }
     }
 
-    /// `r`, `kiln.reload`: the project read again, and the language
-    /// server's languages and tools.json looked at again.
+    /// The project's `kiln.toml`, read for the edits' choices: kept, and
+    /// the pages told when it differs from what was read before. One that
+    /// isn't at the project's top, is too large or can't be read is
+    /// [`Err`] with why, and the edits ask for values as text.
+    fn read_config(&mut self) {
+        let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
+        let path = root.join("kiln.toml");
+        let read = match std::fs::metadata(&path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Err("there's no kiln.toml at the project's top".to_string())
+            }
+            Err(e) => Err(format!("kiln.toml can't be read: {e}")),
+            Ok(m) if m.len() > config::MAX_KILN_TOML => Err(format!(
+                "kiln.toml is over {} KiB",
+                config::MAX_KILN_TOML / 1024
+            )),
+            Ok(_) => match std::fs::read_to_string(&path) {
+                Ok(text) => config::parse(&text),
+                Err(e) => Err(format!("kiln.toml can't be read: {e}")),
+            },
+        };
+        if self.config.as_ref() != Some(&read) {
+            let first = self.config.is_none();
+            self.config = Some(read);
+            if !first {
+                for (&id, p) in self.pages.iter_mut() {
+                    p.plan.reconfigure();
+                    pages_api::refresh(id);
+                }
+            }
+        }
+    }
+
+    /// `r`, `kiln.reload`: the project read again, its `kiln.toml` too,
+    /// and the language server's languages and tools.json looked at again.
     fn reload(&mut self) {
+        self.read_config();
         self.lsp.again();
         self.decide = true;
         self.project.reload(Why::Asked);
@@ -375,10 +433,7 @@ impl Kiln {
     /// What each page in view wants asked of kiln, asked: whether any was.
     /// A page out of view asks once it's shown again.
     fn ask_for_pages(&mut self) -> bool {
-        let now = Now {
-            state: self.project.state(),
-            loads: self.project.loads(),
-        };
+        let now = now_of(&self.project, &self.config);
         let mut wanted = Vec::new();
         for (&page, p) in self.pages.iter_mut().filter(|(_, p)| p.shown) {
             wanted.extend(p.plan.wants(now).into_iter().map(|a| (page, a)));
@@ -391,16 +446,8 @@ impl Kiln {
                 tag: ask.tag.clone(),
             };
             let id = self.ask(ask.args.clone(), who);
-            let loads = self.project.loads();
             if let Some(p) = self.pages.get_mut(&page) {
-                p.plan.asked(
-                    &ask,
-                    id,
-                    Now {
-                        state: self.project.state(),
-                        loads,
-                    },
-                );
+                p.plan.asked(&ask, id, now_of(&self.project, &self.config));
             }
         }
         asked
@@ -409,10 +456,10 @@ impl Kiln {
     /// Something done on plan page `page` -- a key, a click -- and what it
     /// asks of Fenix done.
     fn on_page(&mut self, page: u64, act: impl FnOnce(&mut Plan, Now) -> Vec<Effect>) {
-        let now = Now {
-            state: self.project.state(),
-            loads: self.project.loads(),
-        };
+        if self.config.is_none() {
+            self.read_config();
+        }
+        let now = now_of(&self.project, &self.config);
         let Some(p) = self.pages.get_mut(&page) else {
             return;
         };
@@ -470,10 +517,7 @@ impl Kiln {
         let (Some(who), Some(answer)) = (self.answers.remove(&id), answer) else {
             return;
         };
-        let now = Now {
-            state: self.project.state(),
-            loads: self.project.loads(),
-        };
+        let now = now_of(&self.project, &self.config);
         match who {
             Asker::View { page, tab, tag } => {
                 let Some(p) = self.pages.get_mut(&page) else {
@@ -678,6 +722,9 @@ impl Extension for Kiln {
     }
 
     fn file_saved(&mut self, path: &str) {
+        if std::path::Path::new(path).file_name() == Some(std::ffi::OsStr::new("kiln.toml")) {
+            self.read_config();
+        }
         self.lsp.saved(path);
         self.decide = true;
         self.project.saved(path);
@@ -689,10 +736,7 @@ impl Extension for Kiln {
             doctor: api::key_for("project.doctor"),
             settings: api::key_for("settings.open"),
         };
-        let now = Now {
-            state: self.project.state(),
-            loads: self.project.loads(),
-        };
+        let now = now_of(&self.project, &self.config);
         let Some(p) = self.pages.get_mut(&page) else {
             return Page::new().line([pages_api::muted("this page was closed")]);
         };
@@ -840,7 +884,7 @@ pub(crate) mod tests {
         fake
     }
 
-    fn spawned(fake: &Fake) -> Vec<String> {
+    pub(crate) fn spawned(fake: &Fake) -> Vec<String> {
         fake.take()
             .into_iter()
             .filter_map(|l| {
@@ -1247,14 +1291,14 @@ pub(crate) mod tests {
 
     /// A project folder of the test's own, for `.fenix/tools.json`: empty
     /// at first.
-    fn folder(name: &str) -> PathBuf {
+    pub(crate) fn folder(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("fenix-kiln-{}-{name}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join(".fenix")).unwrap();
         dir
     }
 
-    fn harness(fake: &Fake, dir: &std::path::Path) -> Harness<Kiln> {
+    pub(crate) fn harness(fake: &Fake, dir: &std::path::Path) -> Harness<Kiln> {
         Harness::wrap(
             fake.clone(),
             Kiln {

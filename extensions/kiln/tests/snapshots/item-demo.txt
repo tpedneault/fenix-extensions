@@ -23,4 +23,4 @@ child         REQ-002   Logged readings survive a power cut  draft
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Enter open  / filter  v item  i impact  r reload  Tab next tab
+Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab
