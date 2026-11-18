@@ -1,0 +1,62 @@
+id = "kiln.plan"
+track = "Kiln"
+order = 1
+title = "The plan of a Kiln project"
+about = "Open a project's plan, move between its tabs, find an item, and see how a status is set -- without changing anything. Done in a Kiln project of yours (kiln init makes one) with the kiln program installed; s on the tutorial page skips a step that needs it."
+text = """
+Kiln keeps a project's requirements, decisions, milestones, tasks and
+tests as Markdown. Its plan is one page with a tab per view. The folder
+you have open needs a kiln.toml and the kiln program (1.0.0 or later) on
+the PATH, or in the setting kiln.path (SPC ,). Without them the plan opens
+and says what is missing, and s on the tutorial page skips what needs kiln.
+
+SPC m o   the plan
+SPC m f   find an item, by its ID or its title
+
+On the plan:
+  Tab ]  S-Tab [   the next, the previous tab
+  1 to 9, 0        a tab by its number: 1 Tree, 4 Board, 5 Roadmap,
+                   9 Check, 0 Exports
+  j k              down, up         /  narrows the rows as you type
+  v                the item under the cursor, on the Item tab
+  s                its status: pick one (Esc leaves it as it is)
+  Enter            open the item's file          q  close the plan
+
+Nothing here edits a file: a status you pick is kiln set, run by kiln,
+and the lesson puts it away before it runs.
+"""
+
+[[step]]
+say = "SPC m o: the plan of the project."
+hint = "Space, m, o. Without a kiln.toml in the folder, or without kiln, the page opens and says so; the steps after it need both, and s on the tutorial page skips them."
+page = "fenix.kiln/plan"
+
+[[step]]
+say = "Look around: Tab and ] go to the next tab, 1 to 9 pick one, j and k move, / narrows the rows as you type (Esc clears it), v on an item shows it on the Item tab. When you have seen enough, q closes the plan."
+hint = "Try 4 for the Board and 5 for the Roadmap, then q on the page."
+closed = "fenix.kiln/plan"
+
+[[step]]
+say = "SPC m f: find an item, wherever you are. Start typing a title."
+hint = "Space, m, f. It lists every item with its ID, title and status; it needs kiln and a kiln.toml, and s on the tutorial page skips this."
+picker = "any"
+
+[[step]]
+say = "Enter on one: the plan opens on that item, on the Item tab."
+hint = "Enter on a row. Esc would put the list away and the step would wait."
+page = "fenix.kiln/plan"
+
+[[step]]
+say = "1 for the Tree, j or k to a task, then s: the statuses its type has, in order, the current one marked."
+hint = "1, then j and k to a task (or / and a few letters), then s. Where there is no item, s says so."
+picker = "any"
+
+[[step]]
+say = "Esc: nothing is changed. Enter on a status would have run kiln set on that item, and kiln would have written its file."
+hint = "Esc, in the list."
+picker = "none"
+
+[[step]]
+say = "q closes the plan. Your tabs, cursors and filters come back with it next time."
+hint = "q, on the plan."
+closed = "fenix.kiln/plan"

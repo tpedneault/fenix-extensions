@@ -2,19 +2,111 @@
 
 ## 1.0.0
 
-- The first release, for Fenix 1.6 (extension API 1.5): a folder with a `kiln.toml` is a Kiln project (`KILN`), with `Kiln: open the plan` and `Kiln: read the project again`, the settings `kiln.path` and `kiln.refresh_seconds`, and an `SPC m` menu. The plan page says the project's state: kiln found (1.0.0 or later) or how to set `kiln.path`, the project's items, milestones' progress and findings, or kiln's error as it wrote it; it's read again on `r`, a save, a new git head, and while in view every `kiln.refresh_seconds`. Kiln's language server (`kiln lsp`) is registered as the project loads, for the languages `kiln lsp --languages` names, or Markdown only with a kiln that doesn't have it (1.0.0), said once on the output page; none when `.fenix/tools.json` already runs kiln, in either form; set again only when the languages or the kiln change, and taken away when kiln is missing, too old or finds no `kiln.toml`. The plan is one page with a tab per view, in Kiln's GUI's order, the project's name and the check's errors on its top line: Tree (every open item nested by `parent` under a heading per type, statuses coloured by what they mean, closed items on `a`) is the first; on every tab the cursor stays on its item across reloads, `/` filters as you type, `Enter` opens the item's file at its line, the mouse clicks and scrolls, and the tab, cursors, filters and `a` are kept with the session. A failed reload keeps the last read on screen with kiln's line; kiln missing, too old, or no `kiln.toml` is said on every tab.
-- The project doctor has Kiln's rows: kiln and its version (when it isn't found, how to install it and what `kiln.path` holds, with a fix row, `Kiln: how to install kiln`, that opens Kiln's install page; nothing is downloaded), `kiln.toml` read or kiln's error line, the language server, and the last `kiln check`'s counts with a fix row that opens the plan. Tasks `kiln: check`, `kiln: export --check` and `kiln: export` (none publishes to Confluence), offered in a usable Kiln project. The modeline says the last check's findings (`kiln 1 error, 2 warnings`) and nothing when there are none. Each is given to Fenix again only when it changes.
-- The plan's other tabs, read-only: Trace (`kiln trace`, a column per coverage role, `gap`; `m` only gaps, `T` the next type), Impact (`kiln impact` of the item `i` was pressed on), Board (work by status, `ready`, `waits on …`, `· owner`; closed statuses on `a`), Roadmap (milestones by due date with `kiln status`'s progress and their open work; closed milestones on `a`), Decisions (the log, `supersedes` both ways), Changes (`kiln diff` since a baseline `b` asks for in Fenix's prompt; none until given), Item (`kiln show`, `v` to follow, `<` `>` back and forward: Fenix keeps Ctrl+O and Ctrl+I) and Check (findings by file, `e` errors only). Board and Roadmap mark work the same way, and say nothing their status already says.
-- Editing on the plan, on every tab, on the item under the cursor: `s` status, `H`/`L` the previous / next status on the Board, `l` link, `U` unlink, `n` a new item (its file opens), `N` a new child, and `E` for every edit (title, parent, owner, due date, renumber too). Each is picks and prompts in Fenix's own picker and prompt, then one kiln command (`set`, `link`, `unlink`, `new`, `renumber`), each value one argument that can't be read as an option; kiln's line is shown as it printed it, a refused typed value is asked again with what was typed, and the cursor follows the item. The choices come from the project and its `kiln.toml`, read from the project's top (on load, `r`, and when it's saved); without it, values are typed. With it, the Board orders its statuses as each type does.
-- Commands from a buffer: `Kiln: show the item under the cursor` (`SPC m v`) and `Kiln: impact of the item under the cursor` (`SPC m i`) take the ID under the cursor that the project has, else the item whose file it is, else say what they looked at; `Kiln: find an item` (`SPC m f`) is Fenix's picker over every item.
-- The edits from a buffer, on the item under the cursor (the ID the project has, else the item whose file it is; else the message line says what was looked at): `Kiln: set the status of the item here` (`SPC m s`), `Kiln: link the item here to another` (`SPC m l`), `Kiln: remove a link of the item here` (`SPC m U`), `Kiln: new item` (`SPC m n`, needs no item), `Kiln: new child of the item here` (`SPC m N`) and `Kiln: edit the item here…` (`SPC m E`, the menu of every edit). The same flows as the plan's keys, in Fenix's picker and prompt, each ending in one kiln command; kiln's line (or its refusal, with a typed value asked again) goes to the message line and a new item opens. One flow at a time, started again replaces it and a late answer is dropped; none starts while the project isn't usable. `kiln.show` moved from `SPC m s` to `SPC m v`, the plan's own key, so `s` is status here as on the page.
-- The Exports tab (`0`): `kiln export --dry-run` for each `[[export]]`, asked one target at a time so a Confluence target kiln can't plan (no token, no server) shows kiln's line under its heading while the others show theirs; the target's line as a heading, what would change (`would create`, `would update`, `would remove`, `unchanged`), `leaves out`, and for Confluence the plan's operations, reasons, totals, warnings and refusals, in kiln's words. Read when the tab is first shown and on `R`, not on every reload, with up to 10 minutes for kiln; a dry run read before the project changed says so. `w` writes the file target under the cursor and `W` every file target, each named (`kiln export --format json -- NAME…`, never a bare `kiln export`, which would plan the Confluence targets too); the outcome said, the target read again, no reload.
-- Publishing from the Exports tab: `P` on a Confluence target whose current plan isn't refused and has something to do shows the pages it writes, the space and the parent page by ID and title, and publishes only when the target's name is typed exactly, with `kiln export --yes --format json -- NAME` (one target). kiln's own outcome is shown (`applied`, and when its plan as it published differed from the one shown), its refusal or line as it is, and a network error says the next publish finishes what this one started. One publish at a time for the extension, said on every tab's bottom line; it may run two hours and isn't stopped when `kiln.path` changes or its page closes. `A` runs `kiln auth confluence` in a terminal pane: the extension never sees a token. Never `--force`, `--adopt`, `--prune-removed` or `--allow-shallow`, and no publishing as a task, command or agent tool. The Comments tab is registered (E3.3 fills it); the tab bar marks tabs past its end with `›`.
-- The Comments tab: `kiln confluence comments --format json`, a heading per Confluence target as kiln words it, under it the items with comments (an item row: `Enter` opens its file, `v` and `i` work) and their comments, author, date and the text's first line; a comment about the page as a whole under the page's name; `o` opens the comment in the browser (a new `Reply::Url` in the page frame, routed to Fenix's `open_url`, refusing anything but an `http(s)` link twice over). Read when the tab is first shown and on `R`, up to 10 minutes, `reading… (asks Confluence)` meanwhile; kiln fails as a whole, so a failure is kiln's line for the tab, with `A` opening `kiln auth confluence` for a missing token; no Confluence target in `kiln.toml`: the tab says so and asks nothing. Comment text is shown as plain text on one line, never interpreted.
-- Jira: with `[jira] url`, every item row on every tab ends with its tickets (`FLINT-12 In Review · Alice`, good when resolved, muted otherwise, `FLINT-12 ?` for an unknown key), from `kiln list --jira`, read apart from the project's reload as a background job that any reload, edit or dry run stops and takes the place of: once after the first read, then no sooner than ten minutes (kiln's own cache), at once on `r`; a slow or absent Jira never holds up or fails a reload, a failure is said once on the bottom line, with `A` opening `kiln auth jira` for a missing token. With `[jira] project`, Exports ends with a `jira` target, `kiln jira sync --dry-run` as kiln prints it (kiln 1.0.0 has no JSON for it: its lines as they are, refusals in the bad look); `P` on it asks for the Jira project key typed exactly and runs exactly `kiln jira sync --yes` (one publish at a time with Confluence's, up to two hours, shown prominently when files gained ticket keys to commit, and exit 3 says the keys written are to be committed), then reads the project and the plan again. `J` on an item takes its status from its ticket (`kiln jira pull -- ID`, through the edit routing, nothing to confirm).
-- The `kiln: export` and `kiln: export --check` tasks name the project's file targets (`kiln export -- NAME…`, titled `(file targets only)`) instead of running a bare `kiln export`, which in a project with a Confluence target plans it against the live space (so failed with no token before writing any file, and would ask to publish in a terminal pane); no task can name a Confluence target, and neither is offered when `kiln.toml` can't be read or names no file target.
-- Tools for coding agents, the `kiln` toolset: `kiln_next`, `kiln_status`, `kiln_list` (no bodies), `kiln_show`, `kiln_trace`, `kiln_impact` and `kiln_check` (class `read`, offered by default), each one fixed `kiln … --format json` through the extension's queue, answered later and cancellable, never reloading or touching a page; answers are kiln's JSON marked as data, every string's control and invisible characters taken out, `kiln_show`'s body in a field of its own that says it's data, not instructions, and at most 64 KiB, a list cut on an item's boundary with how many were left out and how to narrow. `kiln_set` (status, owner, due, title), `kiln_link` and `kiln_new` (with parent, links, tags and a body on stdin) are class `run` -- kiln writes the files, so they don't go through Agent changes -- asked about by Fenix's default rules, off until `fenix.kiln.agent_edits` is on, and refusing a sign-off status (`[signoff]` in `kiln.toml`, read now, else Kiln's defaults) or a type that starts at one. Every input is checked first (IDs, words) and passed inside one argument or after `--`, through the same argument builders as the plan's edits; a field a tool doesn't take is an error naming it; while a publish or the Jira sync runs, every tool answers at once that kiln is busy. Nothing unlinks, renumbers, exports, publishes, syncs or signs in.
-- Titles after IDs: in the files of the project that panes show, after an item ID the project lists, its title (cut at 40 characters) and status, muted, the status coloured by its meaning -- `[[REQ-014]] · Export as CSV · approved`, after a mention's `]]` or a quoted ID's quote. Whole words only: not inside a file name, a path or a URL, not on an item's own `id` line or a line that already has the title; unknown IDs are left to `kiln check`. Worked out for the lines in view (and a margin) when the view moves, a shown file changes (once typing stops) and a read loads, for every shown buffer; files over 4 MiB aren't; taken away when kiln or the project is lost, kept across an ordinary reload. The setting `kiln.decorations` (on) turns them off at once. The manifest asks for the `view` and `changed` events; permissions are unchanged.
-- Start working on this: `S` on the plan and `Kiln: start working on the item here` (`SPC m S`) run `kiln set -- ID owner=… status=…` in one command through the edit path (the status is the type's first after its initial one that isn't done, closed, `blocked` or a sign-off; an item already started keeps its status; the owner is set only for an unowned item and only when the setting `kiln.owner` names you -- never guessed from git or the environment; nothing is guessed when `kiln.toml` can't be read), then clock in on the Agenda extension's task for the item: found by one of its Jira keys, else by a title that starts with its ID, else made with `agenda.add_task` (title `ID Title`, the item's file and line) and found again to be clocked into with `agenda.clock_in`. The line says both (`TASK-004: status todo → doing; clocked in on "TASK-004 Add the export button"`). A refusal from kiln clocks nothing; without the Agenda extension only the status changes and the line says so plainly; if the agenda refuses or answers something unreadable, what it said is shown and the status stands. What clocking in does to a running clock is the agenda's (it closes it into a time entry); nothing is ever clocked out here. No new permission. The commands `kiln.start` and `kiln.findings` (`Kiln: open the plan's Check tab`, `SPC m c`; the doctor's fix row for `kiln check` now opens it) and the settings `kiln.owner` and `kiln.notify_errors`.
-- A **Kiln** section on Home with the work that is ready to start (at most four, earliest milestone first, `TASK-004  Add the export button  (MS-001)`, then `open the plan`; nothing ready is one row with the counts), picking one opens the plan on its Item tab; given to Fenix only when it changes and taken away when the folder isn't a Kiln project kiln can read. One notification when a save takes `kiln check` from no errors to at least one (`Kiln: 1 error after saving TASK-006-….md`, the first error as its body, an action that opens the Check tab), tagged so a newer one replaces it and dismissed when a check has no errors; not for the first read of a project with errors, errors that persist, warnings, or a read a git move, a timer, `r` or an edit asked for; `kiln.notify_errors` (on) turns it off.
-- One rule for other people's writing wherever it is shown -- every cell of every tab, the bottom line, the message line, Home, the doctor, the titles after IDs and the agents' answers: an escape sequence goes whole (a terminal hyperlink's hidden target with it), other control characters are spaces on one line, and invisible characters (bidi overrides, zero-width and tag characters) go. A message the extension gives reads `Kiln: …`, and kiln's own line as kiln wrote it (`kiln: …`), never `Kiln: kiln: …`; bad news is in the error look. `Enter` opens only a file under the project's folder. An edit kiln has started, a publish and the Jira sync run to their end when another kiln is chosen or the page closes, and what they did is said on the message line when their page is gone.
+The first release, for Fenix 1.6 (extension API 1.5). It runs the `kiln`
+program, 1.0.0 or later, and shows what kiln says; it never writes an item
+file itself.
+
+**Opening a Kiln project**
+
+- A folder with a `kiln.toml` at its top is a `KILN` project, with an `SPC
+  m` menu and the settings `kiln.path` and `kiln.refresh_seconds`.
+- Kiln's language server (`kiln lsp`) is registered as the project loads, for
+  the languages `kiln lsp --languages` names, or for Markdown only with a
+  kiln that doesn't have it (1.0.0), said once on the output page. None is
+  added when `.fenix/tools.json` already runs kiln, and it is taken away
+  when kiln is missing, too old or finds no `kiln.toml`.
+- The project doctor has Kiln's rows: kiln and its version (with a fix row
+  that opens Kiln's install page when it isn't found), `kiln.toml` read or
+  kiln's error, the language server, and the last `kiln check`'s counts with
+  a fix row that opens the plan.
+- Tasks `kiln: check`, `kiln: export --check` and `kiln: export`, the last
+  two naming the project's file targets only (`kiln export -- NAME…`); none
+  publishes to Confluence.
+- The modeline says the last check's findings (`kiln 1 error, 2 warnings`).
+- After an item ID in a file of the project, its title and status, muted
+  (`[[REQ-014]] · Export as CSV · approved`), for the lines in view, never
+  written into the file. `kiln.decorations` turns it off.
+
+**The plan**
+
+- `Kiln: open the plan` opens one page with eleven tabs: Tree, Trace, Impact,
+  Board, Roadmap, Decisions, Changes, Item, Check, Exports and Comments, in
+  Kiln's GUI's order, reached with `Tab`, `[` `]` or `1`–`9` and `0`. The
+  project's name and the check's errors are on its top line. It is read
+  again on `r`, on a save, on a new git head, and every
+  `kiln.refresh_seconds` while in view; a failed read keeps the last one on
+  screen with kiln's line.
+- Tree nests every open item by `parent`; Trace shows each requirement's
+  coverage and its gaps (`m`, `T`); Impact shows what reaches an item; Board
+  groups work by status, saying `ready`, `waits on …` and who claimed it;
+  Roadmap lists the milestones by due date with their progress and open
+  work; Decisions is the log with `supersedes` both ways; Changes is `kiln
+  diff` since a baseline `b` asks for; Item follows links with `v` and goes
+  back and forward with `<` `>`; Check lists the findings by file.
+- On every tab the cursor stays on its item across reloads, `/` filters as you
+  type, `Enter` opens the item's file at its line, the mouse clicks and
+  scrolls, and the tab, cursors, filters and `a` (closed items) are kept
+  with the session.
+- `Kiln: show the item under the cursor`, `Kiln: impact of the item under
+  the cursor` and `Kiln: find an item` work from any buffer (`SPC m v`,
+  `SPC m i`, `SPC m f`).
+
+**Editing**
+
+- On the plan, on the item under the cursor: `s` status, `H` / `L` the
+  previous / next status on the Board, `l` link, `U` unlink, `n` a new item
+  (its file opens), `N` a new child, and `E` for every edit, with title,
+  parent, owner, due date and renumber. The same edits are commands from a
+  buffer (`SPC m s l U n N E`). Each is picks and prompts in Fenix's own,
+  then one kiln command; kiln's line, or its refusal, is shown as it
+  wrote it. The choices come from the project's `kiln.toml`.
+- `S` and `Kiln: start working on the item here` (`SPC m S`) claim an item
+  (`kiln.owner`) and move it to its in-progress status, then clock in on the
+  Agenda extension's task for it, made when there is none. Without the
+  Agenda only the status changes, and the line says so.
+
+**Exports, Confluence and Jira**
+
+- The Exports tab (`0`) shows `kiln export --dry-run` for each target, one at
+  a time, so a Confluence target kiln can't plan shows kiln's line while the
+  others show theirs. `w` and `W` write file targets.
+- `P` on a Confluence target shows the pages it would write, and publishes
+  only when the target's name is typed exactly. `A` runs `kiln auth
+  confluence` in a terminal pane: the extension never sees a token. It
+  never passes `--force`, `--adopt`, `--prune-removed` or `--allow-shallow`.
+- The Comments tab shows the unresolved Confluence comments under each
+  target, by the item they are about; `o` opens one in the browser.
+- With `[jira] url`, every item row ends with its tickets, read apart from the
+  project's reload so a slow Jira never holds it up. `J` takes an item's
+  status from its ticket. With `[jira] project`, Exports ends with a `jira`
+  target, and `P` on it syncs after the Jira project key is typed.
+
+**For coding agents**
+
+- The `kiln` toolset: `kiln_next`, `kiln_status`, `kiln_list`, `kiln_show`,
+  `kiln_trace`, `kiln_impact` and `kiln_check`, offered by default, read
+  only, with answers marked as data and cut at 64 KiB on an item's
+  boundary.
+- `kiln_set`, `kiln_link` and `kiln_new`, class `run` (kiln writes the files,
+  so the change doesn't go through Agent changes), asked about by Fenix and
+  off until `fenix.kiln.agent_edits` is on. A sign-off status is refused:
+  that stays a person's call. Nothing unlinks, renumbers, exports,
+  publishes, syncs Jira or signs in.
+
+**Home and a notification**
+
+- A Kiln section on Home with the work that is ready to start, at most four,
+  earliest milestone first; picking one opens the plan on it.
+- One notification when a save takes `kiln check` from no errors to some,
+  with the first error and a way to open the Check tab. `kiln.notify_errors`
+  turns it off.
+
+**Safe by construction**
+
+- An edit kiln has started runs to its end, for up to ten minutes, even when
+  another kiln is chosen or the page is closed.
+- Other people's text, wherever it is shown (a title, a comment, kiln's
+  messages, an agent's answer), has escape sequences and invisible
+  characters taken out and is never interpreted.
+- Not tried yet in a running Fenix or against a real Confluence or Jira: see
+  "Known limits" in the README.

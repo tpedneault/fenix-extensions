@@ -2,7 +2,7 @@
 id = "fenix.kiln"
 name = "Kiln"
 version = "1.0.0"
-description = "A Kiln project in Fenix: its plan on pages, edits to its items, exports, and tools for coding agents, all by running the kiln program"
+description = "A Kiln project's plan in Fenix: its tree, board, roadmap and coverage on one page, status, links and new items edited in place, exports with Confluence and Jira, titles after IDs, the language server, and tools for coding agents -- all by running the kiln program"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tpedneault/fenix-extensions"

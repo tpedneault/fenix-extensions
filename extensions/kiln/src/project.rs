@@ -86,6 +86,13 @@ use crate::model::{self, Counts, Finding, Group, Item, Status, Version};
 /// terminal reloads even with no page in view.
 pub const GIT_POLL_MS: u32 = 2_000;
 
+/// How long an editing command may run: 10 minutes, as a dry run may.
+/// The queue's 60 seconds would kill a `kiln renumber` across many files
+/// on a slow disk part-way, leaving the project half renumbered, and an
+/// edit that is stopped is worse than one that waits (it runs to its end
+/// anyway when another kiln is chosen, [`Job::keep_running`]).
+pub const EDIT_MS: u32 = 10 * 60 * 1000;
+
 /// `kiln.refresh_seconds` when it's unset or not a number.
 pub const DEFAULT_REFRESH_SECONDS: u32 = 5;
 
@@ -597,7 +604,9 @@ impl Project {
         args: impl IntoIterator<Item = S>,
         stdin: Option<String>,
     ) -> QueryId {
-        let mut job = Job::new(args, Tag::Query { id: 0, edit: true }).keep_running();
+        let mut job = Job::new(args, Tag::Query { id: 0, edit: true })
+            .limit(EDIT_MS)
+            .keep_running();
         job.stdin = stdin;
         self.changes += 1;
         self.ask(job)
@@ -1577,6 +1586,45 @@ mod tests {
         settle(&fake, &mut p);
         assert_eq!(p.version().map(|v| v.minor), Some(1), "then the new kiln");
         assert!(p.settled());
+    }
+
+    /// The queue's 60 seconds would stop a renumber across many files
+    /// part-way: an edit has the longer limit, and is stopped only at it.
+    #[test]
+    fn an_edit_is_not_stopped_at_the_queues_sixty_seconds() {
+        let fake = demo();
+        let mut p = Project::default();
+        p.start();
+        settle(&fake, &mut p);
+        fake.on_spawn("kiln renumber", Run::running(""));
+        let timers_before = fake.timers().len();
+        let id = p.edit(["renumber", "--to=TASK-020", "--", "TASK-008"], None);
+        p.take_notices();
+        let edit_timers: Vec<u32> = fake.timers()[timers_before..]
+            .iter()
+            .map(|t| t.millis)
+            .collect();
+        assert!(
+            !edit_timers.contains(&crate::kiln::TIMEOUT_MS),
+            "no 60 s watchdog on an edit: {edit_timers:?}"
+        );
+        let watchdog = fake
+            .timers()
+            .iter()
+            .find(|t| t.millis == EDIT_MS)
+            .expect("an edit has its own limit")
+            .id;
+        assert_eq!(EDIT_MS, 600_000);
+        assert!(!fake.process("kiln renumber").unwrap().killed);
+        assert!(p.timer(watchdog), "the limit is the project's timer");
+        assert!(fake.process("kiln renumber").unwrap().killed);
+        assert!(
+            p.take_notices().iter().any(|n| matches!(
+                n,
+                Notice::Answer { id: i, result: Err(Failure::TimedOut(600)), .. } if *i == id
+            )),
+            "stopped at ten minutes, and said so"
+        );
     }
 
     #[test]

@@ -141,18 +141,144 @@ files to own so they don't collide.
 ## Needs checking (only Thomas can)
 
 Nothing here runs Fenix: every page is tested as text against a fake
-host. To be checked by hand, listed again in the pull request with steps:
+host, and kiln's answers are its real output, recorded from kiln 1.0.0
+(or hand-written from its source, `tests/fixtures/hand/`). To be checked
+by hand, listed again in the pull request with steps. As it stands after
+E6.1:
 
-- the extension in a real Fenix on Windows: activation on `kiln.toml`,
-  the project kind, the pages' look and keys in both key schemes;
-- the language server registered by the extension, and no second one in
-  a project that already ran `kiln init --fenix`;
-- a real Confluence publish and a Jira sync from the Exports page;
-- clock-in with the Agenda extension installed;
-- the screenshots, which need Fenix to take.
+**Fenix on Windows, and both key schemes**
+
+- activation on a `kiln.toml` and on a `kiln.*` command; the `KILN` project
+  kind in the hub, on Home and in the modeline (a Rust project with a
+  `kiln.toml` stays `RS`);
+- the pages' look and every key in Vim keys and in standard keys
+  (`Ctrl+K m …`); the mouse; Ctrl+O and Ctrl+I on the Item tab where Fenix
+  lets them through, and `<` `>` where it doesn't; `SPC m` and its keys.
+
+**The language server**
+
+- registered by the extension, with kiln 1.0.0 for Markdown only (completion,
+  hover, `gd`, `gr`, rename preview, diagnostics, code actions);
+- no second one in a project that already ran `kiln init --fenix`, and taking
+  over when the `.fenix/tools.json` entry is removed;
+- K.1 (`kiln lsp --languages`), written but never run against a kiln that has
+  it: the code languages once a kiln does.
+
+**Tasks and the quickfix**
+
+- `kiln: check`'s lines as quickfix entries; the two export tasks naming file
+  targets only; the doctor's rows and its fix rows; the modeline's counts.
+
+**The pages and their keys**
+
+- every tab on a real project, with kiln found, missing, too old, and in a
+  folder with no `kiln.toml`; the cursor kept across a reload; the session
+  restoring tabs, cursors and filters; two plan pages in two panes;
+- how large a project reads and draws, and how quickly.
+
+**Edits and an open buffer**
+
+- every edit on a real project, and what Fenix does with an item's file open
+  in a buffer when kiln rewrites it (re-read in place; `[disk]` with unsaved
+  edits); a refusal ("changed on disk") and the asking again; a renumber
+  across many files, now allowed ten minutes.
+
+**Exports, and a real Confluence**
+
+- the dry run of a Confluence target against Cloud and Data Center; a
+  publish from `P`, its refusal and its exit 3; `kiln auth confluence` in a
+  terminal pane; the Comments tab and `o` opening the browser; every
+  **verify** in Kiln's CONFLUENCE.md (Kiln's own list).
+
+**Jira**
+
+- tickets on the rows against Server or Data Center, with and without a
+  token (`A`); `J`; the `jira` target's dry run and a sync, including the
+  files that gain ticket keys and exit 3.
+
+**Agents**
+
+- the toolset offered in a real agent thread; the default rules allowing the
+  reads and asking about the edits, `y`/`Y`/`n`; `fenix.kiln.agent_edits`
+  off, then on; the change not in Agent changes; a sign-off status refused;
+  a cancelled call.
+
+**Decorations**
+
+- titles after IDs in item files and code, drawn beside the text, moving as
+  you type, following the view, and gone when kiln is lost.
+
+**The agenda**
+
+- "start working on this" with the Agenda extension installed (a task found
+  by its Jira key, by its title, made) and without it; a running clock
+  closed into a time entry.
+
+**Home and the notification**
+
+- the Kiln section on Home and picking a row; the notification after a save
+  that breaks the project, its action, its replacement and its dismissal.
+
+**The tutorial and the screenshots**
+
+- the lesson `kiln.plan` played through, with kiln and without (does `s`
+  skip every step that needs it; do the picker steps pass with the plan in
+  front?);
+- the screenshots, which need Fenix and kiln to take: only the first (titles
+  after IDs) is a script today. The plan's pages need `kiln.open` and
+  `kiln.findings` marked `external = true`, and a way for the control
+  channel to choose a tab (the Board, the Roadmap, Trace and Exports).
 
 ## Left out on purpose
 
 Downloading Kiln, Kiln's Home (Fenix has its own projects page), the
 Fenix gaps G4 and G7 (they need Fenix), publishing tools for agents, and
 Kiln's tasks as a tracker for the agenda (a candidate for 1.1).
+
+## As built (2026-11-18)
+
+Where the result differs from the plan above; the plan is left as it was
+approved.
+
+- **Fixtures** are under `tests/fixtures` (not `fixtures/`): `record.sh`,
+  the demo project it makes, kiln's recorded answers in `out/`, and
+  `hand/` for what no kiln here could print.
+- **The Tree** was built with the page frame (E1.1), not in E1.2.
+- **An integration task** was added after the parallel pages (E1.2 to
+  E1.6): it joined them into the one page, made their marks and wording
+  one, and added the prompt and the picker a tab can ask for, with E1.7.
+- **`kiln.toml` is read** (from the project's top, never written) to offer
+  the edits' choices: statuses in order, parents, roles and what they may
+  point at, sign-off statuses, and the file targets for the export tasks.
+- **Back and forward on the Item tab are `<` and `>`**: Fenix keeps
+  `Ctrl+O` and `Ctrl+I`, which the page also takes where it is let.
+- **`kiln.show` is `SPC m v`**, not `SPC m s`, so that the item's keys on
+  the menu are the page's (`v i s l U n N E`) and `s` is status.
+- **Eleven tabs, the tenth on `0`**: Exports and Comments came with E3, and
+  `1`–`9` number nine; Comments is reached by `Tab`.
+- **The export tasks name file targets only** (`kiln export -- NAME…`,
+  titled so): a bare `kiln export` plans Confluence targets against the live
+  space and fails with no token before writing any file.
+- **The agent edit tools are off by default** behind `fenix.kiln.agent_edits`
+  (on API 1.5 a service can't tell who called it, so any extension could
+  call them without Fenix asking). They are class `run`, not `edit`, and
+  `kiln_set` and `kiln_new` refuse sign-off statuses, which stay a person's
+  call.
+- **Decorations are in every project file** that a pane shows (item files,
+  code, anything under the project's folder), not only item files and code
+  references.
+- **The review (E6.2) ran before E6.1**, so the README and the lesson
+  were written from the keys and commands as reviewed. It fixed five
+  defects, each with a test (an edit killed when `kiln.path` changed; a
+  publish's outcome dropped when its page closed; a cancel that could
+  reach a publish; `Enter` opening a path outside the project; an option
+  reaching kiln from a restored page state), made one rule for cleaning
+  every text shown, and renamed the Check tab's command `kiln.findings`.
+- **K.1** (`kiln lsp --languages`) is written but unverified: Kiln can't be
+  built from here (its pinned Fenix commit can't be fetched), so no released
+  kiln has it, and with kiln 1.0.0 the language server covers Markdown only.
+- **The Kiln side** grew beyond K.1 and K.2: the additions the extension
+  needed are recorded as X1–X8 in Kiln's INTEGRATION.md.
+- **E6.1 also** gave edits a ten-minute limit (`Project::edit`), where they
+  had the queue's 60 seconds, so a renumber across many files on a slow disk
+  isn't killed half way.
