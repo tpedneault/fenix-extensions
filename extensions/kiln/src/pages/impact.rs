@@ -75,7 +75,7 @@ impl View for Impact {
     fn rows(&self, ctx: &Ctx) -> Vec<Row> {
         let Some(id) = &self.id else {
             return vec![Row::note(
-                "nothing picked yet: press i on an item in any tab to see what reaches it",
+                "no item yet: press i on an item in another tab to see what reaches it",
             )];
         };
         let heading = |tail: Cell| {
@@ -88,16 +88,23 @@ impl View for Impact {
                 Err(line) => return vec![heading(Cell::muted("")), Row::note(line.clone())],
             },
             // Handed on, and kiln hasn't answered about this one yet.
-            _ => return vec![heading(Cell::muted("")), Row::note("asking kiln…")],
+            _ => {
+                return vec![
+                    heading(Cell::muted("")),
+                    Row::note("reading what reaches it…"),
+                ]
+            }
         };
+        // The count on the heading; for none, the note under it says so
+        // once, and why.
         let mut rows = vec![heading(Cell::muted(match reaches.len() {
-            0 => "nothing reaches it".to_string(),
+            0 => String::new(),
             1 => "1 reaches it".to_string(),
             n => format!("{n} reach it"),
         }))];
         if reaches.is_empty() {
             rows.push(Row::note(format!(
-                "nothing reaches {id}: no link or child points at it"
+                "nothing reaches {id}: no link, child or code reference points at it"
             )));
         }
         for r in reaches {
@@ -127,7 +134,7 @@ impl View for Impact {
     }
 
     fn empty(&self) -> String {
-        "press i on an item in any tab to see what reaches it".into()
+        "no item yet: press i on an item in another tab".into()
     }
 
     fn queries(&self, _ctx: &Ctx) -> Vec<Query> {
@@ -229,7 +236,7 @@ mod tests {
         let v = Impact::default();
         assert_eq!(
             lines(&v, &l),
-            ["nothing picked yet: press i on an item in any tab to see what reaches it"]
+            ["no item yet: press i on an item in another tab to see what reaches it"]
         );
         let looks = Looks::new(&l);
         let ctx = Ctx {
@@ -291,8 +298,8 @@ mod tests {
         assert_eq!(
             lines(&v, &l),
             [
-                "# TASK-006 | Draft the user guide | nothing reaches it",
-                "nothing reaches TASK-006: no link or child points at it"
+                "# TASK-006 | Draft the user guide",
+                "nothing reaches TASK-006: no link, child or code reference points at it"
             ]
         );
         let v = about("TASK-002", "demo/impact-TASK-002.json");
@@ -310,7 +317,7 @@ mod tests {
         let l = loaded("demo");
         let mut v = Impact::default();
         v.hand("TASK-099");
-        assert_eq!(lines(&v, &l)[1], "asking kiln…");
+        assert_eq!(lines(&v, &l)[1], "reading what reaches it…");
         v.answer(
             "impact:TASK-099",
             &ran(2, "", &fixture("errors/impact-unknown-id.stderr")),
@@ -322,9 +329,13 @@ mod tests {
         // Handed another while the first's answer is out: under its own name.
         let mut v = about("REQ-001", "demo/impact-REQ-001.json");
         v.hand("TASK-006");
-        assert_eq!(lines(&v, &l)[1], "asking kiln…");
+        assert_eq!(lines(&v, &l)[1], "reading what reaches it…");
         v.answer("impact:REQ-001", &ran(0, "[]", ""));
-        assert_eq!(lines(&v, &l)[1], "asking kiln…", "not the old one's");
+        assert_eq!(
+            lines(&v, &l)[1],
+            "reading what reaches it…",
+            "not the old one's"
+        );
     }
 
     #[test]
@@ -384,12 +395,8 @@ mod tests {
         )
         .on_spawn("kiln impact REQ-002 --format json", Says::ok("[]"))
         .on_spawn(
-            "kiln impact TASK-001 --format json",
-            // As recorded, for an item the project has lost since.
-            Says::fails(
-                2,
-                fixture("errors/impact-unknown-id.stderr").replace("TASK-099", "TASK-001"),
-            ),
+            "kiln impact TASK-099 --format json",
+            Says::fails(2, fixture("errors/impact-unknown-id.stderr")),
         )
         .on_spawn("kiln impact TASK-002 --format json", Says::ok("<html>"));
         fake
@@ -416,11 +423,11 @@ mod tests {
     fn kiln_errors_and_unreadable_answers_are_notes_on_the_page() {
         let fake = impact_demo();
         let (mut h, page) = opened(&fake);
-        h.keys(page, "1/TASK-001<Enter>i");
-        assert!(h.screen(page).contains("TASK-001"), "{}", h.screen(page));
-        assert!(h.screen(page).contains("kiln: TASK-001 doesn't exist"));
+        // Handed an ID the project hasn't got (a stale page, a typo).
+        crate::tests::hand(&mut h, page, crate::pages::Tab::Impact, "TASK-099");
+        assert!(h.screen(page).contains("kiln: TASK-099 doesn't exist"));
         assert_snapshot!("impact-demo-error", h.screen(page));
-        h.keys(page, "1/<Esc>/TASK-002<Enter>i");
+        h.keys(page, "1/TASK-002<Enter>i");
         assert!(
             h.screen(page)
                 .contains("kiln impact: kiln's JSON can't be read"),

@@ -8,9 +8,11 @@
 //! `kiln diff` has no way to say "the latest tag" (that default is the
 //! GUI's own, `kiln gui --since`), and a view can't run git to find one. So
 //! the tab starts with no baseline and says how to give one, rather than
-//! guessing a tag. Once there is one -- restored with the page, or set by
-//! `b` when the frame can take a typed line -- it is part of the query's
-//! args, so the frame asks again when it changes.
+//! guessing a tag. `b` asks for one in Fenix's prompt (the current one in
+//! it, to edit); once there is one -- typed, or restored with the page --
+//! it is part of the query's args, so the frame asks again when it
+//! changes. One kiln would read as an option (`--force`) is refused on the
+//! bottom line, and the baseline stays as it was.
 //!
 //! What it deliberately doesn't do: run git or anything but `kiln diff`;
 //! show a change's body or diff (`kiln diff` says only which parts
@@ -21,6 +23,9 @@
 use serde::Deserialize;
 
 use super::view::{stdout, Cell, Ctx, Look, Place, Query, Reply, Row, View};
+
+/// The prompt's tag: the one thing this tab asks.
+const BASELINE: &str = "baseline";
 use crate::kiln::{Failure, Ran};
 use crate::model::{self, count};
 use fenix_ui_kit::{Key, KeyPress};
@@ -152,17 +157,31 @@ impl View for Changes {
         vec![("b", "baseline")]
     }
 
-    /// `b` can't prompt: a view has no way to ask for a line of text (the
-    /// frame's only one is the `/` filter), and it isn't built here. So it
-    /// says so instead of doing nothing; the baseline set in the page's
-    /// saved state, or by `set_baseline` once a prompt exists, is used.
+    /// `b`: Fenix's prompt for a revision, the current baseline in it.
     fn key(&mut self, key: KeyPress, _row: Option<&Row>, _ctx: &Ctx) -> Reply {
         if key.mods.ctrl || key.mods.alt || key.mods.meta || key.key != Key::Char('b') {
             return Reply::Ignored;
         }
-        Reply::Say(
-            "b: a view can't ask for a revision yet, so the baseline can't be typed here".into(),
+        Reply::ask(
+            BASELINE,
+            "Changes since (a tag, branch or commit, or A..B; empty for none)",
+            self.baseline.as_deref().unwrap_or(""),
         )
+    }
+
+    /// The revision typed after `b`, through [`Changes::set_baseline`].
+    fn typed(&mut self, tag: &str, text: &str, _ctx: &Ctx) -> Reply {
+        if tag != BASELINE {
+            return Reply::Ignored;
+        }
+        if self.set_baseline(text) {
+            Reply::Rebuild
+        } else {
+            Reply::Say(format!(
+                "“{}” isn't a revision: kiln diff would read it as an option; the baseline stays",
+                text.trim()
+            ))
+        }
     }
 
     fn empty(&self) -> String {
@@ -565,7 +584,7 @@ mod tests {
     }
 
     #[test]
-    fn b_says_it_cannot_ask_yet_and_other_keys_are_not_its() {
+    fn b_asks_for_a_revision_and_the_answer_sets_the_baseline() {
         let l = demo();
         let looks = Looks::new(&l);
         let ctx = Ctx {
@@ -576,9 +595,29 @@ mod tests {
         };
         let mut v = Changes::default();
         let key = |c: char| KeyPress::from(Key::Char(c));
-        assert!(
-            matches!(v.key(key('b'), None, &ctx), Reply::Say(s) if s.contains("can't be typed"))
-        );
+        assert!(matches!(
+            v.key(key('b'), None, &ctx),
+            Reply::Ask { tag, initial, .. } if tag == "baseline" && initial.is_empty()
+        ));
+        assert_eq!(v.typed("baseline", " v0.1 ", &ctx), Reply::Rebuild);
+        assert_eq!(v.baseline.as_deref(), Some("v0.1"));
+        // Asked again, the current one is in the prompt to edit.
+        assert!(matches!(
+            v.key(key('b'), None, &ctx),
+            Reply::Ask { initial, .. } if initial == "v0.1"
+        ));
+        // An option is refused, saying why; the baseline stays.
+        assert!(matches!(
+            v.typed("baseline", "--force", &ctx),
+            Reply::Say(s) if s == "“--force” isn't a revision: kiln diff would read it as an option; the baseline stays"
+        ));
+        assert_eq!(v.baseline.as_deref(), Some("v0.1"));
+        // Empty: none again.
+        assert_eq!(v.typed("baseline", "", &ctx), Reply::Rebuild);
+        assert_eq!(v.baseline, None);
+        assert_eq!(v.typed("other", "v1", &ctx), Reply::Ignored);
+        let ctrl_b = KeyPress::new(Key::Char('b'), fenix_ui_kit::Mods::CTRL);
+        assert_eq!(v.key(ctrl_b, None, &ctx), Reply::Ignored);
         assert_eq!(v.key(key('x'), None, &ctx), Reply::Ignored);
         assert_eq!(v.keys(), [("b", "baseline")]);
     }
@@ -644,13 +683,52 @@ mod tests {
         h.keys(page, "7");
         assert_snapshot!("changes-demo-no-baseline", h.screen(page));
         assert!(diffs(&fake).is_empty(), "{:?}", diffs(&fake));
+        // `b`, closed with nothing: nothing changes, nothing is run.
+        let before = h.screen(page);
+        fake.on_prompt_nothing("Changes since");
         h.keys(page, "b");
-        assert!(
-            foot(&mut h, page).contains("can't be typed"),
-            "{}",
-            foot(&mut h, page)
-        );
+        assert!(fake
+            .calls()
+            .iter()
+            .any(|c| c.starts_with("prompt ") && c.ends_with("empty for none) []")));
         assert!(diffs(&fake).is_empty());
+        assert!(h.ext.answers.is_empty(), "a cancelled prompt is let go");
+        assert_eq!(h.screen(page), before);
+    }
+
+    #[test]
+    fn page_b_takes_a_revision_typed_and_asks_kiln_about_it() {
+        let fake = demo_fake();
+        fake.on_spawn(
+            "kiln diff v0.1 --format json",
+            FakeRan::ok(crate::model::tests::fixture("demo/diff-v0.1.json")),
+        )
+        .on_prompt("Changes since", "v0.1");
+        let (mut h, page) = opened(&fake);
+        h.keys(page, "7b");
+        assert_eq!(diffs(&fake).len(), 1, "{:?}", diffs(&fake));
+        assert!(h
+            .screen(page)
+            .contains("\nv0.1 (f496961) → the working tree\n"));
+        assert_eq!(
+            fake.state().prompts.last().map(|p| p.initial.clone()),
+            Some(String::new())
+        );
+        // Again: the baseline is in the prompt; an option is refused.
+        fake.on_prompt("Changes since", "--output=x");
+        h.keys(page, "b");
+        assert_eq!(
+            fake.state().prompts.last().map(|p| p.initial.clone()),
+            Some("v0.1".to_string())
+        );
+        assert_eq!(
+            foot(&mut h, page),
+            "“--output=x” isn't a revision: kiln diff would read it as an option; the baseline stays"
+        );
+        assert_eq!(diffs(&fake).len(), 1);
+        assert!(h
+            .screen(page)
+            .contains("\nv0.1 (f496961) → the working tree\n"));
     }
 
     #[test]

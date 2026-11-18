@@ -127,20 +127,19 @@ impl View for Trace {
         let mut rows = vec![Row::heading(vec![
             Cell::title(&traced.kind),
             Cell::muted(count(traced.items.len(), "item")),
-            if traced.roles.is_empty() {
-                Cell::muted("no coverage role reaches it")
-            } else if gaps == 0 {
+        ])];
+        if !traced.roles.is_empty() {
+            rows[0].cells.push(if gaps == 0 {
                 Cell::new("no gaps", Look::Good)
             } else {
                 Cell::new(count(gaps, "gap"), Look::Bad)
-            },
-        ])];
-        if !traced.roles.is_empty() {
+            });
             rows[0].cells.push(Cell::muted(format!(
                 "columns: {}",
                 traced.roles.join(" | ")
             )));
         }
+        // The note under it says why there are no columns, once.
         if traced.roles.is_empty() {
             rows.push(Row::note(format!(
                 "no coverage role reaches {}: nothing traces to it (T for the next type)",
@@ -224,7 +223,7 @@ impl View for Trace {
 
     fn empty(&self) -> String {
         match &self.said {
-            None => "asking kiln for the coverage…".into(),
+            None => "reading the coverage…".into(),
             Some(_) => "nothing to trace".into(),
         }
     }
@@ -438,7 +437,7 @@ mod tests {
         assert_eq!(
             lines(&t, &l),
             [
-                "# risk | 1 item | no coverage role reaches it",
+                "# risk | 1 item",
                 "no coverage role reaches risk: nothing traces to it (T for the next type)"
             ]
         );

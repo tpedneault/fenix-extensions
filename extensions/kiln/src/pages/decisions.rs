@@ -24,6 +24,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use super::shared::natural;
 use super::view::{Cell, Ctx, Row, View};
 use crate::model::Item;
 
@@ -94,13 +95,6 @@ impl View for Decisions {
     fn empty(&self) -> String {
         "no decisions: no type named decision, and no item supersedes another".into()
     }
-}
-
-/// An ID as (letters, number, whole), so `ADR-9` comes before `ADR-10`.
-fn natural(id: &str) -> (String, u64, String) {
-    let at = id.rfind(|c: char| !c.is_ascii_digit()).map_or(0, |i| i + 1);
-    let (head, tail) = id.split_at(at);
-    (head.to_string(), tail.parse().unwrap_or(0), id.to_string())
 }
 
 #[cfg(test)]

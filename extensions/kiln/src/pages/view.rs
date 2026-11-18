@@ -39,6 +39,19 @@ pub enum Meaning {
 }
 
 impl Meaning {
+    /// Where a status of this meaning comes in an item's life, for an
+    /// order by meaning when the type's own order isn't known (`list`
+    /// doesn't give it): first, in progress, blocked, done, closed.
+    pub fn rank(self) -> u8 {
+        match self {
+            Meaning::Initial => 0,
+            Meaning::InProgress => 1,
+            Meaning::Blocked => 2,
+            Meaning::Done => 3,
+            Meaning::Closed => 4,
+        }
+    }
+
     /// Done green, blocked red, closed muted, initial in the accent (the
     /// headings' blue in Kiln's GUI), and what's between in the theme's
     /// `keyword` colour -- its purple in most themes, as Kiln's pills are.
@@ -284,7 +297,45 @@ impl Query {
     }
 }
 
-/// What a view did with a key ([`View::key`]).
+/// One choice of a [`Reply::Pick`]: what the picker shows (`label`, and a
+/// quieter `detail` after it) and what comes back when it's picked
+/// (`value`, to [`View::picked`]). Fenix's own `PickerItem`, kept here so
+/// views stay free of the host's types.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Choice {
+    pub label: String,
+    pub detail: String,
+    pub value: String,
+}
+
+impl Choice {
+    pub fn new(label: impl Into<String>, value: impl Into<String>) -> Choice {
+        Choice {
+            label: label.into(),
+            detail: String::new(),
+            value: value.into(),
+        }
+    }
+
+    /// With a second, quieter column.
+    pub fn detail(mut self, detail: impl Into<String>) -> Choice {
+        self.detail = detail.into();
+        self
+    }
+}
+
+/// What a view did with a key ([`View::key`]), an answer ([`View::typed`],
+/// [`View::picked`]) or an edit's outcome ([`View::edited`]).
+///
+/// The last three are how a view, which can't call the host, asks for
+/// something: the frame hands them to `lib.rs`, which asks Fenix (its own
+/// prompt and picker, not a field of the page's) or kiln, and routes the
+/// answer back to the page, tab and view that asked, with the `tag` it
+/// asked with. A handler may reply with another `Ask` or `Pick`, so a
+/// flow -- pick a role, then a target, then run `kiln link` -- is a chain
+/// of replies, each step's state in the view's own fields. A prompt or
+/// picker closed with nothing (`Esc`) ends the flow: nothing comes back.
+/// An answer for a page that has closed is dropped.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Reply {
     /// Not its key.
@@ -293,6 +344,61 @@ pub enum Reply {
     Rebuild,
     /// Something to say on the bottom line.
     Say(String),
+    /// A line of text asked for in Fenix's prompt, `label` before it and
+    /// `initial` in it; what's typed comes to [`View::typed`] with `tag`.
+    Ask {
+        tag: String,
+        label: String,
+        initial: String,
+    },
+    /// One of `items` picked in Fenix's picker called `title`; the
+    /// choice's `value` comes to [`View::picked`] with `tag`.
+    Pick {
+        tag: String,
+        title: String,
+        items: Vec<Choice>,
+    },
+    /// An editing command run (`["set", "TASK-004", "status=doing"]`,
+    /// after `kiln`), with `stdin` for one that reads it: through
+    /// `Project::edit`, so it waits its turn in kiln's queue and the
+    /// project is read again after. Its outcome -- kiln's stdout, or its
+    /// error line -- is said on the bottom line, then handed to
+    /// [`View::edited`] with `tag` (a refusal may want the flow asked
+    /// again). For E2's edits: no tab of E1 replies with it.
+    Edit {
+        tag: String,
+        args: Vec<String>,
+        stdin: Option<String>,
+    },
+}
+
+impl Reply {
+    /// [`Reply::Ask`], without spelling the fields.
+    pub fn ask(tag: &str, label: impl Into<String>, initial: impl Into<String>) -> Reply {
+        Reply::Ask {
+            tag: tag.to_string(),
+            label: label.into(),
+            initial: initial.into(),
+        }
+    }
+
+    /// [`Reply::Pick`], without spelling the fields.
+    pub fn pick(tag: &str, title: impl Into<String>, items: Vec<Choice>) -> Reply {
+        Reply::Pick {
+            tag: tag.to_string(),
+            title: title.into(),
+            items,
+        }
+    }
+
+    /// [`Reply::Edit`], with no stdin.
+    pub fn edit<S: Into<String>>(tag: &str, args: impl IntoIterator<Item = S>) -> Reply {
+        Reply::Edit {
+            tag: tag.to_string(),
+            args: args.into_iter().map(Into::into).collect(),
+            stdin: None,
+        }
+    }
 }
 
 /// What a view builds its rows from: the project as kiln last read it,
@@ -451,6 +557,27 @@ pub trait View {
     /// An item handed to it from another tab: `v` for Item, `i` for
     /// Impact. The frame then shows this tab.
     fn hand(&mut self, _id: &str) {}
+
+    /// The text typed into the prompt it asked for with `tag`
+    /// ([`Reply::Ask`]). Not called when the prompt was closed with
+    /// nothing.
+    fn typed(&mut self, _tag: &str, _text: &str, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// The `value` of the choice picked in the picker it asked for with
+    /// `tag` ([`Reply::Pick`]). Not called when nothing was picked.
+    fn picked(&mut self, _tag: &str, _value: &str, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// How the edit it asked for with `tag` ([`Reply::Edit`]) ended:
+    /// kiln's output, or why there's none ([`stdout`] reads it). The frame
+    /// has said the outcome already; a view replies to go on (another
+    /// `Ask` after a refusal) or ignores it.
+    fn edited(&mut self, _tag: &str, _result: &Result<Ran, Failure>, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
 
     /// Its own state for the page's, beside what the frame keeps (the
     /// cursor, the filter, `a`).

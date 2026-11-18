@@ -1,9 +1,9 @@
 //! Roadmap: milestones in `due` order (undated last), each with its status,
 //! due date and own progress (`3/5 ██████░░░░`), and the open work that is
-//! part of it under it, with the Board's mark: `ready`, `waits on TASK-003`,
-//! `blocked`, `in progress`, and `· owner` when someone has claimed it. Work
-//! in no milestone comes last, under its own heading. Kiln's GUI has the
-//! same page ("Roadmap").
+//! part of it under it, with its status and the Board's mark: `ready` or
+//! `waits on TASK-003`, and `· owner` when someone has claimed it
+//! ([`super::shared`]). Work in no milestone comes last, under its own
+//! heading. Kiln's GUI has the same page ("Roadmap").
 //!
 //! Everything about the plan is read from `kiln status`
 //! (`ctx.loaded.groups()`), never recomputed here: the progress, and which
@@ -16,14 +16,15 @@
 //! matches. The work under it is one level in, in the groups' order: in
 //! progress, then ready, then waiting.
 //!
-//! Which milestones: `kiln status` lists those that are open or still have
-//! open work, and so does this tab. `a` adds the others -- done or closed
-//! milestones, from `kiln list` -- for the history. No group gives their
-//! numbers (`kiln status` doesn't list them) and working them out here would
-//! be a second answer to a question kiln already answers, so they have no
-//! progress, only their status and due date. An open milestone no group
-//! names (only when `kiln status` failed, and then a note says why) is
-//! shown the same way.
+//! Which milestones: every one but the closed (`dropped`) ones, which `a`
+//! adds, as on the Tree and the Board -- done ones stay, as in Kiln's GUI:
+//! the roadmap is also the history. `kiln status` lists those that are
+//! open or still have open work, with their progress; the others come from
+//! `kiln list`. No group gives their numbers and working them out here
+//! would be a second answer to a question kiln already answers, so they
+//! have no progress, only their status and due date. An open milestone no
+//! group names (only when `kiln status` failed, and then a note says why)
+//! is shown the same way.
 //!
 //! Done work is not listed: the groups' lists hold only what is still to do,
 //! and the progress already says how much is done (`3/5`: three done). The
@@ -35,7 +36,8 @@
 
 use std::collections::HashSet;
 
-use super::view::{Cell, Ctx, Look, Meaning, Row, View};
+use super::shared::{self, natural, Mark};
+use super::view::{Cell, Ctx, Look, Row, View};
 use crate::model::{count, Group};
 
 /// How wide a progress bar is: Kiln's own GUI draws ten.
@@ -81,8 +83,7 @@ impl View for Roadmap {
             }
         }
         for item in ctx.loaded.items.iter().filter(|i| i.kind == "milestone") {
-            let over = item.done || item.closed;
-            if (over && !ctx.closed) || !listed.insert(item.id.as_str()) {
+            if (item.closed && !ctx.closed) || !listed.insert(item.id.as_str()) {
                 continue;
             }
             entries.push(Entry {
@@ -123,7 +124,7 @@ impl View for Roadmap {
     }
 
     fn empty(&self) -> String {
-        "no open milestones: a shows the done ones, kiln new milestone adds one".into()
+        "no milestones: a shows closed ones, kiln new milestone adds one".into()
     }
 }
 
@@ -170,48 +171,37 @@ fn bar(done: u32, total: u32) -> String {
 }
 
 /// The open work of `group`, one row each at `depth`: in progress, ready,
-/// then waiting.
+/// then waiting. ID, title, status, mark, owner: the Board's columns, with
+/// the status the Board has in its headings.
 fn work_rows(ctx: &Ctx, group: &Group, depth: usize) -> Vec<Row> {
     let mut rows = Vec::new();
-    let mut work = |id: &str, title: &str, status: &str, owner: &Option<String>, mark: Cell| {
-        let mut cells = vec![
-            Cell::id(id),
-            Cell::text(title),
-            ctx.status_of(id, status),
-            mark,
-        ];
-        if let Some(owner) = owner {
-            cells.push(Cell::muted(format!("· {owner}")));
-        }
-        rows.push(ctx.row(id, cells).depth(depth));
-    };
+    let mut work =
+        |id: &str, title: &str, status: &str, owner: Option<&str>, mark: Option<Mark>| {
+            let cells = vec![
+                Cell::id(id),
+                Cell::text(title),
+                ctx.status_of(id, status),
+                Mark::cell(mark.as_ref()),
+                shared::owner(owner),
+            ];
+            rows.push(ctx.row(id, cells).depth(depth));
+        };
     for w in &group.in_progress {
-        let mark = Cell::new("in progress", Look::Status(Meaning::InProgress));
-        work(&w.id, &w.title, &w.status, &w.owner, mark);
+        work(&w.id, &w.title, &w.status, w.owner.as_deref(), None);
     }
     for w in &group.ready {
-        let mark = Cell::new("ready", Look::Good);
-        work(&w.id, &w.title, &w.status, &w.owner, mark);
+        work(
+            &w.id,
+            &w.title,
+            &w.status,
+            w.owner.as_deref(),
+            Some(Mark::Ready),
+        );
     }
     for w in &group.waiting {
-        let waits: Vec<&str> = w.waits_on.iter().map(|r| r.id.as_str()).collect();
-        let mark = match (w.blocked, waits.is_empty()) {
-            (true, true) => Cell::new("blocked", Look::Bad),
-            (true, false) => {
-                Cell::new(format!("blocked, waits on {}", waits.join(", ")), Look::Bad)
-            }
-            (false, _) => Cell::new(format!("waits on {}", waits.join(", ")), Look::Warn),
-        };
-        work(&w.id, &w.title, &w.status, &w.owner, mark);
+        work(&w.id, &w.title, &w.status, w.owner.as_deref(), Mark::of(w));
     }
     rows
-}
-
-/// An ID as (letters, number, whole), so `MS-9` comes before `MS-10`.
-fn natural(id: &str) -> (String, u64, String) {
-    let at = id.rfind(|c: char| !c.is_ascii_digit()).map_or(0, |i| i + 1);
-    let (head, tail) = id.split_at(at);
-    (head.to_string(), tail.parse().unwrap_or(0), id.to_string())
 }
 
 #[cfg(test)]
@@ -262,16 +252,17 @@ mod tests {
             rows(&l, false),
             [
                 "MS-001 | First release | active | due 2030-06-30 | 1/5 ██░░░░░░░░",
-                "  TASK-002 | Write readings to SQLite | doing | in progress | · ana",
+                "  TASK-002 | Write readings to SQLite | doing |  | · ana",
                 "  TASK-003 | Export the log as CSV | todo | ready | · bo",
-                "  TASK-007 | Batch the writes | todo | ready",
-                "  TASK-004 | Add the export button | todo | waits on TASK-003",
+                "  TASK-007 | Batch the writes | todo | ready | ",
+                "  TASK-004 | Add the export button | todo | waits on TASK-003 | ",
                 "MS-002 | Second release | planned | undated | 0/2 ░░░░░░░░░░",
-                "  TASK-006 | Draft the user guide | todo | ready",
-                "  TASK-005 | Ask about retention rules | blocked | blocked",
+                "  TASK-006 | Draft the user guide | todo | ready | ",
+                "  TASK-005 | Ask about retention rules | blocked |  | ",
                 "# no milestone | 1 item",
-                "TASK-008 | Tidy the build scripts | todo | ready",
-            ]
+                "TASK-008 | Tidy the build scripts | todo | ready | ",
+            ],
+            "the Board's marks: nothing said twice beside the status"
         );
         // Nothing closed to show: `a` changes nothing.
         assert_eq!(rows(&l, true), rows(&l, false));
@@ -303,15 +294,33 @@ mod tests {
     }
 
     #[test]
-    fn kilns_own_project_has_no_open_milestones_until_a() {
+    fn kilns_own_project_shows_its_done_milestones() {
         let l = loaded("own");
-        assert!(rows(&l, false).is_empty(), "{:?}", rows(&l, false));
-        let all = rows(&l, true);
+        let all = rows(&l, false);
+        assert_eq!(rows(&l, true), all, "none closed");
         assert_eq!(all.len(), 21, "MS-001..MS-021, all done");
         assert!(all[0].starts_with("MS-001 | "), "{}", all[0]);
         assert!(all[0].ends_with("| done | undated"), "{}", all[0]);
         assert!(all[8].starts_with("MS-009 | "), "natural order: {}", all[8]);
         assert!(all[20].starts_with("MS-021 | "), "{}", all[20]);
+    }
+
+    #[test]
+    fn a_closed_milestone_waits_for_a_and_a_done_one_does_not() {
+        let l = loaded("own");
+        let mut items = l.items.clone();
+        for i in &mut items {
+            if i.id == "MS-021" {
+                i.status = "dropped".into();
+                i.done = false;
+                i.closed = true;
+            }
+        }
+        let l = Loaded::new(l.version, items, l.plan, l.findings);
+        let shown = rows(&l, false);
+        assert_eq!(shown.len(), 20);
+        assert!(!shown.iter().any(|r| r.starts_with("MS-021")));
+        assert!(rows(&l, true)[20].starts_with("MS-021 | "));
     }
 
     #[test]
@@ -436,16 +445,12 @@ mod tests {
     }
 
     #[test]
-    fn the_roadmap_page_of_kilns_own_project_shows_closed_milestones_on_a() {
+    fn the_roadmap_page_of_kilns_own_project_is_its_history() {
         let fake = own();
         let (mut h, page) = opened(&fake);
         h.size = (110, 30);
         h.keys(page, "5");
         assert_snapshot!("roadmap-own", h.screen(page));
-        h.keys(page, "a");
-        assert_snapshot!("roadmap-own-all", h.screen(page));
         assert!(h.screen(page).contains("MS-021"));
-        h.keys(page, "a");
-        assert!(!h.screen(page).contains("MS-021"));
     }
 }

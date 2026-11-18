@@ -10,3 +10,18 @@ command = "kiln.open"
 keys = "r"
 label = "read the project again"
 command = "kiln.reload"
+
+[[local.kiln]]
+keys = "s"
+label = "show the item under the cursor"
+command = "kiln.show"
+
+[[local.kiln]]
+keys = "i"
+label = "impact of the item under the cursor"
+command = "kiln.impact"
+
+[[local.kiln]]
+keys = "f"
+label = "find an item"
+command = "kiln.find"

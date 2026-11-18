@@ -7,6 +7,8 @@
 //! - [`view`]: the [`view::View`] each tab implements, and its rows.
 //! - one module per tab, each its own file: [`tree`] is the worked
 //!   example; `README.md` here says how to write one.
+//! - [`shared`]: what several tabs say alike (the plan's marks, the
+//!   owner, natural ID order).
 //!
 //! [`Tab`] is the one list of tabs. Every tab is registered here already,
 //! so a tab's module is all its author edits. Exports and Comments come
@@ -25,6 +27,7 @@ pub mod decisions;
 pub mod impact;
 pub mod item;
 pub mod roadmap;
+pub mod shared;
 pub mod trace;
 pub mod tree;
 

@@ -16,10 +16,38 @@ page is in view; a read that fails keeps the last one on screen with
 kiln's line under it. When kiln isn't there, is too old, or finds no
 `kiln.toml`, every tab says so in kiln's own words.
 
-**Tree** is the first tab: every open item, nested by `parent` under a
-heading per type, `REQ-014  Title  approved`, its status coloured by what
-it means for its type (done, in progress, first, blocked, closed). `a`
-shows closed items too. The other tabs are coming in the next versions.
+The tabs, read-only for now (editing comes next); statuses are coloured
+by what they mean for their type (done, in progress, first, blocked,
+closed), the same on every tab:
+
+- **Tree**: every open item, nested by `parent` under a heading per type,
+  `REQ-014  Title  approved`. `a` shows closed items too.
+- **Trace**: `kiln trace` -- each requirement, then a column per coverage
+  role: what covers it (items, code locations, `+N`), or `gap`. `m` keeps
+  only the items with a gap; `T` traces the next type.
+- **Impact**: `kiln impact` for the item `i` was pressed on, on any tab:
+  everything that reaches it, nearest first, with its path (`verifies
+  REQ-001`, `child of REQ-002`), code locations included.
+- **Board**: the work (tasks; else the types with done statuses, not
+  milestones) under a heading per status with its count; open work says
+  `ready` or `waits on TASK-003`, and `· owner` when claimed, as `kiln
+  next` and `kiln status` say. Closed statuses wait for `a`.
+- **Roadmap**: the milestones by due date, each with its status and
+  `kiln status`'s progress (`1/5 ██░░░░░░░░`), its open work under it with
+  the Board's marks, then the work in no milestone. Closed milestones
+  wait for `a`.
+- **Decisions**: the decision log in ID order, `supersedes ADR-013` /
+  `superseded by ADR-024`.
+- **Changes**: `kiln diff` since a baseline, under Added, Changed and
+  Removed, each worded as kiln words it. `b` asks for the baseline (a tag,
+  a branch, a commit, or `A..B`); there's none until you give one, since
+  `kiln diff` can't name "the latest tag" and the extension doesn't run
+  git. It's kept with the page.
+- **Item**: `kiln show` for the item `v` was pressed on: its facts, its
+  parent and children, its links both ways, mentions and code locations,
+  a row each; `v` on a row follows it, `<` and `>` go back and forward.
+- **Check**: `kiln check`'s findings under their file, in line order;
+  `Enter` opens the line, `e` keeps the errors only.
 
 On every tab, the cursor stays on the same item when the project is read
 again (or where it was, when that item went away), `/` narrows the rows as
@@ -70,9 +98,15 @@ On the plan:
 | `g g` `G`, `Home` `End` | First / last row |
 | `Tab` `]`, `S-Tab` `[`, `1`–`9` | Next / previous tab, or one by its number |
 | `/` | Filter: narrows the rows as you type (headings and parents of a match stay); `Enter` keeps it, `Esc` clears it |
-| `Enter` | Open the item's file at its line |
-| `a` | Show closed items too, or hide them again |
+| `Enter` | Open the item's file at its line (or the code location, or the finding) |
+| `v` | The item under the cursor on the Item tab |
+| `i` | Its impact on the Impact tab |
+| `a` | Tree, Board, Roadmap: show closed items too, or hide them again |
 | `r` | Read the project again |
+| `m`, `T` | Trace: only the items with a gap; the next type |
+| `b` | Changes: the baseline, typed in Fenix's prompt |
+| `<`, `>` | Item: the item viewed before, after (Kiln's `C-o` and `C-i` are Fenix's own here) |
+| `e` | Check: errors only, or everything again |
 
 The mouse: a click on a tab shows it, on a row moves the cursor there, a
 double click opens it; the wheel moves three rows. `q` and `Esc` close the
@@ -84,6 +118,14 @@ After `SPC m`, in a Kiln project:
 |---|---|---|
 | `SPC m o` | `kiln.open` | Open the plan |
 | `SPC m r` | `kiln.reload` | Read the project again |
+| `SPC m s` | `kiln.show` | Show the item under the cursor on the Item tab |
+| `SPC m i` | `kiln.impact` | Its impact, on the Impact tab |
+| `SPC m f` | `kiln.find` | Find an item: Fenix's picker over every item (ID, title, status), then its Item tab |
+
+`kiln.show` and `kiln.impact` take the ID under the cursor when the
+project has an item by it (so any prefix works, and `UTF-8` is no ID); off
+any, in an item's file, that item; else the message line says what they
+looked at. Run before the project is read, they act once it is.
 
 `Kiln: how to install kiln` (`kiln.install_help`) is the doctor's fix row
 for a kiln that isn't found; it has no key.
@@ -102,8 +144,9 @@ for a kiln that isn't found; it has no key.
 - **Read the project** (`filesystem = "project-read"`): `kiln.toml`, and
   `.fenix/tools.json`, only to tell whether it already runs kiln's
   language server.
-- **Read the editor** (`editor = "read"`): where you are, so a page can
-  follow the item ID under the cursor. It changes no buffer.
+- **Read the editor** (`editor = "read"`): where you are when you run
+  `kiln.show` or `kiln.impact` -- the file, the cursor's line and column
+  -- to find the item ID under the cursor. It changes no buffer.
 
 No network and no secrets: Confluence and Jira credentials stay Kiln's.
 

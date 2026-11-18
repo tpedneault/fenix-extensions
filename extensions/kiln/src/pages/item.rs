@@ -1,6 +1,13 @@
 //! Item: for the item handed to it with `v` on any tab, what `kiln show`
-//! gives -- one row per related item or code location -- with `C-o` back
-//! and `C-i` forward through the items viewed.
+//! gives -- one row per related item or code location -- with `<` back
+//! and `>` forward through the items viewed.
+//!
+//! Why not only `C-o` and `C-i`, Kiln's GUI's keys: Fenix keeps Ctrl+O and
+//! Ctrl+I for its own jump list (WRITING_EXTENSIONS.md, `page_key_press`),
+//! so they never reach a page, and in a terminal `C-i` is `Tab`, which is
+//! the frame's next tab. They're still taken when they do come (a Fenix
+//! that lets them through), but the hints name `<` and `>`, which always
+//! arrive and are no one else's on the page.
 //!
 //! The rows, top down: the item itself (type, ID, title, status; `Enter`
 //! opens its file) and the first line of its body, muted; its facts (tags,
@@ -90,24 +97,34 @@ impl View for ItemView {
     fn keys(&self) -> Vec<(&'static str, &'static str)> {
         let mut keys = Vec::new();
         if self.at > 0 {
-            keys.push(("C-o", "back"));
+            keys.push(("<", "back"));
         }
         if self.at + 1 < self.history.len() {
-            keys.push(("C-i", "forward"));
+            keys.push((">", "forward"));
         }
         keys
     }
 
+    /// `<` and `>`, or `C-o` and `C-i` when Fenix lets them through.
     fn key(&mut self, key: KeyPress, _row: Option<&Row>, _ctx: &Ctx) -> Reply {
-        if !key.mods.ctrl || key.mods.alt {
+        if key.mods.alt || key.mods.meta {
             return Reply::Ignored;
         }
-        match key.key {
-            Key::Char('o') if self.go(self.at.checked_sub(1)) => Reply::Rebuild,
-            Key::Char('o') => Reply::Say("no earlier item".into()),
-            Key::Char('i') if self.go(Some(self.at + 1)) => Reply::Rebuild,
-            Key::Char('i') => Reply::Say("no later item".into()),
-            _ => Reply::Ignored,
+        let back = match (key.key, key.mods.ctrl) {
+            (Key::Char('<'), false) | (Key::Char('o'), true) => true,
+            (Key::Char('>'), false) | (Key::Char('i'), true) => false,
+            _ => return Reply::Ignored,
+        };
+        if back {
+            if self.go(self.at.checked_sub(1)) {
+                Reply::Rebuild
+            } else {
+                Reply::Say("no earlier item".into())
+            }
+        } else if self.go(Some(self.at + 1)) {
+            Reply::Rebuild
+        } else {
+            Reply::Say("no later item".into())
         }
     }
 
@@ -570,17 +587,22 @@ mod tests {
         );
         v.hand("A-2");
         v.hand("A-3");
-        assert_eq!(v.keys(), [("C-o", "back")]);
-        assert_eq!(v.key(ctrl('o'), None, &ctx), Reply::Rebuild);
+        assert_eq!(v.keys(), [("<", "back")]);
+        assert_eq!(v.key(plain('<'), None, &ctx), Reply::Rebuild);
         assert_eq!(v.current(), Some("A-2"));
-        assert_eq!(v.keys(), [("C-o", "back"), ("C-i", "forward")]);
-        assert_eq!(v.key(ctrl('i'), None, &ctx), Reply::Rebuild);
+        assert_eq!(v.keys(), [("<", "back"), (">", "forward")]);
+        assert_eq!(v.key(plain('>'), None, &ctx), Reply::Rebuild);
         assert_eq!(v.current(), Some("A-3"));
         assert_eq!(
-            v.key(ctrl('i'), None, &ctx),
+            v.key(plain('>'), None, &ctx),
             Reply::Say("no later item".into())
         );
+        // Kiln's GUI's chords, when Fenix lets them through.
+        assert_eq!(v.key(ctrl('o'), None, &ctx), Reply::Rebuild);
+        assert_eq!(v.key(ctrl('i'), None, &ctx), Reply::Rebuild);
+        assert_eq!(v.current(), Some("A-3"));
         assert_eq!(v.key(plain('o'), None, &ctx), Reply::Ignored);
+        assert_eq!(v.key(ctrl('<'), None, &ctx), Reply::Ignored);
         assert_eq!(v.key(ctrl('x'), None, &ctx), Reply::Ignored);
         // Viewing something new from the middle drops what was ahead.
         v.key(ctrl('o'), None, &ctx);
@@ -664,12 +686,15 @@ mod tests {
         h.keys(page, "jv");
         assert_eq!(at(&h, page).as_deref(), Some("REQ-002"));
         assert_snapshot!("item-demo-followed", h.screen(page));
-        // Back, then forward again.
-        h.ctrl(page, 'o');
+        // Back, then forward again, with the keys the hints name.
+        assert_eq!(foot(&mut h, page).split("  ").next(), Some("< back"));
+        h.keys(page, "<lt>");
         assert_eq!(at(&h, page).as_deref(), Some("REQ-001"));
-        assert_eq!(foot(&mut h, page).split("  ").next(), Some("C-i forward"));
-        h.ctrl(page, 'i');
+        assert_eq!(foot(&mut h, page).split("  ").next(), Some("> forward"));
+        h.keys(page, ">");
         assert_eq!(at(&h, page).as_deref(), Some("REQ-002"));
+        h.keys(page, ">");
+        assert_eq!(foot(&mut h, page), "no later item");
         assert!(h
             .screen(page)
             .contains("Logged readings survive a power cut"));
@@ -700,11 +725,12 @@ mod tests {
     fn an_unknown_item_is_kilns_own_line() {
         let fake = demo();
         fake.on_spawn(
-            "kiln show REQ-001 --format json",
+            "kiln show TASK-099 --format json",
             Run::fails(2, fixture("errors/unknown-id.stderr")),
         );
         let (mut h, page) = opened(&fake);
-        h.keys(page, "v");
+        // Handed an ID the project hasn't got (a stale page, a typo).
+        crate::tests::hand(&mut h, page, crate::pages::Tab::Item, "TASK-099");
         assert_snapshot!("item-demo-unknown", h.screen(page));
         assert!(h.screen(page).contains("\nkiln: TASK-099 doesn't exist"));
     }

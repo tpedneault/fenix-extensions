@@ -1,7 +1,8 @@
 //! Board: the work items grouped under a heading per status, each heading
-//! with its count; open work says `ready`, `waits on TASK-003` or
-//! `blocked`, and `· owner` when claimed. Done and closed statuses are
-//! hidden until `a`.
+//! with its count; open work says `ready` or `waits on TASK-003`, and
+//! `· owner` when claimed ([`super::shared`], the Roadmap's marks too).
+//! Closed statuses (`dropped`) are hidden until `a`; done ones are shown,
+//! as Kiln's GUI shows them (GUI.md, "Pages").
 //!
 //! Which items are work. Kiln's GUI shows type `task`, else every type
 //! with `done` statuses except milestones. The loaded project doesn't hold
@@ -27,23 +28,13 @@
 
 use std::collections::{HashMap, HashSet};
 
-use super::view::{Cell, Ctx, Look, Meaning, Row, View};
+use super::shared::{self, Mark};
+use super::view::{Cell, Ctx, Look, Row, View};
 use crate::model::{count, Item};
 
 /// The Board tab. No state of its own: what it shows is the project and `a`.
 #[derive(Debug, Default)]
 pub struct Board;
-
-/// What the plan says of one open item: how it's waiting, if it is.
-enum Mark {
-    Ready,
-    /// In progress: its status says so, the Board adds nothing.
-    Going,
-    Waiting {
-        blocked: bool,
-        on: Vec<String>,
-    },
-}
 
 /// One status of one type, with its items in kiln's order.
 struct Bucket<'a> {
@@ -54,8 +45,8 @@ struct Bucket<'a> {
 
 impl View for Board {
     fn rows(&self, ctx: &Ctx) -> Vec<Row> {
-        let marks = marks(ctx);
-        let kinds = work_kinds(ctx, &marks);
+        let marks = shared::marks(ctx.loaded);
+        let kinds = work_kinds(ctx);
         let many = kinds.len() > 1;
 
         // Work, by (type, status): built in one pass over the items, in
@@ -63,7 +54,7 @@ impl View for Board {
         let mut buckets: Vec<Bucket> = Vec::new();
         let mut at: HashMap<(&str, &str), usize> = HashMap::new();
         for item in &ctx.loaded.items {
-            if !kinds.contains(item.kind.as_str()) || (!ctx.closed && (item.done || item.closed)) {
+            if !kinds.contains(item.kind.as_str()) || (!ctx.closed && item.closed) {
                 continue;
             }
             let n = *at
@@ -93,7 +84,7 @@ impl View for Board {
         let mut order: Vec<usize> = (0..buckets.len()).collect();
         order.sort_by_key(|&n| {
             let b = &buckets[n];
-            (first_of_kind[b.kind], rank(meaning(b)), b.status)
+            (first_of_kind[b.kind], meaning(b).rank(), b.status)
         });
 
         let mut rows = Vec::new();
@@ -118,80 +109,47 @@ impl View for Board {
     }
 
     fn empty(&self) -> String {
-        "no open work: a shows what's done, kiln new adds a task".into()
+        "no work items: a shows closed ones, kiln new adds one".into()
     }
 }
 
-/// Where a status comes among its type's: the order of a task's life.
-fn rank(m: Meaning) -> u8 {
-    match m {
-        Meaning::Initial => 0,
-        Meaning::InProgress => 1,
-        Meaning::Blocked => 2,
-        Meaning::Done => 3,
-        Meaning::Closed => 4,
-    }
-}
-
-/// What `kiln status` says of each open item, by ID. A work item is in one
-/// group; if a duplicated ID puts it in two, the first says.
-fn marks<'a>(ctx: &'a Ctx) -> HashMap<&'a str, Mark> {
-    let mut marks = HashMap::new();
-    for g in ctx.loaded.groups() {
-        for w in &g.in_progress {
-            marks.entry(w.id.as_str()).or_insert(Mark::Going);
-        }
-        for w in &g.ready {
-            marks.entry(w.id.as_str()).or_insert(Mark::Ready);
-        }
-        for w in &g.waiting {
-            marks.entry(w.id.as_str()).or_insert(Mark::Waiting {
-                blocked: w.blocked,
-                on: w.waits_on.iter().map(|r| r.id.clone()).collect(),
-            });
-        }
-    }
-    marks
-}
-
-/// The types that are work (see the module header).
-fn work_kinds<'a>(ctx: &'a Ctx, marks: &HashMap<&str, Mark>) -> HashSet<&'a str> {
+/// The types that are work (see the module header): with no `task`, the
+/// types with an item done, or one `kiln status` lists as work.
+fn work_kinds<'a>(ctx: &'a Ctx) -> HashSet<&'a str> {
     let items = &ctx.loaded.items;
     if items.iter().any(|i| i.kind == "task") {
         return HashSet::from(["task"]);
     }
+    let planned: HashSet<&str> = ctx
+        .loaded
+        .groups()
+        .iter()
+        .flat_map(|g| {
+            g.in_progress
+                .iter()
+                .chain(&g.ready)
+                .map(|w| w.id.as_str())
+                .chain(g.waiting.iter().map(|w| w.id.as_str()))
+        })
+        .collect();
     items
         .iter()
-        .filter(|i| i.kind != "milestone" && (i.done || marks.contains_key(i.id.as_str())))
+        .filter(|i| i.kind != "milestone" && (i.done || planned.contains(i.id.as_str())))
         .map(|i| i.kind.as_str())
         .collect()
 }
 
-/// An item's row: ID, title, how it waits, its owner. The status is its
-/// heading's, so it isn't said again.
+/// An item's row: ID, title, where it stands in the plan, its owner. The
+/// status is its heading's, so it isn't said again.
 fn row(item: &Item, mark: Option<&Mark>) -> Row {
-    let state = match mark {
-        Some(Mark::Ready) => Cell::new("ready", Look::Good),
-        Some(Mark::Waiting { blocked, on }) => {
-            let mut parts = Vec::new();
-            if *blocked {
-                parts.push("blocked".to_string());
-            }
-            if !on.is_empty() {
-                parts.push(format!("waits on {}", on.join(", ")));
-            }
-            let look = if *blocked { Look::Bad } else { Look::Warn };
-            Cell::new(parts.join(", "), look)
-        }
-        Some(Mark::Going) | None => Cell::text(""),
-    };
-    let owner = match item.owner.as_deref() {
-        Some(o) if !o.is_empty() => Cell::muted(format!("· {o}")),
-        _ => Cell::text(""),
-    };
     Row::item(
         item,
-        vec![Cell::id(&item.id), Cell::text(&item.title), state, owner],
+        vec![
+            Cell::id(&item.id),
+            Cell::text(&item.title),
+            Mark::cell(mark),
+            shared::owner(item.owner.as_deref()),
+        ],
     )
 }
 
@@ -201,7 +159,7 @@ mod tests {
     use crate::model::{self, tests::fixture};
     use crate::pages::view::{Kind, Looks};
     use crate::project::Loaded;
-    use crate::tests::{demo, foot, opened, own};
+    use crate::tests::{at, demo, foot, opened, own};
     use fenix_test_kit::assert_snapshot;
 
     fn load(project: &str) -> Loaded {
@@ -247,33 +205,49 @@ mod tests {
                 "# doing | 1 item",
                 "TASK-002 | Write readings to SQLite |  | · ana",
                 "# blocked | 1 item",
-                "TASK-005 | Ask about retention rules | blocked | ",
-            ]
+                "TASK-005 | Ask about retention rules |  | ",
+                "# done | 1 item",
+                "TASK-001 | Set up the logger |  | ",
+            ],
+            "blocked and in progress say nothing their heading says"
         );
+        // Nothing closed in the demo: `a` adds nothing.
+        assert_eq!(rows(&l, true), rows(&l, false));
     }
 
     #[test]
-    fn a_shows_what_is_done_last() {
-        let l = load("demo");
+    fn a_shows_closed_statuses_last() {
+        let mut l = load("demo");
+        let mut items = l.items.clone();
+        for i in &mut items {
+            if i.id == "TASK-008" {
+                i.status = "dropped".into();
+                i.closed = true;
+            }
+        }
+        l = Loaded::new(l.version, items, l.plan, l.findings);
+        assert!(!rows(&l, false).iter().any(|r| r.contains("TASK-008")));
         let all = rows(&l, true);
-        assert_eq!(all.len(), 12);
         assert_eq!(
-            all[10..],
-            ["# done | 1 item", "TASK-001 | Set up the logger |  | "]
+            all[all.len() - 2..],
+            [
+                "# dropped | 1 item",
+                "TASK-008 | Tidy the build scripts | ready | "
+            ],
         );
     }
 
     #[test]
-    fn kilns_own_project_has_no_open_work() {
+    fn kilns_own_project_has_only_done_work() {
         let l = load("own");
-        assert!(rows(&l, false).is_empty());
+        let r = rows(&l, false);
+        assert_eq!(r.len(), 22);
+        assert_eq!(r[0], "# done | 21 items");
+        assert_eq!(rows(&l, true), r, "nothing closed");
         assert_eq!(
             Board.empty(),
-            "no open work: a shows what's done, kiln new adds a task"
+            "no work items: a shows closed ones, kiln new adds one"
         );
-        let all = rows(&l, true);
-        assert_eq!(all.len(), 22);
-        assert_eq!(all[0], "# done | 21 items");
     }
 
     #[test]
@@ -313,7 +287,7 @@ mod tests {
         assert!(r
             .iter()
             .all(|r| !r.contains("ready") && !r.contains("waits")));
-        assert_eq!(r.len(), 10);
+        assert_eq!(r.len(), 12);
     }
 
     #[test]
@@ -329,19 +303,21 @@ mod tests {
         h.size = (110, 26);
         h.keys(page, "4");
         assert_snapshot!("board-demo", h.screen(page));
+        // Nothing closed in the demo: `a` says so and the rows stay.
+        let body = |s: String| s.lines().take(20).collect::<Vec<_>>().join("\n");
+        let before = body(h.screen(page));
         h.keys(page, "a");
-        assert_snapshot!("board-demo-closed", h.screen(page));
+        assert_eq!(body(h.screen(page)), before);
+        assert_eq!(foot(&mut h, page), "closed items shown");
     }
 
     #[test]
-    fn kilns_own_page_says_there_is_no_open_work() {
+    fn kilns_own_page_has_its_done_tasks() {
         let fake = own();
         let (mut h, page) = opened(&fake);
         h.size = (110, 26);
         h.keys(page, "4");
         assert_snapshot!("board-own", h.screen(page));
-        h.keys(page, "a");
-        assert_snapshot!("board-own-closed", h.screen(page));
-        assert!(!foot(&mut h, page).is_empty());
+        assert_eq!(at(&h, page).as_deref(), Some("TASK-001"));
     }
 }

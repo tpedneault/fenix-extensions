@@ -2,10 +2,13 @@
 
 Each tab is one file here, a `View` (`view.rs`). The frame (`frame.rs`)
 does everything tabs share: tabs, cursor, scroll, `/` filter, `Enter`,
-`r`, `a`, `v`, `i`, the mouse, the page's saved state, and the states
-that aren't "loaded". `tree.rs` is the worked example: copy its shape.
-Your tab is already registered (`mod.rs`'s `Tab`); edit only your file,
-and add fixtures and snapshots.
+`r`, `a`, `v`, `i`, the mouse, the page's saved state, the states that
+aren't "loaded", and asking the user or kiln for a view. `tree.rs` is the
+worked example: copy its shape. `shared.rs` has what several tabs say
+alike -- the plan's mark (`ready`, `waits on …`), the owner (`· ana`),
+natural ID order -- and `Meaning::rank` orders statuses by meaning: use
+them rather than writing your own. A tab is registered in `mod.rs`'s
+`Tab`.
 
 ## The view
 
@@ -24,6 +27,9 @@ impl View for Board {
     fn queries(&self, ctx: &Ctx) -> Vec<Query>            // kiln asked for you
     fn answer(&mut self, tag: &str, result: &Result<Ran, Failure>)
     fn hand(&mut self, id: &str)                          // `v` → Item, `i` → Impact
+    fn typed(&mut self, tag: &str, text: &str, ctx: &Ctx) -> Reply    // after Reply::Ask
+    fn picked(&mut self, tag: &str, value: &str, ctx: &Ctx) -> Reply  // after Reply::Pick
+    fn edited(&mut self, tag: &str, result: &Result<Ran, Failure>, ctx: &Ctx) -> Reply // after Reply::Edit
     fn save(&self) -> serde_json::Value                   // your state, in the page's
     fn restore(&mut self, saved: &serde_json::Value)      // unreadable: leave the default
 }
@@ -64,10 +70,49 @@ own: show it as a `Row::note`. Only the tab shown asks.
 ## Keys
 
 The frame owns `j k ↓ ↑ g G Home End C-d C-u PgUp PgDn Tab S-Tab ] [ 1–9
-/ Enter r a v i`; Fenix owns `q`, `Esc` and Space. Everything else is
-yours (`m`, `T`, `b`, `H`, `L`, `C-o`, `C-i`...): match on `key.key`,
-`key.mods.ctrl`. Return `Reply::Rebuild` when your rows change,
-`Reply::Say(text)` for the bottom line, `Reply::Ignored` otherwise.
+/ Enter r a v i`; Fenix owns `q`, `Esc` and Space, and keeps its own
+chords from every page -- Ctrl+O and Ctrl+I among them (its jump list),
+so a tab can't rely on them (in a terminal `C-i` is `Tab` anyway).
+Everything else is yours: match on `key.key`, `key.mods.ctrl`. Return
+`Reply::Rebuild` when your rows change, `Reply::Say(text)` for the bottom
+line, `Reply::Ignored` otherwise.
+
+Taken by tabs now: Trace `m` `T`, Changes `b`, Item `<` `>` (and `C-o`
+`C-i` when they arrive), Check `e`. Kept for the edits (E2), on every tab:
+`s` `l` `U` `n` `N`, and `H` `L` on the Board.
+
+## Asking the user, and editing
+
+A view can't call the host, so it asks by replying, from `key` or from
+any of the answer methods:
+
+```rust
+Reply::ask(tag, label, initial)      // Fenix's prompt  -> typed(tag, text, ctx)
+Reply::pick(tag, title, items)       // Fenix's picker  -> picked(tag, value, ctx)
+                                     //   items: Vec<Choice>, Choice::new(label, value).detail(d)
+Reply::edit(tag, ["set", id, "status=doing"])   // kiln, through Project::edit
+                                     //   (Reply::Edit { tag, args, stdin } for one that reads stdin)
+                                     //   -> edited(tag, &result, ctx)
+```
+
+The frame turns each into an `Effect` naming the tab; `lib.rs` asks
+Fenix's own prompt or picker, or runs the edit in kiln's queue, and
+routes the answer back to the same page, tab and view with your `tag`
+(whichever tab is shown by then). Your answer method replies the same
+way, so an edit is a chain: pick a role → `picked` keeps it in a field
+and replies `Reply::ask` for the target → `typed` replies `Reply::edit`
+→ `edited`. A prompt or picker closed with nothing calls nothing: the
+flow just ends (keep no state that needs closing). An answer for a page
+that has closed is dropped. An answer that comes while the project isn't
+read (kiln lost since) is dropped, and the bottom line says so.
+
+An edit's outcome is said on the bottom line before `edited` is called:
+kiln's stdout (`REQ-014: status draft → approved`), or its error line
+(`kiln: … changed on disk …`) in the error look; a `Say` from `edited`
+replaces it. The project is read again after every edit, whether kiln
+changed anything or refused. Your rows are built again after every
+answer, whatever you reply. Tag answers you can tell apart: the tag is
+all that says which step an answer is for.
 
 ## Tests
 
@@ -75,8 +120,12 @@ Pure tests in your file: build a `Loaded` from `tests/fixtures/out/demo`
 and `own` (`model::tests::fixture`), a `Looks::new(&loaded)`, a `Ctx`, and
 assert on `rows` (see `tree.rs`'s tests: a line per row). Page tests in your
 file too, with `lib.rs`'s helpers (`crate::tests::{demo, own, opened, at,
-foot}`; add your command's answer with `.on_spawn("kiln trace --format
-json", Ran::ok(fixture(..)))`): `kiln.open`,
+foot, hand}`; the demo's fake already answers `trace`, and `show` and
+`impact` for the items they were recorded for; add another answer with
+`.on_spawn("kiln trace --type task --format json", Ran::ok(fixture(..)))`,
+a prompt's or a pick's with `.on_prompt(label, text)` and
+`.on_pick(title, row)`, or their `_nothing` for `Esc`; `Flow` in
+`frame.rs`'s tests is a view whose `x` is a whole edit flow): `kiln.open`,
 `h.keys(page, "4")` to reach your tab, then
 `assert_snapshot!("board-demo", h.screen(page))` at `h.size = (110, 26)`.
 Snapshots are `tests/snapshots/<tab>-<project>[-<what>].txt`; write them
@@ -86,8 +135,8 @@ them. Record a new fixture with `tests/fixtures/record.sh`, never by hand
 
 ## Don't
 
-- Edit `frame.rs`, `view.rs`, `mod.rs` or `lib.rs`: ask for a change.
 - Block: no host calls, no `std::fs`, no waiting. kiln is asked through
   `queries`.
-- Write an item file, or run an editing command (E2 adds those).
+- Write an item file, or run kiln yourself: an edit is a `Reply::Edit`,
+  a read a `Query`.
 - Guess a shape: an answer that doesn't read is said, as kiln's line.

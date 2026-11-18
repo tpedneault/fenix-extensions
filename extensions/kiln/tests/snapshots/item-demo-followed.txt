@@ -23,4 +23,4 @@ mitigates →  RISK-001  The SD card wears out                open
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-C-o back  Enter open  / filter  v item  i impact  r reload  Tab next tab
+< back  Enter open  / filter  v item  i impact  r reload  Tab next tab

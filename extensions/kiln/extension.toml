@@ -36,8 +36,9 @@ process = ["kiln", "${setting:kiln.path}"]
 # whether the project already runs kiln's language server (then this
 # adds none). Nothing here writes a file.
 filesystem = "project-read"
-# Where you are, so a page can follow the item ID under the cursor and a
-# file's items can be found. Never changes a buffer.
+# Where you are, for the commands that start in a buffer (Kiln: show the
+# item under the cursor, Kiln: impact of…): the file, the cursor's line
+# and column, the project's folder. Never changes a buffer.
 editor = "read"
 
 [contributes]
@@ -52,6 +53,22 @@ title = "Kiln: open the plan"
 [[contributes.commands]]
 id = "kiln.reload"
 title = "Kiln: read the project again"
+
+# From a buffer: the Kiln ID under the cursor (one the loaded project has;
+# off any, the item whose file it is) on the plan's Item or Impact tab.
+# Read with editor = "read"; nothing in the buffer changes.
+[[contributes.commands]]
+id = "kiln.show"
+title = "Kiln: show the item under the cursor"
+
+[[contributes.commands]]
+id = "kiln.impact"
+title = "Kiln: impact of the item under the cursor"
+
+# Fenix's picker over every item (ID, title, status), then its Item tab.
+[[contributes.commands]]
+id = "kiln.find"
+title = "Kiln: find an item"
 
 # The project doctor's fix row for a kiln that isn't found: opens Kiln's
 # install instructions in the browser. Nothing is downloaded (no network

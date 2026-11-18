@@ -26,6 +26,17 @@
 //! drawing walks only the rows in view, and the filter only the rows'
 //! text, lowercased once as they're built.
 //!
+//! # Asking the user, and editing
+//!
+//! A view can't call the host, so it replies to a key with what it wants
+//! asked ([`Reply::Ask`], [`Reply::Pick`]) or run ([`Reply::Edit`]); the
+//! frame turns that into an [`Effect`] naming the tab and the view's tag,
+//! `lib.rs` asks Fenix (its prompt, its picker) or kiln, and the answer
+//! comes back through [`Plan::typed`], [`Plan::picked`] or
+//! [`Plan::edited`] to that tab's view, whose reply is handled the same
+//! way -- so a flow is a chain of them. An edit's outcome is said on the
+//! bottom line before the view hears it.
+//!
 //! What it deliberately doesn't do: call Fenix (it returns [`Effect`]s and
 //! [`Ask`]s for `lib.rs` to perform, so it is tested natively as it is),
 //! run kiln, or know what any tab shows.
@@ -39,11 +50,11 @@ use fenix_ui_kit::{
 };
 use serde_json::{json, Value};
 
-use super::view::{Ctx, Kind, Looks, Place, Reply, Row, View};
+use super::view::{stdout, Choice, Ctx, Kind, Looks, Place, Reply, Row, View};
 use super::Tab;
 use crate::kiln::{Failure, Ran};
 use crate::model::{count, MIN_VERSION};
-use crate::project::{QueryId, State};
+use crate::project::{Loaded, QueryId, State};
 
 /// The project now, as the frame needs it: its state, and how many reads
 /// have loaded ([`crate::project::Project::loads`]), so a new read is
@@ -64,13 +75,36 @@ pub struct Hints {
     pub settings: Option<String>,
 }
 
-/// What a key or a click asks of Fenix.
+/// What a key, a click or an answer asks of Fenix or kiln. The last three
+/// carry the tab and the view's tag, for the answer to come back to
+/// ([`Plan::typed`], [`Plan::picked`], [`Plan::edited`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
     /// A file opened at a line (relative to the project's top).
     Open(Place),
     /// `r`: the project read again.
     Reload,
+    /// Fenix's prompt: a line of text ([`Reply::Ask`]).
+    Ask {
+        tab: Tab,
+        tag: String,
+        label: String,
+        initial: String,
+    },
+    /// Fenix's picker: one of `items` ([`Reply::Pick`]).
+    Pick {
+        tab: Tab,
+        tag: String,
+        title: String,
+        items: Vec<Choice>,
+    },
+    /// An editing command for kiln ([`Reply::Edit`]).
+    Edit {
+        tab: Tab,
+        tag: String,
+        args: Vec<String>,
+        stdin: Option<String>,
+    },
 }
 
 /// A query to put to kiln for a tab ([`super::view::Query`]): `lib.rs`
@@ -288,6 +322,36 @@ impl Pane {
     }
 }
 
+/// What `pane`'s view builds from and is asked with.
+fn ctx<'a>(loaded: &'a Loaded, pane: &Pane, looks: &'a Looks) -> Ctx<'a> {
+    Ctx {
+        loaded,
+        closed: pane.closed,
+        reading: !pane.out.is_empty(),
+        looks,
+    }
+}
+
+/// An edit's outcome for the bottom line: kiln's stdout (`REQ-014: status
+/// draft → approved`), its lines run together, or its error line.
+fn outcome(result: &Result<Ran, Failure>) -> (String, Role) {
+    match stdout(result, &[0]) {
+        Ok(out) => {
+            let lines: Vec<&str> = out
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty())
+                .collect();
+            if lines.is_empty() {
+                ("kiln did it, and said nothing".into(), Role::Text)
+            } else {
+                (lines.join("; "), Role::Text)
+            }
+        }
+        Err(line) => (line, Role::Bad),
+    }
+}
+
 /// One plan page: its tabs and what each keeps.
 pub struct Plan {
     tabs: TabsState,
@@ -410,12 +474,7 @@ impl Plan {
         }
         let pane = &mut self.panes[self.tabs.active];
         if pane.built != Some(now.loads) || pane.dirty {
-            let ctx = Ctx {
-                loaded,
-                closed: pane.closed,
-                reading: !pane.out.is_empty(),
-                looks: &self.looks,
-            };
+            let ctx = ctx(loaded, pane, &self.looks);
             pane.build(&ctx);
             pane.built = Some(now.loads);
         }
@@ -431,12 +490,7 @@ impl Plan {
         self.ensure(now);
         let tab = self.tab();
         let pane = &self.panes[self.tabs.active];
-        let ctx = Ctx {
-            loaded,
-            closed: pane.closed,
-            reading: !pane.out.is_empty(),
-            looks: &self.looks,
-        };
+        let ctx = ctx(loaded, pane, &self.looks);
         pane.view
             .queries(&ctx)
             .into_iter()
@@ -610,20 +664,109 @@ impl Plan {
         let State::Loaded { loaded, .. } = now.state else {
             return Vec::new();
         };
-        let pane = &mut self.panes[self.tabs.active];
+        let tab = self.tab();
+        let pane = &mut self.panes[tab.index()];
         let row = pane.row().cloned();
-        let ctx = Ctx {
-            loaded,
-            closed: pane.closed,
-            reading: !pane.out.is_empty(),
-            looks: &self.looks,
-        };
-        match pane.view.key(press, row.as_ref(), &ctx) {
-            Reply::Ignored => {}
-            Reply::Rebuild => pane.dirty = true,
-            Reply::Say(text) => self.say(&text, Role::Text),
+        let ctx = ctx(loaded, pane, &self.looks);
+        let reply = pane.view.key(press, row.as_ref(), &ctx);
+        self.reply(tab, reply)
+    }
+
+    /// What tab `tab`'s view replied, done: its rows marked to be built
+    /// again, a line said, or an [`Effect`] for `lib.rs` to perform.
+    fn reply(&mut self, tab: Tab, reply: Reply) -> Vec<Effect> {
+        match reply {
+            Reply::Ignored => Vec::new(),
+            Reply::Rebuild => {
+                self.panes[tab.index()].dirty = true;
+                Vec::new()
+            }
+            Reply::Say(text) => {
+                self.say(&text, Role::Text);
+                Vec::new()
+            }
+            Reply::Ask {
+                tag,
+                label,
+                initial,
+            } => vec![Effect::Ask {
+                tab,
+                tag,
+                label,
+                initial,
+            }],
+            Reply::Pick { tag, title, items } => vec![Effect::Pick {
+                tab,
+                tag,
+                title,
+                items,
+            }],
+            Reply::Edit { tag, args, stdin } => vec![Effect::Edit {
+                tab,
+                tag,
+                args,
+                stdin,
+            }],
         }
-        Vec::new()
+    }
+
+    // -- Answers to what a view asked -------------------------------------------
+
+    /// What was typed into the prompt tab `tab`'s view asked for with
+    /// `tag`, handed to it; what it replies, done. With the project not
+    /// read (kiln gone since it asked), there's nothing to act on: it's
+    /// said, and dropped.
+    pub fn typed(&mut self, tab: Tab, tag: &str, text: &str, now: Now) -> Vec<Effect> {
+        self.answer_view(tab, now, |view, ctx| view.typed(tag, text, ctx))
+    }
+
+    /// The value picked in the picker tab `tab`'s view asked for with
+    /// `tag`, handed to it, as [`Plan::typed`] does.
+    pub fn picked(&mut self, tab: Tab, tag: &str, value: &str, now: Now) -> Vec<Effect> {
+        self.answer_view(tab, now, |view, ctx| view.picked(tag, value, ctx))
+    }
+
+    /// How the edit tab `tab`'s view asked for with `tag` ended: said on
+    /// the bottom line (kiln's stdout, or its error line), then handed to
+    /// the view, whose reply may go on (another prompt after a refusal).
+    pub fn edited(
+        &mut self,
+        tab: Tab,
+        tag: &str,
+        result: &Result<Ran, Failure>,
+        now: Now,
+    ) -> Vec<Effect> {
+        let (line, role) = outcome(result);
+        self.say(&line, role);
+        if !matches!(now.state, State::Loaded { .. }) {
+            return Vec::new();
+        }
+        // A word of the view's own replaces the outcome on the bottom line.
+        self.answer_view(tab, now, |view, ctx| view.edited(tag, result, ctx))
+    }
+
+    fn answer_view(
+        &mut self,
+        tab: Tab,
+        now: Now,
+        hear: impl FnOnce(&mut dyn View, &Ctx) -> Reply,
+    ) -> Vec<Effect> {
+        let State::Loaded { loaded, .. } = now.state else {
+            self.say(
+                "the project isn't read now, so the answer was dropped",
+                Role::Muted,
+            );
+            return Vec::new();
+        };
+        self.ensure(now);
+        let pane = &mut self.panes[tab.index()];
+        let ctx = ctx(loaded, pane, &self.looks);
+        let reply = hear(pane.view.as_mut(), &ctx);
+        // An answer may change what the view shows whatever it replies (a
+        // step of a flow kept, then the next asked): built again, which an
+        // answer, rare, can afford.
+        pane.dirty = true;
+        self.reply(tab, reply)
     }
 
     /// Text pasted: into the filter while it's typed.
@@ -945,7 +1088,7 @@ fn draw_state(state: State, hints: &Hints, body: Rect, c: &mut Canvas) {
 pub(crate) mod tests {
     use super::*;
     use crate::model::{self, tests::fixture, Item, Version};
-    use crate::pages::view::{Cell, Query};
+    use crate::pages::view::{Cell, Choice, Query};
     use crate::project::Loaded;
     use fenix_ui_kit::Mods;
 
@@ -1117,6 +1260,10 @@ pub(crate) mod tests {
         let mut p = Plan::new();
         keys(&mut p, "jja/req<Enter>", now);
         keys(&mut p, "4", now);
+        // The Board drawn, so its cursor is on its first row, as the
+        // restored page's will be once it's drawn.
+        screen(&mut p, now, 80, 30);
+        assert_eq!(p.id(), Some("TASK-003"));
         let saved = p.save();
         let mut q = Plan::restore(&saved);
         assert_eq!(q.tab(), Tab::Board);
@@ -1218,6 +1365,189 @@ pub(crate) mod tests {
         assert!(screen(&mut p, now, 60, 8).contains("shown"));
         assert!(p.wants(now).is_empty(), "once a read");
         assert_eq!(p.wants(loaded(&d, 2)).len(), 1, "again after a reload");
+    }
+
+    /// A view whose `x` is an edit flow, as E2's will be: pick a role,
+    /// type a target, then `kiln link`; asked again when kiln refuses.
+    #[derive(Default)]
+    pub(crate) struct Flow {
+        role: Option<String>,
+        pub(crate) heard: Vec<String>,
+    }
+
+    impl View for Flow {
+        fn rows(&self, _: &Ctx) -> Vec<Row> {
+            vec![Row::note(format!("heard: {}", self.heard.join(", ")))]
+        }
+        fn key(&mut self, key: KeyPress, _: Option<&Row>, _: &Ctx) -> Reply {
+            if key.key != Key::Char('x') {
+                return Reply::Ignored;
+            }
+            Reply::pick(
+                "role",
+                "Link REQ-001 as",
+                vec![
+                    Choice::new("verifies", "verifies").detail("a test"),
+                    Choice::new("implements", "implements"),
+                ],
+            )
+        }
+        fn picked(&mut self, tag: &str, value: &str, _: &Ctx) -> Reply {
+            self.heard.push(format!("{tag}={value}"));
+            self.role = Some(value.to_string());
+            Reply::ask("target", format!("REQ-001 {value} what"), "")
+        }
+        fn typed(&mut self, tag: &str, text: &str, _: &Ctx) -> Reply {
+            self.heard.push(format!("{tag}={text}"));
+            let role = self.role.clone().unwrap_or_default();
+            Reply::edit("link", ["link", "REQ-001", role.as_str(), text])
+        }
+        fn edited(&mut self, tag: &str, result: &Result<Ran, Failure>, _: &Ctx) -> Reply {
+            match crate::pages::view::stdout(result, &[0]) {
+                Ok(_) => {
+                    self.heard.push(format!("{tag} done"));
+                    Reply::Rebuild
+                }
+                // Refused: the flow stays open, asked again.
+                Err(_) => {
+                    self.heard.push(format!("{tag} refused"));
+                    Reply::ask("target", "REQ-001 again", "")
+                }
+            }
+        }
+    }
+
+    fn foot_line(p: &mut Plan, now: Now) -> String {
+        screen(p, now, 80, 8)
+            .lines()
+            .last()
+            .unwrap_or("")
+            .to_string()
+    }
+
+    #[test]
+    fn a_views_flow_of_picks_and_prompts_ends_in_one_edit() {
+        let d = demo();
+        let now = loaded(&d, 1);
+        let mut p = Plan::new();
+        p.set_view(Tab::Check, Box::<Flow>::default());
+        keys(&mut p, "9", now);
+        let pick = key(&mut p, Key::Char('x'), now);
+        assert_eq!(
+            pick,
+            [Effect::Pick {
+                tab: Tab::Check,
+                tag: "role".into(),
+                title: "Link REQ-001 as".into(),
+                items: vec![
+                    Choice::new("verifies", "verifies").detail("a test"),
+                    Choice::new("implements", "implements")
+                ],
+            }]
+        );
+        // The answer goes to the tab that asked, even with another shown.
+        keys(&mut p, "1", now);
+        let ask = p.picked(Tab::Check, "role", "verifies", now);
+        assert_eq!(
+            ask,
+            [Effect::Ask {
+                tab: Tab::Check,
+                tag: "target".into(),
+                label: "REQ-001 verifies what".into(),
+                initial: String::new(),
+            }]
+        );
+        let edit = p.typed(Tab::Check, "target", "TEST-001", now);
+        assert_eq!(
+            edit,
+            [Effect::Edit {
+                tab: Tab::Check,
+                tag: "link".into(),
+                args: vec![
+                    "link".into(),
+                    "REQ-001".into(),
+                    "verifies".into(),
+                    "TEST-001".into()
+                ],
+                stdin: None,
+            }]
+        );
+        // Done: kiln's stdout on the bottom line, and the view told.
+        let ran = Ran {
+            code: Some(0),
+            stdout: "REQ-001: + verifies TEST-001\n".into(),
+            stderr: vec![],
+        };
+        assert!(p.edited(Tab::Check, "link", &Ok(ran), now).is_empty());
+        assert_eq!(foot_line(&mut p, now), "REQ-001: + verifies TEST-001");
+        keys(&mut p, "9", now);
+        assert!(
+            screen(&mut p, now, 80, 8).contains("heard: role=verifies, target=TEST-001, link done")
+        );
+    }
+
+    #[test]
+    fn a_refused_edit_says_kilns_line_and_the_view_may_ask_again() {
+        let d = demo();
+        let now = loaded(&d, 1);
+        let mut p = Plan::new();
+        p.set_view(Tab::Check, Box::<Flow>::default());
+        let refused = Err(Failure::Exit {
+            code: Some(1),
+            line: "kiln: design/requirements/REQ-001.md changed on disk since it was read".into(),
+        });
+        assert_eq!(
+            p.edited(Tab::Check, "link", &refused, now),
+            [Effect::Ask {
+                tab: Tab::Check,
+                tag: "target".into(),
+                label: "REQ-001 again".into(),
+                initial: String::new(),
+            }]
+        );
+        assert_eq!(
+            foot_line(&mut p, now),
+            "kiln: design/requirements/REQ-001.md changed on disk since it was read"
+        );
+        // An edit that printed nothing says so rather than nothing.
+        let quiet = Ran {
+            code: Some(0),
+            stdout: "\n".into(),
+            stderr: vec![],
+        };
+        p.edited(Tab::Check, "link", &Ok(quiet), now);
+        assert_eq!(foot_line(&mut p, now), "kiln did it, and said nothing");
+    }
+
+    #[test]
+    fn an_answer_while_the_project_isnt_read_is_dropped_and_said() {
+        let d = demo();
+        let mut p = Plan::new();
+        p.set_view(Tab::Check, Box::<Flow>::default());
+        let gone = Now {
+            state: State::Failed("kiln: kiln.toml:4: unknown key `nmae`"),
+            loads: 1,
+        };
+        assert!(p.typed(Tab::Check, "target", "TEST-001", gone).is_empty());
+        assert_eq!(
+            foot_line(&mut p, gone),
+            "the project isn't read now, so the answer was dropped"
+        );
+        // An edit's outcome is still said; the view isn't asked to go on.
+        let ran = Ran {
+            code: Some(0),
+            stdout: "REQ-001: + verifies TEST-001\n".into(),
+            stderr: vec![],
+        };
+        assert!(p.edited(Tab::Check, "link", &Ok(ran), gone).is_empty());
+        assert_eq!(foot_line(&mut p, gone), "REQ-001: + verifies TEST-001");
+        let now = loaded(&d, 1);
+        keys(&mut p, "9", now);
+        let s = screen(&mut p, now, 80, 8);
+        assert!(
+            s.contains("\nheard:") && !s.contains("target"),
+            "the view heard nothing: {s}"
+        );
     }
 
     #[test]
