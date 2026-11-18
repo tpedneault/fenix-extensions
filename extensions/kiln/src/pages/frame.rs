@@ -16,8 +16,9 @@
 //! `j` `k` `↓` `↑`, `g g` `G` `Home` `End`, `C-d` `C-u` `PgDn` `PgUp` (half
 //! a page), `Tab` `]` `[` `S-Tab` `1`–`9` `0`, `/` (then everything until
 //! `Enter` or `Esc`), `Enter`, `r`, `a`, `v`, `i`, `J` (the item's status
-//! from its Jira ticket), and the edits: `s` `l` `U` `n` `N` `E`, `H` `L`
-//! (see below). A view gets every other key; `A`, when it ignores it, is
+//! from its Jira ticket), `S` (start working on the item: claim it and
+//! clock in on the agenda, [`crate::start`]), and the edits: `s` `l` `U`
+//! `n` `N` `E`, `H` `L` (see below). A view gets every other key; `A`, when it ignores it, is
 //! the frame's `kiln auth jira`. `q` and `Esc` close the page and Space is
 //! the leader: Fenix's.
 //!
@@ -209,6 +210,10 @@ pub enum Effect {
     Terminal { title: String, args: Vec<String> },
     /// An `http(s)` link in the browser ([`Reply::Url`], already checked).
     Url(String),
+    /// `S`: start working on this item -- kiln's `set`, then the agenda's
+    /// clock ([`crate::start`]); `lib.rs` runs it and says what came of it
+    /// on this page's bottom line.
+    Start(String),
 }
 
 /// A query to put to kiln for a tab ([`super::view::Query`]): `lib.rs`
@@ -901,6 +906,15 @@ impl Plan {
                 }
             }
             Key::Char('J') => return self.pull(now),
+            Key::Char('S') => {
+                return match pane.row().and_then(|r| r.id.clone()) {
+                    Some(id) => vec![Effect::Start(id)],
+                    None => {
+                        self.say("no item here", Role::Muted);
+                        Vec::new()
+                    }
+                }
+            }
             Key::Char(c) if Edit::by_key(c).is_some() => {
                 if let Some(edit) = Edit::by_key(c) {
                     return self.start_edit(edit, now);

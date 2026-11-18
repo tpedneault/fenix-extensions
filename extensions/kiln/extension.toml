@@ -215,6 +215,23 @@ title = "Kiln: link the item here to another"
 id = "kiln.unlink"
 title = "Kiln: remove a link of the item here"
 
+# Start working on the item here: kiln set owner=… status=… in one command,
+# then the Agenda extension's clock on the item's task (found by its Jira
+# key or its title, else made). Calling the agenda's services
+# (agenda.tasks, agenda.add_task, agenda.clock_in) takes nothing here: a
+# service is open to any installed extension (the agenda lists no
+# service_callers), and the permissions are unchanged. Without the Agenda
+# extension installed only the kiln part happens, and it says so.
+[[contributes.commands]]
+id = "kiln.start"
+title = "Kiln: start working on the item here"
+
+# The plan's Check tab: what the notification about new errors and the
+# doctor's fix row for kiln check open.
+[[contributes.commands]]
+id = "kiln.check"
+title = "Kiln: open the plan's Check tab"
+
 # Needs no item: a type, a title, and the new item's file opens.
 [[contributes.commands]]
 id = "kiln.new"
@@ -258,6 +275,25 @@ key = "kiln.decorations"
 kind = "bool"
 label = "Titles after IDs"
 description = "After an item ID in a file of the project -- [[REQ-014]], parent = \"REQ-014\", // implements: REQ-014 -- its title and status, muted. Hover (kiln lsp) still gives the rest."
+default = "true"
+
+# Who the user is, for "start working on this": the owner an item with none
+# gets. The extension can't know it without reading git's configuration or
+# the environment, which it has no permission for, so empty (the default)
+# claims nothing and only moves the status.
+[[contributes.settings]]
+key = "kiln.owner"
+kind = "text"
+label = "My name in Kiln"
+description = "The owner Kiln: start working on the item here gives an item that has none, as kiln set owner=… (what your items' owners are written as). Empty: no owner is set, only the status and the clock."
+default = ""
+
+# The one notification: a save took kiln check from no errors to some.
+[[contributes.settings]]
+key = "kiln.notify_errors"
+kind = "bool"
+label = "Notify about new errors"
+description = "One notification when saving a file takes kiln check from no errors to at least one, with the first error and a way to open the Check tab. Not for warnings, nor for errors that were there before; it goes away when the check is clean again."
 default = "true"
 
 # The agent tools' safety switch, under the extension's full id so no

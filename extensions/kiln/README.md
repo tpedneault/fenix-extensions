@@ -143,7 +143,7 @@ version (or, when it isn't, that it's not on the PATH and `kiln.path` is
 empty, or that the path it holds can't be run, with a fix row that opens
 Kiln's install instructions in the browser -- nothing is downloaded), the
 project read (or kiln's own error line), the language server, and what the
-last `kiln check` found, with a fix row that opens the plan. In a folder
+last `kiln check` found, with a fix row that opens the plan's Check tab. In a folder
 that isn't a Kiln project it has none.
 
 **Tasks** (`SPC t t`), in a Kiln project: `kiln: check`, and the two export
@@ -164,6 +164,87 @@ error: message`, which the task pane turns into quickfix entries.
 
 **The modeline** shows the last check's findings when there are any, `kiln 1
 error, 2 warnings`, and nothing when there are none.
+
+## Start working on this
+
+`S` on the plan (on the item under the cursor, on every tab) and `Kiln:
+start working on the item here` (`SPC m S`, on the item the cursor is on or
+whose file it is, found as `kiln.show` finds it) do two things in order:
+
+1. **Claim and start it, in kiln.** One command, as Kiln's own guidance has
+   it: `kiln set -- ID owner=… status=…`, through the same edit path as
+   every other edit (none starts while the project isn't read, or its last
+   read failed, or kiln is still reading the last edit back). The status is
+   the type's first one after its initial status that isn't done, closed,
+   `blocked` or a sign-off status (`todo` becomes `doing`); an item already
+   past its initial status keeps the one it has, and says so
+   (`TASK-004: already doing`). The owner is set only when the item has none
+   **and** the setting `kiln.owner` holds your name as the project writes
+   owners: the extension can't know who you are without reading git's
+   configuration or the environment, which it has no permission to, so
+   with `kiln.owner` empty (the default) no owner is set. When `kiln.toml`
+   can't be read, or the type has no such status, nothing is guessed: the
+   status stays and the line says why. An item that's done or closed, or of
+   a type with no done status (a decision) or a milestone, starts nothing.
+   If kiln refuses, its line is shown and **nothing is clocked**.
+2. **Clock in, on the Agenda extension's task for it.** The task is
+   found, in this order, among the agenda's open tasks (`agenda.tasks`): one
+   that carries one of the item's Jira keys (the agenda's `jiraKey`, from
+   Jira), else one whose title is the item's ID or starts with it and a
+   space (`TASK-004 Add the export button`: what this extension makes). When
+   there is none, one is made with `agenda.add_task` -- the title is `ID
+   Title`, and the item's file and line go with it for the agenda to come
+   back to -- and the agenda is asked for its tasks again to learn which is
+   the new one (`agenda.add_task` answers nothing), then `agenda.clock_in`
+   starts the clock on it. A title is all that tells a made task back, and
+   the agenda is one list for every project, so another project's `TASK-004`
+   would be found as well. A made task isn't linked to a Jira ticket
+   (`agenda.add_task` takes none): an item with a Jira key gets its clock
+   only when the agenda already has the ticket (import it there).
+
+The line says both: `TASK-004: status todo → doing; clocked in on "TASK-004
+Add the export button"`, on the page's bottom line or the message line.
+
+**What clocking in does to a running clock** is the agenda's doing, not
+this extension's: it closes the running one into a time entry on the task it
+ran on and starts the new one, so switching never needs a clock-out first.
+This extension never clocks anything out.
+
+**Without the Agenda extension** the status change still happens, and the
+line says `no clock: the Agenda extension isn't installed` -- not an error.
+If the agenda refuses or answers something this can't read, the line says
+what it said (`the agenda didn't clock in: …`); the status change stands.
+Nothing here needs a new permission: the agenda's services are open to any
+installed extension, and this one only calls `agenda.tasks`,
+`agenda.add_task` and `agenda.clock_in`. One start at a time: a new one
+replaces the one under way (its late answer is dropped).
+
+## Home and a notification
+
+**Home.** In a Kiln project, Fenix's Home has a **Kiln** section: the work
+that is ready to start, the earliest milestone's first (`kiln status`'s own
+ready, the one `kiln next` and the Board use), at most four, each `TASK-004
+Add the export button` with its milestone (`(MS-001)`), then `open the plan`
+(saying how many more are ready when there are). Picking a ready row opens
+the plan on that item's Item tab; `open the plan` opens the plan. With
+nothing ready, one row says so with the counts (`nothing ready: 2 in
+progress, 1 waiting`) and opens the plan. The section is given to Fenix only
+when it changes, and taken away when the folder isn't a Kiln project kiln can
+read. The extension only loads in a Kiln project (a `kiln.toml` at its top)
+or when a `kiln.*` command runs, so the section appears once the project is
+open and read, not on Home of a folder with no `kiln.toml`.
+
+**One notification** when saving a file takes `kiln check` from no errors to
+at least one: `Kiln: 1 error after saving TASK-006-draft-the-user-guide.md`,
+its body the first error (`design/tasks/TASK-006-….md:11  K102  reference
+REQ-099 doesn't exist`), and one action, `Open the Check tab`
+(`kiln.check`, `Kiln: open the plan's Check tab`, `SPC m c`). It is tagged,
+so a newer one replaces it, and it goes away when a later check has no
+errors. Only that transition, and only after a save: not the first read of a
+project that already has errors, not every read while they persist, not
+warnings, not what a git move, the refresh timer, `r` or an edit through
+kiln finds. `kiln.notify_errors` turns it off (and takes a showing one
+away). The doctor's `kiln check` fix row opens the same Check tab.
 
 ## Titles after IDs
 
@@ -480,6 +561,7 @@ On the plan:
 | `A` | Exports: `kiln auth confluence` in a terminal on a Confluence target, `kiln auth jira` on `jira`; Comments: `kiln auth confluence`; anywhere else, `kiln auth jira` once Jira has asked for a token |
 | `o` | Comments: open the comment under the cursor in the browser |
 | `J` | Take the item's status from its Jira ticket (`kiln jira pull -- ID`) |
+| `S` | Start working on the item: `kiln set` its owner (`kiln.owner`) and status, then the Agenda's clock on its task ("Start working on this") |
 | `s` | Status: pick one of the item's type's statuses (the current one says `now`) |
 | `H`, `L` | Board: the previous / next status in the type's order (at the first or last, it says so) |
 | `l` | Link: pick a role its type may start, then a target the role allows that isn't linked yet |
@@ -513,6 +595,8 @@ After `SPC m`, in a Kiln project. The item's keys are the plan's (`v` `i`
 | `SPC m n` | `kiln.new` | A new item (needs no item here); its file opens |
 | `SPC m N` | `kiln.new_child` | A new child of the item here; its file opens |
 | `SPC m E` | `kiln.edit` | The menu of every edit: title, parent, owner, due date, renumber and the rest |
+| `SPC m S` | `kiln.start` | Start working on the item here: claim it, then clock in on the agenda |
+| `SPC m c` | `kiln.check` | Open the plan on its Check tab |
 
 `SPC m s` was `kiln.show` until the edits came; status is `s` on the plan
 and in Kiln's GUI, so show moved to `v`, which is its key on the plan.
@@ -532,6 +616,8 @@ for a kiln that isn't found; it has no key.
 |---|---|---|
 | `kiln.path` | empty | Where kiln is, when it isn't on the PATH |
 | `kiln.refresh_seconds` | 5 | Seconds between reloads while a Kiln page is in view; 0: only on save and `r` |
+| `kiln.owner` | empty | Who you are in Kiln, for "start working on this": the owner an item with none is given; empty: no owner is set |
+| `kiln.notify_errors` | on | One notification when a save takes `kiln check` from no errors to some; off takes a showing one away |
 | `kiln.decorations` | on | Titles and statuses after item IDs in the project's files ("Titles after IDs"); off takes them away at once |
 | `fenix.kiln.agent_edits` | off | Lets coding agents use `kiln_set`, `kiln_link` and `kiln_new` (Fenix still asks about each call); sign-off statuses are refused either way |
 
@@ -552,6 +638,13 @@ for a kiln that isn't found; it has no key.
   the project's open files (Fenix gives a file's text whole; only the
   shown lines of it are looked at). It changes no buffer: the titles are
   decorations, drawn beside the text.
+
+- **Call the Agenda extension's services** (`agenda.tasks`,
+  `agenda.add_task`, `agenda.clock_in`) for "start working on this": no
+  permission is needed, any installed extension may call them, and Fenix
+  answers that nothing offers them when the Agenda isn't installed. It
+  shows a notification (about errors) and a Home section the same way: no
+  permission.
 
 No network and no secrets: Confluence and Jira credentials stay Kiln's.
 Publishing to Confluence is kiln's own network access, run by `P` on the

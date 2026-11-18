@@ -34,9 +34,9 @@ use crate::project::{Loaded, State};
 /// install instructions (`kiln.install_help`, in the manifest).
 pub const INSTALL_HELP: &str = "kiln.install_help";
 
-/// The command that opens the plan, which says what `kiln check` found
-/// (E1 gives it a Check page; this is the one `kiln.open` for now).
-pub const OPEN: &str = "kiln.open";
+/// The command that opens the plan on its Check tab, which lists what
+/// `kiln check` found.
+pub const OPEN: &str = "kiln.check";
 
 /// Where Kiln's install instructions are: a page of Kiln's wiki. Opening
 /// it is all the extension does about a missing kiln.
@@ -149,8 +149,8 @@ fn server(status: &lsp::Status) -> Check {
 }
 
 /// `kiln check`'s row: what the last check found, or why there's no
-/// answer. A row with findings has a fix that opens the plan, which lists
-/// them.
+/// answer. A row with findings has a fix that opens the plan's Check tab,
+/// which lists them.
 fn check(loaded: &Loaded) -> Check {
     let row = |health, detail: String| Check::new(Section::Project, "kiln check", health, detail);
     if let Err(why) = &loaded.findings {
@@ -165,7 +165,7 @@ fn check(loaded: &Loaded) -> Check {
             } else {
                 Health::Warn
             };
-            row(health, said).fix("open the plan", OPEN)
+            row(health, said).fix("open the Check tab", OPEN)
         }
     }
 }
@@ -245,7 +245,7 @@ mod tests {
                 "kiln Ok kiln 1.0.0, /usr/bin/kiln",
                 "kiln.toml Ok read, 16 items",
                 "language server Ok kiln lsp, for markdown, rust",
-                "kiln check Bad 1 error, 2 warnings -> open the plan (kiln.open)",
+                "kiln check Bad 1 error, 2 warnings -> open the Check tab (kiln.check)",
             ]
         );
     }
@@ -275,7 +275,7 @@ mod tests {
         let got = rows(&input(state(&l), &status)).unwrap();
         assert_eq!(
             row(&got[3]),
-            "kiln check Warn 1 warning -> open the plan (kiln.open)"
+            "kiln check Warn 1 warning -> open the Check tab (kiln.check)"
         );
         let l = loaded("[]");
         let got = rows(&input(state(&l), &status)).unwrap();

@@ -91,10 +91,12 @@
 //! found and the project read.
 
 pub mod agent;
+pub mod alert;
 pub mod config;
 pub mod decor;
 pub mod doctor;
 pub mod edit;
+pub mod home;
 pub mod jira;
 pub mod kiln;
 pub mod lsp;
@@ -103,6 +105,7 @@ pub mod modeline;
 pub mod pages;
 pub mod project;
 pub mod spot;
+pub mod start;
 pub mod tasks;
 
 use std::collections::HashMap;
@@ -157,6 +160,8 @@ enum For {
     /// An agent's tool call `call` ([`agent`]): its answer goes to Fenix
     /// with `answer`, unless Fenix gave up on it meanwhile.
     Agent { call: u64 },
+    /// The `kiln set` of the start `serial` ([`Kiln::starting`]).
+    Start { serial: u64 },
 }
 
 /// An agent's tool call that kiln runs for: the query or edit asked, and
@@ -200,6 +205,8 @@ enum Wanted {
     /// `kiln.edit`…): started on the item at `spot`, or on none for a new
     /// item, once the project is read.
     Edit { spot: Spot, edit: Edit },
+    /// `kiln.start`: the item at `spot` claimed and its clock started.
+    Start { spot: Spot },
 }
 
 /// The most rows `kiln.find`'s picker is given. Fenix sets its picker no
@@ -226,6 +233,15 @@ struct Told {
     tasks: Option<Option<(String, Vec<String>)>>,
     /// The modeline's text, `None` inside for no item.
     modeline: Option<Option<String>>,
+    /// Home's section: the key that opens the plan and the rows, `None`
+    /// inside for no section.
+    home: Option<Option<(String, Vec<home::Row>)>>,
+    /// The errors of the last read that loaded, as the notification
+    /// decides by: `None` before one, or when the check gave no answer.
+    errors: Option<u32>,
+    /// Whether the notification about errors is showing (shown, and not
+    /// dismissed since).
+    alerted: bool,
 }
 
 /// How many rounds [`Kiln::pass_on`] goes before it stops: each round
@@ -280,6 +296,30 @@ struct Kiln {
     /// The project's folder as Fenix names it (`here()`), once known: a
     /// view's file is the project's when it's under it.
     fenix_root: Option<String>,
+    /// The start under way ([`start`]): one at a time for the extension, a
+    /// new one replaces it (its late answers are dropped by `serial`).
+    starting: Option<Starting>,
+    start_serial: u64,
+    /// The agenda's services asked for a start, by Fenix's call id: the
+    /// start's serial.
+    agenda_calls: HashMap<u64, u64>,
+    /// The file saved last, which the notification about errors names.
+    last_saved: Option<String>,
+}
+
+/// Where a start says what it did: a plan page's bottom line, or the
+/// message line when it began in a buffer (or its page is gone).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Surface {
+    Page(u64),
+    Buffer,
+}
+
+/// A start under way: who asked, and where it has got.
+struct Starting {
+    serial: u64,
+    surface: Surface,
+    run: start::Run,
 }
 
 /// The project now, for a page: its state, its reads, `kiln.toml`,
@@ -338,6 +378,7 @@ impl Kiln {
             for notice in notices {
                 match notice {
                     Notice::Changed => changed = true,
+                    Notice::Read { saved } => self.read_loaded(saved),
                     Notice::Answer { id, result, .. } => match self.asked.remove(&id) {
                         Some(For::Languages) => {
                             self.lsp.answered(id, &result, self.project.version())
@@ -359,6 +400,7 @@ impl Kiln {
                             }
                         }
                         Some(For::Here { serial }) => self.here_edited(serial, &result),
+                        Some(For::Start { serial }) => self.start_edited(serial, &result),
                         Some(For::Run { page, tab, tag }) => {
                             if self.publishing.as_ref().is_some_and(|p| p.id == id) {
                                 self.publishing = None;
@@ -546,6 +588,7 @@ impl Kiln {
         };
         let offer = tasks::offer(&usability, program, files);
         let line = modeline::line(&state);
+        let home = home::home(&state);
 
         if let Some(rows) = rows {
             if self.told.doctor.as_ref() != Some(&rows) {
@@ -580,6 +623,80 @@ impl Kiln {
                 api::status(text.as_deref());
                 self.told.modeline = Some(text);
             }
+        }
+        match home {
+            home::Home::Keep => {}
+            home::Home::Clear => self.tell_home(None),
+            home::Home::Set(rows) => self.tell_home(Some(rows)),
+        }
+    }
+
+    /// Kiln's section on Home, given to Fenix when it differs from what it
+    /// was last given (the rows, or the key that opens the plan, which
+    /// follows the key scheme). `None` takes the section away.
+    fn tell_home(&mut self, rows: Option<Vec<home::Row>>) {
+        let key = api::key_for("kiln.open").unwrap_or_else(|| "SPC m o".into());
+        let wanted = rows.map(|r| (key, r));
+        if self.told.home.as_ref() == Some(&wanted) {
+            return;
+        }
+        match &wanted {
+            None => api::home(None),
+            Some((key, rows)) => api::home(Some(&api::HomeSection {
+                title: "Kiln".into(),
+                key: key.clone(),
+                rows: rows
+                    .iter()
+                    .map(|r| api::HomeRow {
+                        name: r.name.clone(),
+                        detail: r.detail.clone(),
+                        mark: api::HomeMark::None,
+                        value: r.value.clone(),
+                    })
+                    .collect(),
+                most: home::MOST_ROWS,
+            })),
+        }
+        self.told.home = Some(wanted);
+    }
+
+    /// A read loaded: the notification about errors decided
+    /// ([`alert::decide`]) from the errors the read before it had and this
+    /// one's. `saved`: a save asked for the read.
+    fn read_loaded(&mut self, saved: bool) {
+        let on = alert::enabled(api::setting(alert::SETTING).as_deref());
+        let Some(loaded) = self.project.loaded() else {
+            return;
+        };
+        let after = alert::errors(loaded);
+        let act = alert::decide(self.told.errors, after, saved, on, self.told.alerted);
+        let shown = match act {
+            alert::Act::Show => alert::text(loaded, self.last_saved.as_deref()),
+            _ => None,
+        };
+        // A check that gave no answer says nothing about the errors.
+        if after.is_some() {
+            self.told.errors = after;
+        }
+        match (act, shown) {
+            (alert::Act::Show, Some((summary, body))) => {
+                api::host::notify_with(
+                    &api::Notification::new(summary)
+                        .body(body)
+                        .action("Open the Check tab", alert::OPEN_CHECK)
+                        .tag(alert::TAG),
+                );
+                self.told.alerted = true;
+            }
+            (alert::Act::Dismiss, _) => self.dismiss_alert(),
+            _ => {}
+        }
+    }
+
+    /// The notification about errors taken away, if it shows.
+    fn dismiss_alert(&mut self) {
+        if std::mem::take(&mut self.told.alerted) {
+            api::notify_dismiss(alert::TAG);
         }
     }
 
@@ -853,6 +970,7 @@ impl Kiln {
                 } => self.run(page, tab, tag, args, limit_ms, publish),
                 Effect::Terminal { title, args } => self.terminal(page, &title, args),
                 Effect::Url(url) => self.open_url(page, &url),
+                Effect::Start(id) => self.start_item(Surface::Page(page), &id),
             }
         }
     }
@@ -1053,6 +1171,16 @@ impl Kiln {
         page
     }
 
+    /// A row of Kiln's section on Home picked: the plan on that item's Item
+    /// tab, or just the plan ([`home::PLAN`]).
+    fn home_picked(&mut self, value: &str) {
+        if value == home::PLAN {
+            self.plan_page();
+        } else {
+            self.show_item(value, Tab::Item);
+        }
+    }
+
     /// Item `id` on tab `to` (Item or Impact) of the plan page, if the
     /// project has it; else said.
     fn show_item(&mut self, id: &str, to: Tab) {
@@ -1150,6 +1278,13 @@ impl Kiln {
                 self.here_turn(turn);
                 false
             }
+            Some(Wanted::Start { spot }) => {
+                match spot::item_at(loaded, &spot) {
+                    Ok(id) => self.start_item(Surface::Buffer, &id),
+                    Err(why) => api::notify(&format!("Kiln: {why}")),
+                }
+                false
+            }
             None => false,
         }
     }
@@ -1189,6 +1324,125 @@ impl Kiln {
         self.project.start();
     }
 
+    /// `kiln.start`: where the cursor is, kept as above.
+    fn want_start(&mut self) {
+        self.wanted = Some(Wanted::Start {
+            spot: Self::spot_here(),
+        });
+        self.project.start();
+    }
+
+    /// Start working on item `id`, asked for from `surface`: kiln's `set`
+    /// first ([`start::Run`]), then the agenda. Nothing starts while an
+    /// edit couldn't ([`edit::blocked`]); one start at a time, a new one
+    /// replaces the one under way.
+    fn start_item(&mut self, surface: Surface, id: &str) {
+        if self.config.is_none() {
+            self.read_config();
+        }
+        let state = self.project.state();
+        if let Some(why) = edit::blocked(&state, self.project.settled()) {
+            return self.start_say(surface, &why, true);
+        }
+        let State::Loaded { loaded, .. } = state else {
+            return;
+        };
+        let Some(item) = loaded.item(id) else {
+            let why = format!("no item here: {id} isn't in the project as kiln last read it");
+            return self.start_say(surface, &why, true);
+        };
+        if self.fenix_root.is_none() {
+            self.fenix_root = api::here().and_then(|h| h.project).map(|p| p.root);
+        }
+        let config = now_of(&self.project, &self.config, &self.publishing, &self.mirror).config;
+        let owner = api::setting(start::OWNER_SETTING).unwrap_or_default();
+        let (run, step) = start::Run::begin(item, config, &owner, self.fenix_root.as_deref());
+        self.start_serial += 1;
+        let serial = self.start_serial;
+        self.starting = run.map(|run| Starting {
+            serial,
+            surface,
+            run,
+        });
+        self.start_step(serial, surface, step);
+    }
+
+    /// What a start asks next, done: kiln through the edit path, a service
+    /// of the agenda, or the line that ends it.
+    fn start_step(&mut self, serial: u64, surface: Surface, step: start::Do) {
+        match step {
+            start::Do::Kiln(args) => {
+                let id = self.project.edit(args, None);
+                self.asked.insert(id, For::Start { serial });
+            }
+            start::Do::Service { name, payload } => {
+                let call = api::call_service(name, &payload);
+                self.agenda_calls.insert(call, serial);
+            }
+            start::Do::Say { text, bad } => {
+                if self.starting.as_ref().is_some_and(|s| s.serial == serial) {
+                    self.starting = None;
+                }
+                self.start_say(surface, &text, bad);
+            }
+        }
+    }
+
+    /// `kiln set` for start `serial` ended: refused, it ends the start with
+    /// kiln's line; done, kiln's line is said and the agenda asked. Said
+    /// even when another start has replaced this one -- kiln did it.
+    fn start_edited(&mut self, serial: u64, result: &Result<kiln::Ran, kiln::Failure>) {
+        let Some(s) = self.starting.as_mut().filter(|s| s.serial == serial) else {
+            let (line, role) = pages::frame::outcome(result);
+            api::notify(&if role == fenix_ui_kit::Role::Bad {
+                line
+            } else {
+                format!("Kiln: {line}")
+            });
+            return;
+        };
+        let surface = s.surface;
+        let step = s.run.kiln_done(result);
+        if matches!(step, start::Do::Service { .. }) {
+            // The agenda may take a moment: what kiln did, meanwhile.
+            let line = s.run.line().to_string();
+            self.start_say(surface, &line, false);
+        }
+        self.start_step(serial, surface, step);
+    }
+
+    /// The agenda's reply to a call of start `serial`; dropped when the
+    /// start was replaced.
+    fn start_replied(&mut self, serial: u64, reply: Result<String, String>) {
+        let Some(s) = self.starting.as_mut().filter(|s| s.serial == serial) else {
+            return;
+        };
+        let surface = s.surface;
+        let step = s.run.replied(reply);
+        self.start_step(serial, surface, step);
+    }
+
+    /// A start's word, on its page's bottom line or the message line.
+    fn start_say(&mut self, surface: Surface, text: &str, bad: bool) {
+        if let Surface::Page(p) = surface {
+            if let Some(page) = self.pages.get_mut(&p) {
+                page.plan.tell(text, bad);
+                pages_api::refresh(p);
+                return;
+            }
+        }
+        if bad {
+            let said = if text.starts_with("kiln:") {
+                text.to_string()
+            } else {
+                format!("Kiln: {text}")
+            };
+            api::host::notify(api::Level::Error, &said);
+        } else {
+            api::notify(&format!("Kiln: {text}"));
+        }
+    }
+
     /// A plan page, `page`, kept: in view.
     fn add_page(&mut self, page: u64, plan: Plan) {
         self.pages.insert(page, PlanPage { shown: true, plan });
@@ -1222,6 +1476,15 @@ impl Extension for Kiln {
             "kiln.new" => self.want_edit(Edit::New),
             "kiln.new_child" => self.want_edit(Edit::Child),
             "kiln.edit" => self.want_edit(Edit::More),
+            "kiln.start" => self.want_start(),
+            // The notification's action and the doctor's fix row.
+            "kiln.check" => {
+                let page = self.plan_page();
+                if let Some(p) = self.pages.get_mut(&page) {
+                    p.plan.show(Tab::Check);
+                    pages_api::refresh(page);
+                }
+            }
             "kiln.find" => {
                 self.wanted = Some(Wanted::Find);
                 self.project.start();
@@ -1249,6 +1512,12 @@ impl Extension for Kiln {
                     self.mirror.timer(t);
                 }
             }
+            Event::ServiceReply((call, reply)) => {
+                if let Some(serial) = self.agenda_calls.remove(&call) {
+                    self.start_replied(serial, reply);
+                }
+            }
+            Event::HomePicked(value) => self.home_picked(&value),
             Event::Prompted((id, text)) => self.answered(id, text, false),
             Event::Picked((id, value)) => self.answered(id, value, true),
             Event::PageShown((p, shown)) => {
@@ -1269,6 +1538,10 @@ impl Extension for Kiln {
                         .switch(decor::enabled(api::setting(decor::SETTING).as_deref()));
                     self.decorate();
                 }
+                // Turned off while it shows: taken away.
+                alert::SETTING if !alert::enabled(api::setting(alert::SETTING).as_deref()) => {
+                    self.dismiss_alert()
+                }
                 _ => {}
             },
             _ => {}
@@ -1277,6 +1550,7 @@ impl Extension for Kiln {
     }
 
     fn file_saved(&mut self, path: &str) {
+        self.last_saved = Some(path.to_string());
         if std::path::Path::new(path).file_name() == Some(std::ffi::OsStr::new("kiln.toml")) {
             self.read_config();
         }
@@ -1392,6 +1666,10 @@ impl Extension for Kiln {
     fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
         for &p in self.pages.keys() {
             pages_api::refresh(p);
+        }
+        // Home's section names the key that opens the plan.
+        if let Some(Some((_, rows))) = self.told.home.clone() {
+            self.tell_home(Some(rows));
         }
     }
 }
@@ -2209,7 +2487,7 @@ pub(crate) mod tests {
         );
         assert_eq!(
             r[3],
-            "kiln check Bad 1 error, 2 warnings -> open the plan (kiln.open)"
+            "kiln check Bad 1 error, 2 warnings -> open the Check tab (kiln.check)"
         );
         // The tasks run the kiln found, in the project.
         let state = fake.state();

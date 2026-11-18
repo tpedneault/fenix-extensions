@@ -122,6 +122,12 @@ pub enum Notice {
         line: String,
         result: Result<Ran, Failure>,
     },
+    /// A read loaded (`kiln check` was its last step): `saved` when a file
+    /// being saved was among what asked for it. The check's transition from
+    /// clean to errors is only worth a notification then (`crate::alert`);
+    /// a read a timer, a git move or `r` asked for finding errors is not
+    /// news the way one's own save is.
+    Read { saved: bool },
 }
 
 /// The project as kiln last read it.
@@ -269,6 +275,9 @@ struct Reading {
     /// How many edits had finished when it began: a read that loads
     /// shows them all.
     covers: u64,
+    /// A save asked for it ([`Why::Saved`]), or for the one before it
+    /// that it took the place of.
+    saved: bool,
 }
 
 #[derive(Debug, Default)]
@@ -302,6 +311,10 @@ pub struct Project {
     edits_read: u64,
     /// [`Project::changes`].
     changes: u64,
+    /// A save asked for a read that hasn't begun: the next one is a save's
+    /// ([`Reading::saved`]). It is taken as a read begins, so a save that
+    /// comes while one runs belongs to the read that follows it.
+    saved_next: bool,
 }
 
 impl Project {
@@ -425,6 +438,9 @@ impl Project {
                 if matches!(why, Why::Saved | Why::Git | Why::Edit) {
                     self.changes += 1;
                 }
+                if why == Why::Saved {
+                    self.saved_next = true;
+                }
                 if self.reading.is_some() {
                     if why != Why::Timer && !self.again {
                         self.again = true;
@@ -495,6 +511,7 @@ impl Project {
         }
         self.reading = None;
         self.again = false;
+        self.saved_next = false;
         self.loaded = None;
         self.error = None;
         self.no_project = None;
@@ -684,6 +701,7 @@ impl Project {
     fn begin_reading(&mut self) {
         self.reading = Some(Reading {
             covers: self.edits_done,
+            saved: std::mem::take(&mut self.saved_next),
             ..Reading::default()
         });
         self.notices.push(Notice::Changed);
@@ -834,6 +852,9 @@ impl Project {
                 self.edits_read = reading.covers;
                 self.error = None;
                 self.no_project = None;
+                self.notices.push(Notice::Read {
+                    saved: reading.saved,
+                });
                 self.end_reading();
             }
         }

@@ -58,3 +58,14 @@ command = "kiln.new_child"
 keys = "E"
 label = "edit the item here (title, parent, owner, due, renumber…)"
 command = "kiln.edit"
+
+# Start working on the item here: claim it and clock in on the agenda.
+[[local.kiln]]
+keys = "S"
+label = "start working on the item here"
+command = "kiln.start"
+
+[[local.kiln]]
+keys = "c"
+label = "open the plan's Check tab"
+command = "kiln.check"
