@@ -11,8 +11,11 @@ keys = "r"
 label = "read the project again"
 command = "kiln.reload"
 
+# The item's keys are the plan's (v i s l U n N E), so a hand that knows one
+# knows the other. show was `s` until the edits needed it: status is `s` on
+# the page, in Kiln's GUI and here.
 [[local.kiln]]
-keys = "s"
+keys = "v"
 label = "show the item under the cursor"
 command = "kiln.show"
 
@@ -25,3 +28,33 @@ command = "kiln.impact"
 keys = "f"
 label = "find an item"
 command = "kiln.find"
+
+[[local.kiln]]
+keys = "s"
+label = "set the status of the item here"
+command = "kiln.set_status"
+
+[[local.kiln]]
+keys = "l"
+label = "link the item here to another"
+command = "kiln.link"
+
+[[local.kiln]]
+keys = "U"
+label = "remove a link of the item here"
+command = "kiln.unlink"
+
+[[local.kiln]]
+keys = "n"
+label = "new item"
+command = "kiln.new"
+
+[[local.kiln]]
+keys = "N"
+label = "new child of the item here"
+command = "kiln.new_child"
+
+[[local.kiln]]
+keys = "E"
+label = "edit the item here (title, parent, owner, due, renumber…)"
+command = "kiln.edit"

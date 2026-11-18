@@ -29,6 +29,13 @@
 //! The commands that start in a buffer (`kiln.show`, `kiln.impact`,
 //! `kiln.find`) take what `here()` and `cursor()` say as they run
 //! ([`spot`]) and act once the project is read ([`Wanted`]).
+//! The edits start from a buffer too (`kiln.set_status`, `kiln.link`,
+//! `kiln.unlink`, `kiln.new`, `kiln.new_child`, `kiln.edit`): the same
+//! flows, held one at a time by the extension ([`edit::Driver`], the page
+//! frame's own), asking through Fenix's picker and prompt ([`Asker::Here`])
+//! and saying what kiln said on the message line, there being no page. It
+//! doesn't reload the file a flow edits: kiln rewrites it, and Fenix
+//! re-reads a clean buffer that changed on disk by itself.
 //!
 //! The project is read once as the extension loads (a `kiln.toml` at the
 //! project's top, or a `kiln.*` command): the language server is wanted
@@ -58,6 +65,7 @@ pub(crate) use fenix_test_kit::api;
 use api::{
     page as pages_api, Event, Extension, Key, KeyPress, KeyScheme, MouseEvent, Page, PickerItem,
 };
+use edit::{Edit, Facts, Step};
 use lsp::Lsp;
 use pages::frame::{Effect, Hints, Now, Plan};
 use pages::view::Choice;
@@ -86,6 +94,8 @@ enum For {
     /// A plan page's tab: the edit its view asked for with `tag`
     /// ([`pages::view::Reply::Edit`]).
     Edit { page: u64, tab: Tab, tag: String },
+    /// The edit of the buffer flow `serial` ([`Kiln::here`]).
+    Here { serial: u64 },
 }
 
 /// Who asked Fenix's prompt or picker, so the answer goes to them. Like
@@ -98,6 +108,9 @@ enum Asker {
     View { page: u64, tab: Tab, tag: String },
     /// `kiln.find`'s picker: the item picked goes to the Item tab.
     Find,
+    /// A pick or prompt of the buffer flow `serial` ([`Kiln::here`]); an
+    /// answer for a flow since replaced is dropped by its serial.
+    Here { serial: u64 },
 }
 
 /// A command from a buffer waiting for the project to be read, so it can
@@ -109,6 +122,10 @@ enum Wanted {
     Item { spot: Spot, to: Tab },
     /// `kiln.find`: the picker over every item.
     Find,
+    /// An edit from a buffer (`kiln.set_status`, `kiln.link`, `kiln.new`,
+    /// `kiln.edit`…): started on the item at `spot`, or on none for a new
+    /// item, once the project is read.
+    Edit { spot: Spot, edit: Edit },
 }
 
 /// The most rows `kiln.find`'s picker is given. Fenix sets its picker no
@@ -153,6 +170,11 @@ struct Kiln {
     answers: HashMap<u64, Asker>,
     /// A command from a buffer, waiting for the project to be read.
     wanted: Option<Wanted>,
+    /// The edit flow started from a buffer, if one is under way: one at a
+    /// time for the extension (a page holds its own), a new one replaces
+    /// it. Its prompts and picks are Fenix's own ([`Asker::Here`]) and what
+    /// it says goes to the message line, there being no page.
+    here: edit::Driver,
     /// The project's folder when it isn't [`PROJECT`]: a test's.
     root: Option<PathBuf>,
     /// `kiln.toml` as last read ([`config`]), or why it couldn't be;
@@ -231,6 +253,7 @@ impl Kiln {
                                 self.perform(page, effects);
                             }
                         }
+                        Some(For::Here { serial }) => self.here_edited(serial, &result),
                         None => {}
                     },
                 }
@@ -473,11 +496,7 @@ impl Kiln {
     fn perform(&mut self, page: u64, effects: Vec<Effect>) {
         for effect in effects {
             match effect {
-                Effect::Open(place) => {
-                    let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
-                    let path = root.join(&place.path);
-                    api::host::open_file(&path.to_string_lossy(), place.line);
-                }
+                Effect::Open(place) => self.open_place(&place),
                 Effect::Reload => self.reload(),
                 Effect::Ask {
                     tab,
@@ -511,10 +530,24 @@ impl Kiln {
         }
     }
 
+    /// A file of the project opened at a line, in Fenix.
+    fn open_place(&self, place: &pages::view::Place) {
+        let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
+        let path = root.join(&place.path);
+        api::host::open_file(&path.to_string_lossy(), place.line);
+    }
+
     /// A prompt's text or a picker's choice, `answer`, to whoever asked
     /// `id`; nothing when it was closed with nothing, or its page closed.
     fn answered(&mut self, id: u64, answer: Option<String>, picked: bool) {
-        let (Some(who), Some(answer)) = (self.answers.remove(&id), answer) else {
+        let Some(who) = self.answers.remove(&id) else {
+            return;
+        };
+        let Some(answer) = answer else {
+            // Closed with nothing: a buffer flow ends there.
+            if let Asker::Here { serial } = who {
+                self.here.cancel(serial);
+            }
             return;
         };
         let now = now_of(&self.project, &self.config);
@@ -532,6 +565,71 @@ impl Kiln {
                 self.perform(page, effects);
             }
             Asker::Find => self.show_item(&answer, Tab::Item),
+            Asker::Here { serial } => {
+                let State::Loaded { loaded, .. } = now.state else {
+                    self.here.cancel(serial);
+                    api::notify(&format!("Kiln: {}", edit::DROPPED));
+                    return;
+                };
+                let facts = Facts {
+                    loaded,
+                    config: now.config,
+                };
+                if let Some(turn) = self.here.answer(serial, &answer, &facts) {
+                    self.here_turn(turn);
+                }
+            }
+        }
+    }
+
+    /// A buffer flow's turn, done: a new item's file opened, then Fenix's
+    /// picker or prompt, kiln's command, or the flow's word on the message
+    /// line (which ends it). The pick, prompt and edit carry the flow's
+    /// serial, so what comes back after another flow has replaced it is
+    /// dropped.
+    fn here_turn(&mut self, turn: edit::Turn) {
+        if let Some(place) = &turn.open {
+            self.open_place(place);
+        }
+        let serial = self.here.serial();
+        match turn.step {
+            Step::Pick { title, items } => {
+                let id = api::pick(&title, &picker_items(&items));
+                self.answers.insert(id, Asker::Here { serial });
+            }
+            Step::Ask { label, initial } => {
+                let id = api::prompt(&label, &initial);
+                self.answers.insert(id, Asker::Here { serial });
+            }
+            Step::Run(args) => {
+                let id = self.project.edit(args, None);
+                self.asked.insert(id, For::Here { serial });
+            }
+            Step::Say(text) => api::notify(&format!("Kiln: {text}")),
+            Step::Done => {}
+        }
+    }
+
+    /// How kiln's run for buffer flow `serial` went, said on the message
+    /// line: kiln's outcome line (its error line as it wrote it), or the
+    /// flow's own word where it has one (a new item's path: kiln's answer
+    /// then is JSON, which isn't for people). Said even when the flow has
+    /// been replaced -- kiln did it -- but only a flow still under way goes
+    /// on (a refused typed value is asked again).
+    fn here_edited(&mut self, serial: u64, result: &Result<kiln::Ran, kiln::Failure>) {
+        let readable = matches!(self.project.state(), State::Loaded { .. });
+        let ended = self.here.edited(serial, result, readable);
+        let own_word = matches!(ended.as_ref().map(|e| &e.turn.step), Some(Step::Say(_)));
+        if !own_word {
+            let (line, role) = pages::frame::outcome(result);
+            api::notify(&if role == fenix_ui_kit::Role::Bad {
+                line
+            } else {
+                format!("Kiln: {line}")
+            });
+        }
+        if let Some(ended) = ended {
+            self.here_turn(ended.turn);
         }
     }
 
@@ -626,16 +724,43 @@ impl Kiln {
                 self.answers.insert(id, Asker::Find);
                 false
             }
+            Some(Wanted::Edit { spot, edit }) => {
+                if let Some(why) = edit::blocked(&state, self.project.settled()) {
+                    api::notify(&format!("Kiln: {why}"));
+                    return false;
+                }
+                // A new item is about no item; the rest are about the one
+                // here, found as `kiln.show` finds it.
+                let id = if edit == Edit::New {
+                    None
+                } else {
+                    match spot::item_at(loaded, &spot) {
+                        Ok(id) => Some(id),
+                        Err(why) => {
+                            api::notify(&format!("Kiln: {why}"));
+                            return false;
+                        }
+                    }
+                };
+                let facts = Facts {
+                    loaded,
+                    config: now_of(&self.project, &self.config).config,
+                };
+                // The flow it replaces can't be answered any more.
+                self.answers.retain(|_, a| !matches!(a, Asker::Here { .. }));
+                let turn = self.here.start(edit, id.as_deref(), &facts);
+                self.here_turn(turn);
+                false
+            }
             None => false,
         }
     }
 
-    /// `kiln.show`, `kiln.impact`: where the cursor is, kept for when the
-    /// project's read (now, usually).
-    fn want_item(&mut self, to: Tab) {
+    /// Where the cursor is, as `here()` and `cursor()` say it now.
+    fn spot_here() -> Spot {
         let here = api::here();
         let cursor = api::cursor();
-        let spot = Spot {
+        Spot {
             path: here.as_ref().and_then(|h| h.path.clone()),
             root: here
                 .as_ref()
@@ -644,8 +769,25 @@ impl Kiln {
             text: here.as_ref().map(|h| h.text.clone()).unwrap_or_default(),
             column: cursor.as_ref().filter(|c| !c.selected).map(|c| c.at.1),
             selected: cursor.as_ref().is_some_and(|c| c.selected),
-        };
-        self.wanted = Some(Wanted::Item { spot, to });
+        }
+    }
+
+    /// `kiln.show`, `kiln.impact`: where the cursor is, kept for when the
+    /// project's read (now, usually).
+    fn want_item(&mut self, to: Tab) {
+        self.wanted = Some(Wanted::Item {
+            spot: Self::spot_here(),
+            to,
+        });
+        self.project.start();
+    }
+
+    /// An edit from a buffer: where the cursor is, kept as above.
+    fn want_edit(&mut self, edit: Edit) {
+        self.wanted = Some(Wanted::Edit {
+            spot: Self::spot_here(),
+            edit,
+        });
         self.project.start();
     }
 
@@ -674,6 +816,12 @@ impl Extension for Kiln {
             }
             "kiln.show" => self.want_item(Tab::Item),
             "kiln.impact" => self.want_item(Tab::Impact),
+            "kiln.set_status" => self.want_edit(Edit::Status),
+            "kiln.link" => self.want_edit(Edit::Link),
+            "kiln.unlink" => self.want_edit(Edit::Unlink),
+            "kiln.new" => self.want_edit(Edit::New),
+            "kiln.new_child" => self.want_edit(Edit::Child),
+            "kiln.edit" => self.want_edit(Edit::More),
             "kiln.find" => {
                 self.wanted = Some(Wanted::Find);
                 self.project.start();

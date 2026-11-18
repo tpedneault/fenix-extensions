@@ -49,25 +49,66 @@ closed), the same on every tab:
 - **Check**: `kiln check`'s findings under their file, in line order;
   `Enter` opens the line, `e` keeps the errors only.
 
-**Editing**, on every tab, on the item under the cursor: each edit is a
-pick or two and a prompt in Fenix's own picker and prompt, then **one**
-kiln command (`kiln set`, `link`, `unlink`, `new` or `renumber`); the
-extension never writes an item file. The bottom line shows what kiln
-printed (`TASK-003: status todo → doing`), or its refusal in the error
-look (a file changed on disk, a value kiln doesn't allow), and a value you
-typed is asked for again with what you typed (three times at most). The
-project is read again after every edit, and the cursor follows the item
--- to its new ID after a renumber, to a new item, whose file opens. The
-choices come from the project and its `kiln.toml` (each type's statuses in
-order, which types may be a parent, the roles a type may start and what
-they may point at), read by the extension from the project's top when it
-loads, on `r`, and when `kiln.toml` is saved. They are only offered: kiln
-checks every edit. Without a `kiln.toml` it can read (or one above the
-project's folder), the status, the role and the target are typed instead,
-and `H`/`L` say why they can't. No edit starts while the project isn't
-read, its last read failed, or kiln is still reading the last edit back.
-With `kiln.toml` read, the Board's status headings come in each type's own
-order.
+**Editing**: the same edits from the plan's keys (on the item under the
+cursor, on every tab) and from a buffer (the commands under "Keys", on
+the item the cursor is on). Each is a pick or two and a prompt in Fenix's
+own picker and prompt, then **one** kiln command; the extension never
+writes an item file, kiln does. What each runs, with the values as single
+arguments (a title that starts with `-` is a title):
+
+| Edit | Asks | Runs |
+|---|---|---|
+| status | one of the item's type's statuses | `kiln set -- ID status=…` |
+| `H` `L` (Board only) | nothing: the previous / next status in the type's order | `kiln set -- ID status=…` |
+| link | a role its type may start, then a target the role allows and the item doesn't link yet | `kiln link -- ID ROLE TARGET` |
+| unlink | one of the item's own links, then `yes` (`no` is first) | `kiln unlink -- ID ROLE TARGET` |
+| new item | a type, then a title | `kiln new --title=… --format json -- TYPE` |
+| new child | a type that may have the item as parent, then a title | `kiln new --parent=ID --title=… --format json -- TYPE` |
+| title | the title, as it is | `kiln set -- ID title=…` |
+| parent | an item of a type its type allows (not itself or anything under it), or none | `kiln set -- ID parent=…` |
+| owner, due date | the value (empty removes it); the due date is `YYYY-MM-DD` | `kiln set -- ID owner=…`, `due=…` |
+| renumber | the new ID (the next free one offered), then `yes` | `kiln renumber --to=… -- ID` |
+
+Title, parent, owner, due date and renumber are only in the menu (`E`, or
+`Kiln: edit the item here…`). A new item needs no item; `kiln new`'s answer
+gives its ID and file, which opens in Fenix, and on the plan the cursor goes
+to it.
+
+The choices come from the project and its `kiln.toml` (each type's
+statuses in order, which types may be a parent, the roles a type may start
+and what they may point at). The extension reads `kiln.toml` only for that,
+from the project's top, when it loads, on `r`, and when `kiln.toml` is
+saved; it never writes it. The choices are only offered: kiln checks every
+edit. Without a `kiln.toml` it can read (or one above the project's
+folder), the status, the role and the target are typed instead, and `H`/`L`
+say why they can't. With it read, the Board's status headings come in each
+type's own order.
+
+**When kiln refuses** (a file changed on disk since kiln read it, a value
+the configuration doesn't allow, a date that isn't one), kiln's one line is
+shown as it wrote it -- on the plan's bottom line in the error look, from a
+buffer in Fenix's message line -- and nothing changes. A value you typed
+(a title, an owner, a date, a status or role without a `kiln.toml`) is asked
+for again with what you typed, three times at most; a pick isn't asked again
+(the same pick would be refused again). On success the bottom line or the
+message line shows what kiln printed (`TASK-003: status todo → doing`).
+
+No edit starts while the project isn't read yet (from a buffer, it starts
+when the project is read), its last read failed, or kiln is still reading
+the last edit back: the line says which, since the choices would come from
+a read known to be out of date. The project is read again after every edit.
+One edit at a time: on a page, a new one replaces the flow under way; from a
+buffer, a new command replaces the one under way (one for the extension),
+and what you answer to a replaced one is dropped. Closing a pick or prompt
+with nothing ends the flow, and nothing runs.
+
+If an item's file is open in a buffer when kiln rewrites it, Fenix notices
+(it looks at open files on disk a couple of times a second and when its
+window regains focus): a buffer you haven't edited is re-read in place,
+keeping its pane's line; one with unsaved edits is flagged `[disk]` in the
+modeline and `:w` refuses to overwrite until you choose (`:w!` keeps yours,
+`:e!` takes kiln's). The extension does nothing about it, and kiln itself
+refuses to write a file that changed on disk since it read it.
 
 On every tab, the cursor stays on the same item when the project is read
 again (or where it was, when that item went away), `/` narrows the rows as
@@ -133,7 +174,7 @@ On the plan:
 | `U` | Unlink: pick one of its links, then `yes` (`no` comes first) |
 | `n` | A new item: pick its type, type its title; its file opens |
 | `N` | A new child of the item: pick a type that may have it as parent, type its title; its file opens |
-| `E` | Every edit, in a pick: title, parent (an item of an allowed type, or none), owner, due date (`YYYY-MM-DD`; empty removes it), renumber (the next free ID offered, then `yes`), and the ones above |
+| `E` | Every edit, in a pick: title, parent, owner, due date, renumber, and the ones above |
 
 The bottom line shows `s status` and `E edits` only, to stay readable;
 `E`'s pick names each edit's own key. Kiln's GUI has title, parent, owner,
@@ -144,20 +185,31 @@ The mouse: a click on a tab shows it, on a row moves the cursor there, a
 double click opens it; the wheel moves three rows. `q` and `Esc` close the
 page, as on any of Fenix's.
 
-After `SPC m`, in a Kiln project:
+After `SPC m`, in a Kiln project. The item's keys are the plan's (`v` `i`
+`s` `l` `U` `n` `N` `E`), so a hand that knows one knows the other:
 
 | Key | Command | What it does |
 |---|---|---|
 | `SPC m o` | `kiln.open` | Open the plan |
 | `SPC m r` | `kiln.reload` | Read the project again |
-| `SPC m s` | `kiln.show` | Show the item under the cursor on the Item tab |
+| `SPC m v` | `kiln.show` | Show the item here on the Item tab |
 | `SPC m i` | `kiln.impact` | Its impact, on the Impact tab |
 | `SPC m f` | `kiln.find` | Find an item: Fenix's picker over every item (ID, title, status), then its Item tab |
+| `SPC m s` | `kiln.set_status` | Set the status of the item here |
+| `SPC m l` | `kiln.link` | Link the item here to another |
+| `SPC m U` | `kiln.unlink` | Remove a link of the item here |
+| `SPC m n` | `kiln.new` | A new item (needs no item here); its file opens |
+| `SPC m N` | `kiln.new_child` | A new child of the item here; its file opens |
+| `SPC m E` | `kiln.edit` | The menu of every edit: title, parent, owner, due date, renumber and the rest |
 
-`kiln.show` and `kiln.impact` take the ID under the cursor when the
-project has an item by it (so any prefix works, and `UTF-8` is no ID); off
-any, in an item's file, that item; else the message line says what they
-looked at. Run before the project is read, they act once it is.
+`SPC m s` was `kiln.show` until the edits came; status is `s` on the plan
+and in Kiln's GUI, so show moved to `v`, which is its key on the plan.
+
+"The item here" is found the same for all of them: the ID under the cursor
+when the project has an item by it (so any prefix works, and `UTF-8` is no
+ID); off any, in an item's file, that item; else the message line says what
+they looked at and nothing runs (`kiln.new` needs no item). Run before the
+project is read, they act once it is. Your own keybindings win over these.
 
 `Kiln: how to install kiln` (`kiln.install_help`) is the doctor's fix row
 for a kiln that isn't found; it has no key.
@@ -177,8 +229,9 @@ for a kiln that isn't found; it has no key.
   `.fenix/tools.json`, only to tell whether it already runs kiln's
   language server.
 - **Read the editor** (`editor = "read"`): where you are when you run
-  `kiln.show` or `kiln.impact` -- the file, the cursor's line and column
-  -- to find the item ID under the cursor. It changes no buffer.
+  `kiln.show`, `kiln.set_status` and the other commands on "the item here"
+  -- the file, the cursor's line and column -- to find the item ID under
+  the cursor. It changes no buffer.
 
 No network and no secrets: Confluence and Jira credentials stay Kiln's.
 

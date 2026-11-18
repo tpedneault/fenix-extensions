@@ -71,7 +71,7 @@ use serde_json::{json, Value};
 use super::view::{stdout, Choice, Ctx, Kind, Looks, Place, Reply, Row, View};
 use super::Tab;
 use crate::config::Config;
-use crate::edit::{self, Edit, Facts, Step};
+use crate::edit::{self, Edit, Facts, Step, Turn};
 use crate::kiln::{Failure, Ran};
 use crate::model::{count, MIN_VERSION};
 use crate::project::{Loaded, QueryId, State};
@@ -93,14 +93,6 @@ pub struct Now<'a> {
 /// number: their answers go to the frame's flow, not a view's. No view
 /// tags with it.
 pub const EDIT_TAG: &str = "kiln.edit#";
-
-/// The edit flow under way on a page: its serial (in its tags), the tab
-/// it started on, and where it is.
-struct Going {
-    serial: u64,
-    tab: Tab,
-    flow: edit::Flow,
-}
 
 /// Keys of Fenix's own that the frame names, looked up as the page is
 /// drawn (`key_for`): `None` when nothing runs them.
@@ -376,7 +368,7 @@ fn ctx<'a>(loaded: &'a Loaded, pane: &Pane, looks: &'a Looks) -> Ctx<'a> {
 
 /// An edit's outcome for the bottom line: kiln's stdout (`REQ-014: status
 /// draft → approved`), its lines run together, or its error line.
-fn outcome(result: &Result<Ran, Failure>) -> (String, Role) {
+pub(crate) fn outcome(result: &Result<Ran, Failure>) -> (String, Role) {
     match stdout(result, &[0]) {
         Ok(out) => {
             let lines: Vec<&str> = out
@@ -409,10 +401,10 @@ pub struct Plan {
     message: Option<(String, Role)>,
     /// The rows' rectangle when last drawn, for the mouse and half pages.
     body: Rect,
-    /// The edit flow under way, if any.
-    flow: Option<Going>,
-    /// The last flow's serial.
-    serial: u64,
+    /// The edit flow under way, if any, and the tab it started on (its
+    /// prompts and picks are for that tab).
+    flow: edit::Driver,
+    flow_tab: Tab,
 }
 
 impl Default for Plan {
@@ -432,8 +424,8 @@ impl Plan {
             g: false,
             message: None,
             body: Rect::default(),
-            flow: None,
-            serial: 0,
+            flow: edit::Driver::default(),
+            flow_tab: Tab::Tree,
         }
     }
 
@@ -743,108 +735,91 @@ impl Plan {
             loaded,
             config: now.config,
         };
-        let (flow, step) = edit::Flow::start(edit, id.as_deref(), &facts);
-        self.serial += 1;
-        self.flow = flow.map(|flow| Going {
-            serial: self.serial,
-            tab,
-            flow,
-        });
-        self.flow_step(step)
+        self.flow_tab = tab;
+        let turn = self.flow.start(edit, id.as_deref(), &facts);
+        self.flow_turn(turn)
     }
 
-    /// A flow's step, done: a pick, a prompt or kiln's command as an
-    /// [`Effect`] tagged for the flow; a word said, or nothing, ending it.
-    fn flow_step(&mut self, step: Step) -> Vec<Effect> {
-        let going = self
-            .flow
-            .as_ref()
-            .map(|g| (g.tab, format!("{EDIT_TAG}{}", g.serial)));
-        match (step, going) {
-            (Step::Pick { title, items }, Some((tab, tag))) => vec![Effect::Pick {
+    /// A flow's turn, done: a file opened, then a pick, a prompt or kiln's
+    /// command as an [`Effect`] tagged for the flow; a word said, or
+    /// nothing, ending it.
+    fn flow_turn(&mut self, turn: Turn) -> Vec<Effect> {
+        let tab = self.flow_tab;
+        let tag = format!("{EDIT_TAG}{}", self.flow.serial());
+        let mut effects: Vec<Effect> = turn.open.into_iter().map(Effect::Open).collect();
+        match turn.step {
+            Step::Pick { title, items } => effects.push(Effect::Pick {
                 tab,
                 tag,
                 title,
                 items,
-            }],
-            (Step::Ask { label, initial }, Some((tab, tag))) => vec![Effect::Ask {
+            }),
+            Step::Ask { label, initial } => effects.push(Effect::Ask {
                 tab,
                 tag,
                 label,
                 initial,
-            }],
-            (Step::Run(args), Some((tab, tag))) => vec![Effect::Edit {
+            }),
+            Step::Run(args) => effects.push(Effect::Edit {
                 tab,
                 tag,
                 args,
                 stdin: None,
-            }],
-            (Step::Say(text), _) => {
-                self.flow = None;
-                self.say(&text, Role::Text);
-                Vec::new()
-            }
-            _ => {
-                self.flow = None;
-                Vec::new()
-            }
+            }),
+            Step::Say(text) => self.say(&text, Role::Text),
+            Step::Done => {}
         }
+        effects
     }
 
-    /// The flow `tag` names, if it's still the one under way.
-    fn going(&mut self, tag: &str) -> Option<&mut Going> {
-        let serial: u64 = tag.strip_prefix(EDIT_TAG)?.parse().ok()?;
-        self.flow.as_mut().filter(|g| g.serial == serial)
+    /// The serial of the flow `tag` names.
+    fn serial_of(tag: &str) -> Option<u64> {
+        tag.strip_prefix(EDIT_TAG)?.parse().ok()
     }
 
     /// A flow's prompt or pick answered.
     fn answer_flow(&mut self, tag: &str, value: &str, now: Now) -> Vec<Effect> {
+        let Some(serial) = Self::serial_of(tag) else {
+            return Vec::new();
+        };
         let State::Loaded { loaded, .. } = now.state else {
-            self.flow = None;
-            self.say(
-                "the project isn't read now, so the answer was dropped",
-                Role::Muted,
-            );
+            self.flow.cancel(serial);
+            self.say(edit::DROPPED, Role::Muted);
             return Vec::new();
         };
         let facts = Facts {
             loaded,
             config: now.config,
         };
-        let Some(going) = self.going(tag) else {
-            return Vec::new();
-        };
-        let step = going.flow.answer(value, &facts);
-        self.flow_step(step)
+        match self.flow.answer(serial, value, &facts) {
+            Some(turn) => self.flow_turn(turn),
+            None => Vec::new(),
+        }
     }
 
     /// A flow's kiln command ended (its outcome said already): the cursor
     /// follows its item, a new item's file opens, or a refused value is
     /// asked for again.
     fn flow_edited(&mut self, tag: &str, result: &Result<Ran, Failure>, now: Now) -> Vec<Effect> {
-        if !matches!(now.state, State::Loaded { .. }) {
-            self.flow = None;
-            return Vec::new();
-        }
-        let Some(going) = self.going(tag) else {
+        let Some(serial) = Self::serial_of(tag) else {
             return Vec::new();
         };
-        let (tab, old) = (going.tab, going.flow.id().to_string());
-        let out = going.flow.edited(result);
+        let readable = matches!(now.state, State::Loaded { .. });
+        let Some(ended) = self.flow.edited(serial, result, readable) else {
+            return Vec::new();
+        };
         // Followed once the read after the edit has loaded: the one now
         // may not have the ID yet (a new item, a renumber), and building
         // on it would put the cursor elsewhere.
-        if let Some(to) = &out.follow {
+        if let Some(to) = &ended.follow {
             for (i, pane) in self.panes.iter_mut().enumerate() {
-                let was = !old.is_empty() && pane.at.as_deref() == Some(old.as_str());
-                if i == tab.index() || was {
+                let was = !ended.was.is_empty() && pane.at.as_deref() == Some(ended.was.as_str());
+                if i == self.flow_tab.index() || was {
                     pane.follow = Some((to.clone(), now.loads));
                 }
             }
         }
-        let mut effects: Vec<Effect> = out.open.into_iter().map(Effect::Open).collect();
-        effects.extend(self.flow_step(out.step));
-        effects
+        self.flow_turn(ended.turn)
     }
 
     /// Item `id` handed to tab `to`'s view, and that tab shown.

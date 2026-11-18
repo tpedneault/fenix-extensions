@@ -37,7 +37,7 @@ process = ["kiln", "${setting:kiln.path}"]
 # adds none). Nothing here writes a file.
 filesystem = "project-read"
 # Where you are, for the commands that start in a buffer (Kiln: show the
-# item under the cursor, Kiln: impact of…): the file, the cursor's line
+# item under the cursor, Kiln: set the status of the item here…): the file, the cursor's line
 # and column, the project's folder. Never changes a buffer.
 editor = "read"
 
@@ -69,6 +69,40 @@ title = "Kiln: impact of the item under the cursor"
 [[contributes.commands]]
 id = "kiln.find"
 title = "Kiln: find an item"
+
+# From a buffer, the edits the plan's keys make (README, "Editing"), on the
+# item they find as the two above do. Each is picks and a prompt in Fenix's
+# own, then one kiln command (`kiln set`, `link`, `unlink`, `new`): kiln
+# writes the file, never this extension. What kiln says goes to the message
+# line, and a new item opens. One at a time: starting another drops the
+# first. Read with editor = "read"; nothing in the buffer changes (Fenix
+# re-reads a file kiln rewrote, when you haven't edited it).
+[[contributes.commands]]
+id = "kiln.set_status"
+title = "Kiln: set the status of the item here"
+
+[[contributes.commands]]
+id = "kiln.link"
+title = "Kiln: link the item here to another"
+
+[[contributes.commands]]
+id = "kiln.unlink"
+title = "Kiln: remove a link of the item here"
+
+# Needs no item: a type, a title, and the new item's file opens.
+[[contributes.commands]]
+id = "kiln.new"
+title = "Kiln: new item"
+
+[[contributes.commands]]
+id = "kiln.new_child"
+title = "Kiln: new child of the item here"
+
+# The menu of every edit: title, parent, owner, due date, renumber, and the
+# ones above.
+[[contributes.commands]]
+id = "kiln.edit"
+title = "Kiln: edit the item here…"
 
 # The project doctor's fix row for a kiln that isn't found: opens Kiln's
 # install instructions in the browser. Nothing is downloaded (no network

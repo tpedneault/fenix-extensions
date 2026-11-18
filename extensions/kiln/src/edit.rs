@@ -10,10 +10,11 @@
 //! nothing more. When kiln has run it, [`Flow::edited`] reads how it went:
 //! the ID the cursor follows (the new one after a renumber or a new item),
 //! the file to open (a new item), or the prompt asked again after a
-//! refusal. Whoever drives it -- the plan page's frame for the keys, a
-//! command from a buffer later -- asks Fenix and kiln and hands answers
-//! back; this module calls neither, so every flow is tested as a table:
-//! answers in, kiln's arguments out.
+//! refusal. Whoever drives it -- the plan page's frame for the keys, the
+//! commands from a buffer -- asks Fenix and kiln and hands answers back;
+//! this module calls neither, so every flow is tested as a table: answers
+//! in, kiln's arguments out. What both drivers do alike (hold one flow,
+//! drop the answers of one replaced, say a refusal's re-ask) is [`Driver`].
 //!
 //! # Where the choices come from
 //!
@@ -920,6 +921,123 @@ pub fn blocked(state: &State, settled: bool) -> Option<String> {
     })
 }
 
+/// What the user is told when an answer comes after the project stopped
+/// being readable: the choices it was for can't be checked now. The
+/// callers say it (a page's bottom line, a notification) and [`Driver::cancel`].
+pub const DROPPED: &str = "the project isn't read now, so the answer was dropped";
+
+/// What a [`Driver`] hands back: the step to do, and a file to open first.
+/// A pick, a prompt or a kiln command is the caller's to ask and run (it
+/// tags them with [`Driver::serial`]); a [`Step::Say`] or [`Step::Done`]
+/// means the flow is over already.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Turn {
+    pub step: Step,
+    pub open: Option<Place>,
+}
+
+/// How kiln's run ended, for the caller: the next [`Turn`], the item the
+/// flow was about, and the ID the cursor follows now.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ended {
+    pub turn: Turn,
+    /// The item the flow started on (empty for a new item from nowhere).
+    pub was: String,
+    pub follow: Option<String>,
+}
+
+/// One [`Flow`] held at a time, with the serial number that tells its
+/// answers from those of a flow it replaced. Both drivers of a flow -- the
+/// plan page's frame (one per page) and the commands from a buffer (one
+/// for the extension) -- hold one, so what a flow does with a late answer,
+/// a refusal or a vanished project is written once, here, and each caller
+/// only turns a [`Turn`] into what its surface has: effects for a page,
+/// the host's picker, prompt and message line for a buffer.
+///
+/// The caller asks for a pick or prompt with [`Driver::serial`] in its tag
+/// and gives that serial back with the answer; an answer for any other is
+/// dropped (`None`). Calls nothing and holds no project: the caller hands
+/// [`Facts`] in, as the flow wants them.
+#[derive(Debug, Default)]
+pub struct Driver {
+    going: Option<Flow>,
+    serial: u64,
+}
+
+impl Driver {
+    /// `edit` started on `id`, replacing any flow under way (its answers
+    /// are dropped from now on). The caller has checked [`blocked`].
+    pub fn start(&mut self, edit: Edit, id: Option<&str>, facts: &Facts) -> Turn {
+        self.serial += 1;
+        let (flow, step) = Flow::start(edit, id, facts);
+        self.going = flow;
+        self.turn(step, None)
+    }
+
+    /// The serial of the flow started last: its prompts, picks and kiln
+    /// command carry it.
+    pub fn serial(&self) -> u64 {
+        self.serial
+    }
+
+    /// Whether a flow is under way.
+    pub fn going(&self) -> bool {
+        self.going.is_some()
+    }
+
+    /// Drops the flow, if it is the one `serial` names (a prompt closed
+    /// with nothing, a project gone).
+    pub fn cancel(&mut self, serial: u64) {
+        if serial == self.serial {
+            self.going = None;
+        }
+    }
+
+    /// The pick or prompt of flow `serial` answered. `None`: it isn't the
+    /// flow under way any more, so nothing is done.
+    pub fn answer(&mut self, serial: u64, value: &str, facts: &Facts) -> Option<Turn> {
+        if serial != self.serial {
+            return None;
+        }
+        let step = self.going.as_mut()?.answer(value, facts);
+        Some(self.turn(step, None))
+    }
+
+    /// How kiln's run for flow `serial` went; `None` when another flow has
+    /// replaced it. With `readable` false (the project is gone) the flow
+    /// just ends.
+    pub fn edited(
+        &mut self,
+        serial: u64,
+        result: &Result<Ran, Failure>,
+        readable: bool,
+    ) -> Option<Ended> {
+        if serial != self.serial {
+            return None;
+        }
+        if !readable {
+            self.going = None;
+            return None;
+        }
+        let flow = self.going.as_mut()?;
+        let was = flow.id().to_string();
+        let out = flow.edited(result);
+        Some(Ended {
+            turn: self.turn(out.step, out.open),
+            was,
+            follow: out.follow,
+        })
+    }
+
+    /// A step as a turn: the flow ends with a word or nothing.
+    fn turn(&mut self, step: Step, open: Option<Place>) -> Turn {
+        if matches!(step, Step::Say(_) | Step::Done) {
+            self.going = None;
+        }
+        Turn { step, open }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1677,12 +1795,96 @@ mod tests {
             assert_eq!(Edit::by_name(e.name()), Some(*e));
         }
     }
+
+    // -- The driver ----------------------------------------------------------
+
+    fn ran(code: i32, out: &str) -> Result<Ran, Failure> {
+        Ok(Ran {
+            code: Some(code),
+            stdout: out.into(),
+            stderr: Vec::new(),
+        })
+    }
+
+    #[test]
+    fn a_driver_holds_one_flow_and_drops_answers_for_a_replaced_one() {
+        let l = demo();
+        let c = config::tests::demo();
+        let f = facts(&l, &c);
+        let mut d = Driver::default();
+        let first = d.start(Edit::Status, Some("TASK-003"), &f);
+        assert!(matches!(first.step, Step::Pick { .. }));
+        let one = d.serial();
+        let second = d.start(Edit::Link, Some("TASK-003"), &f);
+        assert!(matches!(second.step, Step::Pick { .. }));
+        assert_ne!(d.serial(), one);
+        assert_eq!(d.answer(one, "doing", &f), None, "replaced");
+        let turn = d.answer(d.serial(), "implements", &f).unwrap();
+        assert!(matches!(turn.step, Step::Pick { .. }), "still going");
+        // The late result of the first isn't the second's.
+        assert_eq!(d.edited(one, &ran(0, ""), true), None);
+        assert!(d.going());
+    }
+
+    #[test]
+    fn a_driver_ends_a_flow_on_a_word_a_cancel_or_a_lost_project() {
+        let l = demo();
+        let c = config::tests::demo();
+        let f = facts(&l, &c);
+        let mut d = Driver::default();
+        // No item: said, and nothing is held.
+        let turn = d.start(Edit::Status, None, &f);
+        assert_eq!(turn.step, Step::Say("no item here".into()));
+        assert!(!d.going());
+        // Cancelled: only by the flow's own serial.
+        d.start(Edit::Status, Some("TASK-003"), &f);
+        d.cancel(d.serial() + 1);
+        assert!(d.going());
+        d.cancel(d.serial());
+        assert!(!d.going());
+        assert_eq!(d.answer(d.serial(), "doing", &f), None);
+        // Running, then the project is gone: it just ends.
+        d.start(Edit::Forward, Some("TASK-003"), &f);
+        assert!(d.going());
+        assert_eq!(d.edited(d.serial(), &ran(0, ""), false), None);
+        assert!(!d.going());
+    }
+
+    #[test]
+    fn a_driver_hands_back_the_item_to_follow_and_the_file_to_open() {
+        let l = demo();
+        let c = config::tests::demo();
+        let f = facts(&l, &c);
+        let mut d = Driver::default();
+        d.start(Edit::Forward, Some("TASK-003"), &f);
+        let ended = d
+            .edited(d.serial(), &ran(0, "TASK-003: status todo → doing\n"), true)
+            .unwrap();
+        assert_eq!(ended.was, "TASK-003");
+        assert_eq!(ended.follow.as_deref(), Some("TASK-003"));
+        assert_eq!(ended.turn.step, Step::Done);
+        assert!(!d.going());
+        // A new item: its file, and the flow's own word.
+        d.start(Edit::New, None, &f);
+        d.answer(d.serial(), "task", &f).unwrap();
+        d.answer(d.serial(), "Write the manual", &f).unwrap();
+        let ended = d
+            .edited(d.serial(), &ran(0, &fixture("edits/new.json")), true)
+            .unwrap();
+        assert_eq!(ended.follow.as_deref(), Some("TASK-009"));
+        assert_eq!(
+            ended.turn.open.map(|p| p.path),
+            Some("design/tasks/TASK-009-write-the-manual.md".to_string())
+        );
+        assert!(matches!(ended.turn.step, Step::Say(_)));
+        assert!(!d.going());
+    }
 }
 
 /// The edits on the plan page, through Fenix's fake: keys, Fenix's own
 /// picker and prompt, kiln's recorded answers (`tests/fixtures/out/edits`).
 #[cfg(test)]
-mod page_tests {
+pub(crate) mod page_tests {
     use crate::api::Key;
     use crate::model::tests::fixture;
     use crate::tests::{at, demo, folder, foot, harness};
@@ -1714,7 +1916,7 @@ mod page_tests {
     }
 
     /// Every edit kiln was asked to make so far, after `kiln`.
-    fn edits(fake: &Fake) -> Vec<String> {
+    pub(super) fn edits(fake: &Fake) -> Vec<String> {
         fake.calls()
             .into_iter()
             .filter_map(|l| {
@@ -1731,14 +1933,14 @@ mod page_tests {
             .collect()
     }
 
-    fn calls_with(fake: &Fake, what: &str) -> Vec<String> {
+    pub(super) fn calls_with(fake: &Fake, what: &str) -> Vec<String> {
         fake.calls()
             .into_iter()
             .filter(|c| c.contains(what))
             .collect()
     }
 
-    fn txt(name: &str) -> Ran {
+    pub(super) fn txt(name: &str) -> Ran {
         let code: i32 = fixture(&format!("edits/{name}.exit"))
             .trim()
             .parse()
@@ -2111,5 +2313,449 @@ mod page_tests {
         fake.on_pick_nothing("Status of TASK-003");
         h.key(page, Key::Char('s'));
         assert_eq!(calls_with(&fake, "pick ").len(), 1, "picked now");
+    }
+}
+
+/// The same edits from a buffer (`kiln.set_status`, `kiln.link`, `kiln.new`,
+/// `kiln.edit`…), through Fenix's fake: no page, so what kiln says goes to
+/// the message line and a new item opens. kiln's recorded answers are
+/// `tests/fixtures/out/edits`.
+#[cfg(test)]
+mod buffer_tests {
+    use super::page_tests::{calls_with, edits, txt};
+    use crate::api::Event;
+    use crate::model::tests::fixture;
+    use crate::tests::{demo, folder, harness};
+    use crate::Kiln;
+    use fenix_test_kit::{Fake, Harness, Ran};
+
+    /// The demo, with you in `path` (from the project's top) on `text`'s
+    /// line 1, column `column`.
+    fn in_file(path: &str, text: &str, column: u32) -> Fake {
+        let fake = demo();
+        fake.project("demo", "/home/me/demo")
+            .in_file(&format!("/home/me/demo/{path}"), "md", text)
+            .cursor(0, column);
+        fake
+    }
+
+    /// On `TASK-003` in code that names it.
+    fn on_task_003() -> Fake {
+        in_file("src/export.rs", "// implements: TASK-003\n", 18)
+    }
+
+    /// The extension in a folder of its own with the demo's `kiln.toml`
+    /// (unless `config` is false), no page opened.
+    fn opened(fake: &Fake, name: &str, config: bool) -> Harness<Kiln> {
+        let dir = folder(name);
+        if config {
+            std::fs::copy(
+                concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/demo/kiln.toml"),
+                dir.join("kiln.toml"),
+            )
+            .unwrap();
+        }
+        harness(fake, &dir)
+    }
+
+    fn said(fake: &Fake) -> Vec<String> {
+        fake.notifications()
+    }
+
+    const NO_ID: &str = "Kiln: no Kiln ID under the cursor on line 1 of src/log.rs, and src/log.rs isn't an item's file";
+
+    #[test]
+    fn set_status_picks_a_status_and_says_kilns_line() {
+        let fake = on_task_003();
+        fake.on_pick("Status of TASK-003", "doing")
+            .on_spawn("kiln set -- TASK-003 status=doing", txt("set-status"));
+        let mut h = opened(&fake, "buf-status", true);
+        h.command("kiln.set_status").unwrap();
+        let picks = calls_with(&fake, "pick ");
+        assert!(
+            picks[0].ends_with("Status of TASK-003: todo, doing, blocked, done, dropped"),
+            "{picks:?}"
+        );
+        assert_eq!(edits(&fake), ["set -- TASK-003 status=doing"]);
+        assert_eq!(said(&fake), ["Kiln: TASK-003: status todo → doing"]);
+        assert!(h.ext.answers.is_empty() && h.ext.asked.is_empty());
+        assert!(!h.ext.here.going());
+        // No page was needed.
+        assert!(fake.page("plan").is_none());
+        // The project is read again after the edit.
+        let calls = fake.calls();
+        let edit = calls
+            .iter()
+            .position(|c| c.contains("kiln set --"))
+            .unwrap();
+        assert!(calls[edit..]
+            .iter()
+            .any(|c| c.ends_with("kiln list --format json")));
+    }
+
+    #[test]
+    fn off_any_id_in_an_items_file_it_is_that_item() {
+        let fake = in_file(
+            "design/tasks/TASK-003-export-the-log-as-csv.md",
+            "Some prose, no ID.\n",
+            3,
+        );
+        fake.on_pick("Status of TASK-003", "doing")
+            .on_spawn("kiln set -- TASK-003 status=doing", txt("set-status"));
+        let mut h = opened(&fake, "buf-file", true);
+        h.command("kiln.set_status").unwrap();
+        assert_eq!(edits(&fake), ["set -- TASK-003 status=doing"]);
+    }
+
+    #[test]
+    fn link_picks_a_role_then_a_target() {
+        let fake = on_task_003();
+        fake.on_pick("Link TASK-003 as", "implements")
+            .on_pick("TASK-003 implements", "REQ-002")
+            .on_spawn("kiln link -- TASK-003 implements REQ-002", txt("link"));
+        let mut h = opened(&fake, "buf-link", true);
+        h.command("kiln.link").unwrap();
+        assert_eq!(edits(&fake), ["link -- TASK-003 implements REQ-002"]);
+        assert_eq!(said(&fake), ["Kiln: TASK-003 implements REQ-002"]);
+    }
+
+    #[test]
+    fn unlink_asks_no_first_and_runs_on_yes() {
+        let fake = on_task_003();
+        fake.on_pick("Unlink from TASK-003", "implements  REQ-003")
+            .on_pick("Remove TASK-003 implements REQ-003?", "yes, unlink")
+            .on_spawn("kiln unlink", txt("unlink"));
+        let mut h = opened(&fake, "buf-unlink", true);
+        h.command("kiln.unlink").unwrap();
+        assert_eq!(edits(&fake), ["unlink -- TASK-003 implements REQ-003"]);
+        assert_eq!(said(&fake), ["Kiln: TASK-003 no longer implements REQ-002"]);
+    }
+
+    #[test]
+    fn new_child_of_the_item_here_opens_the_new_file() {
+        let fake = on_task_003();
+        fake.on_pick("New child of TASK-003", "task")
+            .on_prompt("Title of the new task under TASK-003", "Index the readings")
+            .on_spawn("kiln new", Ran::ok(fixture("edits/new-child.json")));
+        let mut h = opened(&fake, "buf-child", true);
+        h.command("kiln.new_child").unwrap();
+        assert_eq!(
+            edits(&fake),
+            ["new --parent=TASK-003 --title=Index the readings --format json -- task"]
+        );
+        let opens = calls_with(&fake, "open ");
+        assert_eq!(opens.len(), 1, "{opens:?}");
+        assert!(
+            opens[0].ends_with("/design/tasks/TASK-010-index-the-readings.md"),
+            "{opens:?}"
+        );
+        // One line, the flow's own: not kiln's JSON.
+        assert_eq!(
+            said(&fake),
+            ["Kiln: TASK-010: design/tasks/TASK-010-index-the-readings.md"]
+        );
+    }
+
+    #[test]
+    fn new_needs_no_item_and_opens_what_it_makes() {
+        // In code that names no ID at all.
+        let fake = in_file("src/log.rs", "fn log() {}\n", 3);
+        fake.on_pick("New item's type", "task")
+            .on_prompt("Title of the new task", "Write the manual")
+            .on_spawn("kiln new", Ran::ok(fixture("edits/new.json")));
+        let mut h = opened(&fake, "buf-new", true);
+        h.command("kiln.new").unwrap();
+        assert_eq!(
+            edits(&fake),
+            ["new --title=Write the manual --format json -- task"]
+        );
+        let opens = calls_with(&fake, "open ");
+        assert_eq!(opens.len(), 1, "{opens:?}");
+        assert!(
+            opens[0].ends_with("/design/tasks/TASK-009-write-the-manual.md"),
+            "{opens:?}"
+        );
+        assert_eq!(
+            said(&fake),
+            ["Kiln: TASK-009: design/tasks/TASK-009-write-the-manual.md"]
+        );
+    }
+
+    #[test]
+    fn edit_is_the_menu_of_every_edit() {
+        let fake = on_task_003();
+        fake.on_pick("Edit TASK-003", "owner")
+            .on_prompt("Owner of TASK-003", "ana")
+            .on_spawn("kiln set -- TASK-003 owner=ana", txt("set-owner"));
+        let mut h = opened(&fake, "buf-menu", true);
+        h.command("kiln.edit").unwrap();
+        let items = &fake.state().pickers[0].items;
+        let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+        assert_eq!(
+            labels,
+            [
+                "title",
+                "parent",
+                "owner",
+                "due date",
+                "renumber",
+                "status",
+                "link",
+                "unlink",
+                "new child",
+                "new item"
+            ]
+        );
+        assert_eq!(edits(&fake), ["set -- TASK-003 owner=ana"]);
+        // (The recorded line is for the item it was recorded on.)
+        assert_eq!(said(&fake), ["Kiln: TASK-008: owner (none) → ana"]);
+    }
+
+    #[test]
+    fn no_id_anywhere_says_so_and_runs_nothing() {
+        for (command, name) in [
+            ("kiln.set_status", "a"),
+            ("kiln.link", "b"),
+            ("kiln.unlink", "c"),
+            ("kiln.new_child", "d"),
+            ("kiln.edit", "e"),
+        ] {
+            let fake = in_file("src/log.rs", "fn log() {}\n", 3);
+            let mut h = opened(&fake, &format!("buf-noid-{name}"), true);
+            h.command(command).unwrap();
+            assert_eq!(said(&fake), [NO_ID], "{command}");
+            assert!(calls_with(&fake, "pick ").is_empty(), "{command}");
+            assert!(calls_with(&fake, "prompt ").is_empty(), "{command}");
+            assert!(edits(&fake).is_empty(), "{command}");
+            assert!(!h.ext.here.going());
+        }
+        // An ID kiln doesn't list is named, as kiln.show does.
+        let fake = in_file("src/log.rs", "// implements: REQ-099\n", 18);
+        let mut h = opened(&fake, "buf-unknown", true);
+        h.command("kiln.link").unwrap();
+        assert_eq!(
+            said(&fake),
+            ["Kiln: REQ-099 (line 1 of src/log.rs) isn't an item of this project: kiln list has no such ID"]
+        );
+    }
+
+    #[test]
+    fn cancelling_at_any_step_runs_nothing_and_lets_go() {
+        let fake = on_task_003();
+        let mut h = opened(&fake, "buf-cancel", true);
+        // `last` is the title of the pick (or prompt) cancelled: the steps
+        // before it were answered by the fake.
+        let cancels = |h: &mut Harness<Kiln>, command: &str, last: &[(&str, bool)]| {
+            let (title, pick) = last[last.len() - 1];
+            if pick {
+                fake.on_pick_nothing(title);
+            } else {
+                fake.on_prompt_nothing(title);
+            }
+            h.command(command).unwrap();
+            assert!(edits(&fake).is_empty(), "{command}: {:?}", edits(&fake));
+            assert!(h.ext.answers.is_empty(), "{command}");
+            assert!(!h.ext.here.going(), "{command}");
+            assert!(said(&fake).is_empty(), "{command}: {:?}", said(&fake));
+        };
+        cancels(&mut h, "kiln.set_status", &[("Status of TASK-003", true)]);
+        cancels(&mut h, "kiln.link", &[("Link TASK-003 as", true)]);
+        fake.on_pick("Link TASK-003 as", "implements");
+        cancels(
+            &mut h,
+            "kiln.link",
+            &[("Link TASK-003 as", true), ("TASK-003 implements", true)],
+        );
+        cancels(&mut h, "kiln.unlink", &[("Unlink from TASK-003", true)]);
+        fake.on_pick("Unlink from TASK-003", "implements  REQ-003");
+        cancels(
+            &mut h,
+            "kiln.unlink",
+            &[("Unlink from TASK-003", true), ("Remove TASK-003", true)],
+        );
+        cancels(&mut h, "kiln.new", &[("New item's type", true)]);
+        fake.on_pick("New item's type", "task");
+        cancels(
+            &mut h,
+            "kiln.new",
+            &[("New item's type", true), ("Title of the new task", false)],
+        );
+        cancels(&mut h, "kiln.new_child", &[("New child of TASK-003", true)]);
+        cancels(&mut h, "kiln.edit", &[("Edit TASK-003", true)]);
+        fake.on_pick("Edit TASK-003", "title");
+        cancels(
+            &mut h,
+            "kiln.edit",
+            &[("Edit TASK-003", true), ("Title of TASK-003", false)],
+        );
+        assert!(calls_with(&fake, "open ").is_empty());
+    }
+
+    #[test]
+    fn a_refused_typed_value_is_said_and_asked_again_with_it() {
+        let fake = on_task_003();
+        fake.on_pick("Edit TASK-003", "due date")
+            .on_prompt("Due date of TASK-003", "soon")
+            .on_spawn("kiln set -- TASK-003 due=soon", txt("set-due-bad"));
+        let mut h = opened(&fake, "buf-refused", true);
+        h.command("kiln.edit").unwrap();
+        let prompts = calls_with(&fake, "prompt ");
+        assert!(
+            prompts[1].ends_with("Due date of TASK-003, YYYY-MM-DD (empty: none) [soon]"),
+            "{prompts:?}"
+        );
+        // Three more tries, then over; kiln's line each time, as it wrote it.
+        assert_eq!(prompts.len(), 1 + super::MOST_TRIES as usize);
+        let said = said(&fake);
+        assert_eq!(said.len(), 1 + super::MOST_TRIES as usize);
+        assert!(said
+            .iter()
+            .all(|l| l == "kiln: `soon` isn't a date (2026-11-30)"));
+        assert!(!h.ext.here.going() && h.ext.answers.is_empty() && h.ext.asked.is_empty());
+        // Typed right the next time: done.
+        fake.on_prompt("Due date of TASK-003", "2030-01-31")
+            .on_spawn("kiln set -- TASK-003 due=2030-01-31", txt("set-due"));
+        h.command("kiln.edit").unwrap();
+        assert_eq!(
+            fake.notifications().last().unwrap(),
+            "Kiln: TASK-003: due (none) → 2030-01-31"
+        );
+    }
+
+    #[test]
+    fn a_refused_pick_is_said_and_the_flow_ends() {
+        let fake = on_task_003();
+        fake.on_pick("Link TASK-003 as", "implements")
+            .on_pick("TASK-003 implements", "REQ-002")
+            .on_spawn(
+                "kiln link",
+                Ran::fails(1, "kiln: design/tasks/TASK-003-export-the-log-as-csv.md changed on disk since it was read"),
+            );
+        let mut h = opened(&fake, "buf-changed", true);
+        h.command("kiln.link").unwrap();
+        assert_eq!(
+            said(&fake),
+            ["kiln: design/tasks/TASK-003-export-the-log-as-csv.md changed on disk since it was read"]
+        );
+        assert_eq!(
+            edits(&fake).len(),
+            1,
+            "picking again would be refused again"
+        );
+        assert!(!h.ext.here.going());
+    }
+
+    #[test]
+    fn a_second_command_replaces_the_flow_and_the_first_ones_answer_is_dropped() {
+        let fake = on_task_003();
+        fake.on_spawn("kiln set -- TASK-003 status=doing", txt("set-status"))
+            .on_spawn("kiln link", txt("link"));
+        let mut h = opened(&fake, "buf-replace", true);
+        // Asked, unanswered.
+        h.command("kiln.set_status").unwrap();
+        let first = fake.state().pickers.last().unwrap().id;
+        h.command("kiln.link").unwrap();
+        let second = fake.state().pickers.last().unwrap().id;
+        assert_ne!(first, second);
+        assert_eq!(h.ext.answers.len(), 1, "the first's is let go");
+        // The late answer of the first: nothing runs, nothing more is asked.
+        let picks = calls_with(&fake, "pick ").len();
+        h.event(Event::Picked((first, Some("doing".into()))));
+        assert!(edits(&fake).is_empty());
+        assert_eq!(calls_with(&fake, "pick ").len(), picks);
+        // The second goes on.
+        h.event(Event::Picked((second, Some("implements".into()))));
+        assert_eq!(calls_with(&fake, "pick ").len(), picks + 1);
+        assert!(calls_with(&fake, "pick ")
+            .last()
+            .unwrap()
+            .contains("TASK-003 implements"));
+    }
+
+    #[test]
+    fn while_the_project_cant_be_edited_it_says_why() {
+        // Kiln still reading the last edit back.
+        let fake = on_task_003();
+        fake.on_pick("Status of TASK-003", "doing")
+            .on_spawn("kiln set -- TASK-003 status=doing", txt("set-status"));
+        let mut h = opened(&fake, "buf-blocked", true);
+        h.command("kiln.set_status").unwrap();
+        fake.on_spawn("kiln list", Ran::running(""));
+        h.command("kiln.set_status").unwrap();
+        h.command("kiln.set_status").unwrap();
+        assert_eq!(edits(&fake).len(), 2, "the second ran, reading started");
+        let n = said(&fake);
+        assert_eq!(
+            n.last().unwrap(),
+            "Kiln: kiln is still reading the last edit back: try again in a moment"
+        );
+        assert_eq!(edits(&fake).len(), 2, "the third didn't start");
+        // The last read failed.
+        let fake = on_task_003();
+        let mut h = opened(&fake, "buf-failed", true);
+        // Read once (kiln.find starts the project), then a read that fails.
+        fake.on_pick_nothing("Kiln item");
+        h.command("kiln.find").unwrap();
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(
+                2,
+                "kiln: design/tasks/TASK-001.md:3: front matter can't be parsed",
+            ),
+        );
+        h.command("kiln.reload").unwrap();
+        h.command("kiln.link").unwrap();
+        assert!(
+            said(&fake)
+                .last()
+                .unwrap()
+                .starts_with("Kiln: no edits while the last read failed: "),
+            "{:?}",
+            said(&fake)
+        );
+        assert_eq!(calls_with(&fake, "pick ").len(), 1, "only kiln.find's");
+        // No kiln at all.
+        let fake = Fake::new();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.new").unwrap();
+        assert!(
+            said(&fake)[0].starts_with("Kiln: kiln isn't on the PATH"),
+            "{:?}",
+            said(&fake)
+        );
+        assert!(calls_with(&fake, "pick ").is_empty());
+    }
+
+    #[test]
+    fn before_the_project_is_read_the_flow_starts_once_it_is() {
+        let fake = on_task_003();
+        fake.on_spawn("kiln list", Ran::running(""))
+            .on_pick("Status of TASK-003", "doing")
+            .on_spawn("kiln set -- TASK-003 status=doing", txt("set-status"));
+        let mut h = opened(&fake, "buf-waits", true);
+        h.command("kiln.set_status").unwrap();
+        assert!(calls_with(&fake, "pick ").is_empty(), "no IDs to know yet");
+        assert!(said(&fake).is_empty());
+        // Where you were is kept: you've moved on by the time it's read.
+        fake.in_file("/home/me/demo/README.md", "md", "nothing\n");
+        let list = fake.process("kiln list").unwrap().id;
+        fake.on_spawn("kiln list", Ran::ok(fixture("demo/list.json")));
+        for line in fixture("demo/list.json").lines() {
+            h.said(list, line, false);
+        }
+        h.exited(list, Some(0));
+        assert_eq!(calls_with(&fake, "pick ").len(), 1);
+        assert_eq!(edits(&fake), ["set -- TASK-003 status=doing"]);
+    }
+
+    #[test]
+    fn without_a_readable_kiln_toml_values_are_typed() {
+        let fake = on_task_003();
+        fake.on_prompt("Status of TASK-003 (now todo)", "doing")
+            .on_spawn("kiln set -- TASK-003 status=doing", txt("set-status"));
+        let mut h = opened(&fake, "buf-noconfig", false);
+        h.command("kiln.set_status").unwrap();
+        assert!(calls_with(&fake, "pick ").is_empty());
+        assert_eq!(edits(&fake), ["set -- TASK-003 status=doing"]);
     }
 }
