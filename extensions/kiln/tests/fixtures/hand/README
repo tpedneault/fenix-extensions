@@ -58,3 +58,78 @@ else in them (the plan, the commit, the sizes):
   offline with --snapshot FILE)" only for --dry-run and --check. What a
   machine without a Secret Service prints instead is recorded in
   ../out/exports/confluence-no-token.stderr.
+
+---
+
+comments*, jira-*: what `kiln confluence comments`, `kiln list --jira`,
+`kiln jira sync` and `kiln jira pull` print that can't be recorded without
+a Confluence or Jira server (record.sh never reaches one: its comments
+and Jira runs are the refusals, the connection refused at 127.0.0.1:9, and
+`list --jira` over a mirror cache it writes, all in ../out/comments/ and
+../out/jira/). Written from Kiln's source at 0cc4568 (unchanged at
+4592faf); the tickets, people and pages in them are made up. Each is
+`<name>.json` or `<name>.out` (stdout) and `<name>.stderr`, with
+`<name>.exit`, as record.sh writes them:
+
+- comments.json, exit 0: `kiln confluence comments --format json` for the
+  two Confluence targets of ../out/exports/kiln.toml. An array of
+  `{comments, name, space}` (crates/kiln/src/cmd/confluence.rs:33-38; no
+  `kiln_json`, which json_out puts only into objects, cmd/mod.rs:54-61),
+  keys in name order as every kiln JSON here is. Each comment is
+  kiln-confluence's `Placed` (crates/kiln-confluence/src/comments.rs:
+  22-31, built at 61-76): `item` is the item it is about or null, `text`
+  one line (kiln's own `one_line`, comments.rs:202-211), `url` made from
+  `[confluence] url` and the page and comment ids (comments.rs:73-75),
+  `created` as Confluence gives it (its fake: 2026-10-12T09:00:00.000Z,
+  crates/kiln-confluence/src/fake.rs:283).
+- comments-unpublished.json, exit 0: a target with no page yet is left out
+  of the JSON (confluence.rs:35, `.filter(|t| t.published)`); the text
+  form says "not published yet" (confluence.rs:43-45).
+- comments-hostile.json, exit 0: NOT what kiln prints: a comment whose
+  author and text hold an escape sequence, a control character, markup and
+  a `javascript:` link, to test that the tab shows other people's writing
+  as plain text on one line and never opens a link that isn't http(s).
+  kiln builds `url` from `[confluence] url` and numbers, so it can't print
+  that link; the page doesn't rely on it.
+- comments-no-token.stderr, exit 2: no token, where the credential store
+  answers that it has none (a desktop with a Secret Service, Windows):
+  confluence.rs:103-108. What a machine without one prints is recorded in
+  ../out/comments/no-token.stderr. Every failure of `confluence comments`
+  fails the whole command (the `?` at confluence.rs:129 and 146, exit 3 for
+  the server): there is no per-target error, and so none in the tab.
+- jira-sync-dry-run*.out: `kiln jira sync --dry-run`, exit 0, or 1 when a
+  ticket is refused or the plan is (jira.rs:287-288). One line per
+  operation, as `plan_lines` writes them (jira.rs:167-247): the heading
+  (174-178), `create`, `update`, `move`, `refused`, `orphan`, `left alone`
+  (184-224), the totals (233-240) and, after them, one `  refused: why` per
+  plan-level refusal (241-243). The names are the demo's. No `--format`:
+  `jira sync` has none (crates/kiln/src/main.rs, `JiraCommand::Sync`).
+  -first is the first sync (no `parent` under `[jira]` yet, 176-185),
+  -nothing a plan with nothing to do, -plan-refused a plan-level refusal
+  (crates/kiln-jira/src/sync.rs:224-228).
+- jira-sync-applied*.out: `kiln jira sync --yes`: the plan as printed
+  (jira.rs:283-285), then the summary (jira.rs:332-345): created, updated
+  and moved, and `; N file(s) gained ticket keys (commit them)` when keys
+  were written; then `  refused: …` for what Jira refused as it applied
+  (346-348). Exit 0, or 1 with refusals or keys that couldn't be written
+  (358-361). -no-keys is a sync that created nothing, so no keys.
+- jira-sync-partial.out/.stderr, exit 3: Jira failed part way. The keys of
+  what was created are written first and the summary printed, then the
+  error, `…; run it again to finish` (jira.rs:314-357, push.rs:152 for
+  `Jira (URL): …`). The `{e}` after it is shaped as the recorded read
+  error in ../out/jira/sync-unreachable.stderr is, for a POST.
+- jira-sync-write-error.out/.stderr, exit 1: the keys couldn't be written
+  into an item (a file changed on disk), jira.rs:318-330 and 349-360.
+- jira-sync-no-token.stderr (exit 2), jira-list-no-token.stderr (exit 3):
+  no token on a desktop with a credential store (jira.rs:143-150 for
+  sync and pull, 60-65 for the mirror). Note the exit codes: the mirror's
+  every failure is exit 3 (cmd/list.rs:94, EXIT_NETWORK), sync's and
+  pull's token errors exit 2 (`Fail::usage`). What this machine prints is
+  recorded in ../out/jira/*-no-token.*.
+- jira-pull.out, jira-pull-nothing.out, jira-pull-no-ticket.stderr,
+  jira-pull-no-mapping.stderr: `kiln jira pull -- ID` (jira.rs:373-433):
+  what `kiln set` prints (`TASK-002: status doing → done`, edit.rs:266 of
+  kiln-index) and ` (from DEMO-102 Done)` (426); "every item's status
+  already matches its ticket" (431); exit 1 with a stderr line for an item
+  with no ticket under the project issue (399-406) or a Jira status that
+  maps to no status (411-417).

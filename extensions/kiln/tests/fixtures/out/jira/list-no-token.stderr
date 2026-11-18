@@ -1,0 +1,1 @@
+kiln: couldn't read `jira:http://127.0.0.1:9` from the credential store: Platform secure storage failure: no secret service provider or dbus session found (or set KILN_JIRA_TOKEN)

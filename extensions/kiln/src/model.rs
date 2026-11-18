@@ -487,6 +487,40 @@ fn kind_of(v: &serde_json::Value) -> &'static str {
     }
 }
 
+/// `s` with every control character -- a newline, a tab, an escape
+/// sequence's ESC and BEL -- and every bidirectional override (which could
+/// make a line read as another) made a space, the ends trimmed, and cut to
+/// `n` characters. Inner spacing stays: kiln aligns its plan's lines with
+/// it. For text that is kiln's but holds other people's words (a ticket's
+/// summary in a plan line).
+pub fn printable(s: &str, n: usize) -> String {
+    let spaced: String = s
+        .chars()
+        .map(|c| {
+            let bidi = matches!(c, '\u{061C}' | '\u{200E}' | '\u{200F}')
+                || ('\u{202A}'..='\u{202E}').contains(&c)
+                || ('\u{2066}'..='\u{2069}').contains(&c);
+            if c.is_control() || bidi {
+                ' '
+            } else {
+                c
+            }
+        })
+        .collect();
+    clip(spaced.trim(), n)
+}
+
+/// Other people's writing (a Jira status, a Confluence comment's author)
+/// as one line of plain text for a cell: [`printable`], and runs of
+/// whitespace made one. Nothing in it is interpreted: a cell shows text.
+pub fn plain(s: &str, n: usize) -> String {
+    let squeezed = printable(s, usize::MAX)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    clip(&squeezed, n)
+}
+
 /// `s` cut to `n` characters, `…` saying so.
 pub fn clip(s: &str, n: usize) -> String {
     match s.char_indices().nth(n) {

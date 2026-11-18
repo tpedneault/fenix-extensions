@@ -60,9 +60,19 @@
 //! listed twice is kept once (kiln exports the first). kiln's answer is
 //! what the tab shows once it comes; this only names what to ask about.
 //!
+//! # The Jira section
+//!
+//! `[jira] url` and `[jira] project`, as strings, so the plan's tabs know
+//! whether there is a Jira to read tickets from (item rows end with them
+//! once the mirror arrives) and whether the Exports tab has a `jira`
+//! target (`kiln jira sync` needs the project key; it is also the word
+//! typed to confirm a sync). Nothing else of `[jira]` is read (`parent`,
+//! `types`, `[jira.status]` are kiln's to apply), and a value that isn't a
+//! string is as good as absent.
+//!
 //! What it deliberately doesn't mirror: titles, plurals and folders (the
 //! edits show type names, and kiln picks the folder), `template`, `paths`,
-//! `[code]`, `[coverage]`, `[requirements]`, `[jira]`, `[signoff]`,
+//! `[code]`, `[coverage]`, `[requirements]`, the rest of `[jira]`, `[signoff]`,
 //! `[check]` and the rest of the exports and `[confluence]` -- nothing an
 //! edit or the Exports tab's headings depend on.
 //! Unknown keys are ignored (Kiln reports them as K003; kiln's own check
@@ -147,6 +157,16 @@ impl Export {
     }
 }
 
+/// `[jira]`, as far as the tabs read it.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Jira {
+    /// `[jira] url`: where tickets are read from.
+    pub url: Option<String>,
+    /// `[jira] project`: the Jira project key `kiln jira sync` puts
+    /// tickets in. Without it there is nothing to sync.
+    pub project: Option<String>,
+}
+
 /// What an edit needs of `kiln.toml`, and the export targets' names.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Config {
@@ -156,9 +176,44 @@ pub struct Config {
     pub roles: Vec<Role>,
     /// `[[export]]`, in `kiln.toml`'s order, each name once.
     pub exports: Vec<Export>,
+    /// `[jira]`, when the table is there.
+    pub jira: Option<Jira>,
 }
 
 impl Config {
+    /// The names of the file targets (Markdown, HTML, Word), in order:
+    /// every target that doesn't publish to Confluence. What `W` on the
+    /// Exports tab and the export tasks name, so that no run of kiln
+    /// they cause can reach Confluence.
+    pub fn file_targets(&self) -> Vec<&str> {
+        self.exports
+            .iter()
+            .filter(|e| !e.is_confluence())
+            .map(|e| e.name.as_str())
+            .collect()
+    }
+
+    /// Whether any `[[export]]` publishes to Confluence.
+    pub fn has_confluence_target(&self) -> bool {
+        self.exports.iter().any(Export::is_confluence)
+    }
+
+    /// `[jira] url`, when it is a non-empty string.
+    pub fn jira_url(&self) -> Option<&str> {
+        self.jira
+            .as_ref()
+            .and_then(|j| j.url.as_deref())
+            .filter(|u| !u.trim().is_empty())
+    }
+
+    /// `[jira] project`, when it is a non-empty string.
+    pub fn jira_project(&self) -> Option<&str> {
+        self.jira
+            .as_ref()
+            .and_then(|j| j.project.as_deref())
+            .filter(|p| !p.trim().is_empty())
+    }
+
     pub fn kind(&self, name: &str) -> Option<&Type> {
         self.types.iter().find(|t| t.name == name)
     }
@@ -207,10 +262,18 @@ pub fn parse(text: &str) -> Result<Config, String> {
         None => Vec::new(),
     };
     let exports = exports(&root);
+    let jira = root.get("jira").and_then(Value::as_table).map(|t| {
+        let text = |key: &str| t.get(key).and_then(Value::as_str).map(str::to_string);
+        Jira {
+            url: text("url"),
+            project: text("project"),
+        }
+    });
     Ok(Config {
         types,
         roles,
         exports,
+        jira,
     })
 }
 
@@ -592,5 +655,38 @@ key = 1
         assert_eq!(c.exports[4].page, Some(555), "page = before parent");
         assert!(c.exports[4].adopts && !spec.adopts);
         assert_eq!(demo().exports.len(), 1, "the demo's own design-doc");
+        assert_eq!(
+            c.file_targets(),
+            ["design-doc", "requirements-html", "sections-md"],
+            "no Confluence target among them"
+        );
+        assert!(c.has_confluence_target() && !demo().has_confluence_target());
+    }
+
+    #[test]
+    fn the_jira_section_is_its_url_and_project() {
+        let c = parse(&fixture("out/jira/kiln.toml")).unwrap();
+        assert_eq!(
+            c.jira,
+            Some(Jira {
+                url: Some("http://127.0.0.1:9".into()),
+                project: Some("DEMO".into())
+            })
+        );
+        assert_eq!(
+            (c.jira_url(), c.jira_project()),
+            (Some("http://127.0.0.1:9"), Some("DEMO"))
+        );
+        assert_eq!(demo().jira, None, "no [jira]: no tickets, no target");
+        // A url alone mirrors tickets and has no sync; empty or not a
+        // string is as good as absent.
+        let base = "format = 1\n[types.t]\nprefix = \"T\"\nstatuses = [\"a\"]\n";
+        let only_url = parse(&format!("{base}[jira]\nurl = \"http://j\"\n")).unwrap();
+        assert_eq!(
+            (only_url.jira_url(), only_url.jira_project()),
+            (Some("http://j"), None)
+        );
+        let odd = parse(&format!("{base}[jira]\nurl = \"\"\nproject = 4\n")).unwrap();
+        assert_eq!((odd.jira_url(), odd.jira_project()), (None, None));
     }
 }

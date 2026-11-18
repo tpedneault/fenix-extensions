@@ -106,16 +106,67 @@
 //!   secret, no prompt for one, no environment. `A` runs `kiln auth
 //!   confluence` in a terminal pane, where the token is typed into kiln.
 //!
+//! # Jira
+//!
+//! With `[jira] project` in `kiln.toml` ([`crate::config::Jira`]) the tab
+//! ends with one more target, `jira`: `kiln jira sync --dry-run`, shown
+//! as kiln prints it -- the heading (`jira (DEMO) → DEMO-100 "Kiln:
+//! Demo"`), one line per operation (`create`, `update`, `move`, `orphan`,
+//! `left alone`), the totals, and `refused` lines in the bad look. `jira
+//! sync` has no `--format json` (kiln 1.0.0, `JiraCommand::Sync`), so these
+//! are kiln's text lines as they are: nothing is parsed but telling the
+//! heading (the first line, unindented), the totals (`N create, N update,
+//! N move, N unchanged`, matched whole or not at all), a refusal (a line
+//! that starts `refused`) and which operations write (`create`, `update`,
+//! `move`) apart. JSON would be a Kiln-side addition; until then a change
+//! of kiln's wording shows as plain lines, never as a wrong count (`P`
+//! counts only lines that start with those three words).
+//!
+//! It is asked like the other targets (when the tab is first shown, on
+//! `R`, held back while the project is read) and may take [`JIRA_DRY_MS`]:
+//! kiln reads the project issue's sub-tasks and the workflow from Jira.
+//! Unlike a Confluence plan, a refused operation doesn't stop the sync:
+//! kiln leaves that ticket alone and syncs the rest (CLI.md, "kiln jira
+//! sync"), so `P` is allowed and says how many are refused.
+//!
+//! `P` on it syncs under the same rules as publishing: no publish runs (it
+//! shares the one-at-a-time guard, [`JIRA_SYNC`]); the dry run is current
+//! (read in this round, at the project's change count as it is now); it has
+//! something to write. The prompt shows the heading and the totals and asks
+//! for the Jira project key typed exactly (`DEMO`, from `[jira] project`;
+//! the first thing `kiln jira sync` prints is the project). Then exactly
+//! `kiln jira sync --yes` ([`sync_args`]) runs, for as long as
+//! [`PUBLISH_MS`]: it creates a ticket per request and writes the keys into
+//! the items only when it has applied everything, so a watchdog that
+//! stopped it half way would leave tickets no item names, and the next sync
+//! would create them again. It isn't stopped when `kiln.path` changes.
+//!
+//! What it says after is kiln's: the summary (`jira: 1 created, 1 updated,
+//! 1 moved; 1 file gained ticket keys (commit them)`, shown prominently,
+//! as a warning, since the files it names are left uncommitted), the
+//! refusals after it, or its line. Exit 3 (Jira failed part way) says what
+//! CLI.md says: the keys of what was created are written into the items
+//! even so, so commit them, and run it again to finish. Then the project
+//! is read again (sync writes `jira =` into items and `kiln.toml`;
+//! [`Reply::Reload`]) and the dry run read again once that read has ended
+//! ([`Query::settled`]), so the plan shown is of the project as it now is.
+//!
+//! `A` on it opens `kiln auth jira` in a terminal. Never `--force` and
+//! the rest, which Jira has none of; never a bare `kiln jira sync`, which
+//! would ask a question nobody sees; never `--yes` anywhere but in the
+//! confirmed [`sync_args`].
+//!
 //! What it deliberately doesn't do: write a file, run anything but these
-//! kiln commands, publish Jira (E3.4) or show comments (Comments, E3.3).
+//! kiln commands, or show comments (that's the Comments tab).
 
 use std::collections::HashMap;
 
 use fenix_ui_kit::{Key, KeyPress};
 use serde::Deserialize;
 
-use super::view::{Cell, Ctx, Look, Query, Reply, Row, View};
+use super::view::{publish_running, Cell, Ctx, Look, Query, Reply, Row, View, JIRA_SYNC};
 use crate::config::Export;
+use crate::jira;
 use crate::kiln::{Failure, Ran};
 use crate::model::{self, count};
 
@@ -139,6 +190,11 @@ pub const WRITE_MS: u32 = DRY_RUN_MS;
 /// past any real one, and only ends a kiln that never would.
 pub const PUBLISH_MS: u32 = 2 * 60 * 60 * 1000;
 
+/// How long the Jira plan may take: 5 minutes. kiln reads the project
+/// issue's sub-tasks and the project's workflows from Jira, a few requests;
+/// each is bounded by `fenix-jira`'s own timeouts.
+pub const JIRA_DRY_MS: u32 = 5 * 60 * 1000;
+
 /// What no argument list of this module may hold (module header,
 /// "Never").
 pub const FORBIDDEN: [&str; 4] = ["--force", "--adopt", "--prune-removed", "--allow-shallow"];
@@ -152,6 +208,10 @@ const WRITE: &str = "write";
 /// The prompt for the name, and the publish (`PUBLISH` and the name).
 const CONFIRM: &str = "publish";
 const PUBLISH: &str = "publish:";
+/// The Jira plan's dry run, the prompt for the project key, and the sync.
+const JIRA_DRY: &str = "jira-dry-run";
+const JIRA_CONFIRM: &str = "sync-jira";
+const JIRA_RUN: &str = "sync-jira-run";
 
 /// Between a row's target and the rest of its key.
 const SEP: char = '\u{1}';
@@ -183,6 +243,24 @@ pub fn publish_args(name: &str) -> Vec<String> {
 /// `kiln auth confluence`, in a terminal.
 pub fn auth_args() -> Vec<String> {
     vec!["auth".into(), "confluence".into()]
+}
+
+/// `kiln jira sync --dry-run`: the plan, nothing changed. No `--format`:
+/// `jira sync` has none.
+pub fn jira_dry_run_args() -> Vec<String> {
+    ["jira", "sync", "--dry-run"]
+        .into_iter()
+        .map(String::from)
+        .collect()
+}
+
+/// `kiln jira sync --yes`: syncs Jira, after the project key is typed. The
+/// only list of arguments with `--yes` that isn't `kiln export`'s.
+pub fn sync_args() -> Vec<String> {
+    ["jira", "sync", "--yes"]
+        .into_iter()
+        .map(String::from)
+        .collect()
 }
 
 // -- What kiln says -------------------------------------------------------------
@@ -304,15 +382,16 @@ impl Target {
     }
 }
 
-/// Why a target has no answer: kiln's line and exit code.
+/// Why a target has no answer: kiln's line and exit code. The Comments tab
+/// and the Jira mirror say a failure the same way.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Failed {
-    line: String,
-    code: Option<i32>,
+pub struct Failed {
+    pub line: String,
+    pub code: Option<i32>,
 }
 
 impl Failed {
-    fn of(f: &Failure) -> Failed {
+    pub fn of(f: &Failure) -> Failed {
         Failed {
             line: f.line(),
             code: f.code(),
@@ -346,7 +425,7 @@ fn targets(result: &Result<Ran, Failure>) -> Result<Vec<Target>, Failed> {
 /// set KILN_CONFLUENCE_TOKEN" when the credential store has none, and the
 /// store's own error "… (or set KILN_CONFLUENCE_TOKEN)" when there is no
 /// store to ask (export.rs:570-583, crates/kiln-secrets/src/lib.rs:81-88).
-fn wants_token(f: &Failed) -> bool {
+pub fn wants_token(f: &Failed) -> bool {
     f.code == Some(2)
         && (f.line.contains("KILN_CONFLUENCE_TOKEN") || f.line.contains("kiln auth confluence"))
 }
@@ -371,6 +450,47 @@ struct Confirm {
     totals: Totals,
 }
 
+/// One line of `kiln jira sync --dry-run`, and what it is.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct JiraLine {
+    /// kiln's line, indentation off, on one line of plain text.
+    text: String,
+    kind: JiraKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum JiraKind {
+    /// The first, unindented line: `jira (DEMO) → DEMO-100 "Kiln: Demo"`.
+    Heading,
+    /// `create …`, `update …`, `move …`: what a sync would write.
+    Write,
+    /// `orphan …`, `left alone …`: reported, never written.
+    Left,
+    /// `refused …` or `refused: …`.
+    Refused,
+    /// `1 create, 1 update, 1 move, 2 unchanged[, 1 refused]`.
+    Totals,
+    /// Any other line, as kiln wrote it.
+    Other,
+}
+
+/// The Jira plan's dry run: the round it answered in, the project's
+/// change count when asked, and kiln's lines or why there are none.
+#[derive(Debug, Clone)]
+struct JiraHeard {
+    round: u64,
+    at: u64,
+    got: Result<Vec<JiraLine>, Failed>,
+}
+
+/// What `P` on the Jira target showed and asked to be confirmed.
+#[derive(Debug, Clone)]
+struct JiraConfirm {
+    project: String,
+    round: u64,
+    at: u64,
+}
+
 /// The Exports tab.
 #[derive(Debug, Default)]
 pub struct Exports {
@@ -392,6 +512,12 @@ pub struct Exports {
     outcome: HashMap<String, (String, Look)>,
     /// The targets the write under way names (`w`, `W`).
     writing: Vec<String>,
+    /// The Jira target: its last dry run, its reads again since (after a
+    /// sync), `P`'s prompt, open, and the sync's outcome (in `outcome`,
+    /// under [`JIRA_SYNC`]).
+    jira: Option<JiraHeard>,
+    jira_again: u64,
+    jira_confirm: Option<JiraConfirm>,
 }
 
 /// A target to show: its name, and what `kiln.toml` says of it when the
@@ -440,6 +566,18 @@ impl Exports {
         }
     }
 
+    /// The round the Jira plan is read in.
+    fn jira_round(&self) -> u64 {
+        self.round + self.jira_again
+    }
+
+    /// Whether the Jira plan's dry run is under way (or not yet asked).
+    fn jira_reading(&self) -> bool {
+        self.jira
+            .as_ref()
+            .is_none_or(|h| h.round != self.jira_round())
+    }
+
     /// Whether the targets are asked one by one (`kiln.toml` names them).
     fn one_by_one(ctx: &Ctx) -> bool {
         matches!(ctx.config, Ok(c) if !c.exports.is_empty())
@@ -472,10 +610,11 @@ impl Exports {
     /// `P` on target `name`: why it can't publish, or the prompt for its
     /// name.
     fn ask_publish(&mut self, name: &str, ctx: &Ctx) -> Reply {
+        if name == JIRA_SYNC {
+            return self.ask_sync(ctx);
+        }
         if let Some(running) = ctx.publishing {
-            return Reply::Say(format!(
-                "{running} is being published: one publish at a time"
-            ));
+            return Reply::Say(publish_running(running));
         }
         if self.confluence(name, ctx) == Some(false) {
             return Reply::Say(format!("{name} is a file target: w writes it"));
@@ -540,7 +679,8 @@ impl Exports {
         }
         if let Some(running) = ctx.publishing {
             return Reply::Say(format!(
-                "{running} is being published: one publish at a time; nothing else was published"
+                "{}; nothing else was published",
+                publish_running(running)
             ));
         }
         let fresh = self
@@ -617,6 +757,196 @@ impl Exports {
             Reply::Say(line)
         } else {
             Reply::Bad(line)
+        }
+    }
+
+    // -- Jira ----------------------------------------------------------------
+
+    /// `P` on the Jira target: why it can't sync, or the prompt for the
+    /// project key.
+    fn ask_sync(&mut self, ctx: &Ctx) -> Reply {
+        if let Some(running) = ctx.publishing {
+            return Reply::Say(publish_running(running));
+        }
+        let Some(project) = jira_project(ctx) else {
+            return Reply::Say("kiln.toml's [jira] has no project: there's nothing to sync".into());
+        };
+        let Some(heard) = &self.jira else {
+            return Reply::Say("the Jira plan is still being read: P once it's shown".into());
+        };
+        if heard.round != self.jira_round() {
+            return Reply::Say("the Jira plan is being read again: P once it's shown".into());
+        }
+        let lines = match &heard.got {
+            Ok(lines) => lines,
+            Err(f) if jira::wants_token(&f.line) => {
+                return Reply::Bad(format!(
+                    "jira has no plan: {} -- A runs kiln auth jira in a terminal, then R",
+                    f.line
+                ))
+            }
+            Err(f) => return Reply::Bad(format!("jira has no plan: {}", f.line)),
+        };
+        if heard.at != ctx.changes {
+            return Reply::Say(
+                "the project changed since jira's plan was read: R reads it again, then P".into(),
+            );
+        }
+        let writes = lines.iter().filter(|l| l.kind == JiraKind::Write).count();
+        let refused = lines.iter().filter(|l| l.kind == JiraKind::Refused).count();
+        if writes == 0 {
+            let totals = lines
+                .iter()
+                .find(|l| l.kind == JiraKind::Totals)
+                .map_or("empty", |l| l.text.as_str());
+            return Reply::Say(format!("nothing to sync: jira's plan is {totals}"));
+        }
+        let heading = lines
+            .iter()
+            .find(|l| l.kind == JiraKind::Heading)
+            .map_or("jira", |l| l.text.as_str());
+        let totals = lines
+            .iter()
+            .find(|l| l.kind == JiraKind::Totals)
+            .map_or(String::new(), |l| format!(" ({})", l.text));
+        let left = if refused == 0 {
+            String::new()
+        } else {
+            format!(
+                "; kiln leaves the {} it refuses alone and syncs the rest",
+                count(refused, "ticket")
+            )
+        };
+        let label = format!(
+            "Sync Jira: creates, updates and moves tickets, {heading}: {}{totals}{left}. Type {project} to sync",
+            count(writes, "operation")
+        );
+        self.jira_confirm = Some(JiraConfirm {
+            project: project.to_string(),
+            round: heard.round,
+            at: heard.at,
+        });
+        Reply::ask(JIRA_CONFIRM, label, "")
+    }
+
+    /// The project key typed after `P` on Jira: exactly `[jira] project`,
+    /// and the plan still the one shown, or nothing is synced.
+    fn confirmed_sync(&mut self, text: &str, ctx: &Ctx) -> Reply {
+        let Some(c) = self.jira_confirm.take() else {
+            return Reply::Ignored;
+        };
+        if text != c.project {
+            return Reply::Say(format!("“{text}” isn't {}: nothing was synced", c.project));
+        }
+        if let Some(running) = ctx.publishing {
+            return Reply::Say(format!("{}; nothing was synced", publish_running(running)));
+        }
+        let fresh = self
+            .jira
+            .as_ref()
+            .is_some_and(|h| h.round == c.round && h.at == c.at && self.jira_round() == c.round);
+        if !fresh || c.at != ctx.changes {
+            return Reply::Say(
+                "jira's plan isn't the one shown any more (the project or the plan was read again): nothing was synced; R, then P"
+                    .into(),
+            );
+        }
+        Reply::Run {
+            tag: JIRA_RUN.into(),
+            args: sync_args(),
+            limit_ms: Some(PUBLISH_MS),
+            publish: Some(JIRA_SYNC.into()),
+        }
+    }
+
+    /// The sync ended: kiln's own word on it kept under the target and
+    /// said, then the project read again (it wrote keys into items and
+    /// `kiln.toml`) and the dry run read again after.
+    fn synced(&mut self, result: &Result<Ran, Failure>) -> Reply {
+        // Refused at once (another publish runs): nothing ran.
+        if let Err(Failure::Unusable(why)) = result {
+            return Reply::Bad(why.clone());
+        }
+        self.jira_again += 1;
+        let (line, look) = sync_outcome(result);
+        self.outcome
+            .insert(JIRA_SYNC.to_string(), (line.clone(), look.clone()));
+        Reply::Reload {
+            say: line,
+            bad: look == Look::Bad,
+        }
+    }
+
+    /// The Jira target's rows: its heading, then what kiln said.
+    fn jira_rows(&self, ctx: &Ctx, project: &str, rows: &mut Vec<Row>) {
+        let got = self.jira.as_ref().map(|h| &h.got);
+        let lines = got.and_then(|g| g.as_ref().ok());
+        let heading = lines
+            .and_then(|l| l.iter().find(|l| l.kind == JiraKind::Heading))
+            .map_or_else(|| format!("jira ({project})"), |l| l.text.clone());
+        rows.push(Row::heading(vec![Cell::title(heading)]));
+        let key = |what: &str| format!("{JIRA_SYNC}{SEP}{what}");
+        let entry = |what: &str, text: String, look: Look| {
+            Row::entry(key(what), vec![Cell::new(text, look)]).depth(1)
+        };
+        if ctx.publishing == Some(JIRA_SYNC) {
+            rows.push(entry(
+                "publishing",
+                "syncing… kiln plans again and applies it; the keys of new tickets are written into the items".into(),
+                Look::Warn,
+            ));
+        }
+        if let Some((line, look)) = self.outcome.get(JIRA_SYNC) {
+            rows.push(entry("outcome", line.clone(), look.clone()));
+        }
+        if self.jira_reading() {
+            rows.push(Row::note("reading… (asks Jira)").depth(1));
+        } else if self.jira.as_ref().is_some_and(|h| h.at != ctx.changes) && lines.is_some() {
+            rows.push(
+                Row::note("the project changed since this was read: R reads it again").depth(1),
+            );
+        }
+        match got {
+            None => {
+                if !self.jira_reading() {
+                    rows.push(Row::note("not read yet: R reads it").depth(1));
+                }
+            }
+            Some(Err(f)) => {
+                rows.push(entry("error", f.line.clone(), Look::Bad));
+                if jira::wants_token(&f.line) {
+                    rows.push(
+                        Row::note(
+                            "run kiln auth jira in a terminal: A opens one below, then R reads this again",
+                        )
+                        .depth(1),
+                    );
+                }
+            }
+            Some(Ok(lines)) => {
+                for (i, l) in lines.iter().enumerate() {
+                    let look = match l.kind {
+                        // The heading is the row above.
+                        JiraKind::Heading => continue,
+                        JiraKind::Refused => Look::Bad,
+                        JiraKind::Left => Look::Warn,
+                        JiraKind::Totals | JiraKind::Other => Look::Text,
+                        JiraKind::Write => match l.text.split_whitespace().next() {
+                            Some("create") => Look::Good,
+                            _ => Look::Accent,
+                        },
+                    };
+                    rows.push(entry(&format!("op{i}"), l.text.clone(), look));
+                }
+                if lines.iter().any(|l| l.kind == JiraKind::Refused) {
+                    rows.push(
+                        Row::note(
+                            "kiln leaves a refused ticket alone and syncs the rest: P does the same",
+                        )
+                        .depth(1),
+                    );
+                }
+            }
         }
     }
 
@@ -865,6 +1195,170 @@ fn wrote(t: &Target) -> String {
     }
 }
 
+/// `[jira] project`, when `kiln.toml` was read and has one: whether the
+/// tab has a Jira target.
+fn jira_project<'a>(ctx: &Ctx<'a>) -> Option<&'a str> {
+    ctx.config.ok().and_then(|c| c.jira_project())
+}
+
+/// kiln's `jira sync --dry-run` as lines: its answer when it exited 0 (a
+/// plan) or 1 (a plan with a refusal), else its one line. See the module
+/// header, "Jira", for how little of it is read.
+fn jira_plan(result: &Result<Ran, Failure>) -> Result<Vec<JiraLine>, Failed> {
+    let ran = result.as_ref().map_err(Failed::of)?;
+    match ran.code {
+        Some(0 | 1) if !ran.stdout.trim().is_empty() => Ok(jira_lines(&ran.stdout)),
+        _ => Err(Failed {
+            line: ran.error_line(),
+            code: ran.code,
+        }),
+    }
+}
+
+/// Each non-empty line of `text`, told apart as far as is robust: the
+/// first line when it isn't indented is the heading; a refusal starts
+/// `refused`; the totals are `N create, N update, N move, N unchanged`
+/// (and `, N refused`), matched whole; the operations that write start
+/// `create`, `update` or `move`; `orphan` and `left alone` are reported
+/// only. Anything else is [`JiraKind::Other`], shown as kiln wrote it.
+fn jira_lines(text: &str) -> Vec<JiraLine> {
+    text.lines()
+        .filter(|l| !l.trim().is_empty())
+        .enumerate()
+        .map(|(i, raw)| {
+            let t = raw.trim_start();
+            let first = t.split(|c: char| c.is_whitespace() || c == ':').next();
+            let kind = if i == 0 && raw == t {
+                JiraKind::Heading
+            } else if first == Some("refused") {
+                JiraKind::Refused
+            } else if is_jira_totals(t) {
+                JiraKind::Totals
+            } else {
+                match first {
+                    Some("create" | "update" | "move") => JiraKind::Write,
+                    Some("orphan" | "left") => JiraKind::Left,
+                    _ => JiraKind::Other,
+                }
+            };
+            JiraLine {
+                // Kiln's own spacing kept: it aligns the plan with it.
+                text: model::printable(t, 400),
+                kind,
+            }
+        })
+        .collect()
+}
+
+/// `1 create, 1 update, 1 move, 2 unchanged` and the same with `, 1
+/// refused`: four counts (five), in that order, nothing else.
+fn is_jira_totals(t: &str) -> bool {
+    let parts: Vec<&str> = t.split(", ").collect();
+    let words = ["create", "update", "move", "unchanged", "refused"];
+    (parts.len() == 4 || parts.len() == 5)
+        && parts.iter().zip(words).all(|(p, word)| {
+            p.split_once(' ').is_some_and(|(n, w)| {
+                w == word && !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())
+            })
+        })
+}
+
+/// A sync's outcome, from kiln's answer: its summary line, the refusals
+/// after it, or its line, with what to do next.
+fn sync_outcome(result: &Result<Ran, Failure>) -> (String, Look) {
+    let ran = match result {
+        Err(Failure::TimedOut(_)) => {
+            let line = result.as_ref().err().map(Failure::line).unwrap_or_default();
+            return (
+                format!(
+                    "{line}: the sync was stopped before it wrote the keys of the tickets it created; look in Jira for sub-tasks of the project issue no item links (the next plan reports them as orphans) before syncing again"
+                ),
+                Look::Bad,
+            );
+        }
+        Err(f) => return (f.line(), Look::Bad),
+        Ok(ran) => ran,
+    };
+    let lines: Vec<&str> = ran
+        .stdout
+        .lines()
+        .map(str::trim_end)
+        .filter(|l| !l.is_empty())
+        .collect();
+    let at = lines.iter().rposition(|l| l.starts_with("jira: "));
+    let summary = at.map(|i| model::printable(lines[i], 400));
+    let refused: Vec<String> = at
+        .map(|i| {
+            lines[i + 1..]
+                .iter()
+                .map(|l| model::printable(l, 400))
+                .collect()
+        })
+        .unwrap_or_default();
+    let gained = summary
+        .as_deref()
+        .is_some_and(|s| s.contains("gained ticket keys"));
+    let with_refused = |base: String| {
+        if refused.is_empty() {
+            base
+        } else {
+            format!("{base} -- {}", refused.join("; "))
+        }
+    };
+    match ran.code {
+        Some(0) => match summary {
+            Some(s) => (
+                with_refused(s),
+                // The files it names are changed and uncommitted.
+                if gained { Look::Warn } else { Look::Good },
+            ),
+            None => (
+                "nothing synced: kiln's plan, read as it synced, had nothing to do".into(),
+                Look::Text,
+            ),
+        },
+        // Some of it refused, or keys that couldn't be written: after
+        // what it did, kiln's line when it said one, else that it refused.
+        Some(1) => {
+            let line = ran
+                .stderr
+                .iter()
+                .rev()
+                .find(|l| l.starts_with("kiln: "))
+                .map(|l| model::printable(l, 400))
+                .unwrap_or_else(|| "kiln refused some of it (exit 1): the plan shows what".into());
+            let base = match summary {
+                Some(s) => format!("{s} -- {line}"),
+                None => line,
+            };
+            (with_refused(base), Look::Bad)
+        }
+        // Jira failed part way: the keys of what was created are written
+        // first (CLI.md, "kiln jira sync").
+        Some(3) => {
+            let line = ran.error_line();
+            let keys = if gained {
+                " -- the keys of the tickets it created are in your files even so: commit them, so none is created twice, then sync again to finish"
+            } else {
+                ""
+            };
+            let base = match summary {
+                Some(s) => format!("{s} -- {line}{keys}"),
+                None => line,
+            };
+            (with_refused(base), Look::Bad)
+        }
+        Some(2) if jira::wants_token(&ran.error_line()) => (
+            format!(
+                "{} -- A runs kiln auth jira in a terminal",
+                ran.error_line()
+            ),
+            Look::Bad,
+        ),
+        _ => (ran.error_line(), Look::Bad),
+    }
+}
+
 /// What the prompt says before the name is typed: that it writes to
 /// Confluence, where, how many pages, and how to confirm.
 fn confirm_label(name: &str, t: &Target, totals: &Totals, ctx: &Ctx) -> String {
@@ -983,6 +1477,10 @@ impl View for Exports {
                         SEP.to_string(),
                         vec![Cell::new(f.line.clone(), Look::Bad)],
                     ));
+                    // Jira is its own command: its target stands.
+                    if let Some(project) = jira_project(ctx) {
+                        self.jira_rows(ctx, project, &mut rows);
+                    }
                     return rows;
                 }
                 Some((round, _)) if *round == self.round => {}
@@ -991,6 +1489,9 @@ impl View for Exports {
         }
         for n in self.names(ctx) {
             self.target_rows(&n, ctx, &mut rows);
+        }
+        if let Some(project) = jira_project(ctx) {
+            self.jira_rows(ctx, project, &mut rows);
         }
         rows
     }
@@ -1028,6 +1529,9 @@ impl View for Exports {
                 let Some(name) = target else {
                     return Reply::Say("no export target here".into());
                 };
+                if name == JIRA_SYNC {
+                    return Reply::Say("jira isn't a file target: P syncs it".into());
+                }
                 if self.confluence(&name, ctx) == Some(true) {
                     return Reply::Say(format!("{name} publishes to Confluence: P publishes it"));
                 }
@@ -1058,11 +1562,18 @@ impl View for Exports {
                 None => Reply::Say("no export target here".into()),
             },
             'A' => match target {
+                Some(name) if name == JIRA_SYNC => Reply::Terminal {
+                    title: "kiln auth jira".into(),
+                    args: jira::auth_args(),
+                },
                 Some(name) if self.confluence(&name, ctx) == Some(true) => Reply::Terminal {
                     title: "kiln auth confluence".into(),
                     args: auth_args(),
                 },
-                _ => Reply::Say("A signs in to Confluence: on a Confluence target".into()),
+                _ => Reply::Say(
+                    "A signs in: on a Confluence target (kiln auth confluence) or on jira (kiln auth jira)"
+                        .into(),
+                ),
             },
             _ => Reply::Ignored,
         }
@@ -1073,22 +1584,43 @@ impl View for Exports {
     }
 
     fn queries(&self, ctx: &Ctx) -> Vec<Query> {
-        if !Self::one_by_one(ctx) {
-            return vec![Query::new(DRY_ALL, dry_run_args(None))
+        let mut qs = if !Self::one_by_one(ctx) {
+            vec![Query::new(DRY_ALL, dry_run_args(None))
                 .per_round(self.round)
-                .limit(DRY_RUN_MS)];
+                .limit(DRY_RUN_MS)]
+        } else {
+            self.names(ctx)
+                .iter()
+                .map(|n| {
+                    Query::new(&format!("{DRY}{}", n.name), dry_run_args(Some(n.name)))
+                        .per_round(self.round_of(n.name))
+                        .limit(DRY_RUN_MS)
+                })
+                .collect()
+        };
+        if jira_project(ctx).is_some() {
+            // Held back while the project is read: after a sync that
+            // writes keys into items, the plan is of the project as that
+            // read leaves it.
+            qs.push(
+                Query::new(JIRA_DRY, jira_dry_run_args())
+                    .per_round(self.jira_round())
+                    .limit(JIRA_DRY_MS)
+                    .settled(),
+            );
         }
-        self.names(ctx)
-            .iter()
-            .map(|n| {
-                Query::new(&format!("{DRY}{}", n.name), dry_run_args(Some(n.name)))
-                    .per_round(self.round_of(n.name))
-                    .limit(DRY_RUN_MS)
-            })
-            .collect()
+        qs
     }
 
     fn answer_at(&mut self, tag: &str, result: &Result<Ran, Failure>, changes: u64) {
+        if tag == JIRA_DRY {
+            self.jira = Some(JiraHeard {
+                round: self.jira_round(),
+                at: changes,
+                got: jira_plan(result),
+            });
+            return;
+        }
         if tag == DRY_ALL {
             match targets(result) {
                 Ok(list) => {
@@ -1133,15 +1665,19 @@ impl View for Exports {
     }
 
     fn typed(&mut self, tag: &str, text: &str, ctx: &Ctx) -> Reply {
-        if tag != CONFIRM {
-            return Reply::Ignored;
+        match tag {
+            CONFIRM => self.confirmed(text, ctx),
+            JIRA_CONFIRM => self.confirmed_sync(text, ctx),
+            _ => Reply::Ignored,
         }
-        self.confirmed(text, ctx)
     }
 
     fn ran(&mut self, tag: &str, result: &Result<Ran, Failure>, ctx: &Ctx) -> Reply {
         if tag == WRITE {
             return self.written(result, ctx);
+        }
+        if tag == JIRA_RUN {
+            return self.synced(result);
         }
         match tag.strip_prefix(PUBLISH) {
             Some(name) => self.published(name, result, ctx),
@@ -1151,4 +1687,4 @@ impl View for Exports {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

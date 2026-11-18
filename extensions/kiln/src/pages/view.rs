@@ -293,6 +293,10 @@ impl Row {
 /// -- again after a reload -- and again when its `args` change; a view
 /// that wants it no more leaves it out.
 ///
+/// [`Query::settled`] holds it back while the project is being read, so
+/// that it is asked of the project as that read leaves it (the Exports
+/// tab's Jira plan after a sync, which writes ticket keys into items).
+///
 /// [`Query::per_round`] asks it once per round of the view's instead of
 /// once per read: for a query too costly to repeat on every reload (the
 /// Exports tab's dry run renders the whole document and may ask
@@ -307,6 +311,8 @@ pub struct Query {
     pub round: Option<u64>,
     /// How long kiln may take, in ms; `None`: the queue's default.
     pub limit_ms: Option<u32>,
+    /// Not asked while the project is being read ([`Query::settled`]).
+    pub settled: bool,
 }
 
 impl Query {
@@ -316,7 +322,17 @@ impl Query {
             args: args.into_iter().map(Into::into).collect(),
             round: None,
             limit_ms: None,
+            settled: false,
         }
+    }
+
+    /// Asked only while no read of the project runs (or waits): the
+    /// frame holds it back, and asks it once the read has ended, when the
+    /// project is what the answer will be about. For a query whose answer
+    /// goes stale with the read that is under way.
+    pub fn settled(mut self) -> Query {
+        self.settled = true;
+        self
     }
 
     /// Asked once for round `round`, not again on a reload: again only
@@ -426,8 +442,20 @@ pub enum Reply {
     Bad(String),
     /// kiln with `args` run in a terminal pane under the focused one,
     /// called `title`, for what must be typed into kiln itself: `kiln auth
-    /// confluence`, whose token the extension never sees.
+    /// confluence` or `kiln auth jira`, whose token the extension never
+    /// sees.
     Terminal { title: String, args: Vec<String> },
+    /// `url` opened in the system's browser (a Confluence comment). Only
+    /// an `http` or `https` link is: the frame refuses anything else with
+    /// a line saying so ([`web_url`]), so a link in other people's
+    /// writing can't open a file or run a program. The extension itself
+    /// has no network: the browser is Fenix's.
+    Url(String),
+    /// Something said on the bottom line, and the project read again: for
+    /// a command that changed what kiln reads without being an edit (`kiln
+    /// jira sync` writes `jira =` into items and `kiln.toml`). `bad`: in
+    /// the error look.
+    Reload { say: String, bad: bool },
 }
 
 impl Reply {
@@ -512,6 +540,56 @@ impl Ctx<'_> {
         }
     }
 }
+
+/// `url` when it is a link the browser may be handed: `http://` or
+/// `https://` and a host, no whitespace or control character in it, and
+/// not absurdly long. Anything else -- `file:`, `javascript:`, `ssh:`, a
+/// path -- is why it isn't, in one line.
+pub fn web_url(url: &str) -> Result<&str, String> {
+    let lower = url.to_ascii_lowercase();
+    let rest = lower
+        .strip_prefix("https://")
+        .or_else(|| lower.strip_prefix("http://"));
+    let Some(rest) = rest else {
+        return Err(format!(
+            "not opening {}: only http and https links are opened",
+            crate::model::plain(url, 60)
+        ));
+    };
+    if rest.is_empty() || rest.starts_with('/') {
+        return Err("not opening a link with no host".into());
+    }
+    if url.len() > 2048 || url.chars().any(|c| c.is_control() || c.is_whitespace()) {
+        return Err("not opening a link with spaces or control characters in it".into());
+    }
+    Ok(url)
+}
+
+/// What the frame's bottom line says while publish `target` runs
+/// ([`Reply::Run`]): Exports' Jira sync is [`JIRA_SYNC`], every other
+/// target a Confluence page set.
+pub fn publishing_line(target: &str) -> String {
+    if target == JIRA_SYNC {
+        "syncing Jira… (kiln writes ticket keys into the items as it goes)".into()
+    } else {
+        format!("publishing {target} to Confluence…")
+    }
+}
+
+/// What the one-publish-at-a-time guard answers when `running` is under
+/// way ([`Reply::Run`]'s `publish`).
+pub fn publish_running(running: &str) -> String {
+    if running == JIRA_SYNC {
+        "the Jira sync is running: one publish at a time".into()
+    } else {
+        format!("{running} is being published: one publish at a time")
+    }
+}
+
+/// What a [`Reply::Run`]'s `publish` is for the Jira sync: not a name an
+/// `[[export]]` could have (it has a control character), so it can never
+/// be taken for one, and shares the one-publish-at-a-time guard.
+pub const JIRA_SYNC: &str = "\u{2}jira sync";
 
 /// Status names that are a first status when nothing better says so.
 const INITIAL_NAMES: &[&str] = &[

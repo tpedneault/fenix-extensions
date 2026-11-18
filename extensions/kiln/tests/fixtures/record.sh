@@ -419,12 +419,92 @@ fi
 # A (made-up) token, so kiln connects: to 127.0.0.1:9, where nothing
 # listens. Its real network error, exit 3.
 (export KILN_CONFLUENCE_TOKEN=not-a-token; rec "$x" confluence-unreachable json export --dry-run --format json -- design-doc-confluence)
+# Confluence comments (`kiln confluence comments`, the Comments tab): the
+# same targets, read-only. There is no snapshot to read from here: every
+# read asks the server, so a success needs one (hand-written in ../hand/);
+# recorded are the refusals -- no [confluence] (the demo as it is), no
+# Confluence target, no token, and a token with nothing listening.
+c="$out/comments"
+(cd "$demo" && rec "$c" no-confluence json confluence comments --format json)
+nt="$tmp/no-target"
+cp -r "$demo" "$nt"
+printf '\n[confluence]\nurl = "http://127.0.0.1:9"\nspace = "DEMO"\n' >> "$nt/kiln.toml"
+(cd "$nt" && rec "$c" no-target json confluence comments --format json)
+rec "$c" no-token json confluence comments --format json
+(export KILN_CONFLUENCE_TOKEN=not-a-token; rec "$c" unreachable json confluence comments --format json)
 # on_drift = "skip": the edited page is left alone, so the plan has nothing
 # to do.
 sed -i 's|^space = "DEMO"$|space = "DEMO"\non_drift = "skip"|' kiln.toml
 rec "$x" confluence-drift-skip json export --dry-run --snapshot "$snap/drift.json" --format json -- design-doc-confluence
 rec "$x" confluence-drift-skip txt export --dry-run --snapshot "$snap/drift.json" -- design-doc-confluence
 git checkout -q -- kiln.toml
+)
+
+# -- Jira -----------------------------------------------------------------------
+#
+# What the commands the extension runs for Jira print: `kiln list --jira
+# --format json` (the tickets on item rows), `kiln jira sync --dry-run`
+# (the Exports tab's `jira` target) and `kiln jira pull` (`J`). Jira is
+# never reached: `[jira] url` is http://127.0.0.1:9, where nothing
+# listens, and the runs with a (made-up) token fail at once with kiln's
+# real exit 3. Not configured, configured with no token, and configured
+# with a token are recorded as they are.
+#
+# `list --jira` has no offline mode, but kiln answers from its mirror cache
+# when that is under ten minutes old and covers the keys (crates/kiln/src/
+# cmd/jira.rs, `mirror_for`), and with no key linked it needs no Jira at
+# all. So the successes are real kiln output over a cache written here, in
+# kiln's own format (`Mirror::to_text`): the tickets in it are made up, the
+# JSON around them is kiln's. `jira sync --dry-run` and `jira pull` have no
+# such way in (they read the project issue's sub-tasks from the server): a
+# plan and a pull are hand-written in ../hand/.
+(
+d="$out/jira"
+export HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/home/config" XDG_STATE_HOME="$tmp/home/state" XDG_CACHE_HOME="$tmp/home/cache" XDG_DATA_HOME="$tmp/home/data"
+export KILN_HOME="$tmp/kiln-home"
+mkdir -p "$HOME" "$KILN_HOME"
+j="$tmp/jira"
+cp -r "$demo" "$j"
+cd "$j"
+rec "$d" list-unconfigured json list --jira --format json
+rec "$d" sync-unconfigured out jira sync --dry-run
+rec "$d" pull-unconfigured out jira pull -- TASK-002
+rec "$d" auth-unconfigured out auth jira
+printf '\n[jira]\nurl = "http://127.0.0.1:9"\nproject = "DEMO"\n' >> kiln.toml
+cp kiln.toml "$d/kiln.toml"
+# Configured, no item links a ticket: nothing to ask Jira, so no token.
+rec "$d" list-no-keys json list --jira --format json
+rec "$d" sync-no-token out jira sync --dry-run
+rec "$d" pull-no-token out jira pull -- TASK-002
+rec "$d" auth-not-a-terminal out auth jira
+k set TASK-001 jira=DEMO-101
+k set TASK-002 jira=DEMO-102
+k set TASK-003 jira=DEMO-103
+k set TASK-004 jira=DEMO-777
+k set TASK-006 jira=DEMO-104,DEMO-105
+rec "$d" list-no-token json list --jira --format json
+(export KILN_JIRA_TOKEN=not-a-token
+ rec "$d" list-unreachable json list --jira --format json
+ rec "$d" sync-unreachable out jira sync --dry-run
+ rec "$d" pull-unreachable out jira pull -- TASK-002)
+# A fresh mirror: the cache kiln reads before it asks Jira.
+mkdir -p "$KILN_HOME/state/jira"
+cat > "$KILN_HOME/state/jira/127.0.0.1_9.json" <<EOF
+{
+  "url": "http://127.0.0.1:9",
+  "fetched": $(date +%s),
+  "tickets": {
+    "DEMO-101": {"key": "DEMO-101", "summary": "TASK-001 Set up the logger", "status": "Done", "resolved": true, "assignee": "Ana Lopez"},
+    "DEMO-102": {"key": "DEMO-102", "summary": "TASK-002 Write readings to SQLite", "status": "In Review", "resolved": false, "assignee": "Ana Lopez"},
+    "DEMO-103": {"key": "DEMO-103", "summary": "TASK-003 Export the log as CSV", "status": "To Do", "resolved": false, "assignee": null},
+    "DEMO-104": {"key": "DEMO-104", "summary": "TASK-006 Draft the user guide", "status": "Done", "resolved": true, "assignee": "Bo Chen"},
+    "DEMO-105": {"key": "DEMO-105", "summary": "TASK-006 Draft the user guide, part two", "status": "In Progress", "resolved": false, "assignee": "Bo Chen"}
+  },
+  "missing": ["DEMO-777"]
+}
+EOF
+rec "$d" list json list --jira --format json
+rec "$d" list txt list --type task --jira
 )
 
 own="$tmp/kiln"

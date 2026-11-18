@@ -57,6 +57,14 @@
 //!   with the id it returned; [`Project::query_with`] for one with a
 //!   longer limit, or that must not be stopped (`export`, which writes
 //!   generated files or publishes, and is no edit: nothing to read again);
+//! - [`Project::query_background`]: a read that must never hold up the
+//!   project's own (the Jira mirror, `kiln list --jira`, which waits on
+//!   a server this extension can't see into): it runs when nothing else
+//!   does and yields to every other job ([`crate::kiln::Job::background`]),
+//!   its answer [`crate::kiln::Failure::Yielded`] when it was stopped for
+//!   one; a timer's reload is skipped, not queued, while one runs, so the
+//!   refresh timer can't keep stopping it. [`Project::quiet`] says when
+//!   there is nothing else;
 //! - [`Project::edit`]: an editing command (`set`, `link`, `new`...), its
 //!   answer the same way, then a reload;
 //! - [`Project::take_notices`] after every call into it: what changed;
@@ -422,6 +430,10 @@ impl Project {
                         self.again = true;
                         self.notices.push(Notice::Changed);
                     }
+                } else if why == Why::Timer && self.kiln.background_running() {
+                    // Not queued, and not allowed to stop the background
+                    // read each time the timer goes off: a slow Jira
+                    // would never be read.
                 } else {
                     self.begin_reading();
                 }
@@ -527,6 +539,28 @@ impl Project {
             job = job.keep_running();
         }
         self.ask(job)
+    }
+
+    /// A reading command that yields to every other job, stopped after
+    /// `limit_ms` ([`crate::kiln::Job::background`]); its answer comes as a
+    /// [`Notice::Answer`] like [`Project::query`]'s, with
+    /// [`Failure::Yielded`] when something else took its place. It changes
+    /// nothing and the project isn't read again after it.
+    pub fn query_background<S: Into<String>>(
+        &mut self,
+        args: impl IntoIterator<Item = S>,
+        limit_ms: u32,
+    ) -> QueryId {
+        let job = Job::new(args, Tag::Query { id: 0, edit: false })
+            .limit(limit_ms)
+            .background();
+        self.ask(job)
+    }
+
+    /// Whether nothing is read, running or waiting: the moment for a
+    /// background read ([`Project::query_background`]).
+    pub fn quiet(&self) -> bool {
+        self.reading.is_none() && !self.again && self.held.is_empty() && !self.kiln.busy()
     }
 
     /// An editing command (`["set", "TASK-004", "status=doing"]`), with

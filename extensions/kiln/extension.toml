@@ -29,8 +29,9 @@ markers = ["kiln.toml"]
 # writes an item file itself. kiln reads kiln.toml and design/, and holds
 # its own Confluence and Jira credentials; the extension never sees them.
 # The path kiln.path holds, when kiln isn't on the PATH. The tasks it
-# offers (kiln: check, kiln: export --check, kiln: export) run the same
-# kiln, so they need nothing more; none publishes to Confluence.
+# offers (kiln: check and the two export tasks, which name the file targets
+# only) run the same kiln, so they need nothing more; none publishes. The
+# Jira mirror, the Jira sync and the comments are kiln's own network access.
 process = ["kiln", "${setting:kiln.path}"]
 # The open project, read-only: kiln.toml, and .fenix/tools.json to tell
 # whether the project already runs kiln's language server (then this

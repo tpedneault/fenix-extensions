@@ -15,9 +15,11 @@
 //!
 //! `j` `k` `↓` `↑`, `g g` `G` `Home` `End`, `C-d` `C-u` `PgDn` `PgUp` (half
 //! a page), `Tab` `]` `[` `S-Tab` `1`–`9` `0`, `/` (then everything until
-//! `Enter` or `Esc`), `Enter`, `r`, `a`, `v`, `i`, and the edits: `s` `l`
-//! `U` `n` `N` `E`, `H` `L` (see below). A view gets every other key. `q`
-//! and `Esc` close the page and Space is the leader: Fenix's.
+//! `Enter` or `Esc`), `Enter`, `r`, `a`, `v`, `i`, `J` (the item's status
+//! from its Jira ticket), and the edits: `s` `l` `U` `n` `N` `E`, `H` `L`
+//! (see below). A view gets every other key; `A`, when it ignores it, is
+//! the frame's `kiln auth jira`. `q` and `Esc` close the page and Space is
+//! the leader: Fenix's.
 //!
 //! # Eleven tabs
 //!
@@ -41,6 +43,19 @@
 //! ([`super::view::Query::limit`]). The project's change count as a query
 //! is asked is handed back with its answer ([`View::answer_at`]), so a
 //! view can tell whether what it holds still shows the project as it is.
+//!
+//! # Jira on the rows
+//!
+//! With the Jira mirror read ([`crate::jira`], handed in [`Now::tickets`]),
+//! every row that is an item ends with its tickets (`FLINT-12 In Review ·
+//! Alice`). That is done once, here, after a view has built its rows
+//! ([`Pane::build`]) and not by each tab: a tab builds its rows with
+//! `Row::item` and `ctx.row` from the item alone, and no tab knows about
+//! Jira. Without a mirror -- no `[jira] url`, not read yet, unreadable --
+//! rows are exactly what the views built. `J` takes the item's status from
+//! its ticket (`kiln jira pull -- ID`) through the edit routing, on every
+//! tab; `A` opens `kiln auth jira` in a terminal when Jira asked for a
+//! token and the tab has no `A` of its own (Exports has).
 //!
 //! # Commands that change no item
 //!
@@ -102,10 +117,13 @@ use fenix_ui_kit::{
 };
 use serde_json::{json, Value};
 
-use super::view::{stdout, Choice, Ctx, Kind, Looks, Place, Reply, Row, View};
+use super::view::{
+    publishing_line, stdout, web_url, Choice, Ctx, Kind, Looks, Place, Reply, Row, View,
+};
 use super::Tab;
 use crate::config::Config;
 use crate::edit::{self, Edit, Facts, Step, Turn};
+use crate::jira::{self, Tickets};
 use crate::kiln::{Failure, Ran};
 use crate::model::{count, MIN_VERSION};
 use crate::project::{Loaded, QueryId, State};
@@ -115,8 +133,9 @@ use crate::project::{Loaded, QueryId, State};
 /// told from the one the rows were built from; `kiln.toml` as the
 /// extension read it, or why it couldn't ([`crate::config`]); whether
 /// every edit has been read back ([`crate::project::Project::settled`]);
-/// its change count ([`crate::project::Project::changes`]); and the
-/// Confluence target being published, if one is.
+/// its change count ([`crate::project::Project::changes`]); the
+/// Confluence target being published, if one is; and the Jira mirror, once
+/// it has been read ([`crate::jira::Mirror::tickets`]).
 #[derive(Clone, Copy)]
 pub struct Now<'a> {
     pub state: State<'a>,
@@ -125,7 +144,13 @@ pub struct Now<'a> {
     pub settled: bool,
     pub changes: u64,
     pub publishing: Option<&'a str>,
+    pub tickets: Option<&'a Tickets>,
 }
+
+/// The tag of `J`'s edit, `kiln jira pull -- ID`: not a flow's, so its
+/// answer goes to the frame's `edited` as a view's would, and a view that
+/// doesn't know it ignores it.
+pub const PULL_TAG: &str = "kiln.jira-pull";
 
 /// The tag of an edit flow's prompts, picks and edits, before its serial
 /// number: their answers go to the frame's flow, not a view's. No view
@@ -182,6 +207,8 @@ pub enum Effect {
     },
     /// kiln in a terminal pane ([`Reply::Terminal`]).
     Terminal { title: String, args: Vec<String> },
+    /// An `http(s)` link in the browser ([`Reply::Url`], already checked).
+    Url(String),
 }
 
 /// A query to put to kiln for a tab ([`super::view::Query`]): `lib.rs`
@@ -278,8 +305,11 @@ impl Pane {
             .filter(|r| r.selectable())
     }
 
-    fn build(&mut self, ctx: &Ctx) {
+    fn build(&mut self, ctx: &Ctx, tickets: Option<&Tickets>) {
         self.rows = self.view.rows(ctx);
+        if let Some(tickets) = tickets.filter(|t| !t.is_empty()) {
+            add_tickets(&mut self.rows, ctx, tickets);
+        }
         self.hay = self
             .rows
             .iter()
@@ -418,6 +448,20 @@ impl Pane {
     }
 }
 
+/// Each row that is an item ends with its tickets, the mirror has read
+/// ([`Tickets::cells`]): one cell each, in the good look when resolved,
+/// muted otherwise. The item is found by the row's ID in what `list` gave,
+/// so a row about an item no longer in the project (Changes' removed ones)
+/// has none, and a key the item gained since the mirror was read none yet.
+fn add_tickets(rows: &mut [Row], ctx: &Ctx, tickets: &Tickets) {
+    for row in rows.iter_mut().filter(|r| r.kind == Kind::Item) {
+        let Some(item) = row.id.as_deref().and_then(|id| ctx.loaded.item(id)) else {
+            continue;
+        };
+        row.cells.extend(tickets.cells(item));
+    }
+}
+
 /// What `pane`'s view builds from and is asked with.
 fn ctx<'a>(loaded: &'a Loaded, pane: &Pane, looks: &'a Looks, now: Now<'a>) -> Ctx<'a> {
     Ctx {
@@ -479,6 +523,9 @@ pub struct Plan {
     /// prompts and picks are for that tab).
     flow: edit::Driver,
     flow_tab: Tab,
+    /// Jira asked for a token (the mirror's read, or `J`'s): `A` opens
+    /// `kiln auth jira`.
+    signin: bool,
 }
 
 impl Default for Plan {
@@ -500,6 +547,7 @@ impl Plan {
             body: Rect::default(),
             flow: edit::Driver::default(),
             flow_tab: Tab::Tree,
+            signin: false,
         }
     }
 
@@ -597,9 +645,23 @@ impl Plan {
         }
         if pane.built != Some(now.loads) || pane.dirty {
             let ctx = ctx(loaded, pane, &self.looks, now);
-            pane.build(&ctx);
+            pane.build(&ctx, now.tickets);
             pane.built = Some(now.loads);
         }
+    }
+
+    /// The Jira mirror arrived or went: every tab's rows are built again,
+    /// with or without tickets.
+    pub fn tickets_changed(&mut self) {
+        for pane in &mut self.panes {
+            pane.dirty = true;
+        }
+    }
+
+    /// Whether Jira asked for a token: `A` then opens `kiln auth jira`
+    /// ([`Plan::tell`] says it).
+    pub fn set_signin(&mut self, signin: bool) {
+        self.signin = signin;
     }
 
     /// `kiln.toml` read again, and different: what statuses mean and their
@@ -622,9 +684,18 @@ impl Plan {
         let tab = self.tab();
         let pane = &self.panes[self.tabs.active];
         let ctx = ctx(loaded, pane, &self.looks, now);
+        // A read of the project that runs or waits ([`Query::settled`]).
+        let reading = matches!(
+            now.state,
+            State::Loaded {
+                reloading: true,
+                ..
+            }
+        );
         pane.view
             .queries(&ctx)
             .into_iter()
+            .filter(|q| !(q.settled && reading))
             .filter(|q| {
                 let stamp = stamp(q.round, now.loads);
                 pane.asked.get(&q.tag) != Some(&(q.args.clone(), stamp))
@@ -701,8 +772,16 @@ impl Plan {
         let reply = pane.view.ran(tag, result, &ctx);
         pane.dirty = true;
         match reply {
-            Reply::Say(text) => self.say(&text, Role::Text),
-            Reply::Bad(text) => self.say(&text, Role::Bad),
+            Reply::Say(text)
+            | Reply::Reload {
+                say: text,
+                bad: false,
+            } => self.say(&text, Role::Text),
+            Reply::Bad(text)
+            | Reply::Reload {
+                say: text,
+                bad: true,
+            } => self.say(&text, Role::Bad),
             _ => {}
         }
         Vec::new()
@@ -821,6 +900,7 @@ impl Plan {
                     );
                 }
             }
+            Key::Char('J') => return self.pull(now),
             Key::Char(c) if Edit::by_key(c).is_some() => {
                 if let Some(edit) = Edit::by_key(c) {
                     return self.start_edit(edit, now);
@@ -965,7 +1045,77 @@ impl Plan {
         let row = pane.row().cloned();
         let ctx = ctx(loaded, pane, &self.looks, now);
         let reply = pane.view.key(press, row.as_ref(), &ctx);
+        if reply == Reply::Ignored && press.key == Key::Char('A') && !press.mods.chord() {
+            return self.sign_in();
+        }
         self.reply(tab, reply)
+    }
+
+    /// `A` where the tab has none of its own: `kiln auth jira` in a
+    /// terminal when Jira asked for a token, else what `A` is for.
+    fn sign_in(&mut self) -> Vec<Effect> {
+        if self.signin {
+            return vec![Effect::Terminal {
+                title: "kiln auth jira".into(),
+                args: jira::auth_args(),
+            }];
+        }
+        self.say(
+            "A signs in to Jira, once Jira has asked for a token (on Exports, to Confluence too)",
+            Role::Muted,
+        );
+        Vec::new()
+    }
+
+    /// `J`: the status of the item under the cursor taken from its ticket,
+    /// `kiln jira pull -- ID`, through the edit routing (it changes the
+    /// item as `kiln set` would, so the project is read again after and no
+    /// edit starts while one is read back). Nothing to confirm: it is local,
+    /// one item, and kiln's line is shown -- the status it set, or why
+    /// not. An item that links no ticket, or a project with no `[jira]`,
+    /// says so rather than ask kiln.
+    fn pull(&mut self, now: Now) -> Vec<Effect> {
+        if let Some(why) = edit::blocked(&now.state, now.settled) {
+            self.say(&why, Role::Muted);
+            return Vec::new();
+        }
+        let State::Loaded { loaded, .. } = now.state else {
+            return Vec::new();
+        };
+        let tab = self.tab();
+        let Some(id) = self.panes[tab.index()].row().and_then(|r| r.id.clone()) else {
+            self.say("no item here", Role::Muted);
+            return Vec::new();
+        };
+        if matches!(now.config, Ok(c) if c.jira.is_none()) {
+            self.say(
+                "kiln.toml has no [jira]: nothing to take a status from",
+                Role::Muted,
+            );
+            return Vec::new();
+        }
+        match loaded.item(&id) {
+            Some(item) if !item.jira_keys.is_empty() => vec![Effect::Edit {
+                tab,
+                tag: PULL_TAG.into(),
+                args: ["jira", "pull", "--", id.as_str()]
+                    .into_iter()
+                    .map(String::from)
+                    .collect(),
+                stdin: None,
+            }],
+            Some(_) => {
+                self.say(
+                    &format!("{id} links no Jira ticket (jira = in its file)"),
+                    Role::Muted,
+                );
+                Vec::new()
+            }
+            None => {
+                self.say("no item here", Role::Muted);
+                Vec::new()
+            }
+        }
     }
 
     /// What tab `tab`'s view replied, done: its rows marked to be built
@@ -1020,6 +1170,17 @@ impl Plan {
                 Vec::new()
             }
             Reply::Terminal { title, args } => vec![Effect::Terminal { title, args }],
+            Reply::Url(url) => match web_url(&url) {
+                Ok(_) => vec![Effect::Url(url)],
+                Err(why) => {
+                    self.say(&why, Role::Bad);
+                    Vec::new()
+                }
+            },
+            Reply::Reload { say, bad } => {
+                self.say(&say, if bad { Role::Bad } else { Role::Text });
+                vec![Effect::Reload]
+            }
         }
     }
 
@@ -1055,7 +1216,11 @@ impl Plan {
         result: &Result<Ran, Failure>,
         now: Now,
     ) -> Vec<Effect> {
-        let (line, role) = outcome(result);
+        let (mut line, role) = outcome(result);
+        if tag == PULL_TAG && role == Role::Bad && jira::wants_token(&line) {
+            self.signin = true;
+            line = format!("A signs in (kiln auth jira) -- {line}");
+        }
         self.say(&line, role);
         if tag.starts_with(EDIT_TAG) {
             return self.flow_edited(tag, result, now);
@@ -1331,7 +1496,7 @@ impl Plan {
                     x,
                     rect.y,
                     end.saturating_sub(x),
-                    &format!("publishing {target} to Confluence…"),
+                    &publishing_line(target),
                     Role::Warn,
                 ) + GAP;
             }
@@ -1480,6 +1645,7 @@ pub(crate) mod tests {
             settled: true,
             changes: 0,
             publishing: None,
+            tickets: None,
         }
     }
 
@@ -1907,6 +2073,7 @@ pub(crate) mod tests {
             settled: true,
             changes: 0,
             publishing: None,
+            tickets: None,
         };
         assert!(p.typed(Tab::Check, "target", "TEST-001", gone).is_empty());
         assert_eq!(
@@ -1940,6 +2107,7 @@ pub(crate) mod tests {
             settled: true,
             changes: 0,
             publishing: None,
+            tickets: None,
         };
         assert!(screen(&mut p, now, 60, 8).contains("reading the project…"));
         keys(&mut p, "5", now);
@@ -1998,6 +2166,7 @@ pub(crate) mod tests {
             settled: true,
             changes: 0,
             publishing: None,
+            tickets: None,
         };
         assert!(key(&mut p, Key::Char('n'), reading).is_empty());
         assert_eq!(
@@ -2070,5 +2239,267 @@ pub(crate) mod tests {
         // A page call has 1 s; this catches what grows faster than the
         // project, not a slow machine. Natively it's a few ms.
         assert!(each.as_millis() < 250, "{each:?} a read");
+    }
+
+    // -- E3.3 and E3.4: links, Jira, held-back queries -------------------------------
+
+    /// A view whose `x` replies `reply`, and that wants `queries`.
+    struct Says {
+        reply: Reply,
+        queries: Vec<Query>,
+    }
+
+    impl View for Says {
+        fn rows(&self, _: &Ctx) -> Vec<Row> {
+            vec![Row::entry("a", vec![Cell::text("a row")])]
+        }
+        fn key(&mut self, key: KeyPress, _: Option<&Row>, _: &Ctx) -> Reply {
+            if key.key == Key::Char('x') {
+                self.reply.clone()
+            } else {
+                Reply::Ignored
+            }
+        }
+        fn queries(&self, _: &Ctx) -> Vec<Query> {
+            self.queries.clone()
+        }
+    }
+
+    fn says(reply: Reply) -> Box<Says> {
+        Box::new(Says {
+            reply,
+            queries: Vec::new(),
+        })
+    }
+
+    /// What `x` on a tab whose view replies `reply` asks of the host, and
+    /// what the bottom line says.
+    fn after_x(reply: Reply) -> (Vec<Effect>, String) {
+        let d = demo();
+        let now = loaded(&d, 1);
+        let mut p = Plan::new();
+        p.set_view(Tab::Check, says(reply));
+        p.show(Tab::Check);
+        let effects = p.key(KeyPress::from(Key::Char('x')), now);
+        let screen = screen(&mut p, now, 110, 10);
+        (effects, screen.lines().last().unwrap_or("").to_string())
+    }
+
+    #[test]
+    fn a_url_is_opened_only_when_it_is_http_or_https() {
+        for ok in [
+            "http://127.0.0.1:9/pages/viewpage.action?pageId=1&focusedCommentId=2#comment-2",
+            "https://confluence.example.com/x",
+            "HTTPS://Confluence.Example.com/x",
+        ] {
+            let (effects, _) = after_x(Reply::Url(ok.into()));
+            assert_eq!(effects, [Effect::Url(ok.into())], "{ok}");
+        }
+        for bad in [
+            "javascript:alert(1)",
+            "file:///etc/passwd",
+            "ftp://example.com/x",
+            "ssh://git@example.com/x",
+            "mailto:a@example.com",
+            "data:text/html,<script>1</script>",
+            "\\\\server\\share",
+            "/etc/passwd",
+            "C:\\Windows\\notepad.exe",
+            "x.html",
+            "",
+            "http://",
+            "https:///no-host",
+            "http://example.com/a b",
+            "http://example.com/a\nb",
+            "http://example.com/\u{1b}[31m",
+            &format!("http://example.com/{}", "a".repeat(3000)),
+        ] {
+            let (effects, said) = after_x(Reply::Url(bad.into()));
+            assert!(effects.is_empty(), "{bad:?} asked the host to open it");
+            assert!(said.starts_with("not opening"), "{bad:?}: {said}");
+        }
+        // The refusal names what it refused, as plain text.
+        let (_, said) = after_x(Reply::Url("javascript:alert(1)".into()));
+        assert_eq!(
+            said,
+            "not opening javascript:alert(1): only http and https links are opened"
+        );
+    }
+
+    #[test]
+    fn reload_says_its_line_and_reads_the_project_again() {
+        let (effects, said) = after_x(Reply::Reload {
+            say: "jira: 1 created; 1 file gained ticket keys (commit them)".into(),
+            bad: false,
+        });
+        assert_eq!(effects, [Effect::Reload]);
+        assert_eq!(
+            said,
+            "jira: 1 created; 1 file gained ticket keys (commit them)"
+        );
+    }
+
+    #[test]
+    fn a_query_that_must_settle_waits_for_the_read_of_the_project() {
+        let d = demo();
+        let mut p = Plan::new();
+        p.set_view(
+            Tab::Check,
+            Box::new(Says {
+                reply: Reply::Ignored,
+                queries: vec![
+                    Query::new("settled", ["jira", "sync", "--dry-run"])
+                        .per_round(0)
+                        .settled(),
+                    Query::new("plain", ["check"]).per_round(0),
+                ],
+            }),
+        );
+        p.show(Tab::Check);
+        let reloading = Now {
+            state: State::Loaded {
+                loaded: &d,
+                reloading: true,
+                error: None,
+            },
+            ..loaded(&d, 1)
+        };
+        let tags = |asks: Vec<Ask>| asks.into_iter().map(|a| a.tag).collect::<Vec<_>>();
+        assert_eq!(
+            tags(p.wants(reloading)),
+            ["plain"],
+            "held back while a read runs, the other not"
+        );
+        assert_eq!(
+            tags(p.wants(loaded(&d, 1))),
+            ["settled", "plain"],
+            "asked once it has ended (the plain one isn't asked twice: it's out of this test's hands)"
+        );
+    }
+
+    fn jira_list() -> Loaded {
+        Loaded::new(
+            version(),
+            model::list(&fixture("jira/list.json")).unwrap(),
+            model::status(&fixture("demo/status.json")),
+            model::check(&fixture("demo/check.json")),
+        )
+    }
+
+    #[test]
+    fn item_rows_end_with_their_tickets_on_every_tab_and_only_item_rows() {
+        let l = jira_list();
+        let tickets = crate::jira::Tickets::parse(&fixture("jira/list.json")).unwrap();
+        let now = Now {
+            tickets: Some(&tickets),
+            ..loaded(&l, 1)
+        };
+        let mut p = Plan::new();
+        let s = screen(&mut p, now, 110, 30);
+        assert!(
+            s.contains(
+                "TASK-002    Write readings to SQLite  doing     DEMO-102 In Review · Ana Lopez"
+            ),
+            "{s}"
+        );
+        assert!(s.contains("DEMO-777 ?"), "{s}");
+        // Not a heading, not a note, nothing of an item with no ticket.
+        assert!(!s.contains("requirement  3 items  DEMO"), "{s}");
+        let tree: Vec<&str> = s.lines().filter(|l| l.contains("DEMO-")).collect();
+        assert_eq!(tree.len(), 5, "TASK-001, 002, 003, 004 and 006: {tree:?}");
+        // The filter finds a ticket.
+        keys(&mut p, "/in review<Enter>", now);
+        let shown = screen(&mut p, now, 110, 8);
+        assert_eq!(p.id(), Some("TASK-002"), "{shown}");
+        // Another tab, the Board, the same, from the same place.
+        keys(&mut p, "/<Esc>4", now);
+        let s = screen(&mut p, now, 110, 20);
+        assert!(
+            s.contains("DEMO-102 In Review · Ana Lopez") && s.contains("DEMO-101 Done · Ana Lopez"),
+            "{s}"
+        );
+    }
+
+    #[test]
+    fn without_a_mirror_rows_are_exactly_what_the_views_built() {
+        let l = jira_list();
+        let mut bare = Plan::new();
+        let none = screen(&mut bare, loaded(&l, 1), 110, 30);
+        assert!(!none.contains("DEMO-"), "{none}");
+        // An empty mirror (no key linked anywhere) changes nothing either.
+        let empty = crate::jira::Tickets::parse(&fixture("jira/list-no-keys.json")).unwrap();
+        let mut p = Plan::new();
+        let now = Now {
+            tickets: Some(&empty),
+            ..loaded(&l, 1)
+        };
+        assert_eq!(screen(&mut p, now, 110, 30), none);
+    }
+
+    #[test]
+    fn the_tickets_arriving_build_every_tabs_rows_again() {
+        let l = jira_list();
+        let tickets = crate::jira::Tickets::parse(&fixture("jira/list.json")).unwrap();
+        let mut p = Plan::new();
+        let before = screen(&mut p, loaded(&l, 1), 110, 30);
+        assert!(!before.contains("DEMO-102"));
+        // The same read, now with the mirror: nothing else changed, so only
+        // this tells the frame.
+        let now = Now {
+            tickets: Some(&tickets),
+            ..loaded(&l, 1)
+        };
+        assert!(
+            !screen(&mut p, now, 110, 30).contains("DEMO-102"),
+            "not built again by itself"
+        );
+        p.tickets_changed();
+        assert!(screen(&mut p, now, 110, 30).contains("DEMO-102 In Review"));
+        // And gone again with the mirror.
+        p.tickets_changed();
+        assert!(!screen(&mut p, loaded(&l, 1), 110, 30).contains("DEMO-102"));
+    }
+
+    #[test]
+    fn a_signs_in_to_jira_only_once_jira_asked_for_a_token_and_the_tab_has_no_a_of_its_own() {
+        let d = demo();
+        let now = loaded(&d, 1);
+        let mut p = Plan::new();
+        assert!(key(&mut p, Key::Char('A'), now).is_empty());
+        assert!(screen(&mut p, now, 110, 10).contains("A signs in to Jira"));
+        p.set_signin(true);
+        assert_eq!(
+            key(&mut p, Key::Char('A'), now),
+            [Effect::Terminal {
+                title: "kiln auth jira".into(),
+                args: vec!["auth".into(), "jira".into()]
+            }]
+        );
+        // A tab with an A of its own keeps it.
+        p.show(Tab::Check);
+        struct OwnA;
+        impl View for OwnA {
+            fn rows(&self, _: &Ctx) -> Vec<Row> {
+                vec![Row::entry("a", vec![Cell::text("a row")])]
+            }
+            fn key(&mut self, key: KeyPress, _: Option<&Row>, _: &Ctx) -> Reply {
+                if key.key == Key::Char('A') {
+                    Reply::Terminal {
+                        title: "own".into(),
+                        args: vec!["x".into()],
+                    }
+                } else {
+                    Reply::Ignored
+                }
+            }
+        }
+        p.set_view(Tab::Check, Box::new(OwnA));
+        assert_eq!(
+            key(&mut p, Key::Char('A'), now),
+            [Effect::Terminal {
+                title: "own".into(),
+                args: vec!["x".into()]
+            }]
+        );
     }
 }

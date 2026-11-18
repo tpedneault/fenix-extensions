@@ -57,10 +57,19 @@ text too); `.keyed(k)` changes what the cursor follows across reloads
 (the ID by default). Cells line up in columns across the tab; don't pad.
 
 Besides the project, `Ctx` has `config` (`kiln.toml` as the extension
-read it, or why not), `changes` (the project's change count: it moves on
-a save, an edit, a new git head, and a read that loads something new --
-not on a reload that finds nothing) and `publishing` (the Confluence
-target being published, one at a time for the whole extension).
+read it, or why not: `[[export]]`, `[jira] url` and `project` too, and
+`Config::file_targets()`), `changes` (the project's change count: it moves
+on a save, an edit, a new git head, and a read that loads something new --
+not on a reload that finds nothing) and `publishing` (the target being
+published, one at a time for the whole extension: a Confluence target's
+name, or `view::JIRA_SYNC` for the Jira sync).
+
+**Tickets are not your job.** With the Jira mirror read, the frame appends
+each item's tickets (`FLINT-12 In Review · Alice`) to every row that is an
+item, once, after your `rows` (`add_tickets` in `frame.rs`): build rows
+with `Row::item` and `ctx.row` as always and don't look at Jira. Without a
+mirror the rows are exactly what you built. A row that isn't an item
+(`Row::entry`, a heading, a note) gets none.
 
 Cells say what they are, not their colour: `Cell::id`, `Cell::text`,
 `Cell::muted`, `Cell::title`, `Cell::new(t, Look::Good | Warn | Bad |
@@ -85,7 +94,11 @@ is first shown -- and again when you move to the next round (Exports'
 `R`), or its args change. `.limit(ms)` gives kiln longer than the queue's
 60 s (the job is stopped past it). `answer_at` hands you the project's
 change count as the query was asked: an answer asked at `ctx.changes`
-still shows the project as it is.
+still shows the project as it is. `.settled()` holds it back while a read
+of the project runs or waits, so it is asked of the project as that read
+leaves it (Exports' Jira plan after a sync, which writes ticket keys into
+items). Comments is the simplest example of a per-round query: one command,
+asked when the tab is first shown and on `R`, its answer the whole tab.
 
 ## Keys
 
@@ -99,7 +112,13 @@ Everything else is yours: match on `key.key`, `key.mods.ctrl`. Return
 line, `Reply::Ignored` otherwise.
 
 Taken by tabs now: Trace `m` `T`, Changes `b`, Item `<` `>` (and `C-o`
-`C-i` when they arrive), Check `e`, Exports `R` `w` `W` `P` `A`. The edits are the frame's, on every
+`C-i` when they arrive), Check `e`, Exports `R` `w` `W` `P` `A`, Comments
+`R` `o` `A`. Taken by the frame, on every tab, beyond the list above: `J`
+(take the item's status from its Jira ticket: `kiln jira pull -- ID`,
+through the edit routing) and `A` as a fallback -- a tab whose view ignores
+`A` gets `kiln auth jira` in a terminal when Jira has asked for a token,
+else a line saying what `A` is for -- so don't use `J`, and `A` is yours
+only where you reply to it. The edits are the frame's, on every
 tab: `s` `l` `U` `n` `N` `E`, and `H` `L` (Board only). The frame runs
 their flows (`src/edit.rs`) on the row's `id`, so a row that is an item
 gets them with nothing more; a row without one says "no item here".
@@ -118,7 +137,7 @@ Reply::edit(tag, ["set", id, "status=doing"])   // kiln, through Project::edit
                                      //   -> edited(tag, &result, ctx)
 ```
 
-Three more, for what isn't an edit:
+Five more, for what isn't an edit:
 
 ```rust
 Reply::Run { tag, args, limit_ms, publish } // kiln, in the queue, changing no item (`kiln export`):
@@ -127,8 +146,22 @@ Reply::Run { tag, args, limit_ms, publish } // kiln, in the queue, changing no i
                                      //   publish at a time (a second is answered at once that one runs),
                                      //   not stopped when kiln.path changes, said on every bottom line
 Reply::Bad(text)                     // said on the bottom line in the error look
-Reply::Terminal { title, args }      // kiln in a terminal pane below (`kiln auth confluence`)
+Reply::Terminal { title, args }      // kiln in a terminal pane below (`kiln auth confluence`, `kiln auth jira`)
+Reply::Url(url)                      // a link in the system's browser (Comments' `o`)
+Reply::Reload { say, bad }           // a line said, and the project read again (the Jira sync)
 ```
+
+`Reply::Url` is the only way a view makes Fenix open something outside the
+editor, so it is guarded twice: the frame (`view::web_url`) and `lib.rs`
+open only an `http` or `https` link with a host and no space or control
+character in it, and say `not opening …: only http and https links are
+opened` for anything else -- `file:`, `javascript:`, `ssh:`, a path, a
+link in a comment's text that kiln didn't give. The extension has no
+network: the browser is Fenix's. Pass what kiln gave, as it gave it; don't
+build links. `Reply::Reload` is for a command that changed what kiln reads
+without being an edit (`kiln jira sync` writes `jira =` into items): the
+line is said, the project is read again, and a query that says `.settled()`
+is asked after that read.
 
 The frame turns each into an `Effect` naming the tab; `lib.rs` asks
 Fenix's own prompt or picker, or runs the edit in kiln's queue, and
@@ -148,7 +181,7 @@ replaces it. The project is read again after every edit, whether kiln
 changed anything or refused. Your rows are built again after every
 answer, whatever you reply. Tag answers you can tell apart: the tag is
 all that says which step an answer is for. Tags starting `kiln.edit#` are
-the frame's own edit flows: don't use it.
+the frame's own edit flows, and `kiln.jira-pull` is `J`'s: don't use them.
 
 ## Tests
 

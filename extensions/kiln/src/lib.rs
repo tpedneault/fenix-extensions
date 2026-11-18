@@ -34,6 +34,13 @@
 //! bottom line says it runs. `kiln auth confluence` opens in a terminal
 //! pane, the token typed into kiln there; this file never reads a secret,
 //! prompts for one, or reads the environment.
+//! The Jira mirror (`kiln list --jira`, [`jira`]) is a read apart from the
+//! project's: asked when a page is in view and the queue is quiet, a
+//! background job that yields to every other ([`kiln::Job::background`]),
+//! so a slow or absent Jira never holds up or fails a reload; its tickets
+//! are appended to item rows by the frame ([`pages::frame`]). A comment's
+//! link opens in the browser through `open_url`, only for an http(s) one
+//! ([`pages::view::web_url`]).
 //! The commands that start in a buffer (`kiln.show`, `kiln.impact`,
 //! `kiln.find`) take what `here()` and `cursor()` say as they run
 //! ([`spot`]) and act once the project is read ([`Wanted`]).
@@ -53,6 +60,7 @@
 pub mod config;
 pub mod doctor;
 pub mod edit;
+pub mod jira;
 pub mod kiln;
 pub mod lsp;
 pub mod model;
@@ -107,6 +115,9 @@ enum For {
     /// A plan page's tab: the command its view asked for with `tag`
     /// ([`pages::view::Reply::Run`]).
     Run { page: u64, tab: Tab, tag: String },
+    /// `kiln list --jira`, for [`jira::Mirror`]: no page's, every page's
+    /// rows.
+    Mirror,
 }
 
 /// The publish running: its query, and the Confluence target it publishes.
@@ -164,8 +175,9 @@ struct PlanPage {
 #[derive(Default)]
 struct Told {
     doctor: Option<Vec<api::Check>>,
-    /// The kiln program the tasks run, `None` inside for none offered.
-    tasks: Option<Option<String>>,
+    /// The kiln program the tasks run and the file targets the export
+    /// tasks name, `None` inside for none offered.
+    tasks: Option<Option<(String, Vec<String>)>>,
     /// The modeline's text, `None` inside for no item.
     modeline: Option<Option<String>>,
 }
@@ -206,16 +218,19 @@ struct Kiln {
     /// `publish`), from when it's asked until its answer comes -- even if
     /// its page closes meanwhile.
     publishing: Option<Publishing>,
+    /// The Jira mirror, and when it is read next.
+    mirror: jira::Mirror,
 }
 
 /// The project now, for a page: its state, its reads, `kiln.toml`,
-/// whether every edit has been read back, its change count and the
-/// publish running. A function of the fields, not a method, so a page
-/// (another field) can be borrowed beside them.
+/// whether every edit has been read back, its change count, the publish
+/// running and the Jira tickets read. A function of the fields, not a
+/// method, so a page (another field) can be borrowed beside them.
 fn now_of<'a>(
     project: &'a Project,
     config: &'a Option<Result<config::Config, String>>,
     publishing: &'a Option<Publishing>,
+    mirror: &'a jira::Mirror,
 ) -> Now<'a> {
     Now {
         state: project.state(),
@@ -228,6 +243,7 @@ fn now_of<'a>(
         settled: project.settled(),
         changes: project.changes(),
         publishing: publishing.as_ref().map(|p| p.target.as_str()),
+        tickets: mirror.tickets(),
     }
 }
 
@@ -274,7 +290,8 @@ impl Kiln {
                             }
                         }
                         Some(For::Edit { page, tab, tag }) => {
-                            let now = now_of(&self.project, &self.config, &self.publishing);
+                            let now =
+                                now_of(&self.project, &self.config, &self.publishing, &self.mirror);
                             if let Some(p) = self.pages.get_mut(&page) {
                                 let effects = p.plan.edited(tab, &tag, &result, now);
                                 pages_api::refresh(page);
@@ -288,12 +305,17 @@ impl Kiln {
                                 // Every page's bottom line said it ran.
                                 changed = true;
                             }
-                            let now = now_of(&self.project, &self.config, &self.publishing);
+                            let now =
+                                now_of(&self.project, &self.config, &self.publishing, &self.mirror);
                             if let Some(p) = self.pages.get_mut(&page) {
                                 let effects = p.plan.ran(tab, &tag, &result, now);
                                 pages_api::refresh(page);
                                 self.perform(page, effects);
                             }
+                        }
+                        Some(For::Mirror) => {
+                            let heard = self.mirror.answered(id, &result);
+                            self.mirrored(heard);
                         }
                         None => {}
                     },
@@ -305,7 +327,11 @@ impl Kiln {
             // a tab shown, an item handed on. Its answer may be here at
             // once (kiln unusable): another round.
             let asked = self.ask_for_pages();
-            if !decide && !asked && !resolved {
+            // The Jira mirror, once nothing else runs or waits: not in a
+            // round that asks the language server something (that would
+            // stop it at once), but the round after.
+            let mirrored = !decide && !asked && !resolved && self.ask_mirror();
+            if !decide && !asked && !resolved && !mirrored {
                 break;
             }
             // Asking brings an answer, maybe at once: another round.
@@ -347,7 +373,13 @@ impl Kiln {
             program: program.as_deref().ok(),
             version: self.project.version(),
         });
-        let offer = tasks::offer(&usability, program);
+        // The export tasks name the file targets `kiln.toml` has; a
+        // configuration that can't be read names none.
+        let files: Vec<String> = match &self.config {
+            Some(Ok(c)) => c.file_targets().into_iter().map(String::from).collect(),
+            _ => Vec::new(),
+        };
+        let offer = tasks::offer(&usability, program, files);
         let line = modeline::line(&state);
 
         if let Some(rows) = rows {
@@ -359,13 +391,16 @@ impl Kiln {
         let wanted = match offer {
             Offer::Keep => None,
             Offer::Clear => Some(None),
-            Offer::With(program) => Some(Some(program)),
+            Offer::With { program, files } => Some(Some((program, files))),
         };
-        if let Some(program) = wanted {
-            if self.told.tasks.as_ref() != Some(&program) {
-                let tasks = program.as_deref().map(tasks::tasks).unwrap_or_default();
+        if let Some(wanted) = wanted {
+            if self.told.tasks.as_ref() != Some(&wanted) {
+                let tasks = wanted
+                    .as_ref()
+                    .map(|(program, files)| tasks::tasks(program, files))
+                    .unwrap_or_default();
                 match api::project::tasks(&tasks) {
-                    Ok(()) => self.told.tasks = Some(program),
+                    Ok(()) => self.told.tasks = Some(wanted),
                     Err(why) => api::warn!("Fenix refused kiln's tasks: {why}"),
                 }
             }
@@ -470,7 +505,24 @@ impl Kiln {
         };
         if self.config.as_ref() != Some(&read) {
             let first = self.config.is_none();
+            let jira_url = |c: &Option<Result<config::Config, String>>| {
+                c.as_ref()
+                    .and_then(|c| c.as_ref().ok())
+                    .and_then(|c| c.jira_url().map(str::to_string))
+            };
+            let moved = jira_url(&self.config) != jira_url(&Some(read.clone()));
             self.config = Some(read);
+            // Another Jira (or none): its tickets are another's.
+            if moved && !first {
+                let had = self.mirror.clear();
+                for (&id, p) in self.pages.iter_mut() {
+                    if had {
+                        p.plan.tickets_changed();
+                    }
+                    p.plan.set_signin(false);
+                    pages_api::refresh(id);
+                }
+            }
             if !first {
                 for (&id, p) in self.pages.iter_mut() {
                     p.plan.reconfigure();
@@ -486,6 +538,9 @@ impl Kiln {
         self.read_config();
         self.lsp.again();
         self.decide = true;
+        // `r` reads Jira again too: kiln answers from its own cache when
+        // that is fresh, so this costs a Jira request only when it isn't.
+        self.mirror.refresh();
         self.project.reload(Why::Asked);
     }
 
@@ -497,7 +552,7 @@ impl Kiln {
     /// What each page in view wants asked of kiln, asked: whether any was.
     /// A page out of view asks once it's shown again.
     fn ask_for_pages(&mut self) -> bool {
-        let now = now_of(&self.project, &self.config, &self.publishing);
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
         let mut wanted = Vec::new();
         for (&page, p) in self.pages.iter_mut().filter(|(_, p)| p.shown) {
             wanted.extend(p.plan.wants(now).into_iter().map(|a| (page, a)));
@@ -517,11 +572,60 @@ impl Kiln {
                 p.plan.asked(
                     &ask,
                     id,
-                    now_of(&self.project, &self.config, &self.publishing),
+                    now_of(&self.project, &self.config, &self.publishing, &self.mirror),
                 );
             }
         }
         asked
+    }
+
+    /// The Jira mirror asked for, when it is wanted ([`jira::Mirror::wants`])
+    /// and the moment is right: `[jira] url` in `kiln.toml`, a page in
+    /// view, the project read, and nothing else running or waiting. As a
+    /// background job: any other job stops it. Whether it was asked.
+    fn ask_mirror(&mut self) -> bool {
+        let configured = matches!(&self.config, Some(Ok(c)) if c.jira_url().is_some());
+        let ready = configured
+            && matches!(self.project.state(), State::Loaded { .. })
+            && self.pages.values().any(|p| p.shown)
+            && self.project.quiet();
+        if !self.mirror.wants(ready) {
+            return false;
+        }
+        let id = self.project.query_background(jira::args(), jira::MIRROR_MS);
+        self.asked.insert(id, For::Mirror);
+        self.mirror.asked(id);
+        true
+    }
+
+    /// What a read of the mirror came to, told to every page: new tickets
+    /// build their rows again; a new failure is said once on the bottom
+    /// line, with how to sign in when it was a token.
+    fn mirrored(&mut self, heard: jira::Heard) {
+        match heard {
+            jira::Heard::Nothing => {}
+            jira::Heard::Tickets => {
+                for (&id, p) in self.pages.iter_mut() {
+                    p.plan.tickets_changed();
+                    p.plan.set_signin(false);
+                    pages_api::refresh(id);
+                }
+            }
+            jira::Heard::Failed { line, token } => {
+                // The hint first: a narrow bottom line cuts the end, and
+                // kiln's own line is long.
+                let said = if token {
+                    format!("Jira: A signs in (kiln auth jira) -- {line}")
+                } else {
+                    format!("Jira: {line}")
+                };
+                for (&id, p) in self.pages.iter_mut() {
+                    p.plan.set_signin(token);
+                    p.plan.tell(&said, true);
+                    pages_api::refresh(id);
+                }
+            }
+        }
     }
 
     /// Something done on plan page `page` -- a key, a click -- and what it
@@ -530,7 +634,7 @@ impl Kiln {
         if self.config.is_none() {
             self.read_config();
         }
-        let now = now_of(&self.project, &self.config, &self.publishing);
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
         let Some(p) = self.pages.get_mut(&page) else {
             return;
         };
@@ -582,6 +686,7 @@ impl Kiln {
                     publish,
                 } => self.run(page, tab, tag, args, limit_ms, publish),
                 Effect::Terminal { title, args } => self.terminal(page, &title, args),
+                Effect::Url(url) => self.open_url(page, &url),
             }
         }
     }
@@ -601,11 +706,10 @@ impl Kiln {
         publish: Option<String>,
     ) {
         if let (Some(_), Some(running)) = (&publish, &self.publishing) {
-            let why = Err(kiln::Failure::Unusable(format!(
-                "{} is being published: one publish at a time",
-                running.target
+            let why = Err(kiln::Failure::Unusable(pages::view::publish_running(
+                &running.target,
             )));
-            let now = now_of(&self.project, &self.config, &self.publishing);
+            let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
             if let Some(p) = self.pages.get_mut(&page) {
                 let effects = p.plan.ran(tab, &tag, &why, now);
                 pages_api::refresh(page);
@@ -641,6 +745,22 @@ impl Kiln {
         }
     }
 
+    /// A link opened in the system's browser, only when it is an http(s)
+    /// one: the frame has checked ([`pages::view::web_url`]), and this
+    /// checks again, since what it hands Fenix is the one thing here that
+    /// could start something outside the extension. When Fenix won't, the
+    /// page says why.
+    fn open_url(&mut self, page: u64, url: &str) {
+        let opened = pages::view::web_url(url)
+            .and_then(|u| api::open_url(u).map_err(|why| format!("Fenix didn't open {u}: {why}")));
+        if let Err(why) = opened {
+            if let Some(p) = self.pages.get_mut(&page) {
+                p.plan.tell(&why, true);
+                pages_api::refresh(page);
+            }
+        }
+    }
+
     /// A file of the project opened at a line, in Fenix.
     fn open_place(&self, place: &pages::view::Place) {
         let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
@@ -661,7 +781,7 @@ impl Kiln {
             }
             return;
         };
-        let now = now_of(&self.project, &self.config, &self.publishing);
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
         match who {
             Asker::View { page, tab, tag } => {
                 let Some(p) = self.pages.get_mut(&page) else {
@@ -855,7 +975,8 @@ impl Kiln {
                 };
                 let facts = Facts {
                     loaded,
-                    config: now_of(&self.project, &self.config, &self.publishing).config,
+                    config: now_of(&self.project, &self.config, &self.publishing, &self.mirror)
+                        .config,
                 };
                 // The flow it replaces can't be answered any more.
                 self.answers.retain(|_, a| !matches!(a, Asker::Here { .. }));
@@ -956,7 +1077,9 @@ impl Extension for Kiln {
             Event::ProcessOutput(o) => self.project.output(o.process, o.stderr, &o.line),
             Event::ProcessExit((process, code)) => self.project.exited(process, code),
             Event::Timer(t) => {
-                self.project.timer(t);
+                if !self.project.timer(t) {
+                    self.mirror.timer(t);
+                }
             }
             Event::Prompted((id, text)) => self.answered(id, text, false),
             Event::Picked((id, value)) => self.answered(id, value, true),
@@ -995,7 +1118,7 @@ impl Extension for Kiln {
             doctor: api::key_for("project.doctor"),
             settings: api::key_for("settings.open"),
         };
-        let now = now_of(&self.project, &self.config, &self.publishing);
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
         let Some(p) = self.pages.get_mut(&page) else {
             return Page::new().line([pages_api::muted("this page was closed")]);
         };
@@ -1850,12 +1973,19 @@ pub(crate) mod tests {
             .collect()
     }
 
-    const DEMO_TASKS: &str = "tasks kiln: check, kiln: export --check, kiln: export";
+    /// What it tells Fenix when `kiln.toml` can't be read: no file target
+    /// to name, so only the check.
+    const CHECK_ONLY: &str = "tasks kiln: check";
+    /// With the exports demo's `kiln.toml`: three file targets and two
+    /// Confluence ones.
+    const FILE_TASKS: &str = "tasks kiln: check, kiln: export --check (file targets only), kiln: export (file targets only)";
 
     #[test]
     fn the_demo_project_gets_its_rows_tasks_and_modeline() {
         let fake = demo();
-        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        let dir = folder("demo-tasks");
+        std::fs::write(dir.join("kiln.toml"), fixture("exports/kiln.toml")).unwrap();
+        let mut h = harness(&fake, &dir);
         h.activate().unwrap();
         let r = rows(&fake);
         assert_eq!(r.len(), 4, "{r:?}");
@@ -1878,12 +2008,14 @@ pub(crate) mod tests {
             .iter()
             .map(|t| format!("{}: {}", t.name, fenix_test_kit::line(&t.cmd)))
             .collect();
+        // The export tasks name the file targets of `kiln.toml`, and
+        // none of its Confluence ones.
         assert_eq!(
             lines,
             [
                 "kiln: check: /usr/bin/kiln check",
-                "kiln: export --check: /usr/bin/kiln export --check",
-                "kiln: export: /usr/bin/kiln export",
+                "kiln: export --check (file targets only): /usr/bin/kiln export --check -- design-doc requirements-html sections-md",
+                "kiln: export (file targets only): /usr/bin/kiln export -- design-doc requirements-html sections-md",
             ]
         );
         assert!(state
@@ -1891,7 +2023,7 @@ pub(crate) mod tests {
             .iter()
             .all(|t| t.cmd.cwd.as_deref() == Some(PROJECT)));
         drop(state);
-        assert_eq!(told(&fake, "tasks"), [DEMO_TASKS]);
+        assert_eq!(told(&fake, "tasks"), [FILE_TASKS]);
         assert_eq!(told(&fake, "status"), ["status kiln 1 error, 2 warnings"]);
         assert_eq!(fake.status().as_deref(), Some("kiln 1 error, 2 warnings"));
     }
@@ -1907,7 +2039,55 @@ pub(crate) mod tests {
             rows(&fake)[1],
             format!("kiln.toml Ok read, {} items", fixture_items("own"))
         );
-        assert_eq!(told(&fake, "tasks"), [DEMO_TASKS]);
+        assert_eq!(told(&fake, "tasks"), [CHECK_ONLY]);
+    }
+
+    #[test]
+    fn the_export_tasks_follow_the_file_targets_kiln_toml_names() {
+        let fake = demo();
+        let dir = folder("tasks-follow");
+        // Only Confluence targets: nothing a task could name.
+        let only_confluence = fixture("exports/kiln.toml")
+            .split("[[export]]")
+            .filter(|t| {
+                !t.contains("name = \"design-doc\"")
+                    && !t.contains("html")
+                    && !t.contains("sections-md")
+            })
+            .collect::<Vec<_>>()
+            .join("[[export]]");
+        std::fs::write(dir.join("kiln.toml"), &only_confluence).unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(told(&fake, "tasks"), [CHECK_ONLY], "no bare export");
+        assert!(
+            !fake
+                .state()
+                .tasks
+                .iter()
+                .any(|t| t.cmd.args.first().map(String::as_str) == Some("export")),
+            "no task runs export"
+        );
+        // A file target saved: the export tasks come, naming only it.
+        std::fs::write(
+            dir.join("kiln.toml"),
+            format!(
+                "{only_confluence}\n[[export]]\nname = \"site\"\nformat = \"html\"\npath = \"docs/site.html\"\n"
+            ),
+        )
+        .unwrap();
+        h.saved("kiln.toml");
+        h.settle();
+        let tasks = fake.state().tasks.clone();
+        let lines: Vec<String> = tasks.iter().map(|t| fenix_test_kit::line(&t.cmd)).collect();
+        assert_eq!(
+            lines,
+            [
+                "/usr/bin/kiln check",
+                "/usr/bin/kiln export --check -- site",
+                "/usr/bin/kiln export -- site"
+            ]
+        );
     }
 
     /// How many items `own/list.json` holds.
@@ -2070,7 +2250,7 @@ pub(crate) mod tests {
         assert_eq!(r[0], "kiln Ok kiln 1.0.0, /usr/bin/kiln");
         assert_eq!(r[1], "kiln.toml Bad kiln: kiln.toml:4: unknown key `nmae`");
         // Usable: kiln's own checks can be run to see more.
-        assert_eq!(told(&fake, "tasks"), [DEMO_TASKS]);
+        assert_eq!(told(&fake, "tasks"), [CHECK_ONLY]);
         assert_eq!(fake.status(), None);
     }
 

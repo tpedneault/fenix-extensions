@@ -1,0 +1,8 @@
+TASK-001  done     Set up the logger  [DEMO-101 Done · Ana Lopez]
+TASK-002  doing    Write readings to SQLite  [DEMO-102 In Review · Ana Lopez]
+TASK-003  todo     Export the log as CSV  [DEMO-103 To Do]
+TASK-004  todo     Add the export button  [DEMO-777 (not in Jira)]
+TASK-005  blocked  Ask about retention rules
+TASK-006  todo     Draft the user guide  [DEMO-104 Done · Bo Chen; DEMO-105 In Progress · Bo Chen]
+TASK-007  todo     Batch the writes
+TASK-008  todo     Tidy the build scripts

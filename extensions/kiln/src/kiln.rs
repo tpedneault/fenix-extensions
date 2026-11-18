@@ -33,6 +33,17 @@
 //!   runs, everything else waits behind it: one kiln at a time is the
 //!   rule, and the job's own limit bounds how long.
 //!
+//! - **Background jobs yield.** A job may say it is [`Job::background`]: the
+//!   Jira mirror (`kiln list --jira`), which may wait on a slow or absent
+//!   Jira and which nothing on screen needs at once. It runs when nothing
+//!   else does, and the moment any other job is pushed -- a reload, an
+//!   edit, a dry run -- it is stopped if it runs and dropped if it waits,
+//!   answered with [`Failure::Yielded`], so the caller can ask it again
+//!   when the queue is quiet. That is how a slow Jira never holds up the
+//!   project's reload: the cost is a read that is stopped and asked again
+//!   (kiln caches what it fetched, ten minutes, only when it finishes).
+//!   It is read-only, so stopping it leaves nothing half done.
+//!
 //! What it deliberately doesn't do: read kiln's JSON (`model.rs`), decide
 //! when to reload or what an exit code means for a command (`project.rs`
 //! and [`Ran::expect`] given the codes that are fine), or retry anything.
@@ -77,6 +88,8 @@ pub struct Job<T> {
     /// Not stopped by [`Kiln::clear`]: a publish, which stopped half done
     /// leaves Confluence half updated until the next one.
     pub keep_running: bool,
+    /// Yields to every job that isn't one ([`Job::background`]).
+    pub background: bool,
 }
 
 impl<T> Job<T> {
@@ -87,6 +100,7 @@ impl<T> Job<T> {
             tag,
             limit_ms: TIMEOUT_MS,
             keep_running: false,
+            background: false,
         }
     }
 
@@ -105,6 +119,13 @@ impl<T> Job<T> {
     /// Kept running when another kiln is chosen ([`Kiln::clear`]).
     pub fn keep_running(mut self) -> Job<T> {
         self.keep_running = true;
+        self
+    }
+
+    /// Read-only and not urgent: stopped, or dropped if it waits, when any
+    /// job that isn't one is pushed ([`Failure::Yielded`]).
+    pub fn background(mut self) -> Job<T> {
+        self.background = true;
         self
     }
 
@@ -181,6 +202,10 @@ pub enum Failure {
     /// Not run: kiln can't be used here now (too old, not found, no
     /// `kiln.toml`, another kiln chosen meanwhile). The line says why.
     Unusable(String),
+    /// A [`Job::background`] job stopped (or dropped before it ran) so that
+    /// another job could go first. Not a failure of kiln or of Jira:
+    /// whoever asked asks again when the queue is quiet.
+    Yielded,
 }
 
 impl Failure {
@@ -188,6 +213,7 @@ impl Failure {
     pub fn line(&self) -> String {
         match self {
             Failure::NotFound(why) | Failure::Spawn(why) | Failure::Unusable(why) => why.clone(),
+            Failure::Yielded => "stopped so that something else could run first".into(),
             Failure::Exit { line, .. } => line.clone(),
             Failure::TooLarge => format!(
                 "kiln's answer was over {} MiB, so it was stopped and nothing of it was read",
@@ -264,8 +290,43 @@ impl<T> Kiln<T> {
     /// `job` queued, and started if nothing runs. A start that fails is
     /// finished at once ([`Kiln::take_finished`]).
     pub fn push(&mut self, job: Job<T>) {
+        if !job.background {
+            self.yield_background();
+        }
         self.queue.push_back(job);
         self.start_next();
+    }
+
+    /// Whether the job that runs is a [`Job::background`] one.
+    pub fn background_running(&self) -> bool {
+        self.running.as_ref().is_some_and(|r| r.job.background)
+    }
+
+    /// The background job that runs stopped, and those that wait dropped,
+    /// each finished with [`Failure::Yielded`], in the order they were
+    /// queued.
+    fn yield_background(&mut self) {
+        if self.background_running() {
+            if let Some(run) = self.running.take() {
+                api::host::cancel_timer(run.timer);
+                api::process::kill(run.process);
+                self.finished.push_back(Finished {
+                    line: run.job.line(),
+                    tag: run.job.tag,
+                    result: Err(Failure::Yielded),
+                });
+            }
+        }
+        let (background, rest): (VecDeque<Job<T>>, VecDeque<Job<T>>) =
+            self.queue.drain(..).partition(|j| j.background);
+        self.queue = rest;
+        for job in background {
+            self.finished.push_back(Finished {
+                line: job.line(),
+                tag: job.tag,
+                result: Err(Failure::Yielded),
+            });
+        }
     }
 
     /// Whether anything runs or waits.
@@ -767,5 +828,46 @@ mod tests {
         assert_eq!(k.clear(), ["a", "b"]);
         k.exited(p, Some(0));
         assert!(done(&mut k).is_empty() && !k.busy());
+    }
+
+    #[test]
+    fn a_background_job_yields_to_every_other_and_runs_when_nothing_does() {
+        let fake = Fake::new();
+        fake.install();
+        fake.program("kiln", "/bin/kiln")
+            .on_spawn("kiln", Run::running(""));
+        let mut k = Kiln::default();
+        // Alone, it runs at once; a second background job waits behind it.
+        k.push(Job::new(["list", "--jira"], "mirror").background());
+        k.push(Job::new(["list", "--jira", "--again"], "mirror2").background());
+        assert!(k.background_running());
+        assert_eq!(fake.spawned().len(), 1);
+        let mirror = fake.spawned()[0].0;
+        // Anything else stops the one that runs and drops the one that
+        // waits, answered as yielded, before it starts itself.
+        k.push(Job::new(["list"], "reload"));
+        assert!(
+            fake.state().processes[&mirror].killed,
+            "stopped, not waited for"
+        );
+        assert_eq!(
+            done(&mut k),
+            [
+                ("mirror", Err(Failure::Yielded)),
+                ("mirror2", Err(Failure::Yielded))
+            ]
+        );
+        assert!(!k.background_running() && k.waiting() == 0);
+        assert_eq!(fake.spawned().len(), 2, "the reload runs at once");
+        // Its late exit is nobody's.
+        k.exited(mirror, Some(0));
+        assert!(done(&mut k).is_empty());
+        // A background job pushed behind a foreground one waits its turn,
+        // and a foreground job after it takes its place.
+        k.push(Job::new(["list", "--jira"], "mirror").background());
+        assert_eq!(k.waiting(), 1);
+        k.push(Job::new(["status"], "status"));
+        assert_eq!(done(&mut k), [("mirror", Err(Failure::Yielded))]);
+        assert_eq!(k.waiting(), 1, "only the status waits");
     }
 }

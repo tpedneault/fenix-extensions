@@ -50,8 +50,11 @@ closed), the same on every tab:
   `Enter` opens the line, `e` keeps the errors only.
 - **Exports** (`0`): `kiln export --dry-run`, target by target, as the
   command line prints it; `w` and `W` write file targets, `P` publishes a
-  Confluence target. See "Exports and publishing" below.
-- **Comments**: not built yet (`Tab` reaches it).
+  Confluence target or syncs Jira. See "Exports and publishing" and "Jira"
+  below.
+- **Comments** (`Tab` from Exports): `kiln confluence comments`, the
+  unresolved comments under each Confluence target, by the item they are
+  about. See "Comments" below.
 
 **Editing**: the same edits from the plan's keys (on the item under the
 cursor, on every tab) and from a buffer (the commands under "Keys", on
@@ -143,15 +146,21 @@ project read (or kiln's own error line), the language server, and what the
 last `kiln check` found, with a fix row that opens the plan. In a folder
 that isn't a Kiln project it has none.
 
-**Tasks** (`SPC t t`), in a Kiln project: `kiln: check`, `kiln: export
---check` and `kiln: export` (no task passes `--yes`, so none publishes to
-Confluence). `kiln: export` is a bare `kiln export`: in a project with a
-Confluence target, kiln plans that target against the live space too,
-which needs its token, and with none it stops before writing any file;
-not on a terminal it then publishes nothing and exits 1. The Exports tab's
-`W` names the file targets instead, and writes only them. `kiln: check`'s
-lines are `path:line:col: K102 error: message`, which the task pane turns
-into quickfix entries.
+**Tasks** (`SPC t t`), in a Kiln project: `kiln: check`, and the two export
+tasks, which name the project's **file targets** (Markdown, HTML, Word) as
+`kiln.toml` lists them and say so in their titles: `kiln: export (file
+targets only)` runs `kiln export -- NAME…` and `kiln: export --check (file
+targets only)` runs `kiln export --check -- NAME…`, the same names the
+Exports tab's `W` writes. No task passes `--yes`, and none can name a
+Confluence target, so none publishes. (A bare `kiln export` -- what
+`kiln: export` used to run -- is wrong in a project with a Confluence
+target: kiln then plans that target against the live space too, so with no
+token the whole run fails before it writes any file, and in a task pane
+that is a terminal kiln would ask whether to publish.) When the extension
+can't read `kiln.toml`, or it names no file target, the two export tasks
+aren't offered, and `kiln: check` still is; a new file target saved in
+`kiln.toml` brings them. `kiln: check`'s lines are `path:line:col: K102
+error: message`, which the task pane turns into quickfix entries.
 
 **The modeline** shows the last check's findings when there are any, `kiln 1
 error, 2 warnings`, and nothing when there are none.
@@ -209,9 +218,10 @@ started. The dry run is read again after.
 
 A publish may run for up to two hours before the extension stops it (a
 large space takes minutes, and a publish stopped half done stays half
-done until the next one). One runs at a time, for every plan page; while
-it does, every tab's bottom line says `publishing NAME to Confluence…`,
-and a second `P` says one runs. Choosing another kiln (`kiln.path`) or
+done until the next one). One runs at a time, for every plan page, the Jira
+sync (see "Jira") included; while it does, every tab's bottom line says
+`publishing NAME to Confluence…` (or `syncing Jira…`), and a second `P`
+says one runs. Choosing another kiln (`kiln.path`) or
 closing the page doesn't stop it.
 
 **Signing in.** With no token, the target's line is kiln's (`no token for
@@ -228,6 +238,109 @@ publishes nothing from here; overriding it is a decision typed at a
 terminal. Nor does the extension publish anywhere but `P` on this tab:
 not as an agent tool, not as a task, not as a command. It never sees a
 token: no secret, no prompt for one, no environment variable.
+
+## Jira
+
+With `[jira] url` in `kiln.toml`, and items that link tickets (`jira =` in
+their front matter), **every row that is an item ends with its tickets**,
+on every tab: `FLINT-12 In Review · Alice`, in the good look when the
+ticket is resolved (Jira's Done category), muted otherwise, and `FLINT-12 ?`
+for a key Jira doesn't know. An item with two tickets has two cells. The
+filter (`/`) reaches them.
+
+Tickets come from `kiln list --jira --format json`, asked **apart from the
+project's reload**, so a slow or absent Jira never holds up or fails it: it
+is asked when a plan page is in view, the project is read and nothing else
+is running; once after the first read, then no sooner than ten minutes
+after the last answer (kiln keeps its own ten-minute cache, so asking more
+often would only spend a process), and at once on `r`, `Kiln: read the
+project again`, a changed `[jira] url` and after a sync. It is a background
+read: when a reload, an edit or any other command needs kiln, the read is
+stopped for it and asked again when kiln is idle (what it fetched isn't
+cached until it finishes; it only reads). It may take 60 seconds. When it
+can't be read, the bottom line says why **once**, in kiln's words, and rows
+simply have no tickets -- or keep the ones read last, after a later failure,
+until Jira answers again. With no token the line starts `A signs in (kiln
+auth jira)`: `A` opens `kiln auth jira` in a terminal under the current
+pane, the token typed into kiln (Exports' `A` on a `jira` row does the same).
+The mirror needs Jira Server or Data Center and a personal access token,
+like kiln's (a Jira Cloud URL is refused by kiln, naming its G6).
+
+`J` on an item takes its status from its ticket: `kiln jira pull -- ID`,
+through the same routing as the edits -- nothing to confirm (it is local and
+about one item), kiln's line is shown (`TASK-002: status doing → done (from
+DEMO-102 Done)`, or `every item's status already matches its ticket`, or
+why not), and the project is read again. An item that links no ticket, a
+project with no `[jira]`, and a row that is no item say so without asking
+kiln. With no token, kiln's line is shown with the same `A` hint.
+
+**The `jira` target on Exports.** With `[jira] project` in `kiln.toml` (the
+Jira project key `kiln jira sync` puts tickets in), the Exports tab ends
+with one more target, `jira`: `kiln jira sync --dry-run`, shown as kiln
+prints it -- its heading (`jira (DEMO) → DEMO-100 "Kiln: Demo"`), one line
+per operation (`create`, `update`, `move`, and in the warning look `orphan`
+and `left alone`, which are reported and never written), the totals, and
+`refused` lines in the bad look. `jira sync` has no `--format json` in kiln
+1.0.0, so these are kiln's text lines as they are: nothing is parsed but
+which line is the heading, the totals, a refusal, and which operations
+write. Read when the tab is first shown and on `R` like the others, and
+again after a sync, once the project has been read again.
+
+`P` on it syncs, under the rules of publishing: one at a time with
+Confluence publishes (a second says which runs); only when the dry run is
+current (read since the project last changed) and has something to write; it
+shows what will happen in Fenix's prompt -- `Sync Jira: creates, updates and
+moves tickets, jira (DEMO) → DEMO-100 "Kiln: Demo": 3 operations (1 create,
+1 update, 1 move, 2 unchanged). Type DEMO to sync` -- and runs only when
+the Jira **project key** is typed exactly (`DEMO`; `y`, another case and
+the name of an export target all cancel). It runs exactly `kiln jira sync
+--yes`, never anything else, and may run for up to two hours: kiln creates a
+ticket per request and writes the keys into the items only when it has
+applied everything, so stopping it half way would leave tickets no item
+names, and the next sync would create them again. Unlike a Confluence plan,
+a refused operation doesn't stop a sync -- kiln leaves that ticket alone and
+syncs the rest -- so `P` is allowed with `refused` lines and says how many.
+
+What it says after is kiln's: the summary (`jira: 1 created, 1 updated, 1
+moved; 1 file gained ticket keys (commit them)`), **shown prominently in the
+warning look under the target and on the bottom line when it says files
+gained keys -- they are changed and uncommitted**, the refusals after it,
+or kiln's line. Exit 3 (Jira failed part way) says what kiln's CLI.md does:
+the keys of the tickets it created are written into the items even so --
+commit them, so none is created twice -- and syncing again finishes it. Then
+the project is read again (sync writes `jira =` into items and `kiln.toml`)
+and the plan read again after that. While it runs every tab's bottom line
+says `syncing Jira…`. The Jira target needs `kiln.toml` to be readable by the
+extension; when it can't be, Exports asks kiln about every export target at
+once and has no `jira` target.
+
+## Comments
+
+The Comments tab (`Tab` from Exports) shows `kiln confluence comments
+--format json`: for each Confluence target, a heading as kiln words it
+(`spec → space FLINT: 2 unresolved comments`), under it the items that have
+comments -- an item row: `Enter` opens its file, `v` and `i` work -- and
+under each its comments, `Alice Martin · 2026-10-12  Startup in 50 ms Is
+that measured cold?`. A comment about the page as a whole, which kiln
+can't place on an item, is under a line naming the page. `o` opens the
+comment under the cursor in the browser (through Fenix, as an `http(s)`
+link only: a link of any other kind, or with a space in it, is refused with a
+line saying so). A target with no page yet says `not published yet`.
+
+It is read when the tab is first shown and on `R` -- not on every reload; it
+asks the server for every target's pages and their comments, so it may take
+up to 10 minutes, and says `reading… (asks Confluence)` meanwhile. kiln's
+command fails *as a whole* on any target's error (no token, a server that
+doesn't answer) and prints nothing per target, so a failure is kiln's one
+line for the whole tab, with `A` opening `kiln auth confluence` in a
+terminal when it's a missing token. With `kiln.toml` read and no Confluence
+target in it, the tab says so and asks kiln nothing.
+
+Comment text is other people's writing: it is shown as plain text on one
+line, never interpreted -- control characters (an escape sequence, a
+newline) become spaces and the length is cut, and no Markdown, link or
+markup in it does anything. The only thing done with a comment is `o`.
+It never answers or resolves one: that is Confluence's.
 
 ## Keys
 
@@ -249,10 +362,12 @@ On the plan:
 | `b` | Changes: the baseline, typed in Fenix's prompt |
 | `<`, `>` | Item: the item viewed before, after (Kiln's `C-o` and `C-i` are Fenix's own here) |
 | `e` | Check: errors only, or everything again |
-| `R` | Exports: read every target's dry run again |
+| `R` | Exports, Comments: read again |
 | `w`, `W` | Exports: write the file target under the cursor; every file target |
-| `P` | Exports: publish the Confluence target under the cursor, after its name is typed |
-| `A` | Exports: `kiln auth confluence` in a terminal, on a Confluence target |
+| `P` | Exports: publish the Confluence target under the cursor, after its name is typed; on `jira`, sync Jira after the project key is typed |
+| `A` | Exports: `kiln auth confluence` in a terminal on a Confluence target, `kiln auth jira` on `jira`; Comments: `kiln auth confluence`; anywhere else, `kiln auth jira` once Jira has asked for a token |
+| `o` | Comments: open the comment under the cursor in the browser |
+| `J` | Take the item's status from its Jira ticket (`kiln jira pull -- ID`) |
 | `s` | Status: pick one of the item's type's statuses (the current one says `now`) |
 | `H`, `L` | Board: the previous / next status in the type's order (at the first or last, it says so) |
 | `l` | Link: pick a role its type may start, then a target the role allows that isn't linked yet |
@@ -320,8 +435,12 @@ for a kiln that isn't found; it has no key.
 
 No network and no secrets: Confluence and Jira credentials stay Kiln's.
 Publishing to Confluence is kiln's own network access, run by `P` on the
-Exports tab after the target's name is typed; `kiln auth confluence` runs
-in a terminal pane, where the token goes to kiln.
+Exports tab after the target's name is typed; so are the Jira sync (after
+the project key is typed), the Jira mirror, `J` and the comments -- kiln
+reads Confluence and Jira, the extension reads what kiln says. `kiln auth
+confluence` and `kiln auth jira` run in a terminal pane, where the token
+goes to kiln. A comment's link is opened by Fenix in the browser, for an
+`http(s)` link only.
 
 ## Building
 
@@ -339,9 +458,12 @@ extensions/kiln/tests/fixtures/record.sh /path/to/kiln
 ```
 
 Some answers aren't recorded, and are written by hand in
-`tests/fixtures/hand/` (its `README` says from what): `kiln lsp
---languages`, which no released kiln has yet, and what `kiln export`
-prints when it publishes -- that needs a Confluence server, which the
-recording never reaches (its Confluence plans are made offline, from
-snapshots).
+`tests/fixtures/hand/` (its `README` says from what, with file and line of
+kiln's source): `kiln lsp --languages`, which no released kiln has yet, and
+what `kiln export`, `kiln confluence comments`, `kiln jira sync` and `kiln
+jira pull` print when they succeed -- that needs a Confluence or Jira
+server, which the recording never reaches (its Confluence plans are made
+offline, from snapshots; Jira and the comments are recorded as the refusals,
+and `kiln list --jira` over a mirror cache written for the purpose: kiln's
+real JSON around invented tickets).
 
