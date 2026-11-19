@@ -1,0 +1,37 @@
+[
+  {
+    "format": "markdown",
+    "layout": "sections",
+    "leftOut": [
+      "ADR-001",
+      "MS-001",
+      "MS-002",
+      "TASK-001",
+      "TASK-002",
+      "TASK-003",
+      "TASK-004",
+      "TASK-005",
+      "TASK-006",
+      "TASK-007",
+      "TASK-008",
+      "TEST-001"
+    ],
+    "name": "sections-md",
+    "remove": [],
+    "unchanged": [],
+    "write": [
+      {
+        "new": true,
+        "path": "docs/sections/index.md"
+      },
+      {
+        "new": true,
+        "path": "docs/sections/requirements.md"
+      },
+      {
+        "new": true,
+        "path": "docs/sections/risks.md"
+      }
+    ]
+  }
+]

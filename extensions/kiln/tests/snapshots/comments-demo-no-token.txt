@@ -1,0 +1,16 @@
+‹ 4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Exports   Comments        Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+kiln: couldn't read `confluence:http://127.0.0.1:9` from the credential store: Platform secure storage failur…
+run kiln auth confluence in a terminal: A opens one below, then R reads this again
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+R read again  o open comment  A sign in  Enter open  / filter  s status  E edits  v item  i impact  r reload

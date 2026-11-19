@@ -1,0 +1,18 @@
+{
+  "anchorPage": 123456789,
+  "anchorTitle": "Demo space home",
+  "root": {
+    "id": 2001, "title": "Demo — design document", "parentId": 123456789, "version": 3,
+    "versionAuthor": "Kiln", "versionWhen": "2026-01-05T10:00:00Z",
+    "property": {"schema": 1, "project": "Demo", "export": "design-doc-confluence", "key": "doc",
+      "items": {"REQ-001": "0000000000000000000000000000000000000000"},
+      "published": "0000000000000000000000000000000000000000",
+      "renderHash": "sha256:before", "remoteHash": "sha256:remote", "publishedVersion": 3}
+  },
+  "descendants": [
+    {"id": 2002, "title": "Old section", "parentId": 2001, "version": 2,
+     "property": {"schema": 1, "project": "Demo", "export": "design-doc-confluence", "key": "old-section",
+       "renderHash": "sha256:x", "remoteHash": "sha256:y", "publishedVersion": 2}},
+    {"id": 2003, "title": "Meeting notes", "parentId": 2001, "version": 1}
+  ]
+}

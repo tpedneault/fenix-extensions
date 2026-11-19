@@ -1,0 +1,57 @@
+[
+  {
+    "path": [
+      {
+        "from": "REQ-002",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "REQ-002"
+  },
+  {
+    "path": [
+      {
+        "from": "TASK-001",
+        "relation": "implements",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "TASK-001"
+  },
+  {
+    "path": [
+      {
+        "from": "TASK-002",
+        "relation": "implements",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "TASK-002"
+  },
+  {
+    "path": [
+      {
+        "from": "TEST-001",
+        "relation": "verifies",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "TEST-001"
+  },
+  {
+    "path": [
+      {
+        "from": "TASK-007",
+        "relation": "parent",
+        "to": "TASK-002"
+      },
+      {
+        "from": "TASK-002",
+        "relation": "implements",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "TASK-007"
+  }
+]

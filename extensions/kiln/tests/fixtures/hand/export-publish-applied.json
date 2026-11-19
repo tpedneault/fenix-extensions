@@ -1,0 +1,50 @@
+[
+  {
+    "applied": {
+      "created": 0,
+      "pruned": 0,
+      "retired": 1,
+      "skipped": [],
+      "updated": 1
+    },
+    "format": "confluence",
+    "layout": "document",
+    "leftOut": [],
+    "name": "design-doc-confluence",
+    "parent": 123456789,
+    "parentTitle": "Demo space home",
+    "plan": {
+      "foreign": [
+        "Meeting notes"
+      ],
+      "ops": [
+        {
+          "key": "doc",
+          "kind": "update",
+          "message": "kiln 1079a92: REQ-001 changed; ADR-001, MS-001, MS-002 (+12 more) new",
+          "page_id": 2001,
+          "reasons": [
+            "REQ-001 changed",
+            "ADR-001, MS-001, MS-002 (+12 more) new"
+          ],
+          "size": 15259,
+          "title": "Demo — design document"
+        },
+        {
+          "key": "old-section",
+          "kind": "retire",
+          "message": "kiln 1079a92: removed from the repository",
+          "page_id": 2002,
+          "reasons": [
+            "no longer produced: moved under \"Removed from the repository\""
+          ],
+          "size": 0,
+          "title": "Old section"
+        }
+      ],
+      "refusals": [],
+      "warnings": []
+    },
+    "space": "DEMO"
+  }
+]

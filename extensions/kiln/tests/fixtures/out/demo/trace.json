@@ -1,0 +1,53 @@
+{
+  "commit": "8c0580dca1f31bf7660271d6cf92c7ba0342fb3c",
+  "items": [
+    {
+      "coverage": {
+        "implements": [
+          "TASK-001",
+          "TASK-002"
+        ],
+        "verifies": [
+          "TEST-001"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-001",
+      "status": "approved",
+      "title": "Readings are logged every second"
+    },
+    {
+      "coverage": {
+        "implements": [],
+        "verifies": []
+      },
+      "gaps": [
+        "implements",
+        "verifies"
+      ],
+      "id": "REQ-002",
+      "status": "draft",
+      "title": "Logged readings survive a power cut"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "TASK-003"
+        ],
+        "verifies": []
+      },
+      "gaps": [
+        "verifies"
+      ],
+      "id": "REQ-003",
+      "status": "approved",
+      "title": "The log exports as CSV"
+    }
+  ],
+  "kiln_json": 1,
+  "roles": [
+    "implements",
+    "verifies"
+  ],
+  "type": "requirement"
+}

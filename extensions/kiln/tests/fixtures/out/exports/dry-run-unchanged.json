@@ -1,0 +1,13 @@
+[
+  {
+    "format": "markdown",
+    "layout": "document",
+    "leftOut": [],
+    "name": "design-doc",
+    "remove": [],
+    "unchanged": [
+      "docs/DESIGN-DOCUMENT.md"
+    ],
+    "write": []
+  }
+]

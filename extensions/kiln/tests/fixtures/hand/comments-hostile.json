@@ -1,0 +1,17 @@
+[
+  {
+    "comments": [
+      {
+        "author": "Mal\u001b[31m Lory\u0007",
+        "created": "2026-10-15T08:30:00.000Z",
+        "item": "REQ-001",
+        "page": 2001,
+        "page_title": "Demo \u2014 design document",
+        "text": "<script>alert(1)</script> **not bold** [[REQ-002]] \u001b]8;;http://evil.example/\u0007click\u001b]8;;\u0007\tand a\nnew line",
+        "url": "javascript:alert(1)"
+      }
+    ],
+    "name": "design-doc-confluence",
+    "space": "DEMO"
+  }
+]

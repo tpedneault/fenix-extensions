@@ -1,0 +1,69 @@
+# The store's pictures of Kiln, retaken with
+# `cargo xtask screenshots kiln`; the format is screenshots/README.md's.
+#
+# Needs the kiln program (1.0.0 or later) on the PATH of the Fenix it
+# starts: every picture is what kiln says. The project is
+# screenshots/samples/kiln, a copy of tests/fixtures/demo -- a small data
+# logger's plan: requirements, a decision, two milestones, eight tasks in
+# every state, a test and a risk.
+#
+# Only what the control channel can reach is a shot here. It runs external
+# commands only, and none of Kiln's is marked `external = true`, nor can it
+# press a key on a page, so the plan's pages -- Tree, Board, Roadmap, Trace
+# with its gaps, Exports -- are not reachable yet. They are written out at
+# the end, commented, with what each needs; `validate` refuses a command of
+# the extension that isn't external, so they can't be live until it is.
+
+# Titles after IDs: the task's `part-of` and `implements` lines, each ID
+# followed by its title and status, muted. kiln has to have read the
+# project before they are drawn, hence the wait and a long settle.
+[[shot]]
+file = "1-titles-after-ids.png"
+note = "A task's file: the milestone and the requirement it names, each with its title and status beside it"
+project = "kiln"
+open = ["design/tasks/TASK-002-write-readings-to-sqlite.md:7"]
+settle_ms = 4000
+
+[shot.wait]
+project = true
+file = "design/tasks/TASK-002-write-readings-to-sqlite.md"
+idle = true
+timeout_s = 30
+
+# --- Not live: what the plan's pictures need -------------------------------
+#
+# Mark `kiln.open` (and `kiln.findings`) `external = true` in the manifest,
+# then these two are shots as they stand:
+#
+# [[shot]]
+# file = "2-tree.png"
+# note = "The plan on its Tree: every open item nested under a heading per type, statuses coloured by what they mean"
+# project = "kiln"
+# commands = ["kiln.open"]
+# settle_ms = 4000
+#
+# [shot.wait]
+# project = true
+# no_file = true
+# idle = true
+# timeout_s = 30
+#
+# [[shot]]
+# file = "3-check.png"
+# note = "The Check tab: the demo's one error (TASK-006 names REQ-099, which isn't there) and its warnings, by file"
+# project = "kiln"
+# commands = ["kiln.findings"]
+# settle_ms = 4000
+#
+# [shot.wait]
+# project = true
+# no_file = true
+# idle = true
+# timeout_s = 30
+#
+# The Board (4), the Roadmap (5), Trace with its gaps (2, then m) and the
+# Exports tab (0, with the demo's `design-doc` plan) are one key away from
+# the Tree, and a script can't press one: they need either a way to open a
+# page on a tab by a command that is external, or the control channel
+# taking keys. The Exports tab's plan is `kiln export --dry-run` of the
+# demo's file target, so it needs no Confluence.

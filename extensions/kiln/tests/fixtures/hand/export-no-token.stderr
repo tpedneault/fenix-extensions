@@ -1,0 +1,1 @@
+kiln: no token for http://127.0.0.1:9: run `kiln auth confluence`, or set KILN_CONFLUENCE_TOKEN (or plan offline with --snapshot FILE)

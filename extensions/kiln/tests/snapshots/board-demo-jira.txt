@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check › Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+todo  5 items
+TASK-003  Export th…  ready              · bo   DEMO-103 To Do
+TASK-004  Add the e…  waits on TASK-003         DEMO-777 ?
+TASK-006  Draft the…  ready                     DEMO-104 Done · Bo Chen         DEMO-105 In Progress · Bo Chen
+TASK-007  Batch the…  ready
+TASK-008  Tidy the …  ready
+doing  1 item
+TASK-002  Write rea…                     · ana  DEMO-102 In Review · Ana Lopez
+blocked  1 item
+TASK-005  Ask about…
+done  1 item
+TASK-001  Set up th…                            DEMO-101 Done · Ana Lopez
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+H L move  Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

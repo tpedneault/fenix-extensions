@@ -1,0 +1,31 @@
+[
+  {
+    "applied": null,
+    "format": "confluence",
+    "layout": "document",
+    "leftOut": [],
+    "name": "design-doc-confluence",
+    "parent": 123456789,
+    "parentTitle": "Demo space home",
+    "plan": {
+      "foreign": [],
+      "ops": [
+        {
+          "key": "doc",
+          "kind": "drift",
+          "message": "kiln 1079a92: drift: edited by Ana at 2026-02-01T09:30:00Z, version 5; skipped",
+          "page_id": 2001,
+          "reasons": [
+            "drift: edited by Ana at 2026-02-01T09:30:00Z, version 5",
+            "skipped"
+          ],
+          "size": 15259,
+          "title": "Demo — design document"
+        }
+      ],
+      "refusals": [],
+      "warnings": []
+    },
+    "space": "DEMO"
+  }
+]

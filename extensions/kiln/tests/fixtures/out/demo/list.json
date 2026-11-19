@@ -1,0 +1,304 @@
+[
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-001-readings-are-logged-every-second.md",
+    "status": "approved",
+    "tags": [],
+    "title": "Readings are logged every second",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "mitigates": [
+        "RISK-001"
+      ]
+    },
+    "owner": null,
+    "parent": "REQ-001",
+    "path": "design/requirements/REQ-002-logged-readings-survive-a-power-cut.md",
+    "status": "draft",
+    "tags": [],
+    "title": "Logged readings survive a power cut",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-003-the-log-exports-as-csv.md",
+    "status": "approved",
+    "tags": [],
+    "title": "The log exports as CSV",
+    "type": "requirement"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-001-store-readings-in-sqlite.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Store readings in SQLite",
+    "type": "decision"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": "2030-06-30",
+    "id": "MS-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-001-first-release.md",
+    "status": "active",
+    "tags": [],
+    "title": "First release",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "MS-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-002-second-release.md",
+    "status": "planned",
+    "tags": [],
+    "title": "Second release",
+    "type": "milestone"
+  },
+  {
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-001"
+      ],
+      "part-of": [
+        "MS-001"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-001-set-up-the-logger.md",
+    "status": "done",
+    "tags": [],
+    "title": "Set up the logger",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TASK-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-001"
+      ],
+      "part-of": [
+        "MS-001"
+      ]
+    },
+    "owner": "ana",
+    "parent": null,
+    "path": "design/tasks/TASK-002-write-readings-to-sqlite.md",
+    "status": "doing",
+    "tags": [],
+    "title": "Write readings to SQLite",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TASK-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-003"
+      ],
+      "part-of": [
+        "MS-001"
+      ]
+    },
+    "owner": "bo",
+    "parent": null,
+    "path": "design/tasks/TASK-003-export-the-log-as-csv.md",
+    "status": "todo",
+    "tags": [
+      "csv"
+    ],
+    "title": "Export the log as CSV",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TASK-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "TASK-003"
+      ],
+      "part-of": [
+        "MS-001"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-004-add-the-export-button.md",
+    "status": "todo",
+    "tags": [],
+    "title": "Add the export button",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TASK-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "part-of": [
+        "MS-002"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-005-ask-about-retention-rules.md",
+    "status": "blocked",
+    "tags": [],
+    "title": "Ask about retention rules",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TASK-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "part-of": [
+        "MS-002"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-006-draft-the-user-guide.md",
+    "status": "todo",
+    "tags": [],
+    "title": "Draft the user guide",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TASK-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "TASK-002",
+    "path": "design/tasks/TASK-007-batch-the-writes.md",
+    "status": "todo",
+    "tags": [],
+    "title": "Batch the writes",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TASK-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-008-tidy-the-build-scripts.md",
+    "status": "todo",
+    "tags": [],
+    "title": "Tidy the build scripts",
+    "type": "task"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "TEST-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "verifies": [
+        "REQ-001"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tests/TEST-001-readings-arrive-every-second.md",
+    "status": "passing",
+    "tags": [],
+    "title": "Readings arrive every second",
+    "type": "test"
+  },
+  {
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-001-the-sd-card-wears-out.md",
+    "status": "open",
+    "tags": [],
+    "title": "The SD card wears out",
+    "type": "risk"
+  }
+]

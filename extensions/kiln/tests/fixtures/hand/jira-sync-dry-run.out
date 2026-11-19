@@ -1,0 +1,7 @@
+jira (DEMO) → DEMO-100 "Kiln: Demo"
+  create     TASK-004 Add the export button (Sub-task)
+  update     DEMO-102 TASK-002: summary "TASK-002 Write readings to SQLite"; due 2030-06-30
+  move       DEMO-101 TASK-001: In Progress → Done
+  orphan     DEMO-109 "TASK-099 Old": no synced item links it (left alone)
+  left alone TASK-006: linked to OTHER-1, not a sub-task of the project issue
+  1 create, 1 update, 1 move, 2 unchanged

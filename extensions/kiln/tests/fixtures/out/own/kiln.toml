@@ -1,0 +1,106 @@
+# Kiln's own project: Kiln's requirements, decisions, milestones and risks,
+# checked by `kiln check` in CI (scripts/ci.ps1). docs/FORMAT.md is the
+# format; this file is FORMAT.md's defaults plus where Kiln's code is.
+format = 1
+name = "Kiln"
+paths = ["design"]
+
+[code]
+paths = ["crates"]
+# Golden files hold rendered documents, not code.
+exclude = ["crates/*/golden"]
+
+[repository]
+web = "https://github.com/tpedneault/kiln/blob/{commit}/{path}#L{line}"
+
+[types.requirement]
+prefix = "REQ"
+template = "design/templates/requirement.md"
+statuses = ["draft", "proposed", "approved", "implemented", "verified", "obsolete"]
+initial = "draft"
+done = ["verified"]
+closed = ["obsolete"]
+parents = ["requirement"]
+
+[types.design]
+prefix = "DES"
+template = "design/templates/design.md"
+statuses = ["draft", "accepted", "obsolete"]
+closed = ["obsolete"]
+parents = ["design"]
+
+[types.decision]
+prefix = "ADR"
+template = "design/templates/decision.md"
+statuses = ["proposed", "accepted", "rejected", "superseded"]
+closed = ["rejected", "superseded"]
+
+[types.milestone]
+prefix = "MS"
+template = "design/templates/milestone.md"
+statuses = ["planned", "active", "done", "dropped"]
+done = ["done"]
+closed = ["dropped"]
+
+[types.task]
+prefix = "TASK"
+template = "design/templates/task.md"
+statuses = ["todo", "doing", "blocked", "done", "dropped"]
+done = ["done"]
+closed = ["dropped"]
+parents = ["task"]
+
+[types.test]
+prefix = "TEST"
+template = "design/templates/test.md"
+statuses = ["draft", "ready", "passing", "failing", "obsolete"]
+closed = ["obsolete"]
+
+[types.risk]
+prefix = "RISK"
+template = "design/templates/risk.md"
+statuses = ["open", "mitigated", "accepted", "closed"]
+closed = ["closed"]
+
+[links.implements]
+from = ["design", "task", "code"]
+to = ["requirement"]
+inverse = "implemented by"
+
+[links.verifies]
+from = ["test", "code"]
+to = ["requirement"]
+inverse = "verified by"
+
+[links.part-of]
+from = ["task"]
+to = ["milestone"]
+inverse = "includes"
+
+[links.supersedes]
+from = ["decision"]
+to = ["decision"]
+inverse = "superseded by"
+
+[links.mitigates]
+from = ["requirement", "design", "task"]
+to = ["risk"]
+inverse = "mitigated by"
+
+[links.depends-on]
+from = ["task", "milestone"]
+to = ["task", "milestone"]
+inverse = "blocks"
+
+# The design document, committed and kept current by `kiln export --check`
+# in CI (K2 dogfooding). It lives in the repository, so it links to files
+# relatively and names no commit (docs/EXPORT.md, "Exports kept in the
+# repository").
+[[export]]
+name = "design-md"
+format = "markdown"
+title = "Kiln — design document"
+template = "design/templates/design-document.md"
+path = "docs/generated/DESIGN.md"
+[export.markdown]
+flavour = "github"

@@ -1,0 +1,1 @@
+kiln: no Jira token for http://127.0.0.1:9: set KILN_JIRA_TOKEN or run `kiln auth jira`

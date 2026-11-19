@@ -1,0 +1,41 @@
+{
+  "also_in": [],
+  "body": "\n`kiln show ID` prints the body under the rows. `--format json` gives\nlinks, inbound links, children and parent as objects (`id`, `title`,\n`status`; code locations as `path` and `line`), coverage as booleans\nby role, progress as numbers, and the body.\n",
+  "children": [],
+  "closed": false,
+  "coverage": {},
+  "derived": false,
+  "done": true,
+  "due": null,
+  "id": "TASK-001",
+  "inbound": {},
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {
+    "implements": [
+      {
+        "id": "REQ-020",
+        "status": "verified",
+        "title": "Coding agents read the plan and act on it from the command line"
+      }
+    ],
+    "part-of": [
+      {
+        "id": "MS-016",
+        "status": "done",
+        "title": "K15: the plan from the command line"
+      }
+    ]
+  },
+  "mentioned_by": [],
+  "owner": null,
+  "parent": null,
+  "path": "design/tasks/TASK-001-kiln-show-prints-the-body-and-its-json-is.md",
+  "progress": null,
+  "status": "done",
+  "tags": [],
+  "title": "kiln show prints the body, and its JSON is structured",
+  "type": "task"
+}

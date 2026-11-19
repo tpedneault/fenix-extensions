@@ -1,0 +1,49 @@
+[
+  {
+    "comments": [
+      {
+        "author": "Alice Martin",
+        "created": "2026-10-12T09:15:00.000Z",
+        "item": "REQ-001",
+        "page": 2001,
+        "page_title": "Demo — design document",
+        "text": "Readings are logged every second Is that measured cold?",
+        "url": "http://127.0.0.1:9/pages/viewpage.action?pageId=2001&focusedCommentId=456#comment-456"
+      },
+      {
+        "author": "Bob Chen",
+        "created": "2026-10-13T14:02:00.000Z",
+        "item": "REQ-001",
+        "page": 2001,
+        "page_title": "Demo — design document",
+        "text": "Per sensor, or in total?",
+        "url": "http://127.0.0.1:9/pages/viewpage.action?pageId=2001&focusedCommentId=458#comment-458"
+      },
+      {
+        "author": "Bob Chen",
+        "created": "2026-10-13T14:05:00.000Z",
+        "item": "TASK-006",
+        "page": 2001,
+        "page_title": "Demo — design document",
+        "text": "REQ-099 doesn't exist, which outline did you mean?",
+        "url": "http://127.0.0.1:9/pages/viewpage.action?pageId=2001&focusedCommentId=459#comment-459"
+      },
+      {
+        "author": "Carla Gómez",
+        "created": "2026-10-14T08:30:00.000Z",
+        "item": null,
+        "page": 2001,
+        "page_title": "Demo — design document",
+        "text": "Can we get a PDF of this?",
+        "url": "http://127.0.0.1:9/pages/viewpage.action?pageId=2001&focusedCommentId=457#comment-457"
+      }
+    ],
+    "name": "design-doc-confluence",
+    "space": "DEMO"
+  },
+  {
+    "comments": [],
+    "name": "adopted",
+    "space": "DEMO"
+  }
+]

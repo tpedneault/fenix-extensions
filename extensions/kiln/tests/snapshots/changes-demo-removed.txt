@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check › Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+HEAD (8c0580d) → v0.1
+Changed  4 items
+REQ-002   Logged readings survive a power cut  − mitigates RISK-001
+TASK-001  Set up the logger                    status done → todo
+TASK-002  Write readings to SQLite             status doing → todo; owner ana → (none)
+TASK-003  Export the log as CSV                owner bo → (none)
+Removed  7 items
+TASK-004  Add the export button                (task)
+TASK-005  Ask about retention rules            (task)
+TASK-006  Draft the user guide                 (task)
+TASK-007  Batch the writes                     (task)
+TASK-008  Tidy the build scripts               (task)
+TEST-001  Readings arrive every second         (test)
+RISK-001  The SD card wears out                (risk)
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+b baseline  Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab
