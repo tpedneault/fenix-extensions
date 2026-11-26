@@ -172,6 +172,13 @@ impl Extension for Arduino {
         Ok(())
     }
 
+    /// sketch.yaml saved: its board and port read again.
+    fn file_saved(&mut self, path: &str) {
+        self.state().keys = keys();
+        let effects = self.state().file_saved(std::path::Path::new(path));
+        self.apply(effects);
+    }
+
     fn handle(&mut self, event: Event) {
         // What follows may say a key; a line of output says none.
         if !matches!(event, Event::ProcessOutput(_)) {

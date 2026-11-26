@@ -252,6 +252,11 @@ pub fn board_of(root: &Path) -> (String, bool) {
     }
 }
 
+/// What `sketch.yaml` says of the board and port, as written.
+pub fn sketch_yaml(root: &Path) -> (Option<String>, Option<String>) {
+    (yaml_value(root, "default_fqbn"), port_of(root))
+}
+
 pub fn port_of(root: &Path) -> Option<String> {
     yaml_value(root, "default_port")
 }
