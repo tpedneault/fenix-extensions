@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.arduino"
 name = "Arduino"
-version = "1.1.0"
+version = "1.1.1"
 description = "Arduino sketches: build, upload, the serial monitor, debugging, boards, ports, libraries, and the right language server"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -24,6 +24,10 @@ process = [
 ]
 # sketch.yaml (the board and port) and .fenix/settings.toml (the speed).
 filesystem = "project-write"
+
+[contributes]
+# sketch.yaml saved: its board and port read again.
+events = ["saved"]
 
 [[contributes.contexts]]
 name = "arduino"

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1
+
+- A board or port written into `sketch.yaml` outside its pickers -- by
+  hand, by the Arduino IDE, or by another tool -- is built and uploaded
+  for: `sketch.yaml` is read again when it's saved, and when you move
+  within the sketch. Before, the build and upload tasks kept the board
+  they had when you came into the sketch, `arduino:avr:uno` if it had
+  none, and overrode the board `sketch.yaml` named.
+
 ## 1.1.0
 
 - For Fenix 1.5 (extension API 1.5): what it says names the keys of the

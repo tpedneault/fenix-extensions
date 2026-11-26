@@ -189,6 +189,9 @@ pub struct State {
     /// The doctor's deeper findings: the installed cores, the ports.
     pub cores: Option<Vec<Package>>,
     pub plugged: Option<Vec<Port>>,
+    /// The sketch's `default_fqbn` and `default_port` as it last told
+    /// Fenix: when `sketch.yaml` says otherwise, it's told again.
+    pub told: Option<(Option<String>, Option<String>)>,
 }
 
 impl State {
@@ -223,7 +226,8 @@ impl State {
         let Some(file) = file else { return Vec::new() };
         let sketch = model::sketch_of(file, &self.top);
         if sketch == self.sketch {
-            return Vec::new();
+            // Still in it: sketch.yaml may have changed outside Fenix.
+            return self.recheck();
         }
         self.sketch = sketch;
         self.cores = None;
@@ -238,7 +242,8 @@ impl State {
 
     /// What it says about the sketch: the modeline, its tasks, its
     /// language server, its doctor.
-    fn refresh(&self) -> Vec<Effect> {
+    fn refresh(&mut self) -> Vec<Effect> {
+        self.told = self.sketch.as_deref().map(model::sketch_yaml);
         let Some(root) = self.sketch.as_deref() else {
             return vec![Effect::Status(None), Effect::Tasks(Vec::new()), Effect::LanguageServer(None), Effect::Doctor(Vec::new())];
         };
@@ -255,6 +260,32 @@ impl State {
             Effect::LanguageServer(self.language_server()),
             Effect::Doctor(self.doctor()),
         ]
+    }
+
+    /// Said again, when the sketch's `sketch.yaml` has a board or port
+    /// other than the one last told: its tasks and language server would
+    /// still build for the old board.
+    fn recheck(&mut self) -> Vec<Effect> {
+        let Some(root) = self.sketch.as_deref() else { return Vec::new() };
+        let now = model::sketch_yaml(root);
+        let Some((board, _)) = self.told.clone() else { return self.refresh() };
+        if self.told.as_ref() == Some(&now) {
+            return Vec::new();
+        }
+        let mut out = self.refresh();
+        if board != now.0 {
+            out.push(Effect::RestartLanguageServer);
+        }
+        out
+    }
+
+    /// A file was saved, by its path under `/project`: the sketch's
+    /// `sketch.yaml`, and it's read again.
+    pub fn file_saved(&mut self, path: &Path) -> Vec<Effect> {
+        match self.sketch.as_deref() {
+            Some(root) if path == root.join("sketch.yaml") => self.recheck(),
+            _ => Vec::new(),
+        }
     }
 
     /// arduino-language-server, told where the CLI, its configuration and
@@ -568,7 +599,7 @@ impl State {
     pub fn picked(&mut self, id: u64, value: Option<&str>) -> Vec<Effect> {
         let Some(pick) = self.picks.remove(&id) else { return Vec::new() };
         let (Some(value), Some(root)) = (value, self.sketch.clone()) else { return Vec::new() };
-        let saved = |result: Result<(), String>, then: Vec<Effect>, state: &State| match result {
+        let saved = |result: Result<(), String>, then: Vec<Effect>, state: &mut State| match result {
             Ok(()) => {
                 let mut out = then;
                 out.extend(state.refresh());
@@ -702,6 +733,35 @@ mod tests {
         assert!(st.focus(None).is_empty());
         let out = st.focus(Some(&blink.parent().unwrap().join("notes.txt")));
         assert!(out.contains(&Effect::Status(None)) && out.contains(&Effect::LanguageServer(None)));
+    }
+
+    #[test]
+    fn a_board_written_into_sketch_yaml_elsewhere_is_built_for() {
+        let (_dir, mut st, blink) = in_sketch();
+        st.focus(Some(&blink.join("Blink.ino")));
+        // The Arduino IDE, or a hand, writes the board and port.
+        std::fs::write(blink.join("sketch.yaml"), "default_port: COM4\ndefault_fqbn: esp32:esp32:ttgo-lora32:Revision=TTGO_LoRa32_v21new\n").unwrap();
+        let out = st.focus(Some(&blink.join("Blink.ino")));
+        let Some(Effect::Tasks(tasks)) = out.iter().find(|e| matches!(e, Effect::Tasks(_))) else { panic!("{out:?}") };
+        assert_eq!(tasks[0].1, args(&["compile", "--no-color", "-b", "esp32:esp32:ttgo-lora32:Revision=TTGO_LoRa32_v21new", "."]));
+        assert_eq!(tasks[1].1, args(&["compile", "--no-color", "--upload", "-p", "COM4", "-b", "esp32:esp32:ttgo-lora32:Revision=TTGO_LoRa32_v21new", "."]));
+        assert!(out.contains(&Effect::RestartLanguageServer), "the language server builds for the new board too: {out:?}");
+        // Read once: unchanged, it says nothing again.
+        assert!(st.focus(Some(&blink.join("Blink.ino"))).is_empty());
+    }
+
+    #[test]
+    fn saving_sketch_yaml_reads_it_again() {
+        let (_dir, mut st, blink) = in_sketch();
+        st.focus(Some(&blink.join("Blink.ino")));
+        model::set_yaml_value(&blink, "default_port", "COM4").unwrap();
+        let out = st.file_saved(&blink.join("sketch.yaml"));
+        let Some(Effect::Tasks(tasks)) = out.iter().find(|e| matches!(e, Effect::Tasks(_))) else { panic!("{out:?}") };
+        assert_eq!(tasks[1].1, args(&["compile", "--no-color", "--upload", "-p", "COM4", "-b", "arduino:avr:uno", "."]));
+        assert!(!out.contains(&Effect::RestartLanguageServer), "only the port changed: {out:?}");
+        // Another file saved, or the same one unchanged: nothing.
+        assert!(st.file_saved(&blink.join("Blink.ino")).is_empty());
+        assert!(st.file_saved(&blink.join("sketch.yaml")).is_empty());
     }
 
     #[test]
