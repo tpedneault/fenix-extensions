@@ -57,8 +57,14 @@ enum Asked {
     Kind,
     Starter(Vec<String>),
     Theme { path: String, names: Vec<String> },
+    /// How to export it: copied, or saved as which kind of file.
+    ExportHow { path: String },
+    /// The file's name, once it's to be saved.
     Export { path: String },
 }
+
+/// What `e` offers, in its picker's order.
+const EXPORT_HOW: [&str; 3] = ["Copy the picture to the clipboard", "Save it as an SVG file…", "Save it as a PNG file…"];
 
 #[derive(Default)]
 pub struct Diagrams {
@@ -313,11 +319,29 @@ impl Diagrams {
         api::notify(&format!("theme: {name}"));
     }
 
-    /// `SPC m e` / `e`: the diagram exported beside it, in the project.
+    /// `SPC m e` / `e`: the diagram copied as a picture, or exported
+    /// beside it, in the project.
     fn export(&mut self, path: String) {
+        let items: Vec<PickerItem> = EXPORT_HOW.iter().enumerate().map(|(i, how)| PickerItem::new(*how, i.to_string())).collect();
+        let id = api::pick("Export the diagram", &items);
+        self.asked.insert(id, Asked::ExportHow { path });
+    }
+
+    /// The file's name asked for, `ext` its kind.
+    fn export_as(&mut self, path: String, ext: &str) {
         let stem = title_of(&path).rsplit_once('.').map(|(s, _)| s.to_string()).unwrap_or_else(|| title_of(&path));
-        let id = api::prompt("Export as (.svg or .png)", &format!("{stem}.svg"));
+        let id = api::prompt("Export as (.svg or .png)", &format!("{stem}.{ext}"));
         self.asked.insert(id, Asked::Export { path });
+    }
+
+    /// `SPC m y` / `y`, or the first of `e`'s: the diagram on the
+    /// clipboard as a picture (a PNG), as an export would draw it.
+    fn copy_picture(&mut self, path: &str) {
+        let Some(text) = self.source_of(path) else { return };
+        match svg(&text).and_then(|svg| fenix_diagram::png(&svg, SCALE, fenix_diagram::Background::Theme)).and_then(|png| api::copy_image(&png)) {
+            Ok(()) => api::notify(&format!("copied {} as a picture", title_of(path))),
+            Err(e) => host::notify(api::Level::Error, &format!("couldn't copy it: {e}")),
+        }
     }
 
     fn exported(&mut self, path: &str, name: &str) {
@@ -373,6 +397,7 @@ impl Diagrams {
             }
             Action::PickTheme => self.pick_theme(path),
             Action::Export => self.export(path),
+            Action::CopyPicture => self.copy_picture(&path),
         }
     }
 }
@@ -415,6 +440,10 @@ impl Extension for Diagrams {
                 Some(path) => self.export(path),
                 None => host::notify(api::Level::Error, &format!("{} exports a diagram", menu_keys("diagram.export", "e"))),
             },
+            "diagram.copy_picture" => match self.here_path() {
+                Some(path) => self.copy_picture(&path),
+                None => host::notify(api::Level::Error, &format!("{} copies a diagram as a picture", menu_keys("diagram.copy_picture", "y"))),
+            },
             other => return Err(format!("no command {other}")),
         }
         Ok(())
@@ -442,6 +471,9 @@ impl Extension for Diagrams {
                             api::call_service("notebook.new_diagram", &payload);
                         }
                     }
+                    (Some(Asked::ExportHow { path }), Some(0)) => self.copy_picture(&path),
+                    (Some(Asked::ExportHow { path }), Some(1)) => self.export_as(path, "svg"),
+                    (Some(Asked::ExportHow { path }), Some(2)) => self.export_as(path, "png"),
                     (Some(Asked::Theme { path, names }), Some(i)) => {
                         if let Some(name) = names.get(i) {
                             self.set_theme(&path, name);
