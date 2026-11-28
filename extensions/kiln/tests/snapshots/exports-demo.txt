@@ -1,0 +1,26 @@
+‹ 3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Exports   Co…› Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+design-doc (markdown, document) → docs/DESIGN-DOCUMENT.md
+  would update docs/DESIGN-DOCUMENT.md
+requirements-html (html, document) → docs/requirements.html
+  would create docs/requirements.html
+  leaves out: ADR-001, MS-001, MS-002, TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, …
+sections-md (markdown, sections) → docs/sections
+  would update docs/sections/index.md
+  would update docs/sections/requirements.md
+  would remove docs/sections/risks.md (no longer produced)
+  leaves out: ADR-001, MS-001, MS-002, TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, …
+design-doc-confluence (confluence, document) → space DEMO, page 123456789 "Demo space home"
+  update    "Demo — design document": REQ-001 changed; ADR-001, MS-001, MS-002 (+12 more) new (15 KiB)
+  retire    "Old section": no longer produced: moved under "Removed from the repository"
+  foreign   "Meeting notes" (not Kiln's; left alone)
+  0 create, 1 update, 0 unchanged, 0 drift, 1 retire
+adopted (confluence, document) → space DEMO, page 555 "Team page"
+  update    "Demo — adopted": adopt the existing page (needs --adopt) (17 KiB)
+  0 create, 1 update, 0 unchanged, 0 drift, 0 retire
+  refused: page 555 ("Team page") already has content; publishing into it replaces it, which needs --adopt
+  kiln refuses this plan, so P publishes nothing of it; overriding it (--force, --adopt) is done in a terminal
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+R read again  w write  W write all  P publish  A sign in  Enter open  / filter  s status  E edits  v item

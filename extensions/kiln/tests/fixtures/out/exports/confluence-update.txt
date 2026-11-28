@@ -1,0 +1,5 @@
+design-doc-confluence (confluence, document) → space DEMO, page 123456789 "Demo space home"
+  update    "Demo — design document": REQ-001 changed; ADR-001, MS-001, MS-002 (+12 more) new (15 KiB)
+  retire    "Old section": no longer produced: moved under "Removed from the repository"
+  foreign   "Meeting notes" (not Kiln's; left alone)
+  0 create, 1 update, 0 unchanged, 0 drift, 1 retire

@@ -1,0 +1,29 @@
+[
+  {
+    "applied": null,
+    "format": "confluence",
+    "layout": "document",
+    "leftOut": [],
+    "name": "design-doc-confluence",
+    "parent": 123456789,
+    "parentTitle": "Demo space home",
+    "plan": {
+      "foreign": [],
+      "ops": [
+        {
+          "key": "doc",
+          "kind": "create",
+          "message": "kiln 1079a92: new",
+          "reasons": [
+            "new"
+          ],
+          "size": 15259,
+          "title": "Demo — design document"
+        }
+      ],
+      "refusals": [],
+      "warnings": []
+    },
+    "space": "DEMO"
+  }
+]

@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check › Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+MS-001      First release              active   due 2030-06-30     1/5 ██░░░░░░░░
+  TASK-002  Write readings to SQLite   doing                       · ana
+  TASK-003  Export the log as CSV      todo     ready              · bo
+  TASK-007  Batch the writes           todo     ready
+  TASK-004  Add the export button      todo     waits on TASK-003
+MS-002      Second release             planned  undated            0/2 ░░░░░░░░░░
+  TASK-006  Draft the user guide       todo     ready
+  TASK-005  Ask about retention rules  blocked
+no milestone  1 item
+TASK-008    Tidy the build scripts     todo     ready
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

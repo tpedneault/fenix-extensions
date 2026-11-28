@@ -1,0 +1,422 @@
+{
+  "commit": "0cc45688573ec53be6805ff17d07cb98db6aa94d",
+  "items": [
+    {
+      "coverage": {
+        "implements": [],
+        "verifies": [
+          "crates/kiln/tests/cli.rs:957"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-001",
+      "status": "approved",
+      "title": "The repository is the source of truth"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-confluence/src/apply.rs:82",
+          "crates/kiln-export/src/docx.rs:131",
+          "crates/kiln-export/src/html.rs:47",
+          "crates/kiln-export/src/markdown.rs:132",
+          "crates/kiln-export/src/wiki.rs:35"
+        ],
+        "verifies": [
+          "crates/kiln-export/src/tests.rs:301",
+          "crates/kiln-export/src/tests.rs:326",
+          "crates/kiln-export/src/tests.rs:367",
+          "crates/kiln-export/src/tests.rs:569",
+          "crates/kiln/tests/cli.rs:422"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-002",
+      "status": "implemented",
+      "title": "Readable without Kiln"
+    },
+    {
+      "coverage": {
+        "implements": [],
+        "verifies": []
+      },
+      "gaps": [],
+      "id": "REQ-003",
+      "status": "approved",
+      "title": "Checkable in CI"
+    },
+    {
+      "coverage": {
+        "implements": [],
+        "verifies": []
+      },
+      "gaps": [],
+      "id": "REQ-004",
+      "status": "approved",
+      "title": "Fast and keyboard-first"
+    },
+    {
+      "coverage": {
+        "implements": [],
+        "verifies": []
+      },
+      "gaps": [],
+      "id": "REQ-005",
+      "status": "approved",
+      "title": "Works on a locked-down corporate machine and in a CI container"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln/src/cmd/check.rs:48"
+        ],
+        "verifies": [
+          "crates/kiln/tests/cli.rs:878"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-006",
+      "status": "approved",
+      "title": "No tool requires another"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-index/src/project.rs:170"
+        ],
+        "verifies": [
+          "crates/kiln-check/examples/bench.rs:344"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-007",
+      "status": "verified",
+      "title": "kiln check on 2,000 items and 50k source files in 2 s"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-index/src/project.rs:299"
+        ],
+        "verifies": [
+          "crates/kiln-check/examples/bench.rs:344",
+          "crates/kiln-index/src/tests.rs:367",
+          "crates/kiln-lsp/src/tests.rs:207",
+          "crates/kiln-lsp/src/tests.rs:567"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-008",
+      "status": "implemented",
+      "title": "Language server responds within 50 ms after a keystroke"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-flint/src/items.rs:205"
+        ],
+        "verifies": [
+          "crates/kiln-check/examples/bench.rs:344",
+          "crates/kiln-flint/src/tests.rs:177"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-009",
+      "status": "implemented",
+      "title": "Flint provider answers within 16 ms for 2,000 items"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-export/src/lib.rs:56"
+        ],
+        "verifies": [
+          "crates/kiln-check/examples/bench.rs:344"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-010",
+      "status": "verified",
+      "title": "Export dry run of a 2,000-item document in 3 s"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-model/src/finding.rs:154"
+        ],
+        "verifies": [
+          "crates/kiln-model/src/finding.rs:214"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-011",
+      "status": "verified",
+      "title": "Findings name the file, line and column"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-check/src/output.rs:23"
+        ],
+        "verifies": [
+          "crates/kiln-check/src/output.rs:164",
+          "crates/kiln-check/src/output.rs:178"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-012",
+      "status": "verified",
+      "title": "Findings show on merge requests"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-index/src/write.rs:48",
+          "crates/kiln-parse/src/edit.rs:60"
+        ],
+        "verifies": [
+          "crates/kiln-gui/src/tests.rs:723",
+          "crates/kiln-parse/src/edit.rs:257",
+          "crates/kiln-parse/src/edit.rs:279",
+          "crates/kiln/src/project.rs:161"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-013",
+      "status": "verified",
+      "title": "Edits keep the author's formatting and never fight an editor"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-model/src/agents.rs:157",
+          "crates/kiln-parse/src/config.rs:262"
+        ],
+        "verifies": [
+          "crates/kiln-model/src/agents.rs:157",
+          "crates/kiln-parse/src/config.rs:1067"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-014",
+      "status": "verified",
+      "title": "No secrets in kiln.toml"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-check/src/rules.rs:223",
+          "crates/kiln-index/src/renumber.rs:44"
+        ],
+        "verifies": [
+          "crates/kiln-check/src/tests.rs:113",
+          "crates/kiln-index/src/tests.rs:272",
+          "crates/kiln/tests/cli.rs:239"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-015",
+      "status": "verified",
+      "title": "Duplicate IDs are found and fixed by one command"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-index/src/diff.rs:254"
+        ],
+        "verifies": [
+          "crates/kiln-index/src/tests.rs:425",
+          "crates/kiln/tests/cli.rs:720"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-016",
+      "status": "implemented",
+      "title": "Changes since a baseline are shown item by item"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-gui/src/home.rs:205"
+        ],
+        "verifies": [
+          "crates/kiln-gui/src/home.rs:1048",
+          "crates/kiln-gui/src/home.rs:1137",
+          "crates/kiln-gui/src/tests.rs:887"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-017",
+      "status": "implemented",
+      "title": "The GUI opens any project from a picker and switches between them"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-check/src/rules.rs:581",
+          "crates/kiln-index/src/levels.rs:75",
+          "crates/kiln-render/src/reports.rs:238"
+        ],
+        "verifies": [
+          "crates/kiln-check/src/tests.rs:516",
+          "crates/kiln-render/src/tests.rs:173",
+          "crates/kiln/tests/cli.rs:168"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-018",
+      "status": "implemented",
+      "title": "Requirements at several levels trace to each other, and derived ones say so"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-check/src/rules.rs:41",
+          "crates/kiln-model/src/agents.rs:189"
+        ],
+        "verifies": [
+          "crates/kiln-model/src/agents.rs:546",
+          "crates/kiln/tests/cli.rs:1321"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-019",
+      "status": "implemented",
+      "title": "Coding agents find how this project's design is organised and how to change it"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "TASK-001",
+          "TASK-002",
+          "TASK-003",
+          "TASK-004",
+          "TASK-005",
+          "TASK-006",
+          "crates/kiln-check/src/rules.rs:866",
+          "crates/kiln-index/src/plan.rs:136",
+          "crates/kiln/src/cmd/list.rs:26",
+          "crates/kiln/src/cmd/new.rs:30",
+          "crates/kiln/src/cmd/plan.rs:48",
+          "crates/kiln/src/cmd/plan.rs:127"
+        ],
+        "verifies": [
+          "crates/kiln-check/src/tests.rs:619",
+          "crates/kiln-index/src/new_item.rs:244",
+          "crates/kiln-index/src/plan.rs:236",
+          "crates/kiln-model/src/agents.rs:504",
+          "crates/kiln/tests/cli.rs:1366"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-020",
+      "status": "verified",
+      "title": "Coding agents read the plan and act on it from the command line"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "TASK-007",
+          "TASK-008",
+          "TASK-009",
+          "TASK-010",
+          "TASK-011"
+        ],
+        "verifies": [
+          "crates/kiln/src/main.rs:663",
+          "crates/kiln/tests/cli.rs:1474"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-021",
+      "status": "verified",
+      "title": "A person uses Kiln without an agent: items start with a shape, the first export works, mistakes are said"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "TASK-012",
+          "TASK-013",
+          "TASK-014",
+          "TASK-015",
+          "TASK-016",
+          "crates/kiln-check/src/rules.rs:762",
+          "crates/kiln-gui/src/pages.rs:518",
+          "crates/kiln-index/src/project.rs:564"
+        ],
+        "verifies": [
+          "crates/kiln-check/src/tests.rs:686",
+          "crates/kiln-gui/src/tests.rs:248",
+          "crates/kiln-index/src/tests.rs:191",
+          "crates/kiln/tests/cli.rs:1527"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-022",
+      "status": "verified",
+      "title": "Every view of the plan agrees, and what reaches readers is finished"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "TASK-017",
+          "TASK-018",
+          "TASK-019",
+          "crates/kiln-check/src/rules.rs:832",
+          "crates/kiln-index/src/affected.rs:47",
+          "crates/kiln-index/src/results.rs:44",
+          "crates/kiln/src/cmd/affected.rs:18",
+          "crates/kiln/src/project.rs:46"
+        ],
+        "verifies": [
+          "crates/kiln-index/src/affected.rs:123",
+          "crates/kiln-index/src/results.rs:106",
+          "crates/kiln/tests/cli.rs:1586"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-023",
+      "status": "verified",
+      "title": "The trace says what passed, and a change says which requirements it touches"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "TASK-020",
+          "TASK-021",
+          "crates/kiln/src/cmd/log.rs:35",
+          "crates/kiln/src/cmd/signoff.rs:22"
+        ],
+        "verifies": [
+          "crates/kiln-parse/src/config.rs:1140",
+          "crates/kiln/tests/cli.rs:1658"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-024",
+      "status": "verified",
+      "title": "Sign-off is visible: who moved which status, when, in which change"
+    },
+    {
+      "coverage": {
+        "implements": [
+          "crates/kiln-export/src/assemble.rs:397"
+        ],
+        "verifies": [
+          "crates/kiln-confluence/src/tests.rs:1329",
+          "crates/kiln-export/src/tests.rs:829"
+        ]
+      },
+      "gaps": [],
+      "id": "REQ-025",
+      "status": "implemented",
+      "title": "A one-page document reads top-down, its requirements as one tree"
+    }
+  ],
+  "kiln_json": 1,
+  "roles": [
+    "implements",
+    "verifies"
+  ],
+  "type": "requirement"
+}

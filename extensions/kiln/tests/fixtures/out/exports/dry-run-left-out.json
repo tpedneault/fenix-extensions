@@ -1,0 +1,30 @@
+[
+  {
+    "format": "html",
+    "layout": "document",
+    "leftOut": [
+      "ADR-001",
+      "MS-001",
+      "MS-002",
+      "TASK-001",
+      "TASK-002",
+      "TASK-003",
+      "TASK-004",
+      "TASK-005",
+      "TASK-006",
+      "TASK-007",
+      "TASK-008",
+      "TEST-001",
+      "RISK-001"
+    ],
+    "name": "requirements-html",
+    "remove": [],
+    "unchanged": [],
+    "write": [
+      {
+        "new": true,
+        "path": "docs/requirements.html"
+      }
+    ]
+  }
+]

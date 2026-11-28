@@ -1,0 +1,112 @@
+[
+  {
+    "path": [
+      {
+        "from": "REQ-013",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "REQ-013"
+  },
+  {
+    "path": [
+      {
+        "from": "crates/kiln/tests/cli.rs:957",
+        "relation": "verifies",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "crates/kiln/tests/cli.rs:957"
+  },
+  {
+    "path": [
+      {
+        "from": "crates/kiln-gui/src/tests.rs:723",
+        "relation": "verifies",
+        "to": "REQ-013"
+      },
+      {
+        "from": "REQ-013",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "crates/kiln-gui/src/tests.rs:723"
+  },
+  {
+    "path": [
+      {
+        "from": "crates/kiln-index/src/write.rs:48",
+        "relation": "implements",
+        "to": "REQ-013"
+      },
+      {
+        "from": "REQ-013",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "crates/kiln-index/src/write.rs:48"
+  },
+  {
+    "path": [
+      {
+        "from": "crates/kiln-parse/src/edit.rs:60",
+        "relation": "implements",
+        "to": "REQ-013"
+      },
+      {
+        "from": "REQ-013",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "crates/kiln-parse/src/edit.rs:60"
+  },
+  {
+    "path": [
+      {
+        "from": "crates/kiln-parse/src/edit.rs:257",
+        "relation": "verifies",
+        "to": "REQ-013"
+      },
+      {
+        "from": "REQ-013",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "crates/kiln-parse/src/edit.rs:257"
+  },
+  {
+    "path": [
+      {
+        "from": "crates/kiln-parse/src/edit.rs:279",
+        "relation": "verifies",
+        "to": "REQ-013"
+      },
+      {
+        "from": "REQ-013",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "crates/kiln-parse/src/edit.rs:279"
+  },
+  {
+    "path": [
+      {
+        "from": "crates/kiln/src/project.rs:161",
+        "relation": "verifies",
+        "to": "REQ-013"
+      },
+      {
+        "from": "REQ-013",
+        "relation": "parent",
+        "to": "REQ-001"
+      }
+    ],
+    "source": "crates/kiln/src/project.rs:161"
+  }
+]

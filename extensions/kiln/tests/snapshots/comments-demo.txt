@@ -1,0 +1,16 @@
+‹ 4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Exports   Comments        Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+design-doc-confluence → space DEMO: 4 unresolved comments
+  REQ-001                      Readings are logged every second
+    Alice Martin · 2026-10-12  Readings are logged every second Is that measured cold?
+    Bob Chen · 2026-10-13      Per sensor, or in total?
+  TASK-006                     Draft the user guide
+    Bob Chen · 2026-10-13      REQ-099 doesn't exist, which outline did you mean?
+  about the page “Demo — design document”
+    Carla Gómez · 2026-10-14   Can we get a PDF of this?
+adopted → space DEMO: 0 unresolved comments
+  nothing to answer
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+R read again  o open comment  A sign in  Enter open  / filter  s status  E edits  v item  i impact  r reload

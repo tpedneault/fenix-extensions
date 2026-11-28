@@ -1,0 +1,3422 @@
+//! Kiln in Fenix: a Kiln project's plan on pages, edits to its items,
+//! exports and tools for coding agents -- all by running the `kiln`
+//! program (`--format json` to read; `set`, `link` and `new` to change).
+//!
+//! What it deliberately doesn't do: it never writes an item file itself,
+//! compiles none of Kiln in, reaches no network and holds no Confluence
+//! or Jira credential. Kiln's own checks and edits are the only ones;
+//! this extension shows what kiln said and asks kiln to act.
+//!
+//! The parts that decide things are plain code, tested natively: `kiln`
+//! (the queue that runs kiln), `model` (what kiln's JSON says), `project`
+//! (kiln found, the project read, when to read it again), `lsp` (whether
+//! and how Kiln's language server is registered), `doctor` (the project
+//! doctor's rows), `tasks` (the task picker's), `modeline` (the item's
+//! text) and `pages` (the pages, from the project's state). This file
+//! meets Fenix: it hands Fenix's events to the project, passes on what the
+//! project says changed, routes each query's answer to whoever asked it
+//! ([`For`]), does what `lsp` decides, and gives Fenix the doctor's rows,
+//! the tasks and the modeline text -- each only when it differs from what
+//! it gave last. It stays the thin part that talks to the host.
+//!
+//! Pages ask the user through it too: a tab's prompt or picker
+//! ([`pages::frame::Effect`]) is Fenix's own, asked here, and its answer
+//! routed back to the page, tab and view that asked ([`Asker`]); a tab's
+//! edit runs through the project's queue like a query ([`For::Edit`]).
+//! The edits' flows ([`edit`]) offer choices from the project's
+//! `kiln.toml`, read here ([`Kiln::read_config`]) when the extension
+//! loads, on `r`, and when `kiln.toml` is saved.
+//! A tab's `kiln export` (the Exports tab's `w`, `W` and `P`) runs through
+//! the queue too, as a query with its own limit ([`For::Run`]): it writes
+//! generated files or publishes, never an item, so no reload follows. A
+//! publish is one at a time for the whole extension ([`Kiln::publishing`]):
+//! a second is answered at once that one runs, and every plan page's
+//! bottom line says it runs. `kiln auth confluence` opens in a terminal
+//! pane, the token typed into kiln there; this file never reads a secret,
+//! prompts for one, or reads the environment.
+//! The Jira mirror (`kiln list --jira`, [`jira`]) is a read apart from the
+//! project's: asked when a page is in view and the queue is quiet, a
+//! background job that yields to every other ([`kiln::Job::background`]),
+//! so a slow or absent Jira never holds up or fails a reload; its tickets
+//! are appended to item rows by the frame ([`pages::frame`]). A comment's
+//! link opens in the browser through `open_url`, only for an http(s) one
+//! ([`pages::view::web_url`]).
+//! The commands that start in a buffer (`kiln.show`, `kiln.impact`,
+//! `kiln.find`) take what `here()` and `cursor()` say as they run
+//! ([`spot`]) and act once the project is read ([`Wanted`]).
+//! The edits start from a buffer too (`kiln.set_status`, `kiln.link`,
+//! `kiln.unlink`, `kiln.new`, `kiln.new_child`, `kiln.edit`): the same
+//! flows, held one at a time by the extension ([`edit::Driver`], the page
+//! frame's own), asking through Fenix's picker and prompt ([`Asker::Here`])
+//! and saying what kiln said on the message line, there being no page. It
+//! doesn't reload the file a flow edits: kiln rewrites it, and Fenix
+//! re-reads a clean buffer that changed on disk by itself.
+//!
+//! The agent tools ([`agent`]) are services Fenix's MCP server calls for a
+//! coding agent: each one kiln command through the same queue, first in,
+//! first out among the pages' jobs ([`For::Agent`]), answered later with
+//! `answer` -- or at once when it can't run: its input refused, the edits
+//! turned off (`fenix.kiln.agent_edits`), an edit [`edit::blocked`] or
+//! refused for sign-off ([`agent::check_edit`]), or a publish holding the
+//! queue for minutes ([`Kiln::publishing`]). A read changes nothing: no
+//! reload, no page's state. A tool's job is an ordinary one, not
+//! [`kiln::Job::background`]: an agent waits on it, and a background job is
+//! stopped by every reload, edit and tab's query, so a busy page could keep
+//! an agent waiting into its deadline; kiln answers a read in well under a
+//! second, so going in turn costs the pages little. Like any job it stops
+//! the Jira mirror's background read, which is asked again when the queue
+//! is quiet. An edit is read back as any edit is. A call
+//! Fenix gives up on (`service_cancelled`) drops its answer, and a read
+//! that waits or runs for it is dropped or stopped; an edit runs on.
+//!
+//! **Who may call them.** On the extension's API, 1.5, a service can't
+//! tell who called it (`called_by` and `[contributes.service_callers]`
+//! are 1.6), so any installed extension's `call_service` reaches
+//! `kiln.set`, `kiln.link` and `kiln.new` as an agent's tool call does,
+//! without Fenix's ask, which only agents' calls go through. That is why
+//! the edit tools are off until the user turns `fenix.kiln.agent_edits`
+//! on; Fenix's control channel's `fenix/tools.call` is held back by the
+//! tools' `writes = true` unless the user's rules allow it.
+//!
+//! Titles after IDs ([`decor`]): for the lines each pane shows of the
+//! project's files (`view_changed`), done again when the view moves, a
+//! shown buffer changes (`buffer_changed`) or a read loads; taken away
+//! when the project isn't usable or `kiln.decorations` is off. The text is
+//! `buffer::text`'s and only the shown lines of it are looked at; nothing
+//! is ever written to a buffer.
+//!
+//! The project is read once as the extension loads (a `kiln.toml` at the
+//! project's top, or a `kiln.*` command): the language server is wanted
+//! from the start, not only once a page opens, and deciding it needs kiln
+//! found and the project read.
+
+pub mod agent;
+pub mod alert;
+pub mod config;
+pub mod decor;
+pub mod doctor;
+pub mod edit;
+pub mod home;
+pub mod jira;
+pub mod kiln;
+pub mod lsp;
+pub mod model;
+pub mod modeline;
+pub mod pages;
+pub mod project;
+pub mod spot;
+pub mod start;
+pub mod tasks;
+
+use std::collections::HashMap;
+use std::path::PathBuf;
+
+#[cfg(not(test))]
+pub(crate) use fenix_extension_api as api;
+#[cfg(test)]
+pub(crate) use fenix_test_kit::api;
+
+use api::{
+    page as pages_api, Changed, Event, Extension, Key, KeyPress, KeyScheme, MouseEvent, Page,
+    PickerItem, TextView,
+};
+use edit::{Edit, Facts, Step};
+use lsp::Lsp;
+use pages::frame::{Effect, Hints, Now, Plan};
+use pages::view::Choice;
+use pages::Tab;
+use project::{Notice, Project, QueryId, State, Why};
+use spot::Spot;
+use tasks::Offer;
+
+/// The page kind the plan opens as (the manifest's context names it).
+const PLAN: &str = "plan";
+
+/// The open project's folder, as `std::fs` sees it (`filesystem =
+/// "project-read"`).
+const PROJECT: &str = "/project";
+
+/// Who asked a query ([`Project::query`]), so its answer goes to them.
+/// One map for every asker, handed its answers in [`Kiln::pass_on`]. An
+/// answer no one's waiting for -- its page closed -- is dropped.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum For {
+    /// `kiln lsp --languages`, for [`Lsp`].
+    Languages,
+    /// A plan page's tab: its view's query `tag`
+    /// ([`pages::view::View::queries`]).
+    Plan { page: u64, tab: Tab, tag: String },
+    /// A plan page's tab: the edit its view asked for with `tag`
+    /// ([`pages::view::Reply::Edit`]).
+    Edit { page: u64, tab: Tab, tag: String },
+    /// The edit of the buffer flow `serial` ([`Kiln::here`]).
+    Here { serial: u64 },
+    /// A plan page's tab: the command its view asked for with `tag`
+    /// ([`pages::view::Reply::Run`]).
+    Run { page: u64, tab: Tab, tag: String },
+    /// `kiln list --jira`, for [`jira::Mirror`]: no page's, every page's
+    /// rows.
+    Mirror,
+    /// An agent's tool call `call` ([`agent`]): its answer goes to Fenix
+    /// with `answer`, unless Fenix gave up on it meanwhile.
+    Agent { call: u64 },
+    /// The `kiln set` of the start `serial` ([`Kiln::starting`]).
+    Start { serial: u64 },
+}
+
+/// An agent's tool call that kiln runs for: the query or edit asked, and
+/// what was asked, to shape kiln's answer ([`agent::answer`]).
+struct AgentCall {
+    query: QueryId,
+    request: agent::Request,
+}
+
+/// The publish running: its query, and the Confluence target it publishes.
+struct Publishing {
+    id: QueryId,
+    target: String,
+}
+
+/// Who asked Fenix's prompt or picker, so the answer goes to them. Like
+/// [`For`], an answer no one's waiting for -- the page closed -- is
+/// dropped, and so is a prompt or picker closed with nothing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Asker {
+    /// A plan page's tab: its view's `tag` ([`pages::view::Reply::Ask`],
+    /// [`pages::view::Reply::Pick`]).
+    View { page: u64, tab: Tab, tag: String },
+    /// `kiln.find`'s picker: the item picked goes to the Item tab.
+    Find,
+    /// A pick or prompt of the buffer flow `serial` ([`Kiln::here`]); an
+    /// answer for a flow since replaced is dropped by its serial.
+    Here { serial: u64 },
+}
+
+/// A command from a buffer waiting for the project to be read, so it can
+/// tell an ID from a word: what `here()` said as it ran (it says nothing
+/// once the command is over), and where to take the item.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Wanted {
+    /// `kiln.show` (`Tab::Item`) or `kiln.impact` (`Tab::Impact`).
+    Item { spot: Spot, to: Tab },
+    /// `kiln.find`: the picker over every item.
+    Find,
+    /// An edit from a buffer (`kiln.set_status`, `kiln.link`, `kiln.new`,
+    /// `kiln.edit`…): started on the item at `spot`, or on none for a new
+    /// item, once the project is read.
+    Edit { spot: Spot, edit: Edit },
+    /// `kiln.start`: the item at `spot` claimed and its clock started.
+    Start { spot: Spot },
+}
+
+/// The most rows `kiln.find`'s picker is given. Fenix sets its picker no
+/// limit (its host passes the rows on as they come); this is the bound of
+/// Fenix's other lists (`folder_list`, decorations), far past Kiln's
+/// budget of 2,000 items, so a project past it is cut, and said. A tab's
+/// own picks choose among fewer (a type's statuses, its roles).
+const MOST_CHOICES: usize = 10_000;
+
+/// One plan page: whether it's in view, and its tabs.
+struct PlanPage {
+    shown: bool,
+    plan: Plan,
+}
+
+/// What was last given to Fenix, so each of the three is given again only
+/// when it changes. `None`: not given yet, so the first decision is always
+/// given, even when it is "nothing" (it clears what an earlier run left).
+#[derive(Default)]
+struct Told {
+    doctor: Option<Vec<api::Check>>,
+    /// The kiln program the tasks run and the file targets the export
+    /// tasks name, `None` inside for none offered.
+    tasks: Option<Option<(String, Vec<String>)>>,
+    /// The modeline's text, `None` inside for no item.
+    modeline: Option<Option<String>>,
+    /// Home's section: the key that opens the plan and the rows, `None`
+    /// inside for no section.
+    home: Option<Option<(String, Vec<home::Row>)>>,
+    /// The errors of the last read that loaded, as the notification
+    /// decides by: `None` before one, or when the check gave no answer.
+    errors: Option<u32>,
+    /// Whether the notification about errors is showing (shown, and not
+    /// dismissed since).
+    alerted: bool,
+}
+
+/// How many rounds [`Kiln::pass_on`] goes before it stops: each round
+/// hands on what came and may ask once more; a few settle anything real.
+const MOST_ROUNDS: usize = 16;
+
+#[derive(Default)]
+struct Kiln {
+    project: Project,
+    /// Its plan pages: several may be open, in different panes, each
+    /// with its own tab, cursors and filters.
+    pages: HashMap<u64, PlanPage>,
+    lsp: Lsp,
+    /// The queries waiting for an answer, and who for.
+    asked: HashMap<QueryId, For>,
+    /// Fenix's prompts and pickers waiting for an answer, and who for.
+    answers: HashMap<u64, Asker>,
+    /// A command from a buffer, waiting for the project to be read.
+    wanted: Option<Wanted>,
+    /// The edit flow started from a buffer, if one is under way: one at a
+    /// time for the extension (a page holds its own), a new one replaces
+    /// it. Its prompts and picks are Fenix's own ([`Asker::Here`]) and what
+    /// it says goes to the message line, there being no page.
+    here: edit::Driver,
+    /// The project's folder when it isn't [`PROJECT`]: a test's.
+    root: Option<PathBuf>,
+    /// `kiln.toml` as last read ([`config`]), or why it couldn't be;
+    /// `None` before the first read.
+    config: Option<Result<config::Config, String>>,
+    /// The language server's inputs moved (a save, `r`, another kiln)
+    /// without the project saying anything: decide it on the next
+    /// [`Kiln::pass_on`].
+    decide: bool,
+    told: Told,
+    /// The one publish that may run ([`pages::view::Reply::Run`] with
+    /// `publish`), from when it's asked until its answer comes -- even if
+    /// its page closes meanwhile.
+    publishing: Option<Publishing>,
+    /// The Jira mirror, and when it is read next.
+    mirror: jira::Mirror,
+    /// Agents' tool calls kiln runs for, by Fenix's call id.
+    agent: HashMap<u64, AgentCall>,
+    /// Their answers, to give Fenix once [`Kiln::pass_on`] is done -- but
+    /// the call being served now, which `serve` answers itself.
+    agent_ready: Vec<(u64, Result<String, String>)>,
+    serving: Option<u64>,
+    /// Titles after IDs: the views, the index, what each buffer was given.
+    decor: decor::Decor,
+    /// How many times `kiln.toml` was read to something new: the
+    /// decorations' statuses are coloured by its types.
+    config_reads: u64,
+    /// The project's folder as Fenix names it (`here()`), once known: a
+    /// view's file is the project's when it's under it.
+    fenix_root: Option<String>,
+    /// The start under way ([`start`]): one at a time for the extension, a
+    /// new one replaces it (its late answers are dropped by `serial`).
+    starting: Option<Starting>,
+    start_serial: u64,
+    /// The agenda's services asked for a start, by Fenix's call id: the
+    /// start's serial.
+    agenda_calls: HashMap<u64, u64>,
+    /// The file saved last, which the notification about errors names.
+    last_saved: Option<String>,
+}
+
+/// Where a start says what it did: a plan page's bottom line, or the
+/// message line when it began in a buffer (or its page is gone).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Surface {
+    Page(u64),
+    Buffer,
+}
+
+/// A start under way: who asked, and where it has got.
+struct Starting {
+    serial: u64,
+    surface: Surface,
+    run: start::Run,
+}
+
+/// The project now, for a page: its state, its reads, `kiln.toml`,
+/// whether every edit has been read back, its change count, the publish
+/// running and the Jira tickets read. A function of the fields, not a
+/// method, so a page (another field) can be borrowed beside them.
+fn now_of<'a>(
+    project: &'a Project,
+    config: &'a Option<Result<config::Config, String>>,
+    publishing: &'a Option<Publishing>,
+    mirror: &'a jira::Mirror,
+) -> Now<'a> {
+    Now {
+        state: project.state(),
+        loads: project.loads(),
+        config: match config {
+            Some(Ok(c)) => Ok(c),
+            Some(Err(why)) => Err(why.as_str()),
+            None => Err("kiln.toml hasn't been read yet"),
+        },
+        settled: project.settled(),
+        changes: project.changes(),
+        publishing: publishing.as_ref().map(|p| p.target.as_str()),
+        tickets: mirror.tickets(),
+    }
+}
+
+impl Kiln {
+    /// `args` asked of kiln for `who`.
+    fn ask<S: Into<String>>(&mut self, args: impl IntoIterator<Item = S>, who: For) -> QueryId {
+        let id = self.project.query(args);
+        self.asked.insert(id, who);
+        id
+    }
+
+    /// What the project said, passed on: a change draws its pages again,
+    /// an answer goes to whoever asked it. Then, when something came (or
+    /// [`Kiln::decide`] says the server's inputs moved), the language
+    /// server is decided again, which may ask kiln something whose answer
+    /// may already be here -- so round again until nothing more comes.
+    /// Not on every call: a line of kiln's output brings no notice, and
+    /// deciding looks for the kiln program.
+    fn pass_on(&mut self) {
+        if self.config.is_none() {
+            self.read_config();
+        }
+        let mut changed = false;
+        let mut decide = std::mem::take(&mut self.decide);
+        // Anything that can move what Fenix is told: not a line of kiln's
+        // output, which brings neither a notice nor a decision.
+        let mut touched = decide;
+        for _ in 0..MOST_ROUNDS {
+            let notices = self.project.take_notices();
+            touched |= !notices.is_empty();
+            decide |= !notices.is_empty();
+            for notice in notices {
+                match notice {
+                    Notice::Changed => changed = true,
+                    Notice::Read { saved } => self.read_loaded(saved),
+                    Notice::Answer { id, result, .. } => match self.asked.remove(&id) {
+                        Some(For::Languages) => {
+                            self.lsp.answered(id, &result, self.project.version())
+                        }
+                        Some(For::Plan { page, tab, tag }) => {
+                            if let Some(p) = self.pages.get_mut(&page) {
+                                if p.plan.answered(tab, &tag, id, &result) {
+                                    pages_api::refresh(page);
+                                }
+                            }
+                        }
+                        Some(For::Edit { page, tab, tag }) => {
+                            let now =
+                                now_of(&self.project, &self.config, &self.publishing, &self.mirror);
+                            if let Some(p) = self.pages.get_mut(&page) {
+                                let effects = p.plan.edited(tab, &tag, &result, now);
+                                pages_api::refresh(page);
+                                self.perform(page, effects);
+                            } else {
+                                // Its page closed: kiln did it all the same.
+                                let (line, role) = pages::frame::outcome(&result);
+                                tell(&line, role == fenix_ui_kit::Role::Bad);
+                            }
+                        }
+                        Some(For::Here { serial }) => self.here_edited(serial, &result),
+                        Some(For::Start { serial }) => self.start_edited(serial, &result),
+                        Some(For::Run { page, tab, tag }) => {
+                            if self.publishing.as_ref().is_some_and(|p| p.id == id) {
+                                self.publishing = None;
+                                // Every page's bottom line said it ran.
+                                changed = true;
+                            }
+                            let now =
+                                now_of(&self.project, &self.config, &self.publishing, &self.mirror);
+                            if let Some(p) = self.pages.get_mut(&page) {
+                                let effects = p.plan.ran(tab, &tag, &result, now);
+                                pages_api::refresh(page);
+                                self.perform(page, effects);
+                            } else if tab == Tab::Exports {
+                                // Its page closed while kiln ran (a publish
+                                // outlives it): what kiln did to Confluence or
+                                // Jira is said on the message line, and after a
+                                // sync, which wrote keys into items, the
+                                // project is read again as the page would have.
+                                if let Some((line, bad, reload)) =
+                                    pages::exports::unseen(&tag, &result)
+                                {
+                                    tell(&line, bad);
+                                    if reload {
+                                        self.reload();
+                                    }
+                                }
+                            }
+                        }
+                        Some(For::Mirror) => {
+                            let heard = self.mirror.answered(id, &result);
+                            self.mirrored(heard);
+                        }
+                        Some(For::Agent { call }) => {
+                            if let Some(c) = self.agent.remove(&call) {
+                                let said = agent::answer(&c.request, &result, agent::MAX_ANSWER);
+                                self.agent_ready.push((call, said));
+                            }
+                        }
+                        None => {}
+                    },
+                }
+            }
+            // A command from a buffer, once the project's read.
+            let resolved = self.resolve_wanted();
+            // A page's tab may want kiln asked something: on a new read,
+            // a tab shown, an item handed on. Its answer may be here at
+            // once (kiln unusable): another round.
+            let asked = self.ask_for_pages();
+            // The Jira mirror, once nothing else runs or waits: not in a
+            // round that asks the language server something (that would
+            // stop it at once), but the round after.
+            let mirrored = !decide && !asked && !resolved && self.ask_mirror();
+            if !decide && !asked && !resolved && !mirrored {
+                break;
+            }
+            // Asking brings an answer, maybe at once: another round.
+            if decide {
+                decide = self.decide_lsp();
+            }
+        }
+        if changed {
+            for &p in self.pages.keys() {
+                pages_api::refresh(p);
+            }
+        }
+        if touched {
+            self.publish();
+            self.decorate();
+        }
+        self.answer_agents();
+    }
+
+    /// The decorations given to the buffers that need them again ([`decor`]):
+    /// the project told first (usable or not, which read), then each
+    /// shown buffer worked out from its text. One `decorations::set` a
+    /// buffer whose decorations changed; nothing at all when nothing did.
+    fn decorate(&mut self) {
+        let usable = match self.project.state() {
+            State::Loaded { loaded, .. } => Some(loaded),
+            _ => None,
+        };
+        let config = match &self.config {
+            Some(Ok(c)) => Some(c),
+            _ => None,
+        };
+        self.decor.project(
+            usable.map(|l| (l, self.project.loads(), config)),
+            self.config_reads,
+        );
+        if !self.decor.pending() {
+            return;
+        }
+        if self.fenix_root.is_none() {
+            self.fenix_root = api::here().and_then(|h| h.project).map(|p| p.root);
+        }
+        let root = self.fenix_root.clone();
+        for (path, decorations) in self.decor.take(root.as_deref(), api::buffer::text) {
+            // A buffer closed meanwhile can't take them: nothing to undo.
+            let _ = api::decorations::set(&api::decorations::file(path), &decorations);
+        }
+    }
+
+    /// Agents' answers that came, given to Fenix: all but the call `serve`
+    /// is answering now, which it returns itself.
+    fn answer_agents(&mut self) {
+        let serving = self.serving;
+        let (now, later): (Vec<_>, Vec<_>) = std::mem::take(&mut self.agent_ready)
+            .into_iter()
+            .partition(|(c, _)| Some(*c) != serving);
+        self.agent_ready = later;
+        for (call, said) in now {
+            api::answer(call, said);
+        }
+    }
+
+    /// An agent's tool call: refused at once, or kiln asked and answered
+    /// later (`None`) -- or at once, when kiln can't run now and says so
+    /// in the same call. Never disturbs a page: a read is a query like a
+    /// tab's, which no page waits for and which reads nothing again.
+    fn agent_call(
+        &mut self,
+        call: u64,
+        name: &str,
+        payload: &str,
+    ) -> Option<Result<String, String>> {
+        if self.config.is_none() {
+            self.read_config();
+        }
+        let request = match agent::request(name, payload) {
+            Ok(r) => r,
+            Err(why) => return Some(Err(why)),
+        };
+        let edits = request.tool().edits();
+        if edits && api::setting(agent::EDITS_SETTING).as_deref().map(str::trim) != Some("true") {
+            return Some(Err(agent::EDITS_OFF.into()));
+        }
+        // A publish holds the queue for minutes: said now, rather than the
+        // agent waiting into its deadline.
+        if let Some(p) = &self.publishing {
+            return Some(Err(agent::busy(&p.target)));
+        }
+        let query = if edits {
+            let state = self.project.state();
+            if let Some(why) = edit::blocked(&state, self.project.settled()) {
+                return Some(Err(why));
+            }
+            let State::Loaded { loaded, .. } = state else {
+                return Some(Err("the project isn't read yet: edits wait for it".into()));
+            };
+            let config = now_of(&self.project, &self.config, &self.publishing, &self.mirror).config;
+            if let Err(why) = agent::check_edit(&request, loaded, config) {
+                return Some(Err(why));
+            }
+            self.project.edit(request.args(), request.stdin())
+        } else {
+            self.project.query(request.args())
+        };
+        self.asked.insert(query, For::Agent { call });
+        self.agent.insert(call, AgentCall { query, request });
+        api::progress(call, "kiln runs", None);
+        self.serving = Some(call);
+        self.pass_on();
+        self.serving = None;
+        let at = self.agent_ready.iter().position(|(c, _)| *c == call);
+        let now = at.map(|i| self.agent_ready.remove(i).1);
+        self.answer_agents();
+        now
+    }
+
+    /// The doctor's rows, the tasks and the modeline item, given to Fenix
+    /// when they differ from what it was last given. Each is worked out
+    /// by a pure function ([`doctor::rows`], [`tasks::offer`],
+    /// [`modeline::line`]); a state still being found out leaves what was
+    /// given as it is.
+    fn publish(&mut self) {
+        let state = self.project.state();
+        let usability = lsp::usability(&state);
+        // The kiln the queue runs; looked for only in a usable project.
+        let program = if usability == lsp::Usability::Usable {
+            kiln::program()
+        } else {
+            Err(String::new())
+        };
+        let kiln_path = api::setting("kiln.path")
+            .map(|p| p.trim().to_string())
+            .filter(|p| !p.is_empty());
+        let rows = doctor::rows(&doctor::Input {
+            state,
+            lsp: self.lsp.status(),
+            kiln_path: kiln_path.as_deref(),
+            program: program.as_deref().ok(),
+            version: self.project.version(),
+        });
+        // The export tasks name the file targets `kiln.toml` has; a
+        // configuration that can't be read names none.
+        let files: Vec<String> = match &self.config {
+            Some(Ok(c)) => c.file_targets().into_iter().map(String::from).collect(),
+            _ => Vec::new(),
+        };
+        let offer = tasks::offer(&usability, program, files);
+        let line = modeline::line(&state);
+        let home = home::home(&state);
+
+        if let Some(rows) = rows {
+            if self.told.doctor.as_ref() != Some(&rows) {
+                api::project::doctor(&rows);
+                self.told.doctor = Some(rows);
+            }
+        }
+        let wanted = match offer {
+            Offer::Keep => None,
+            Offer::Clear => Some(None),
+            Offer::With { program, files } => Some(Some((program, files))),
+        };
+        if let Some(wanted) = wanted {
+            if self.told.tasks.as_ref() != Some(&wanted) {
+                let tasks = wanted
+                    .as_ref()
+                    .map(|(program, files)| tasks::tasks(program, files))
+                    .unwrap_or_default();
+                match api::project::tasks(&tasks) {
+                    Ok(()) => self.told.tasks = Some(wanted),
+                    Err(why) => api::warn!("Fenix refused kiln's tasks: {why}"),
+                }
+            }
+        }
+        let text = match line {
+            modeline::Line::Keep => None,
+            modeline::Line::None => Some(None),
+            modeline::Line::Text(text) => Some(Some(text)),
+        };
+        if let Some(text) = text {
+            if self.told.modeline.as_ref() != Some(&text) {
+                api::status(text.as_deref());
+                self.told.modeline = Some(text);
+            }
+        }
+        match home {
+            home::Home::Keep => {}
+            home::Home::Clear => self.tell_home(None),
+            home::Home::Set(rows) => self.tell_home(Some(rows)),
+        }
+    }
+
+    /// Kiln's section on Home, given to Fenix when it differs from what it
+    /// was last given (the rows, or the key that opens the plan, which
+    /// follows the key scheme). `None` takes the section away.
+    fn tell_home(&mut self, rows: Option<Vec<home::Row>>) {
+        let key = api::key_for("kiln.open").unwrap_or_else(|| "SPC m o".into());
+        let wanted = rows.map(|r| (key, r));
+        if self.told.home.as_ref() == Some(&wanted) {
+            return;
+        }
+        match &wanted {
+            None => api::home(None),
+            Some((key, rows)) => api::home(Some(&api::HomeSection {
+                title: "Kiln".into(),
+                key: key.clone(),
+                rows: rows
+                    .iter()
+                    .map(|r| api::HomeRow {
+                        name: r.name.clone(),
+                        detail: r.detail.clone(),
+                        mark: api::HomeMark::None,
+                        value: r.value.clone(),
+                    })
+                    .collect(),
+                most: home::MOST_ROWS,
+            })),
+        }
+        self.told.home = Some(wanted);
+    }
+
+    /// A read loaded: the notification about errors decided
+    /// ([`alert::decide`]) from the errors the read before it had and this
+    /// one's. `saved`: a save asked for the read.
+    fn read_loaded(&mut self, saved: bool) {
+        let on = alert::enabled(api::setting(alert::SETTING).as_deref());
+        let Some(loaded) = self.project.loaded() else {
+            return;
+        };
+        let after = alert::errors(loaded);
+        let act = alert::decide(self.told.errors, after, saved, on, self.told.alerted);
+        let shown = match act {
+            alert::Act::Show => alert::text(loaded, self.last_saved.as_deref()),
+            _ => None,
+        };
+        // A check that gave no answer says nothing about the errors.
+        if after.is_some() {
+            self.told.errors = after;
+        }
+        match (act, shown) {
+            (alert::Act::Show, Some((summary, body))) => {
+                api::host::notify_with(
+                    &api::Notification::new(summary)
+                        .body(body)
+                        .action("Open the Check tab", alert::OPEN_CHECK)
+                        .tag(alert::TAG),
+                );
+                self.told.alerted = true;
+            }
+            (alert::Act::Dismiss, _) => self.dismiss_alert(),
+            _ => {}
+        }
+    }
+
+    /// The notification about errors taken away, if it shows.
+    fn dismiss_alert(&mut self) {
+        if std::mem::take(&mut self.told.alerted) {
+            api::notify_dismiss(alert::TAG);
+        }
+    }
+
+    /// What [`Lsp`] decides, done: whether it asked kiln.
+    fn decide_lsp(&mut self) -> bool {
+        let usability = lsp::usability(&self.project.state());
+        let usable = usability == lsp::Usability::Usable;
+        if usable && self.lsp.wants_tools() {
+            self.lsp.tools(lsp::listed(self.read_tools()));
+        }
+        // The kiln the queue runs; looked for only when it's used.
+        let program = if usable {
+            kiln::program()
+        } else {
+            Err(String::new())
+        };
+        let step = self.lsp.step(&usability, program);
+        for action in step.actions {
+            match action {
+                lsp::Action::Say(line) => api::info!("{line}"),
+                lsp::Action::Register(server) => {
+                    let languages: Vec<&str> =
+                        server.languages.iter().map(String::as_str).collect();
+                    let command = api::Command::new(&server.program).args(lsp::ARGS);
+                    if let Err(why) =
+                        api::project::add_language_server(lsp::NAME, &languages, Some(&command))
+                    {
+                        api::warn!("Fenix refused kiln's language server: {why}");
+                        self.lsp.refused(server, why);
+                    }
+                }
+                lsp::Action::Unregister(languages) => {
+                    let languages: Vec<&str> = languages.iter().map(String::as_str).collect();
+                    // Taking one away can't be refused for a reason this
+                    // could act on.
+                    let _ = api::project::add_language_server(lsp::NAME, &languages, None);
+                }
+            }
+        }
+        if step.ask {
+            let id = self.ask(lsp::ASK, For::Languages);
+            self.lsp.asked(id);
+        }
+        step.ask
+    }
+
+    /// The project's `.fenix/tools.json`: its text, `None` when there's
+    /// none, or why it can't be read. Fenix reads the same file for its
+    /// own servers; this only looks at whether it runs kiln.
+    fn read_tools(&self) -> Result<Option<String>, String> {
+        let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
+        let path = root.join(".fenix").join("tools.json");
+        match std::fs::metadata(&path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(e) => return Err(e.to_string()),
+            Ok(m) if m.len() > lsp::MAX_TOOLS_JSON => {
+                return Err(format!("it's over {} KiB", lsp::MAX_TOOLS_JSON / 1024))
+            }
+            Ok(_) => {}
+        }
+        match std::fs::read_to_string(&path) {
+            Ok(text) => Ok(Some(text)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    /// The project's `kiln.toml`, read for the edits' choices: kept, and
+    /// the pages told when it differs from what was read before. One that
+    /// isn't at the project's top, is too large or can't be read is
+    /// [`Err`] with why, and the edits ask for values as text.
+    fn read_config(&mut self) {
+        let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
+        let path = root.join("kiln.toml");
+        let read = match std::fs::metadata(&path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Err("there's no kiln.toml at the project's top".to_string())
+            }
+            Err(e) => Err(format!("kiln.toml can't be read: {e}")),
+            Ok(m) if m.len() > config::MAX_KILN_TOML => Err(format!(
+                "kiln.toml is over {} KiB",
+                config::MAX_KILN_TOML / 1024
+            )),
+            Ok(_) => match std::fs::read_to_string(&path) {
+                Ok(text) => config::parse(&text),
+                Err(e) => Err(format!("kiln.toml can't be read: {e}")),
+            },
+        };
+        if self.config.as_ref() != Some(&read) {
+            self.config_reads += 1;
+            let first = self.config.is_none();
+            let jira_url = |c: &Option<Result<config::Config, String>>| {
+                c.as_ref()
+                    .and_then(|c| c.as_ref().ok())
+                    .and_then(|c| c.jira_url().map(str::to_string))
+            };
+            let moved = jira_url(&self.config) != jira_url(&Some(read.clone()));
+            self.config = Some(read);
+            // Another Jira (or none): its tickets are another's.
+            if moved && !first {
+                let had = self.mirror.clear();
+                for (&id, p) in self.pages.iter_mut() {
+                    if had {
+                        p.plan.tickets_changed();
+                    }
+                    p.plan.set_signin(false);
+                    pages_api::refresh(id);
+                }
+            }
+            if !first {
+                for (&id, p) in self.pages.iter_mut() {
+                    p.plan.reconfigure();
+                    pages_api::refresh(id);
+                }
+            }
+        }
+    }
+
+    /// `r`, `kiln.reload`: the project read again, its `kiln.toml` too,
+    /// and the language server's languages and tools.json looked at again.
+    fn reload(&mut self) {
+        self.read_config();
+        self.lsp.again();
+        self.decide = true;
+        // `r` reads Jira again too: kiln answers from its own cache when
+        // that is fresh, so this costs a Jira request only when it isn't.
+        self.mirror.refresh();
+        self.project.reload(Why::Asked);
+    }
+
+    fn shown_changed(&mut self) {
+        let any = self.pages.values().any(|p| p.shown);
+        self.project.set_shown(any);
+    }
+
+    /// What each page in view wants asked of kiln, asked: whether any was.
+    /// A page out of view asks once it's shown again.
+    fn ask_for_pages(&mut self) -> bool {
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
+        let mut wanted = Vec::new();
+        for (&page, p) in self.pages.iter_mut().filter(|(_, p)| p.shown) {
+            wanted.extend(p.plan.wants(now).into_iter().map(|a| (page, a)));
+        }
+        let asked = !wanted.is_empty();
+        for (page, ask) in wanted {
+            let who = For::Plan {
+                page,
+                tab: ask.tab,
+                tag: ask.tag.clone(),
+            };
+            let id = self
+                .project
+                .query_with(ask.args.clone(), ask.limit_ms, false);
+            self.asked.insert(id, who);
+            if let Some(p) = self.pages.get_mut(&page) {
+                p.plan.asked(
+                    &ask,
+                    id,
+                    now_of(&self.project, &self.config, &self.publishing, &self.mirror),
+                );
+            }
+        }
+        asked
+    }
+
+    /// The Jira mirror asked for, when it is wanted ([`jira::Mirror::wants`])
+    /// and the moment is right: `[jira] url` in `kiln.toml`, a page in
+    /// view, the project read, and nothing else running or waiting. As a
+    /// background job: any other job stops it. Whether it was asked.
+    fn ask_mirror(&mut self) -> bool {
+        let configured = matches!(&self.config, Some(Ok(c)) if c.jira_url().is_some());
+        let ready = configured
+            && matches!(self.project.state(), State::Loaded { .. })
+            && self.pages.values().any(|p| p.shown)
+            && self.project.quiet();
+        if !self.mirror.wants(ready) {
+            return false;
+        }
+        let id = self.project.query_background(jira::args(), jira::MIRROR_MS);
+        self.asked.insert(id, For::Mirror);
+        self.mirror.asked(id);
+        true
+    }
+
+    /// What a read of the mirror came to, told to every page: new tickets
+    /// build their rows again; a new failure is said once on the bottom
+    /// line, with how to sign in when it was a token.
+    fn mirrored(&mut self, heard: jira::Heard) {
+        match heard {
+            jira::Heard::Nothing => {}
+            jira::Heard::Tickets => {
+                for (&id, p) in self.pages.iter_mut() {
+                    p.plan.tickets_changed();
+                    p.plan.set_signin(false);
+                    pages_api::refresh(id);
+                }
+            }
+            jira::Heard::Failed { line, token } => {
+                // The hint first: a narrow bottom line cuts the end, and
+                // kiln's own line is long.
+                let said = if token {
+                    format!("Jira: A signs in (kiln auth jira) -- {line}")
+                } else {
+                    format!("Jira: {line}")
+                };
+                for (&id, p) in self.pages.iter_mut() {
+                    p.plan.set_signin(token);
+                    p.plan.tell(&said, true);
+                    pages_api::refresh(id);
+                }
+            }
+        }
+    }
+
+    /// Something done on plan page `page` -- a key, a click -- and what it
+    /// asks of Fenix done.
+    fn on_page(&mut self, page: u64, act: impl FnOnce(&mut Plan, Now) -> Vec<Effect>) {
+        if self.config.is_none() {
+            self.read_config();
+        }
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
+        let Some(p) = self.pages.get_mut(&page) else {
+            return;
+        };
+        let effects = act(&mut p.plan, now);
+        self.perform(page, effects);
+        self.pass_on();
+    }
+
+    /// What plan page `page` asks of Fenix or kiln, done. A prompt's or a
+    /// picker's id, and an edit's, is kept with who asked, for the answer.
+    fn perform(&mut self, page: u64, effects: Vec<Effect>) {
+        for effect in effects {
+            match effect {
+                Effect::Open(place) => {
+                    if let Err(why) = self.open_place(&place) {
+                        if let Some(p) = self.pages.get_mut(&page) {
+                            p.plan.tell(&why, true);
+                            pages_api::refresh(page);
+                        }
+                    }
+                }
+                Effect::Reload => self.reload(),
+                Effect::Ask {
+                    tab,
+                    tag,
+                    label,
+                    initial,
+                } => {
+                    let id = api::prompt(&label, &initial);
+                    self.answers.insert(id, Asker::View { page, tab, tag });
+                }
+                Effect::Pick {
+                    tab,
+                    tag,
+                    title,
+                    items,
+                } => {
+                    let items = picker_items(&items);
+                    let id = api::pick(&title, &items);
+                    self.answers.insert(id, Asker::View { page, tab, tag });
+                }
+                Effect::Edit {
+                    tab,
+                    tag,
+                    args,
+                    stdin,
+                } => {
+                    let id = self.project.edit(args, stdin);
+                    self.asked.insert(id, For::Edit { page, tab, tag });
+                }
+                Effect::Run {
+                    tab,
+                    tag,
+                    args,
+                    limit_ms,
+                    publish,
+                } => self.run(page, tab, tag, args, limit_ms, publish),
+                Effect::Terminal { title, args } => self.terminal(page, &title, args),
+                Effect::Url(url) => self.open_url(page, &url),
+                Effect::Start(id) => self.start_item(Surface::Page(page), &id),
+            }
+        }
+    }
+
+    /// A tab's command that changes no item, in kiln's queue; its answer
+    /// to the tab ([`For::Run`]). One that publishes waits for no other
+    /// publish: while one runs it is answered at once that it does, and
+    /// nothing is run. It isn't stopped when another kiln is chosen (a
+    /// publish stopped half done leaves Confluence half updated).
+    fn run(
+        &mut self,
+        page: u64,
+        tab: Tab,
+        tag: String,
+        args: Vec<String>,
+        limit_ms: Option<u32>,
+        publish: Option<String>,
+    ) {
+        if let (Some(_), Some(running)) = (&publish, &self.publishing) {
+            let why = Err(kiln::Failure::Unusable(pages::view::publish_running(
+                &running.target,
+            )));
+            let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
+            if let Some(p) = self.pages.get_mut(&page) {
+                let effects = p.plan.ran(tab, &tag, &why, now);
+                pages_api::refresh(page);
+                self.perform(page, effects);
+            }
+            return;
+        }
+        let id = self.project.query_with(args, limit_ms, publish.is_some());
+        self.asked.insert(id, For::Run { page, tab, tag });
+        if let Some(target) = publish {
+            self.publishing = Some(Publishing { id, target });
+            for &p in self.pages.keys() {
+                pages_api::refresh(p);
+            }
+        }
+    }
+
+    /// kiln with `args` in a terminal pane under the focused one: what is
+    /// typed into kiln (`kiln auth confluence`'s token) stays between the
+    /// person and kiln. The kiln is the one the queue runs; when there's
+    /// none, or Fenix won't open the pane, the page says why.
+    fn terminal(&mut self, page: u64, title: &str, args: Vec<String>) {
+        let opened = kiln::program().and_then(|program| {
+            let cmd = api::Command::new(&program).args(args);
+            api::host::run_in_terminal(&cmd, title, true)
+                .map_err(|why| format!("Fenix didn't open a terminal for {title}: {why}"))
+        });
+        if let Err(why) = opened {
+            if let Some(p) = self.pages.get_mut(&page) {
+                p.plan.tell(&why, true);
+                pages_api::refresh(page);
+            }
+        }
+    }
+
+    /// A link opened in the system's browser, only when it is an http(s)
+    /// one: the frame has checked ([`pages::view::web_url`]), and this
+    /// checks again, since what it hands Fenix is the one thing here that
+    /// could start something outside the extension. When Fenix won't, the
+    /// page says why.
+    fn open_url(&mut self, page: u64, url: &str) {
+        let opened = pages::view::web_url(url)
+            .and_then(|u| api::open_url(u).map_err(|why| format!("Fenix didn't open {u}: {why}")));
+        if let Err(why) = opened {
+            if let Some(p) = self.pages.get_mut(&page) {
+                p.plan.tell(&why, true);
+                pages_api::refresh(page);
+            }
+        }
+    }
+
+    /// A file of the project opened at a line, in Fenix; else why not.
+    fn open_place(&self, place: &pages::view::Place) -> Result<(), String> {
+        let root = self.root.clone().unwrap_or_else(|| PathBuf::from(PROJECT));
+        let path = in_project(&root, &place.path)?;
+        api::host::open_file(&path.to_string_lossy(), place.line);
+        Ok(())
+    }
+
+    /// A prompt's text or a picker's choice, `answer`, to whoever asked
+    /// `id`; nothing when it was closed with nothing, or its page closed.
+    fn answered(&mut self, id: u64, answer: Option<String>, picked: bool) {
+        let Some(who) = self.answers.remove(&id) else {
+            return;
+        };
+        let Some(answer) = answer else {
+            // Closed with nothing: a buffer flow ends there.
+            if let Asker::Here { serial } = who {
+                self.here.cancel(serial);
+            }
+            return;
+        };
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
+        match who {
+            Asker::View { page, tab, tag } => {
+                let Some(p) = self.pages.get_mut(&page) else {
+                    return;
+                };
+                let effects = if picked {
+                    p.plan.picked(tab, &tag, &answer, now)
+                } else {
+                    p.plan.typed(tab, &tag, &answer, now)
+                };
+                pages_api::refresh(page);
+                self.perform(page, effects);
+            }
+            Asker::Find => self.show_item(&answer, Tab::Item),
+            Asker::Here { serial } => {
+                let State::Loaded { loaded, .. } = now.state else {
+                    self.here.cancel(serial);
+                    tell(edit::DROPPED, false);
+                    return;
+                };
+                let facts = Facts {
+                    loaded,
+                    config: now.config,
+                };
+                if let Some(turn) = self.here.answer(serial, &answer, &facts) {
+                    self.here_turn(turn);
+                }
+            }
+        }
+    }
+
+    /// A buffer flow's turn, done: a new item's file opened, then Fenix's
+    /// picker or prompt, kiln's command, or the flow's word on the message
+    /// line (which ends it). The pick, prompt and edit carry the flow's
+    /// serial, so what comes back after another flow has replaced it is
+    /// dropped.
+    fn here_turn(&mut self, turn: edit::Turn) {
+        if let Some(place) = &turn.open {
+            if let Err(why) = self.open_place(place) {
+                tell(&why, true);
+            }
+        }
+        let serial = self.here.serial();
+        match turn.step {
+            Step::Pick { title, items } => {
+                let id = api::pick(&title, &picker_items(&items));
+                self.answers.insert(id, Asker::Here { serial });
+            }
+            Step::Ask { label, initial } => {
+                let id = api::prompt(&label, &initial);
+                self.answers.insert(id, Asker::Here { serial });
+            }
+            Step::Run(args) => {
+                let id = self.project.edit(args, None);
+                self.asked.insert(id, For::Here { serial });
+            }
+            Step::Say(text) => tell(&text, false),
+            Step::Done => {}
+        }
+    }
+
+    /// How kiln's run for buffer flow `serial` went, said on the message
+    /// line: kiln's outcome line (its error line as it wrote it), or the
+    /// flow's own word where it has one (a new item's path: kiln's answer
+    /// then is JSON, which isn't for people). Said even when the flow has
+    /// been replaced -- kiln did it -- but only a flow still under way goes
+    /// on (a refused typed value is asked again).
+    fn here_edited(&mut self, serial: u64, result: &Result<kiln::Ran, kiln::Failure>) {
+        let readable = matches!(self.project.state(), State::Loaded { .. });
+        let ended = self.here.edited(serial, result, readable);
+        let own_word = matches!(ended.as_ref().map(|e| &e.turn.step), Some(Step::Say(_)));
+        if !own_word {
+            let (line, role) = pages::frame::outcome(result);
+            tell(&line, role == fenix_ui_kit::Role::Bad);
+        }
+        if let Some(ended) = ended {
+            self.here_turn(ended.turn);
+        }
+    }
+
+    /// The plan page to show something on: the first opened, focused,
+    /// else a new one. In view either way.
+    fn plan_page(&mut self) -> u64 {
+        let page = match self.pages.keys().min() {
+            Some(&p) => {
+                pages_api::focus(p);
+                p
+            }
+            None => {
+                let p = pages_api::open(PLAN, "Kiln");
+                // Opened is in view; PageShown confirms it.
+                self.add_page(p, Plan::new());
+                p
+            }
+        };
+        if let Some(p) = self.pages.get_mut(&page) {
+            p.shown = true;
+        }
+        self.project.start();
+        self.shown_changed();
+        page
+    }
+
+    /// A row of Kiln's section on Home picked: the plan on that item's Item
+    /// tab, or just the plan ([`home::PLAN`]).
+    fn home_picked(&mut self, value: &str) {
+        if value == home::PLAN {
+            self.plan_page();
+        } else {
+            self.show_item(value, Tab::Item);
+        }
+    }
+
+    /// Item `id` on tab `to` (Item or Impact) of the plan page, if the
+    /// project has it; else said.
+    fn show_item(&mut self, id: &str, to: Tab) {
+        let known = self.project.loaded().is_some_and(|l| l.item(id).is_some());
+        if !known {
+            tell(&format!("{id} isn't in the project any more"), true);
+            return;
+        }
+        let page = self.plan_page();
+        if let Some(p) = self.pages.get_mut(&page) {
+            p.plan.hand(to, id);
+            pages_api::refresh(page);
+        }
+    }
+
+    /// The command from a buffer that waits for the project, done once
+    /// it's read -- or said, when it can't be. Whether it did something a
+    /// page may now ask kiln about.
+    fn resolve_wanted(&mut self) -> bool {
+        if self.wanted.is_none() {
+            return false;
+        }
+        let state = self.project.state();
+        let loaded = match state {
+            State::Loaded { loaded, .. } => loaded,
+            State::Idle | State::Probing | State::Loading => return false,
+            other => {
+                let why = unusable(&other);
+                self.wanted = None;
+                tell(&why, true);
+                return false;
+            }
+        };
+        match self.wanted.take() {
+            Some(Wanted::Item { spot, to }) => match spot::item_at(loaded, &spot) {
+                Ok(id) => {
+                    self.show_item(&id, to);
+                    true
+                }
+                Err(why) => {
+                    tell(&why, false);
+                    false
+                }
+            },
+            Some(Wanted::Find) => {
+                let items = &loaded.items;
+                if items.is_empty() {
+                    tell("the project has no items yet: kiln new adds one", false);
+                    return false;
+                }
+                if items.len() > MOST_CHOICES {
+                    tell(
+                        &format!(
+                            "the picker has the first {MOST_CHOICES} of {} items",
+                            items.len()
+                        ),
+                        false,
+                    );
+                }
+                let choices: Vec<Choice> = items
+                    .iter()
+                    .take(MOST_CHOICES)
+                    .map(|i| {
+                        Choice::new(format!("{}  {}", i.id, i.title), i.id.clone())
+                            .detail(i.status.clone())
+                    })
+                    .collect();
+                let id = api::pick("Kiln item", &picker_items(&choices));
+                self.answers.insert(id, Asker::Find);
+                false
+            }
+            Some(Wanted::Edit { spot, edit }) => {
+                if let Some(why) = edit::blocked(&state, self.project.settled()) {
+                    tell(&why, false);
+                    return false;
+                }
+                // A new item is about no item; the rest are about the one
+                // here, found as `kiln.show` finds it.
+                let id = if edit == Edit::New {
+                    None
+                } else {
+                    match spot::item_at(loaded, &spot) {
+                        Ok(id) => Some(id),
+                        Err(why) => {
+                            tell(&why, false);
+                            return false;
+                        }
+                    }
+                };
+                let facts = Facts {
+                    loaded,
+                    config: now_of(&self.project, &self.config, &self.publishing, &self.mirror)
+                        .config,
+                };
+                // The flow it replaces can't be answered any more.
+                self.answers.retain(|_, a| !matches!(a, Asker::Here { .. }));
+                let turn = self.here.start(edit, id.as_deref(), &facts);
+                self.here_turn(turn);
+                false
+            }
+            Some(Wanted::Start { spot }) => {
+                match spot::item_at(loaded, &spot) {
+                    Ok(id) => self.start_item(Surface::Buffer, &id),
+                    Err(why) => tell(&why, false),
+                }
+                false
+            }
+            None => false,
+        }
+    }
+
+    /// Where the cursor is, as `here()` and `cursor()` say it now.
+    fn spot_here() -> Spot {
+        let here = api::here();
+        let cursor = api::cursor();
+        Spot {
+            path: here.as_ref().and_then(|h| h.path.clone()),
+            root: here
+                .as_ref()
+                .and_then(|h| h.project.as_ref().map(|p| p.root.clone())),
+            line: here.as_ref().map_or(0, |h| h.line),
+            text: here.as_ref().map(|h| h.text.clone()).unwrap_or_default(),
+            column: cursor.as_ref().filter(|c| !c.selected).map(|c| c.at.1),
+            selected: cursor.as_ref().is_some_and(|c| c.selected),
+        }
+    }
+
+    /// `kiln.show`, `kiln.impact`: where the cursor is, kept for when the
+    /// project's read (now, usually).
+    fn want_item(&mut self, to: Tab) {
+        self.wanted = Some(Wanted::Item {
+            spot: Self::spot_here(),
+            to,
+        });
+        self.project.start();
+    }
+
+    /// An edit from a buffer: where the cursor is, kept as above.
+    fn want_edit(&mut self, edit: Edit) {
+        self.wanted = Some(Wanted::Edit {
+            spot: Self::spot_here(),
+            edit,
+        });
+        self.project.start();
+    }
+
+    /// `kiln.start`: where the cursor is, kept as above.
+    fn want_start(&mut self) {
+        self.wanted = Some(Wanted::Start {
+            spot: Self::spot_here(),
+        });
+        self.project.start();
+    }
+
+    /// Start working on item `id`, asked for from `surface`: kiln's `set`
+    /// first ([`start::Run`]), then the agenda. Nothing starts while an
+    /// edit couldn't ([`edit::blocked`]); one start at a time, a new one
+    /// replaces the one under way.
+    fn start_item(&mut self, surface: Surface, id: &str) {
+        if self.config.is_none() {
+            self.read_config();
+        }
+        let state = self.project.state();
+        if let Some(why) = edit::blocked(&state, self.project.settled()) {
+            return self.start_say(surface, &why, true);
+        }
+        let State::Loaded { loaded, .. } = state else {
+            return;
+        };
+        let Some(item) = loaded.item(id) else {
+            let why = format!("no item here: {id} isn't in the project as kiln last read it");
+            return self.start_say(surface, &why, true);
+        };
+        if self.fenix_root.is_none() {
+            self.fenix_root = api::here().and_then(|h| h.project).map(|p| p.root);
+        }
+        let config = now_of(&self.project, &self.config, &self.publishing, &self.mirror).config;
+        let owner = api::setting(start::OWNER_SETTING).unwrap_or_default();
+        let (run, step) = start::Run::begin(item, config, &owner, self.fenix_root.as_deref());
+        self.start_serial += 1;
+        let serial = self.start_serial;
+        self.starting = run.map(|run| Starting {
+            serial,
+            surface,
+            run,
+        });
+        self.start_step(serial, surface, step);
+    }
+
+    /// What a start asks next, done: kiln through the edit path, a service
+    /// of the agenda, or the line that ends it.
+    fn start_step(&mut self, serial: u64, surface: Surface, step: start::Do) {
+        match step {
+            start::Do::Kiln(args) => {
+                let id = self.project.edit(args, None);
+                self.asked.insert(id, For::Start { serial });
+            }
+            start::Do::Service { name, payload } => {
+                let call = api::call_service(name, &payload);
+                self.agenda_calls.insert(call, serial);
+            }
+            start::Do::Say { text, bad } => {
+                if self.starting.as_ref().is_some_and(|s| s.serial == serial) {
+                    self.starting = None;
+                }
+                self.start_say(surface, &text, bad);
+            }
+        }
+    }
+
+    /// `kiln set` for start `serial` ended: refused, it ends the start with
+    /// kiln's line; done, kiln's line is said and the agenda asked. Said
+    /// even when another start has replaced this one -- kiln did it.
+    fn start_edited(&mut self, serial: u64, result: &Result<kiln::Ran, kiln::Failure>) {
+        let Some(s) = self.starting.as_mut().filter(|s| s.serial == serial) else {
+            let (line, role) = pages::frame::outcome(result);
+            tell(&line, role == fenix_ui_kit::Role::Bad);
+            return;
+        };
+        let surface = s.surface;
+        let step = s.run.kiln_done(result);
+        if matches!(step, start::Do::Service { .. }) {
+            // The agenda may take a moment: what kiln did, meanwhile.
+            let line = s.run.line().to_string();
+            self.start_say(surface, &line, false);
+        }
+        self.start_step(serial, surface, step);
+    }
+
+    /// The agenda's reply to a call of start `serial`; dropped when the
+    /// start was replaced.
+    fn start_replied(&mut self, serial: u64, reply: Result<String, String>) {
+        let Some(s) = self.starting.as_mut().filter(|s| s.serial == serial) else {
+            return;
+        };
+        let surface = s.surface;
+        let step = s.run.replied(reply);
+        self.start_step(serial, surface, step);
+    }
+
+    /// A start's word, on its page's bottom line or the message line.
+    fn start_say(&mut self, surface: Surface, text: &str, bad: bool) {
+        if let Surface::Page(p) = surface {
+            if let Some(page) = self.pages.get_mut(&p) {
+                page.plan.tell(text, bad);
+                pages_api::refresh(p);
+                return;
+            }
+        }
+        tell(text, bad);
+    }
+
+    /// A plan page, `page`, kept: in view.
+    fn add_page(&mut self, page: u64, plan: Plan) {
+        self.pages.insert(page, PlanPage { shown: true, plan });
+        self.project.start();
+        self.shown_changed();
+    }
+}
+
+impl Extension for Kiln {
+    /// The project read at once, for the language server.
+    fn activate(&mut self) -> Result<(), String> {
+        self.decor
+            .switch(decor::enabled(api::setting(decor::SETTING).as_deref()));
+        self.project.start();
+        self.decide = true;
+        self.pass_on();
+        Ok(())
+    }
+
+    fn run_command(&mut self, id: &str) -> Result<(), String> {
+        match id {
+            // The first opened, when there's one: it keeps its tab.
+            "kiln.open" => {
+                self.plan_page();
+            }
+            "kiln.show" => self.want_item(Tab::Item),
+            "kiln.impact" => self.want_item(Tab::Impact),
+            "kiln.set_status" => self.want_edit(Edit::Status),
+            "kiln.link" => self.want_edit(Edit::Link),
+            "kiln.unlink" => self.want_edit(Edit::Unlink),
+            "kiln.new" => self.want_edit(Edit::New),
+            "kiln.new_child" => self.want_edit(Edit::Child),
+            "kiln.edit" => self.want_edit(Edit::More),
+            "kiln.start" => self.want_start(),
+            // The notification's action and the doctor's fix row.
+            "kiln.findings" => {
+                let page = self.plan_page();
+                if let Some(p) = self.pages.get_mut(&page) {
+                    p.plan.show(Tab::Check);
+                    pages_api::refresh(page);
+                }
+            }
+            "kiln.find" => {
+                self.wanted = Some(Wanted::Find);
+                self.project.start();
+            }
+            "kiln.reload" => self.reload(),
+            // Nothing is downloaded: the extension has no network
+            // permission. The doctor's fix row for a missing kiln runs it.
+            "kiln.install_help" => {
+                api::open_url(doctor::INSTALL_URL)
+                    .map_err(|why| format!("can't open {}: {why}", doctor::INSTALL_URL))?;
+                return Ok(());
+            }
+            _ => return Err(format!("no command {id}")),
+        }
+        self.pass_on();
+        Ok(())
+    }
+
+    fn handle(&mut self, event: Event) {
+        match event {
+            Event::ProcessOutput(o) => self.project.output(o.process, o.stderr, &o.line),
+            Event::ProcessExit((process, code)) => self.project.exited(process, code),
+            Event::Timer(t) => {
+                if !self.project.timer(t) {
+                    self.mirror.timer(t);
+                }
+            }
+            Event::ServiceReply((call, reply)) => {
+                if let Some(serial) = self.agenda_calls.remove(&call) {
+                    self.start_replied(serial, reply);
+                }
+            }
+            Event::HomePicked(value) => self.home_picked(&value),
+            Event::Prompted((id, text)) => self.answered(id, text, false),
+            Event::Picked((id, value)) => self.answered(id, value, true),
+            Event::PageShown((p, shown)) => {
+                if let Some(page) = self.pages.get_mut(&p) {
+                    page.shown = shown;
+                    self.shown_changed();
+                }
+            }
+            Event::SettingChanged(key) => match key.as_str() {
+                "kiln.path" => {
+                    self.project.kiln_changed();
+                    self.lsp.kiln_changed();
+                    self.decide = true;
+                }
+                "kiln.refresh_seconds" => self.project.refresh_changed(),
+                decor::SETTING => {
+                    self.decor
+                        .switch(decor::enabled(api::setting(decor::SETTING).as_deref()));
+                    self.decorate();
+                }
+                // Turned off while it shows: taken away.
+                alert::SETTING if !alert::enabled(api::setting(alert::SETTING).as_deref()) => {
+                    self.dismiss_alert()
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+        self.pass_on();
+    }
+
+    fn file_saved(&mut self, path: &str) {
+        self.last_saved = Some(path.to_string());
+        if std::path::Path::new(path).file_name() == Some(std::ffi::OsStr::new("kiln.toml")) {
+            self.read_config();
+        }
+        self.lsp.saved(path);
+        self.decide = true;
+        self.project.saved(path);
+        self.pass_on();
+    }
+
+    /// The lines the panes show moved: the buffers whose lines did are
+    /// decorated again, for the lines shown.
+    fn view_changed(&mut self, views: Vec<TextView>) {
+        self.decor.viewed(&views);
+        self.decorate();
+    }
+
+    /// A shown file's text changed (Fenix tells it once typing stops):
+    /// its decorations worked out again.
+    fn buffer_changed(&mut self, what: Changed) {
+        if let Changed::File(path) = what {
+            self.decor.changed(&path);
+            self.decorate();
+        }
+    }
+
+    fn page(&mut self, page: u64, width: u32, height: u32) -> Page {
+        let hints = Hints {
+            doctor: api::key_for("project.doctor"),
+            settings: api::key_for("settings.open"),
+        };
+        let now = now_of(&self.project, &self.config, &self.publishing, &self.mirror);
+        let Some(p) = self.pages.get_mut(&page) else {
+            return Page::new().line([pages_api::muted("this page was closed")]);
+        };
+        p.plan
+            .render(now, &hints, width as usize, height as usize)
+            .to_page()
+    }
+
+    fn page_key(&mut self, page: u64, key: Key) {
+        let press = fenix_ui_kit::KeyPress::from(fenix_ui_kit::Key::from(key));
+        self.on_page(page, |plan, now| plan.key(press, now));
+    }
+
+    /// `C-d`, `C-u`, PageUp and PageDown; Shift and Ctrl with a key in
+    /// the filter.
+    fn page_key_press(&mut self, page: u64, key: KeyPress) {
+        if let Some(press) = fenix_ui_kit::KeyPress::from_api(&key) {
+            self.on_page(page, |plan, now| plan.key(press, now));
+        }
+    }
+
+    fn page_mouse(&mut self, page: u64, event: MouseEvent) {
+        let m = fenix_ui_kit::Mouse::from(&event);
+        self.on_page(page, |plan, now| plan.mouse(&m, now));
+    }
+
+    fn page_paste(&mut self, page: u64, text: &str) {
+        self.on_page(page, |plan, _| {
+            plan.paste(text);
+            Vec::new()
+        });
+    }
+
+    /// The tab, and each tab's cursor, filter and toggles.
+    fn page_state(&mut self, page: u64) -> Option<String> {
+        self.pages.get(&page).map(|p| p.plan.save())
+    }
+
+    /// A plan page as it was saved; a state it can't read opens as a new
+    /// page does, rather than not at all.
+    fn page_restore(&mut self, page: u64, kind: &str, state: &str) -> bool {
+        if kind != PLAN {
+            return false;
+        }
+        self.add_page(page, Plan::restore(state));
+        self.pass_on();
+        true
+    }
+
+    /// Its prompts' and pickers' answers are dropped as they come (no page
+    /// to take them); its edits still run, kiln having been asked.
+    fn page_closed(&mut self, page: u64) {
+        self.pages.remove(&page);
+        self.answers
+            .retain(|_, a| !matches!(a, Asker::View { page: p, .. } if *p == page));
+        self.shown_changed();
+        self.pass_on();
+    }
+
+    /// An agent's tool call ([`agent`]).
+    fn serve(&mut self, call: u64, name: &str, payload: &str) -> Option<Result<String, String>> {
+        self.agent_call(call, name, payload)
+    }
+
+    /// Fenix gave up on an agent's call (the agent cancelled, or its
+    /// `timeout_ms` passed): its answer is dropped, and a read that waits
+    /// or runs for it is dropped or stopped. An edit runs on: stopped half
+    /// done it could leave a file half written; the project is read again
+    /// after it as after any edit.
+    fn service_cancelled(&mut self, call: u64) {
+        self.agent_ready.retain(|(c, _)| *c != call);
+        if let Some(c) = self.agent.remove(&call) {
+            self.asked.remove(&c.query);
+            if !c.request.tool().edits() {
+                self.project.cancel_query(c.query);
+            }
+        }
+        self.pass_on();
+    }
+
+    /// The hints that name Fenix's keys are drawn again.
+    fn key_scheme_changed(&mut self, _scheme: KeyScheme) {
+        for &p in self.pages.keys() {
+            pages_api::refresh(p);
+        }
+        // Home's section names the key that opens the plan.
+        if let Some(Some((_, rows))) = self.told.home.clone() {
+            self.tell_home(Some(rows));
+        }
+    }
+}
+
+/// A view's choices as Fenix's picker's rows.
+fn picker_items(choices: &[Choice]) -> Vec<PickerItem> {
+    choices
+        .iter()
+        .map(|c| PickerItem::new(c.label.clone(), c.value.clone()).detail(c.detail.clone()))
+        .collect()
+}
+
+/// `path`, kiln's path of a file of the project (an item's, a finding's, a
+/// code location's, a new item's), under `root`; else why it isn't opened.
+/// kiln names files relative to the project's top, so an absolute path, a
+/// drive or `..` is no file of the project's -- whatever wrote it, `Enter`
+/// never opens a file outside the project on its word. (Fenix holds the
+/// extension to `project-read` as well; this says why in the page's words.)
+fn in_project(root: &std::path::Path, path: &str) -> Result<PathBuf, String> {
+    use std::path::Component;
+    let p = std::path::Path::new(path);
+    let inside = !path.is_empty()
+        && !path.starts_with('/')
+        && !path.starts_with('\\')
+        && p.components()
+            .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
+        && !path
+            .split(['/', '\\'])
+            .any(|part| part == ".." || part.contains(':'));
+    if inside {
+        Ok(root.join(p))
+    } else {
+        Err(format!(
+            "not opening {}: it isn't a file under the project's folder",
+            model::plain(path, 80)
+        ))
+    }
+}
+
+/// A line on Fenix's message line, for what is said with no page to say it
+/// on: one line of visible text ([`model::printable`]: kiln's line quotes
+/// the project's), after `Kiln: ` -- but kiln's own `kiln: …` line as kiln
+/// wrote it, never `Kiln: kiln: …` -- and in the error look when it is bad
+/// news. Every message the extension gives goes through here, so they all
+/// read alike.
+fn tell(text: &str, bad: bool) {
+    let text = model::printable(text, 500);
+    let said = if text.starts_with("kiln: ") || text.starts_with("Kiln: ") {
+        text
+    } else {
+        format!("Kiln: {text}")
+    };
+    if bad {
+        api::host::notify(api::Level::Error, &said);
+    } else {
+        api::notify(&said);
+    }
+}
+
+/// Why a project that isn't loaded can't be used, in its own words.
+fn unusable(state: &State) -> String {
+    match state {
+        State::NotFound(why) | State::NotKiln(why) | State::NoProject(why) | State::Failed(why) => {
+            why.to_string()
+        }
+        State::TooOld(v) => format!(
+            "kiln {v} is older than {}, the oldest this extension reads",
+            model::MIN_VERSION
+        ),
+        State::Idle | State::Probing | State::Loading => "the project isn't read yet".into(),
+        State::Loaded { .. } => String::new(),
+    }
+}
+
+api::export!(Kiln);
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    use crate::model::tests::fixture;
+    use fenix_test_kit::{Fake, Harness, Ran};
+
+    /// A fake whose kiln answers as the demo project's did, check's exit 1
+    /// included.
+    pub(crate) fn demo() -> Fake {
+        let fake = Fake::new();
+        fake.program("kiln", "/usr/bin/kiln")
+            .on_spawn("kiln --version", Ran::ok(fixture("version.txt")))
+            .on_spawn(
+                "kiln list --format json",
+                Ran::ok(fixture("demo/list.json")),
+            )
+            .on_spawn(
+                "kiln status --format json",
+                Ran::ok(fixture("demo/status.json")),
+            )
+            .on_spawn(
+                "kiln check --format json",
+                Ran::exits(1)
+                    .stdout(fixture("demo/check.json"))
+                    .stderr(fixture("demo/check.stderr")),
+            )
+            // kiln 1.0.0's refusal, as recorded.
+            .on_spawn(
+                "kiln lsp --languages",
+                Ran::fails(2, fixture("demo/lsp-languages.stderr")),
+            )
+            // What the tabs ask, as recorded: Trace's default type, and
+            // the items `show` and `impact` were recorded for.
+            .on_spawn(
+                "kiln trace --format json",
+                Ran::ok(fixture("demo/trace.json")),
+            );
+        for id in [
+            "ADR-001", "MS-001", "REQ-001", "REQ-002", "TASK-002", "TASK-004", "TASK-006",
+            "TEST-001",
+        ] {
+            fake.on_spawn(
+                &format!("kiln show {id} --format json"),
+                Ran::ok(fixture(&format!("demo/show-{id}.json"))),
+            );
+        }
+        for id in ["REQ-001", "TASK-002", "TASK-006"] {
+            fake.on_spawn(
+                &format!("kiln impact {id} --format json"),
+                Ran::ok(fixture(&format!("demo/impact-{id}.json"))),
+            );
+        }
+        fake
+    }
+
+    pub(crate) fn spawned(fake: &Fake) -> Vec<String> {
+        fake.take()
+            .into_iter()
+            .filter_map(|l| {
+                l.strip_prefix("spawn ")
+                    .map(|l| l.split_once(' ').map_or(l, |(_, rest)| rest).to_string())
+            })
+            .collect()
+    }
+
+    use fenix_test_kit::assert_snapshot;
+
+    /// The size snapshots are drawn at: wide enough for every tab.
+    const WIDE: (u32, u32) = (110, 26);
+
+    /// The plan opened on the demo project, drawn wide.
+    pub(crate) fn opened(fake: &Fake) -> (Harness<Kiln>, u64) {
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.size = WIDE;
+        h.command("kiln.open").unwrap();
+        let page = h.page("plan");
+        (h, page)
+    }
+
+    /// The ID under the cursor on page `page`'s tab shown.
+    pub(crate) fn at(h: &Harness<Kiln>, page: u64) -> Option<String> {
+        h.ext.pages.get(&page)?.plan.id().map(str::to_string)
+    }
+
+    /// Item `id` handed to tab `tab` of page `page`, as `v` or `i` would,
+    /// for an ID no row has; and what it asks, asked.
+    pub(crate) fn hand(h: &mut Harness<Kiln>, page: u64, tab: Tab, id: &str) {
+        h.ext.pages.get_mut(&page).unwrap().plan.hand(tab, id);
+        h.ext.pass_on();
+        h.settle();
+    }
+
+    /// The screen's last line: the bottom line.
+    pub(crate) fn foot(h: &mut Harness<Kiln>, page: u64) -> String {
+        h.screen(page).lines().last().unwrap_or("").to_string()
+    }
+
+    #[test]
+    fn open_reads_the_project_and_shows_its_tree() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        assert_snapshot!("tree-demo", h.screen(page));
+        assert_snapshot!("tree-demo-marked", h.marked(page));
+        assert_eq!(
+            spawned(&fake)
+                .iter()
+                .filter(|l| l.starts_with("/usr/bin/kiln"))
+                .count(),
+            // version, list, status, check, then lsp --languages.
+            5
+        );
+        // At 80 cells the tabs after the one shown give way.
+        h.size = (80, 24);
+        assert_snapshot!("tree-demo-80", h.screen(page));
+    }
+
+    #[test]
+    fn kilns_own_tree_with_closed_items_shown_on_a() {
+        let fake = own();
+        let (mut h, page) = opened(&fake);
+        h.size = (110, 40);
+        assert_snapshot!("tree-own", h.screen(page));
+        h.keys(page, "/adr-01<Enter>");
+        assert_snapshot!("tree-own-adr", h.screen(page));
+        assert!(!h.screen(page).contains("ADR-013"));
+        h.key(page, Key::Char('a'));
+        let s = h.screen(page);
+        assert!(s.contains("ADR-013") && s.contains("superseded"), "{s}");
+        assert!(s.ends_with("/adr-01  closed items shown\n"), "{s}");
+        h.key(page, Key::Char('a'));
+        assert!(!h.screen(page).contains("ADR-013"));
+    }
+
+    #[test]
+    fn the_filter_narrows_as_you_type() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        h.keys(page, "/sql");
+        assert!(h.marked(page).ends_with("[typing, more keys, mouse]\n"));
+        h.keys(page, "ite");
+        assert_snapshot!("tree-demo-filter", h.screen(page));
+        h.keys(page, "<Esc>");
+        assert!(h.screen(page).contains("REQ-001"));
+        assert!(!h.marked(page).contains("typing"));
+    }
+
+    #[test]
+    fn enter_and_a_double_click_open_the_item_at_its_line() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        fake.take();
+        h.keys(page, "jj<Enter>");
+        assert_eq!(
+            fake.take(),
+            ["open /project/design/requirements/REQ-003-the-log-exports-as-csv.md:2"]
+        );
+        // Line 2 is the first heading; the decision's row is line 7. The
+        // mouse is where the page was last drawn.
+        h.screen(page);
+        h.click(page, 7, 3, 1);
+        assert!(fake.take().is_empty(), "one click only moves the cursor");
+        assert_eq!(at(&h, page).as_deref(), Some("ADR-001"));
+        h.click(page, 7, 3, 2);
+        assert_eq!(
+            fake.take(),
+            ["open /project/design/decisions/ADR-001-store-readings-in-sqlite.md:2"]
+        );
+        // A click on a tab shows it.
+        h.click(page, 0, 12, 1);
+        assert!(h
+            .screen(page)
+            .contains("\nrequirement  3 items  2 gaps  columns: implements | verifies\n"));
+    }
+
+    /// kiln names files from the project's top; a path that would leave it
+    /// -- `..`, absolute, a drive -- is never opened on its word, whatever
+    /// wrote it into kiln's answer.
+    #[test]
+    fn enter_never_opens_a_file_outside_the_project() {
+        let fake = demo();
+        let list = fixture("demo/list.json").replacen(
+            "design/requirements/REQ-003-the-log-exports-as-csv.md",
+            "../../outside/REQ-003.md",
+            1,
+        );
+        fake.on_spawn("kiln list --format json", Ran::ok(list));
+        let (mut h, page) = opened(&fake);
+        fake.take();
+        h.keys(page, "jj<Enter>");
+        assert!(
+            !fake.take().iter().any(|c| c.starts_with("open ")),
+            "nothing opened"
+        );
+        assert_eq!(
+            foot(&mut h, page),
+            "not opening ../../outside/REQ-003.md: it isn't a file under the project's folder"
+        );
+        let root = std::path::Path::new("/project");
+        for bad in [
+            "/etc/passwd",
+            "\\\\server\\x",
+            "C:\\x.md",
+            "a/../../b",
+            "..",
+            "",
+        ] {
+            assert!(in_project(root, bad).is_err(), "{bad}");
+        }
+        assert_eq!(
+            in_project(root, "design/tasks/TASK-001.md"),
+            Ok(std::path::PathBuf::from(
+                "/project/design/tasks/TASK-001.md"
+            ))
+        );
+    }
+
+    #[test]
+    fn tabs_switch_and_v_and_i_hand_the_item_on() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        h.key(page, Key::Tab);
+        assert!(h
+            .screen(page)
+            .contains("\nREQ-002  Logged readings survive a power cut  gap "));
+        h.keys(page, "9");
+        assert!(h
+            .screen(page)
+            .contains("\n11:23  K102  error    reference REQ-099 doesn't exist\n"));
+        h.keys(page, "1jv");
+        assert_eq!(h.ext.pages[&page].plan.tab(), Tab::Item);
+        assert!(h
+            .screen(page)
+            .contains("\nrequirement  REQ-002   Logged readings survive a power cut  draft\n"));
+        h.keys(page, "1/TASK-002<Enter>i");
+        assert_eq!(h.ext.pages[&page].plan.tab(), Tab::Impact);
+        assert!(h
+            .screen(page)
+            .contains("\nTASK-007  child of TASK-002  Batch the writes\n"));
+        // Back on the Tree, the cursor is where it was.
+        h.keys(page, "1");
+        assert_eq!(at(&h, page).as_deref(), Some("TASK-002"));
+    }
+
+    #[test]
+    fn loading_shows_while_kiln_reads() {
+        let fake = demo();
+        fake.on_spawn("kiln list", Ran::running(""));
+        let (mut h, page) = opened(&fake);
+        let s = h.screen(page);
+        assert!(s.contains("\nreading the project…\n"), "{s}");
+        assert!(s.ends_with("r try again  Tab next tab\n"), "{s}");
+    }
+
+    #[test]
+    fn output_in_chunks_and_check_exiting_1_still_loads() {
+        let fake = demo();
+        for pattern in ["kiln list", "kiln status", "kiln check"] {
+            fake.on_spawn(pattern, Ran::running(""));
+        }
+        let (mut h, page) = opened(&fake);
+        for (pattern, file, code) in [
+            ("kiln list", "demo/list.json", 0),
+            ("kiln status", "demo/status.json", 0),
+            ("kiln check", "demo/check.json", 1),
+        ] {
+            let p = fake.process(pattern).unwrap().id;
+            for line in fixture(file).lines() {
+                h.said(p, line, false);
+            }
+            h.said(p, "kiln: 1 error, 2 warnings", true);
+            h.exited(p, Some(code));
+        }
+        let at_once = {
+            let (mut h, page) = opened(&demo());
+            h.screen(page)
+        };
+        assert_eq!(h.screen(page), at_once);
+    }
+
+    #[test]
+    fn kiln_missing_says_how_to_set_kiln_path() {
+        let fake = Fake::new();
+        fake.key("project.doctor", "SPC p h")
+            .key("settings.open", "SPC h s");
+        let (mut h, page) = opened(&fake);
+        assert_snapshot!("not-found", h.screen(page));
+        // On every tab.
+        h.keys(page, "4");
+        assert!(h.screen(page).contains("\nkiln isn't on the PATH"));
+        // Set, it's looked for again at once.
+        fake.on_spawn("/opt/kiln/kiln --version", Ran::ok("kiln 1.0.0\n"))
+            .on_spawn("/opt/kiln/kiln list", Ran::ok(fixture("demo/list.json")));
+        h.set_setting("kiln.path", Some("/opt/kiln/kiln"));
+        assert!(fake
+            .calls()
+            .iter()
+            .any(|c| c.ends_with("/opt/kiln/kiln list --format json")));
+    }
+
+    #[test]
+    fn whats_in_the_way_is_said_in_the_projects_words() {
+        let cases: [(&str, Ran, &str); 4] = [
+            (
+                "kiln --version",
+                Ran::ok("kiln 0.9.4\n"),
+                "kiln 0.9.4 is older than 1.0.0, the oldest this extension reads: update Kiln",
+            ),
+            (
+                "kiln --version",
+                Ran::fails(2, "error: unknown flag --version"),
+                "kiln can't be used: error: unknown flag --version",
+            ),
+            (
+                "kiln list",
+                Ran::fails(2, fixture("errors/no-kiln-toml.stderr")),
+                "kiln: no kiln.toml in <dir> or any folder above it (run `kiln init` to start a project)",
+            ),
+            (
+                "kiln list",
+                Ran::fails(2, "kiln: kiln.toml:4: unknown key `nmae`"),
+                "kiln: kiln.toml:4: unknown key `nmae`",
+            ),
+        ];
+        for (pattern, ran, said) in cases {
+            let fake = demo();
+            fake.on_spawn(pattern, ran);
+            let (mut h, page) = opened(&fake);
+            let s = h.screen(page);
+            assert!(s.contains(&format!("\n{said}\n")), "{said}: {s}");
+            assert!(s.starts_with("1 Tree "), "{s}");
+        }
+    }
+
+    #[test]
+    fn a_failing_reload_keeps_the_loaded_project() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        h.keys(page, "jj");
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(
+                2,
+                "kiln: design/tasks/TASK-001-set-up-the-logger.md:1: front matter can't be parsed",
+            ),
+        );
+        h.saved("/home/me/demo/design/tasks/TASK-001-set-up-the-logger.md");
+        let s = h.screen(page);
+        assert!(s.contains("\nTASK-001 "), "{s}");
+        assert_eq!(foot(&mut h, page), "the last read failed: kiln: design/tasks/TASK-001-set-up-the-logger.md:1: front matter can't be parsed");
+        assert_eq!(
+            at(&h, page).as_deref(),
+            Some("REQ-003"),
+            "the cursor where it was"
+        );
+        // A key's message goes before it, then it's back.
+        h.key(page, Key::Char('a'));
+        assert_eq!(foot(&mut h, page), "closed items shown");
+        h.key(page, Key::Char('j'));
+        assert!(foot(&mut h, page).starts_with("the last read failed"));
+    }
+
+    #[test]
+    fn two_reloads_while_one_runs_run_one_more() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        let loaded = h.screen(page);
+        fake.take();
+        fake.on_spawn("kiln list", Ran::running(fixture("demo/list.json")));
+        h.command("kiln.reload").unwrap();
+        h.command("kiln.reload").unwrap();
+        h.key(page, Key::Char('r'));
+        assert!(h.screen(page).starts_with("1 Tree "));
+        assert!(h
+            .screen(page)
+            .lines()
+            .next()
+            .unwrap()
+            .ends_with("reading…  Demo  1 error"));
+        let first = fake.process("kiln list").unwrap().id;
+        fake.on_spawn("kiln list", Ran::ok(fixture("demo/list.json")));
+        h.exited(first, Some(0));
+        let lists = spawned(&fake)
+            .iter()
+            .filter(|l| l.ends_with("kiln list --format json"))
+            .count();
+        assert_eq!(lists, 2);
+        assert_eq!(h.screen(page), loaded);
+    }
+
+    #[test]
+    fn the_page_state_round_trips_through_fenix() {
+        let fake = demo();
+        let (mut h, page) = opened(&fake);
+        h.keys(page, "jja/req<Enter>4");
+        let state = h.ext.page_state(page).unwrap();
+        assert!(state.starts_with(r#"{"tab":"board","tabs":{"#), "{state}");
+        let screen = h.screen(page);
+        h.close(page);
+        assert!(h.ext.page_restore(41, "plan", &state));
+        h.settle();
+        assert_eq!(h.screen(41), screen);
+        h.keys(41, "1");
+        let s = h.screen(41);
+        assert!(
+            s.ends_with("/req  closed items shown\n") || s.contains("\n/req  "),
+            "{s}"
+        );
+        assert_eq!(at(&h, 41).as_deref(), Some("REQ-003"), "{}", h.marked(41));
+        // Not ours, or a state it can't read: refused, or a new page.
+        assert!(!h.ext.page_restore(42, "other", &state));
+        assert!(h.ext.page_restore(43, "plan", "{\"v\": 99}"));
+        assert!(h.screen(43).contains("\nREQ-001 "));
+    }
+
+    #[test]
+    fn two_pages_keep_their_own_tabs_and_answers_go_to_the_asker() {
+        use crate::pages::frame::tests::Asking;
+        let fake = demo();
+        fake.on_spawn("kiln show", Ran::ok("REQ-002, shown"));
+        let (mut h, one) = opened(&fake);
+        assert!(h.ext.page_restore(2, "plan", "{}"));
+        h.event(Event::PageShown((2, true)));
+        for p in [one, 2] {
+            h.ext
+                .pages
+                .get_mut(&p)
+                .unwrap()
+                .plan
+                .set_view(Tab::Item, Box::<Asking>::default());
+        }
+        fake.take();
+        h.keys(2, "4");
+        h.keys(one, "jv");
+        assert_eq!(
+            spawned(&fake),
+            ["/usr/bin/kiln show REQ-002"],
+            "one ask, from the page that handed it on"
+        );
+        assert!(h.screen(one).contains("\nREQ-002, shown\n"));
+        assert!(h.screen(2).starts_with("1 Tree "));
+        assert!(h.screen(2).contains("\nTASK-003  Export the log as CSV "));
+        h.keys(2, "8");
+        assert!(
+            h.screen(2).contains("\nnothing\n"),
+            "the other page's Item asked nothing"
+        );
+        // A reload asks again, for the page whose Item tab is shown; one
+        // closed while its answer is out drops it.
+        fake.on_spawn("kiln show", Ran::running(""));
+        h.key(one, Key::Char('r'));
+        assert_eq!(
+            spawned(&fake)
+                .iter()
+                .filter(|l| l.contains(" show "))
+                .count(),
+            1
+        );
+        assert!(foot(&mut h, one) == "reading…", "{}", h.screen(one));
+        assert!(
+            h.screen(one).contains("\nREQ-002, shown\n"),
+            "the last answer stays meanwhile"
+        );
+        let p = fake.process("kiln show").unwrap().id;
+        h.close(one);
+        h.said(p, "late", false);
+        h.exited(p, Some(0));
+        assert!(h.ext.asked.is_empty());
+    }
+
+    #[test]
+    fn kiln_reload_before_open_reads_it() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.reload").unwrap();
+        assert_eq!(spawned(&fake).len(), 5);
+    }
+
+    #[test]
+    fn the_refresh_timer_follows_the_page_in_view() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.open").unwrap();
+        let page = h.page("plan");
+        let refresh = |f: &Fake| {
+            f.timers()
+                .into_iter()
+                .find(|t| t.millis == 5000 && t.repeat)
+        };
+        let timer = refresh(&fake).expect("a 5 s refresh while it's in view").id;
+        fake.take();
+        h.fire(timer);
+        assert_eq!(spawned(&fake).len(), 3);
+        h.event(Event::PageShown((page, false)));
+        assert!(refresh(&fake).is_none());
+        h.event(Event::PageShown((page, true)));
+        assert!(refresh(&fake).is_some());
+        h.close(page);
+        assert!(refresh(&fake).is_none());
+    }
+
+    // -- The language server ------------------------------------------------
+
+    /// A project folder of the test's own, for `.fenix/tools.json`: empty
+    /// at first.
+    pub(crate) fn folder(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("fenix-kiln-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join(".fenix")).unwrap();
+        dir
+    }
+
+    pub(crate) fn harness(fake: &Fake, dir: &std::path::Path) -> Harness<Kiln> {
+        Harness::wrap(
+            fake.clone(),
+            Kiln {
+                root: Some(dir.to_path_buf()),
+                ..Kiln::default()
+            },
+        )
+    }
+
+    /// What it told Fenix about its server, in order.
+    fn servers(fake: &Fake) -> Vec<String> {
+        fake.calls()
+            .into_iter()
+            .filter(|c| c.starts_with("add kiln "))
+            .collect()
+    }
+
+    fn infos(fake: &Fake) -> Vec<String> {
+        fake.logs()
+            .into_iter()
+            .filter_map(|l| l.strip_prefix("info ").map(str::to_string))
+            .collect()
+    }
+
+    /// kiln answering `lsp --languages` as the unreleased command would
+    /// (hand-written: tests/fixtures/hand/README).
+    fn answers_languages(fake: &Fake, languages: &[&str]) {
+        let json = serde_json::json!({"kiln_json": 1, "command": "kiln", "args": ["lsp"], "languages": languages});
+        fake.on_spawn("kiln lsp --languages", Ran::ok(json.to_string()));
+    }
+
+    const TOOLS: &str = r#"{"lsp": {"additional": [{"name": "kiln", "executable": "kiln", "args": ["lsp"], "languages": ["markdown"]}]}}"#;
+
+    #[test]
+    fn loaded_it_registers_the_server_with_no_page_open() {
+        let fake = demo();
+        let hand = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/hand/lsp-languages.json"
+        ))
+        .unwrap();
+        fake.on_spawn("kiln lsp --languages", Ran::ok(hand));
+        let dir = folder("registers");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(
+            servers(&fake),
+            ["add kiln markdown,rust,tcl: /usr/bin/kiln lsp"]
+        );
+        assert!(spawned(&fake).contains(&"/usr/bin/kiln lsp --languages --format json".to_string()));
+        assert_eq!(
+            h.ext.lsp.status(),
+            &lsp::Status::Registered {
+                server: lsp::Server {
+                    languages: vec!["markdown".into(), "rust".into(), "tcl".into()],
+                    program: "/usr/bin/kiln".into()
+                },
+                note: None
+            }
+        );
+    }
+
+    #[test]
+    fn kiln_1_0_gets_markdown_only_said_once() {
+        let fake = demo();
+        let dir = folder("old");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(servers(&fake), ["add kiln markdown: /usr/bin/kiln lsp"]);
+        let said = |f: &Fake| {
+            infos(f)
+                .iter()
+                .filter(|l| l.starts_with("kiln 1.0.0 has no `kiln lsp --languages`"))
+                .count()
+        };
+        assert_eq!(said(&fake), 1);
+        // Asked again on r: refused again, not said or set again.
+        h.command("kiln.reload").unwrap();
+        assert_eq!(said(&fake), 1);
+        assert_eq!(servers(&fake).len(), 1);
+    }
+
+    #[test]
+    fn plain_reloads_dont_restart_it() {
+        let fake = demo();
+        let dir = folder("plain");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        h.command("kiln.open").unwrap();
+        let page = h.page("plan");
+        h.saved("/home/me/demo/design/tasks/TASK-001-set-up-the-logger.md");
+        h.command("kiln.reload").unwrap();
+        h.key(page, Key::Char('r'));
+        h.saved("/home/me/demo/kiln.toml");
+        assert_eq!(servers(&fake), ["add kiln markdown: /usr/bin/kiln lsp"]);
+    }
+
+    #[test]
+    fn new_languages_restart_it_once() {
+        let fake = demo();
+        let dir = folder("languages");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        answers_languages(&fake, &["markdown", "python"]);
+        // A code file saved doesn't ask; kiln.toml does.
+        h.saved("/home/me/demo/src/app.py");
+        assert_eq!(servers(&fake).len(), 1);
+        h.saved("/home/me/demo/kiln.toml");
+        h.saved("/home/me/demo/kiln.toml");
+        assert_eq!(
+            servers(&fake),
+            [
+                "add kiln markdown: /usr/bin/kiln lsp",
+                "add kiln markdown,python: /usr/bin/kiln lsp"
+            ]
+        );
+    }
+
+    #[test]
+    fn listed_in_tools_json_it_steps_aside_until_the_entry_goes() {
+        let fake = demo();
+        let dir = folder("listed");
+        std::fs::write(dir.join(".fenix/tools.json"), TOOLS).unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        // Fenix told there's none of ours; nothing registered.
+        assert_eq!(servers(&fake), ["add kiln : "]);
+        assert!(matches!(
+            h.ext.lsp.status(),
+            lsp::Status::ToolsJson(lsp::Form::Additional)
+        ));
+        assert_eq!(
+            infos(&fake)
+                .iter()
+                .filter(|l| l
+                    .starts_with("the project's .fenix/tools.json runs kiln's language server"))
+                .count(),
+            1
+        );
+        // The entry removed, the file saved: ours.
+        std::fs::write(dir.join(".fenix/tools.json"), "{}").unwrap();
+        h.saved(&dir.join(".fenix/tools.json").display().to_string());
+        assert_eq!(
+            servers(&fake)[1..],
+            ["add kiln markdown: /usr/bin/kiln lsp"]
+        );
+        // Listed again (the older form): ours taken away.
+        std::fs::write(
+            dir.join(".fenix/tools.json"),
+            r#"{"lsp": {"markdown": {"executable": "kiln", "args": ["lsp"]}}}"#,
+        )
+        .unwrap();
+        h.command("kiln.reload").unwrap();
+        assert_eq!(servers(&fake)[2..], ["add kiln markdown: "]);
+        assert!(
+            matches!(h.ext.lsp.status(), lsp::Status::ToolsJson(lsp::Form::Primary(l)) if l == "markdown")
+        );
+    }
+
+    #[test]
+    fn a_malformed_tools_json_is_said_and_ours_registered() {
+        let fake = demo();
+        let dir = folder("malformed");
+        std::fs::write(dir.join(".fenix/tools.json"), "{\"lsp\": ").unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(servers(&fake), ["add kiln markdown: /usr/bin/kiln lsp"]);
+        assert!(infos(&fake)
+            .iter()
+            .any(|l| l.starts_with(".fenix/tools.json isn't valid JSON: ")));
+        // No tools.json at all is the same, unsaid.
+        let fake = demo();
+        let dir = folder("absent");
+        std::fs::remove_dir_all(dir.join(".fenix")).unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(servers(&fake), ["add kiln markdown: /usr/bin/kiln lsp"]);
+        assert!(!infos(&fake)
+            .iter()
+            .any(|l| l.contains("valid JSON") || l.contains("can't be read")));
+    }
+
+    #[test]
+    fn kiln_lost_takes_it_away_and_another_kiln_sets_it_once() {
+        let fake = demo();
+        let dir = folder("lost");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        fake.on_spawn_error("/nowhere/kiln", "no such file");
+        h.set_setting("kiln.path", Some("/nowhere/kiln"));
+        assert_eq!(servers(&fake)[1..], ["add kiln markdown: "]);
+        assert!(
+            matches!(h.ext.lsp.status(), lsp::Status::NotRegistered(w) if w.starts_with("kiln.path is /nowhere/kiln, which can't be started"))
+        );
+        // A kiln there: set once, with it and its languages.
+        fake.on_spawn("/opt/kiln --version", Ran::ok("kiln 1.1.0\n"))
+            .on_spawn("/opt/kiln list", Ran::ok(fixture("demo/list.json")))
+            .on_spawn("/opt/kiln status", Ran::ok(fixture("demo/status.json")))
+            .on_spawn("/opt/kiln check", Ran::ok(fixture("demo/check.json")))
+            .on_spawn(
+                "/opt/kiln lsp --languages",
+                Ran::ok(
+                    serde_json::json!({"kiln_json": 1, "languages": ["markdown", "rust"]})
+                        .to_string(),
+                ),
+            );
+        h.set_setting("kiln.path", Some("/opt/kiln"));
+        assert_eq!(
+            servers(&fake)[2..],
+            ["add kiln markdown,rust: /opt/kiln lsp"]
+        );
+    }
+
+    #[test]
+    fn not_a_kiln_project_registers_nothing() {
+        let fake = demo();
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(2, fixture("errors/no-kiln-toml.stderr")),
+        );
+        let dir = folder("none");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(servers(&fake), ["add kiln : "]);
+        // Nothing asked of kiln about languages there.
+        assert!(!spawned(&fake).iter().any(|l| l.contains(" lsp ")));
+        assert!(
+            matches!(h.ext.lsp.status(), lsp::Status::NotRegistered(w) if w.starts_with("kiln: no kiln.toml"))
+        );
+    }
+
+    #[test]
+    fn an_answer_no_one_waits_for_is_dropped() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        let id = h.ext.project.query(["show", "REQ-001"]);
+        h.ext.pass_on();
+        h.settle();
+        assert!(!h.ext.asked.contains_key(&id));
+    }
+
+    // -- The doctor, the tasks and the modeline -----------------------------
+
+    /// A fake whose kiln answers as Kiln's own project did: no findings.
+    pub(crate) fn own() -> Fake {
+        let fake = Fake::new();
+        fake.program("kiln", "/usr/bin/kiln")
+            .on_spawn("kiln --version", Ran::ok(fixture("version.txt")))
+            .on_spawn("kiln list --format json", Ran::ok(fixture("own/list.json")))
+            .on_spawn(
+                "kiln status --format json",
+                Ran::ok(fixture("own/status.json")),
+            )
+            .on_spawn(
+                "kiln check --format json",
+                Ran::ok(fixture("own/check.json")),
+            )
+            .on_spawn(
+                "kiln lsp --languages",
+                Ran::fails(2, fixture("own/lsp-languages.stderr")),
+            );
+        fake
+    }
+
+    /// What it told Fenix, of `what` (`doctor`, `tasks`, `status`), in order.
+    fn told(fake: &Fake, what: &str) -> Vec<String> {
+        fake.calls()
+            .into_iter()
+            .filter(|c| c.split(' ').next() == Some(what))
+            .collect()
+    }
+
+    /// The rows it set last, one line each: `label health detail`.
+    fn rows(fake: &Fake) -> Vec<String> {
+        fake.state()
+            .checks
+            .iter()
+            .map(|c| {
+                let health = format!("{:?}", c.health);
+                let fix = c.fix.as_ref().map(|(l, cmd)| format!(" -> {l} ({cmd})"));
+                format!(
+                    "{} {} {}{}",
+                    c.label,
+                    health.strip_prefix("Health::").unwrap_or(&health),
+                    c.detail,
+                    fix.unwrap_or_default()
+                )
+            })
+            .collect()
+    }
+
+    /// What it tells Fenix when `kiln.toml` can't be read: no file target
+    /// to name, so only the check.
+    const CHECK_ONLY: &str = "tasks kiln: check";
+    /// With the exports demo's `kiln.toml`: three file targets and two
+    /// Confluence ones.
+    const FILE_TASKS: &str = "tasks kiln: check, kiln: export --check (file targets only), kiln: export (file targets only)";
+
+    #[test]
+    fn the_demo_project_gets_its_rows_tasks_and_modeline() {
+        let fake = demo();
+        let dir = folder("demo-tasks");
+        std::fs::write(dir.join("kiln.toml"), fixture("exports/kiln.toml")).unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        let r = rows(&fake);
+        assert_eq!(r.len(), 4, "{r:?}");
+        assert_eq!(r[0], "kiln Ok kiln 1.0.0, /usr/bin/kiln");
+        assert_eq!(r[1], "kiln.toml Ok read, 16 items");
+        // kiln 1.0.0 has no `lsp --languages`: Markdown only, with why.
+        assert!(
+            r[2].starts_with("language server Info kiln lsp, for markdown only: kiln 1.0.0 has no"),
+            "{}",
+            r[2]
+        );
+        assert_eq!(
+            r[3],
+            "kiln check Bad 1 error, 2 warnings -> open the Check tab (kiln.findings)"
+        );
+        // The tasks run the kiln found, in the project.
+        let state = fake.state();
+        let lines: Vec<String> = state
+            .tasks
+            .iter()
+            .map(|t| format!("{}: {}", t.name, fenix_test_kit::line(&t.cmd)))
+            .collect();
+        // The export tasks name the file targets of `kiln.toml`, and
+        // none of its Confluence ones.
+        assert_eq!(
+            lines,
+            [
+                "kiln: check: /usr/bin/kiln check",
+                "kiln: export --check (file targets only): /usr/bin/kiln export --check -- design-doc requirements-html sections-md",
+                "kiln: export (file targets only): /usr/bin/kiln export -- design-doc requirements-html sections-md",
+            ]
+        );
+        assert!(state
+            .tasks
+            .iter()
+            .all(|t| t.cmd.cwd.as_deref() == Some(PROJECT)));
+        drop(state);
+        assert_eq!(told(&fake, "tasks"), [FILE_TASKS]);
+        assert_eq!(told(&fake, "status"), ["status kiln 1 error, 2 warnings"]);
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 error, 2 warnings"));
+    }
+
+    #[test]
+    fn a_project_with_no_findings_has_no_modeline_item() {
+        let fake = own();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        assert_eq!(fake.status(), None);
+        assert_eq!(rows(&fake)[3], "kiln check Ok no findings");
+        assert_eq!(
+            rows(&fake)[1],
+            format!("kiln.toml Ok read, {} items", fixture_items("own"))
+        );
+        assert_eq!(told(&fake, "tasks"), [CHECK_ONLY]);
+    }
+
+    #[test]
+    fn the_export_tasks_follow_the_file_targets_kiln_toml_names() {
+        let fake = demo();
+        let dir = folder("tasks-follow");
+        // Only Confluence targets: nothing a task could name.
+        let only_confluence = fixture("exports/kiln.toml")
+            .split("[[export]]")
+            .filter(|t| {
+                !t.contains("name = \"design-doc\"")
+                    && !t.contains("html")
+                    && !t.contains("sections-md")
+            })
+            .collect::<Vec<_>>()
+            .join("[[export]]");
+        std::fs::write(dir.join("kiln.toml"), &only_confluence).unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(told(&fake, "tasks"), [CHECK_ONLY], "no bare export");
+        assert!(
+            !fake
+                .state()
+                .tasks
+                .iter()
+                .any(|t| t.cmd.args.first().map(String::as_str) == Some("export")),
+            "no task runs export"
+        );
+        // A file target saved: the export tasks come, naming only it.
+        std::fs::write(
+            dir.join("kiln.toml"),
+            format!(
+                "{only_confluence}\n[[export]]\nname = \"site\"\nformat = \"html\"\npath = \"docs/site.html\"\n"
+            ),
+        )
+        .unwrap();
+        h.saved("kiln.toml");
+        h.settle();
+        let tasks = fake.state().tasks.clone();
+        let lines: Vec<String> = tasks.iter().map(|t| fenix_test_kit::line(&t.cmd)).collect();
+        assert_eq!(
+            lines,
+            [
+                "/usr/bin/kiln check",
+                "/usr/bin/kiln export --check -- site",
+                "/usr/bin/kiln export -- site"
+            ]
+        );
+    }
+
+    /// How many items `own/list.json` holds.
+    fn fixture_items(project: &str) -> String {
+        model::list(&fixture(&format!("{project}/list.json")))
+            .unwrap()
+            .len()
+            .to_string()
+    }
+
+    #[test]
+    fn the_modeline_follows_the_check_and_keeps_its_text_while_reading() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 error, 2 warnings"));
+        // A reload that runs: the text stays, and nothing is set.
+        fake.on_spawn("kiln list", Ran::running(""));
+        h.command("kiln.reload").unwrap();
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 error, 2 warnings"));
+        assert_eq!(told(&fake, "status").len(), 1);
+        // It ends with the error fixed: one warning less, one set.
+        let list = fake.process("kiln list").unwrap().id;
+        fake.on_spawn(
+            "kiln check",
+            Ran::ok(
+                r#"[{"code":"K201","severity":"warning","message":"m","path":"a.md","line":1,"column":1}]"#,
+            ),
+        );
+        for line in fixture("demo/list.json").lines() {
+            h.said(list, line, false);
+        }
+        h.exited(list, Some(0));
+        assert_eq!(fake.status().as_deref(), Some("kiln 1 warning"));
+        // Clean: the item goes.
+        fake.on_spawn("kiln list", Ran::ok(fixture("demo/list.json")));
+        fake.on_spawn("kiln check", Ran::ok("[]"));
+        h.saved("/home/me/demo/design/tasks/TASK-006-draft-the-user-guide.md");
+        assert_eq!(fake.status(), None);
+        assert_eq!(
+            told(&fake, "status"),
+            [
+                "status kiln 1 error, 2 warnings",
+                "status kiln 1 warning",
+                "status -"
+            ]
+        );
+    }
+
+    #[test]
+    fn repeated_reloads_with_nothing_changed_set_nothing_again() {
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        h.command("kiln.open").unwrap();
+        let page = h.page("plan");
+        let before = (
+            told(&fake, "doctor"),
+            told(&fake, "tasks"),
+            told(&fake, "status"),
+        );
+        // The doctor was set again as the server's row went from waiting
+        // to registered; once it's settled, nothing is.
+        assert_eq!((before.1.len(), before.2.len()), (1, 1));
+        h.command("kiln.reload").unwrap();
+        h.key(page, Key::Char('r'));
+        h.saved("/home/me/demo/design/tasks/TASK-001-set-up-the-logger.md");
+        h.saved("/home/me/demo/kiln.toml");
+        h.fire_timers();
+        assert_eq!(
+            (
+                told(&fake, "doctor"),
+                told(&fake, "tasks"),
+                told(&fake, "status")
+            ),
+            before
+        );
+    }
+
+    #[test]
+    fn kiln_missing_says_so_with_its_fix_and_offers_no_tasks() {
+        let fake = Fake::new();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        assert_eq!(
+            rows(&fake),
+            ["kiln Bad isn't on the PATH, and kiln.path is empty -> how to install Kiln (kiln.install_help)"]
+        );
+        assert_eq!(told(&fake, "tasks"), ["tasks "]);
+        assert!(fake.state().tasks.is_empty());
+        assert_eq!(fake.status(), None);
+        // The fix opens Kiln's install page and nothing else.
+        h.command("kiln.install_help").unwrap();
+        assert_eq!(
+            fake.state().urls,
+            ["https://github.com/tpedneault/kiln/wiki/Installing"]
+        );
+        assert!(!fake.calls().iter().any(|c| c.starts_with("http")));
+    }
+
+    #[test]
+    fn a_kiln_path_that_cant_run_is_named_and_a_working_one_brings_the_tasks() {
+        let fake = demo();
+        let dir = folder("doctor-path");
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(told(&fake, "tasks").len(), 1);
+        fake.on_spawn_error("/nowhere/kiln", "no such file");
+        h.set_setting("kiln.path", Some("/nowhere/kiln"));
+        assert_eq!(
+            rows(&fake),
+            ["kiln Bad kiln.path is /nowhere/kiln, which can't be run: set it to where kiln is, or empty it to use the PATH -> how to install Kiln (kiln.install_help)"]
+        );
+        assert!(fake.state().tasks.is_empty());
+        assert_eq!(fake.status(), None);
+        // Another kiln: the tasks run it, once.
+        fake.on_spawn("/opt/kiln --version", Ran::ok("kiln 1.1.0\n"))
+            .on_spawn("/opt/kiln list", Ran::ok(fixture("demo/list.json")))
+            .on_spawn("/opt/kiln status", Ran::ok(fixture("demo/status.json")))
+            .on_spawn("/opt/kiln check", Ran::ok("[]"));
+        h.set_setting("kiln.path", Some("/opt/kiln"));
+        assert_eq!(rows(&fake)[0], "kiln Ok kiln 1.1.0, /opt/kiln");
+        assert_eq!(
+            fenix_test_kit::line(&fake.state().tasks[0].cmd),
+            "/opt/kiln check"
+        );
+        assert_eq!(told(&fake, "tasks").len(), 3);
+        h.command("kiln.reload").unwrap();
+        assert_eq!(told(&fake, "tasks").len(), 3);
+    }
+
+    #[test]
+    fn not_a_kiln_project_clears_everything_once() {
+        let fake = demo();
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(2, fixture("errors/no-kiln-toml.stderr")),
+        );
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        h.command("kiln.reload").unwrap();
+        assert!(fake.state().checks.is_empty());
+        assert!(fake.state().tasks.is_empty());
+        assert_eq!(fake.status(), None);
+        assert_eq!(told(&fake, "doctor"), ["doctor 0"]);
+        assert_eq!(told(&fake, "tasks"), ["tasks "]);
+        assert_eq!(told(&fake, "status"), ["status -"]);
+    }
+
+    #[test]
+    fn a_project_kiln_cant_read_says_kilns_line_in_the_doctor() {
+        let fake = demo();
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(2, "kiln: kiln.toml:4: unknown key `nmae`"),
+        );
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        let r = rows(&fake);
+        assert_eq!(r[0], "kiln Ok kiln 1.0.0, /usr/bin/kiln");
+        assert_eq!(r[1], "kiln.toml Bad kiln: kiln.toml:4: unknown key `nmae`");
+        // Usable: kiln's own checks can be run to see more.
+        assert_eq!(told(&fake, "tasks"), [CHECK_ONLY]);
+        assert_eq!(fake.status(), None);
+    }
+
+    #[test]
+    fn the_doctor_follows_the_language_server() {
+        let fake = demo();
+        let dir = folder("doctor-lsp");
+        std::fs::write(dir.join(".fenix/tools.json"), TOOLS).unwrap();
+        let mut h = harness(&fake, &dir);
+        h.activate().unwrap();
+        assert_eq!(
+            rows(&fake)[2],
+            "language server Ok left to .fenix/tools.json, which runs kiln lsp"
+        );
+        std::fs::write(dir.join(".fenix/tools.json"), "{}").unwrap();
+        h.saved(&dir.join(".fenix/tools.json").display().to_string());
+        assert!(rows(&fake)[2].starts_with("language server Info kiln lsp, for markdown only"));
+        assert_eq!(told(&fake, "doctor").len(), 2);
+    }
+
+    // -- Prompts, pickers and edits asked by a tab ---------------------------
+
+    /// The demo opened, its Check tab a [`Flow`](pages::frame::tests::Flow)
+    /// and shown.
+    fn flowing(fake: &Fake) -> (Harness<Kiln>, u64) {
+        let (mut h, page) = opened(fake);
+        h.ext
+            .pages
+            .get_mut(&page)
+            .unwrap()
+            .plan
+            .set_view(Tab::Check, Box::<pages::frame::tests::Flow>::default());
+        h.keys(page, "9");
+        (h, page)
+    }
+
+    fn lines_with(fake: &Fake, what: &str) -> Vec<String> {
+        fake.calls()
+            .into_iter()
+            .filter(|c| c.contains(what))
+            .collect()
+    }
+
+    #[test]
+    fn a_tabs_flow_goes_through_fenixs_picker_and_prompt_to_one_kiln_edit() {
+        let fake = demo();
+        fake.on_pick("Link REQ-001 as", "verifies")
+            .on_prompt("verifies what", "TEST-001")
+            .on_spawn(
+                "kiln link REQ-001 verifies TEST-001",
+                Ran::ok("REQ-001: + verifies TEST-001\n"),
+            );
+        let (mut h, page) = flowing(&fake);
+        fake.take();
+        h.key(page, Key::Char('x'));
+        let calls = fake.take();
+        let at = |what: &str| calls.iter().position(|c| c.contains(what));
+        assert!(
+            calls
+                .iter()
+                .any(|c| c.ends_with("Link REQ-001 as: verifies, implements")),
+            "Fenix's own picker: {calls:?}"
+        );
+        assert!(calls
+            .iter()
+            .any(|c| c.starts_with("prompt ") && c.ends_with("REQ-001 verifies what []")));
+        // One edit, then the project read again.
+        let edit = at("kiln link REQ-001 verifies TEST-001").expect("the edit ran");
+        let list = calls
+            .iter()
+            .rposition(|c| c.ends_with("kiln list --format json"))
+            .expect("read again");
+        assert!(edit < list, "{calls:?}");
+        assert_eq!(foot(&mut h, page), "REQ-001: + verifies TEST-001");
+        assert!(h
+            .screen(page)
+            .contains("heard: role=verifies, target=TEST-001, link done"));
+        assert!(h.ext.answers.is_empty() && h.ext.asked.is_empty());
+    }
+
+    #[test]
+    fn a_cancelled_pick_or_prompt_ends_the_flow_and_runs_nothing() {
+        let fake = demo();
+        fake.on_pick_nothing("Link REQ-001 as");
+        let (mut h, page) = flowing(&fake);
+        h.key(page, Key::Char('x'));
+        assert!(lines_with(&fake, "prompt ").is_empty());
+        assert!(h.ext.answers.is_empty());
+        fake.on_pick("Link REQ-001 as", "implements")
+            .on_prompt_nothing("implements what");
+        h.key(page, Key::Char('x'));
+        assert_eq!(lines_with(&fake, "prompt ").len(), 1);
+        assert!(lines_with(&fake, " link ").is_empty(), "no edit");
+        assert!(h.ext.answers.is_empty());
+        assert!(h.screen(page).contains("heard: role=implements\n"));
+    }
+
+    #[test]
+    fn answers_for_a_closed_page_are_dropped() {
+        let fake = demo();
+        let (mut h, page) = flowing(&fake);
+        // Asked, unanswered; the page closes; the answer comes after.
+        h.key(page, Key::Char('x'));
+        let picker = fake.state().pickers.last().unwrap().id;
+        h.close(page);
+        assert!(h.ext.answers.is_empty(), "let go with its page");
+        h.event(Event::Picked((picker, Some("verifies".into()))));
+        assert!(lines_with(&fake, "prompt ").is_empty());
+        // An edit out as its page closes runs on; its outcome is dropped.
+        let fake = demo();
+        fake.on_pick("Link REQ-001 as", "verifies")
+            .on_prompt("verifies what", "TEST-001")
+            .on_spawn("kiln link", Ran::running(""));
+        let (mut h, page) = flowing(&fake);
+        h.key(page, Key::Char('x'));
+        let link = fake.process("kiln link").unwrap().id;
+        h.close(page);
+        h.said(link, "REQ-001: + verifies TEST-001", false);
+        h.exited(link, Some(0));
+        assert!(h.ext.asked.is_empty());
+        assert!(
+            fake.calls()
+                .iter()
+                .rev()
+                .take_while(|c| !c.contains("kiln link"))
+                .any(|c| c.ends_with("kiln list --format json")),
+            "read again all the same"
+        );
+    }
+
+    #[test]
+    fn a_refused_edit_says_kilns_line_and_the_flow_asks_again() {
+        let fake = demo();
+        fake.on_pick("Link REQ-001 as", "verifies")
+            .on_prompt("verifies what", "TEST-001")
+            .on_spawn(
+                "kiln link",
+                Ran::fails(1, "kiln: design/requirements/REQ-001-readings-are-logged-every-second.md changed on disk since it was read"),
+            );
+        let (mut h, page) = flowing(&fake);
+        h.key(page, Key::Char('x'));
+        assert_eq!(
+            foot(&mut h, page),
+            "kiln: design/requirements/REQ-001-readings-are-logged-every-second.md changed on disk since it was read"
+        );
+        let prompts = lines_with(&fake, "prompt ");
+        assert_eq!(prompts.len(), 2, "{prompts:?}");
+        assert!(prompts[1].ends_with("REQ-001 again []"));
+        assert_eq!(h.ext.answers.len(), 1, "the second prompt waits");
+    }
+
+    // -- Commands from a buffer ----------------------------------------------
+
+    /// The demo, with you in `path` (from the project's top) on `text`'s
+    /// line `line`, column `column`.
+    fn in_file(path: &str, text: &str, line: u32, column: u32) -> Fake {
+        let fake = demo();
+        fake.project("demo", "/home/me/demo")
+            .in_file(&format!("/home/me/demo/{path}"), "md", text)
+            .cursor(line, column);
+        fake
+    }
+
+    #[test]
+    fn kiln_show_opens_the_item_under_the_cursor_on_the_item_tab() {
+        let fake = in_file("src/log.rs", "fn log() {}\n// implements: REQ-001\n", 1, 17);
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.size = WIDE;
+        h.command("kiln.show").unwrap();
+        let page = h.page("plan");
+        assert_eq!(h.ext.pages[&page].plan.tab(), Tab::Item);
+        assert!(h
+            .screen(page)
+            .contains("\nrequirement   REQ-001   Readings are logged every second"));
+        // Again, on another ID: the same page, focused, its history grown.
+        fake.in_file(
+            "/home/me/demo/design/tasks/TASK-004-add-the-export-button.md",
+            "md",
+            "depends-on = [\"TASK-002\"]\n",
+        )
+        .cursor(0, 17);
+        h.command("kiln.show").unwrap();
+        assert_eq!(h.page("plan"), page);
+        assert!(fake.calls().contains(&format!("page-focus {page}")));
+        assert!(
+            h.screen(page)
+                .contains("TASK-002  Write readings to SQLite"),
+            "{}",
+            h.screen(page)
+        );
+        assert!(
+            foot(&mut h, page).starts_with("< back"),
+            "{}",
+            foot(&mut h, page)
+        );
+    }
+
+    #[test]
+    fn kiln_impact_off_any_id_in_an_items_file_takes_that_item() {
+        let fake = in_file(
+            "design/tasks/TASK-006-draft-the-user-guide.md",
+            "Write it for people who never used the logger.\n",
+            0,
+            6,
+        );
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.size = WIDE;
+        h.command("kiln.impact").unwrap();
+        let page = h.page("plan");
+        assert_eq!(h.ext.pages[&page].plan.tab(), Tab::Impact);
+        assert!(h
+            .screen(page)
+            .contains("\nTASK-006  Draft the user guide\n"));
+        assert!(h.screen(page).contains("nothing reaches TASK-006"));
+    }
+
+    #[test]
+    fn no_id_here_says_what_it_looked_at_and_opens_nothing() {
+        let fake = in_file("src/log.rs", "fn log() {}\n", 0, 3);
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.show").unwrap();
+        assert_eq!(
+            fake.notifications(),
+            ["Kiln: no Kiln ID under the cursor on line 1 of src/log.rs, and src/log.rs isn't an item's file"]
+        );
+        assert!(fake.page("plan").is_none());
+        // An ID kiln doesn't list is named.
+        let fake = in_file("src/log.rs", "// implements: REQ-099\n", 0, 18);
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.impact").unwrap();
+        assert_eq!(
+            fake.notifications(),
+            ["Kiln: REQ-099 (line 1 of src/log.rs) isn't an item of this project: kiln list has no such ID"]
+        );
+        // Not in a file at all.
+        let fake = demo();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.show").unwrap();
+        assert!(
+            fake.notifications()[0].contains("no file in front"),
+            "{:?}",
+            fake.notifications()
+        );
+        // No kiln: why, in the project's words.
+        let fake = Fake::new();
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.show").unwrap();
+        assert!(
+            fake.notifications()[0].starts_with("Kiln: kiln isn't on the PATH"),
+            "{:?}",
+            fake.notifications()
+        );
+    }
+
+    #[test]
+    fn a_command_before_the_project_is_read_waits_for_it() {
+        let fake = in_file("src/log.rs", "// implements: REQ-001\n", 0, 17);
+        fake.on_spawn("kiln list", Ran::running(""));
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.show").unwrap();
+        assert!(fake.page("plan").is_none(), "not yet: no IDs to know it by");
+        // Where you were is kept: you've moved on by the time it's read.
+        fake.in_file("/home/me/demo/README.md", "md", "nothing\n");
+        let list = fake.process("kiln list").unwrap().id;
+        for line in fixture("demo/list.json").lines() {
+            h.said(list, line, false);
+        }
+        h.exited(list, Some(0));
+        let page = h.page("plan");
+        assert_eq!(h.ext.pages[&page].plan.tab(), Tab::Item);
+        assert!(h.screen(page).contains("REQ-001"));
+        assert!(fake.notifications().is_empty());
+    }
+
+    /// kiln's own line is said as kiln wrote it, never `Kiln: kiln: …`, and
+    /// bad news in the error look; with an escape sequence in it gone.
+    #[test]
+    fn a_command_on_a_project_kiln_cant_read_says_kilns_line_once() {
+        let fake = in_file("src/log.rs", "// implements: REQ-001\n", 0, 17);
+        fake.on_spawn(
+            "kiln list",
+            Ran::fails(
+                2,
+                "kiln: design/a.md:3: front matter \u{1b}[31mcan't be parsed",
+            ),
+        );
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.show").unwrap();
+        h.settle();
+        assert_eq!(
+            fake.notifications(),
+            ["kiln: design/a.md:3: front matter can't be parsed"]
+        );
+        assert!(fake
+            .calls()
+            .iter()
+            .any(|c| c == "notify error kiln: design/a.md:3: front matter can't be parsed"));
+    }
+
+    #[test]
+    fn kiln_find_picks_from_every_item_then_shows_it() {
+        let fake = demo();
+        fake.on_pick("Kiln item", "TASK-004  Add the export button");
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.size = WIDE;
+        h.command("kiln.find").unwrap();
+        let picks = lines_with(&fake, "pick ");
+        assert_eq!(picks.len(), 1);
+        assert!(picks[0].contains("Kiln item: REQ-001  Readings are logged every second, "));
+        assert_eq!(fake.state().pickers[0].items.len(), 16);
+        assert_eq!(fake.state().pickers[0].items[0].detail, "approved");
+        let page = h.page("plan");
+        assert_eq!(h.ext.pages[&page].plan.tab(), Tab::Item);
+        assert!(
+            h.screen(page)
+                .contains("\ntask          TASK-004  Add the export button  todo\n"),
+            "{}",
+            h.screen(page)
+        );
+        // Closed with nothing: nothing happens.
+        let fake = demo();
+        fake.on_pick_nothing("Kiln item");
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.command("kiln.find").unwrap();
+        assert!(fake.page("plan").is_none());
+        assert!(h.ext.answers.is_empty());
+    }
+
+    #[test]
+    fn an_unknown_command_is_an_error() {
+        let mut h: Harness<Kiln> = Harness::new();
+        assert_eq!(
+            h.command("kiln.nope"),
+            Err("no command kiln.nope".to_string())
+        );
+    }
+
+    // -- Titles after IDs ----------------------------------------------------
+
+    const LOG: &str = "/home/me/demo/src/log.rs";
+    const GUIDE: &str = "/home/me/demo/design/tasks/TASK-006-draft-the-user-guide.md";
+
+    /// The demo read, in `/home/me/demo`, with `src/log.rs` open: line
+    /// `n` (from 0) says `// implements: REQ-001` on every tenth line.
+    fn decorated() -> (Fake, Harness<Kiln>) {
+        let fake = demo();
+        let log: String = (0..300)
+            .map(|n| {
+                if n % 10 == 0 {
+                    format!("// {n} implements: REQ-001\n")
+                } else {
+                    format!("fn f{n}() {{}}\n")
+                }
+            })
+            .collect();
+        fake.project("demo", "/home/me/demo")
+            .buffer(LOG, &log)
+            .buffer(GUIDE, "+++\nid = \"TASK-006\"\nparent = \"MS-001\"\n+++\n");
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        (fake, h)
+    }
+
+    fn view(path: &str, pane: u64, first: u32, last: u32) -> TextView {
+        TextView {
+            buffer: api::TextBuffer::File(path.into()),
+            pane,
+            first,
+            last,
+        }
+    }
+
+    fn views(h: &mut Harness<Kiln>, views: Vec<TextView>) {
+        h.ext.view_changed(views);
+        h.settle();
+    }
+
+    /// The lines decorated in `path`, and what's drawn on the first.
+    fn decorated_lines(fake: &Fake, path: &str) -> (Vec<u32>, String) {
+        let ds = fake.decorations(path);
+        let mut lines: Vec<u32> = ds.iter().map(|d| d.start.0).collect();
+        lines.dedup();
+        let first: String = ds
+            .iter()
+            .take(2)
+            .map(|d| match &d.look {
+                api::DecorationLook::Text(t) => t.text.clone(),
+                _ => String::new(),
+            })
+            .collect();
+        (lines, first)
+    }
+
+    fn sets(fake: &Fake) -> usize {
+        fake.calls()
+            .iter()
+            .filter(|c| c.starts_with("decorations "))
+            .count()
+    }
+
+    #[test]
+    fn the_lines_in_view_get_titles_and_follow_the_view() {
+        let (fake, mut h) = decorated();
+        assert_eq!(sets(&fake), 0, "nothing shown, nothing set");
+        views(&mut h, vec![view(LOG, 1, 100, 129)]);
+        let (lines, first) = decorated_lines(&fake, LOG);
+        // 30 lines shown, 30 more either side: every tenth of 70..=159.
+        assert_eq!(lines, [70, 80, 90, 100, 110, 120, 130, 140, 150]);
+        assert_eq!(first, " · Readings are logged every second · approved");
+        assert_eq!(fake.decorations(LOG)[0].start, (70, 24));
+        // Moved: the new lines; the same view again sets nothing.
+        views(&mut h, vec![view(LOG, 1, 260, 289)]);
+        assert_eq!(
+            decorated_lines(&fake, LOG).0,
+            [230, 240, 250, 260, 270, 280, 290]
+        );
+        let before = sets(&fake);
+        views(&mut h, vec![view(LOG, 1, 260, 289)]);
+        assert_eq!(sets(&fake), before);
+        // Out of every pane: taken away.
+        views(&mut h, vec![]);
+        assert!(fake.decorations(LOG).is_empty());
+    }
+
+    #[test]
+    fn two_panes_on_one_buffer_both_get_theirs_in_one_set() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(LOG, 1, 0, 9), view(LOG, 2, 200, 209)]);
+        assert_eq!(decorated_lines(&fake, LOG).0, [0, 10, 190, 200, 210]);
+        assert_eq!(sets(&fake), 1);
+    }
+
+    #[test]
+    fn a_change_to_a_shown_buffer_is_decorated_again() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(GUIDE, 1, 0, 3)]);
+        // Its own id line has none; its parent has the milestone's.
+        assert_eq!(decorated_lines(&fake, GUIDE).0, [2]);
+        assert_eq!(decorated_lines(&fake, GUIDE).1, " · First release · active");
+        h.changed(
+            Changed::File(GUIDE.into()),
+            Some("+++\nid = \"TASK-006\"\nparent = \"MS-002\"\n[links]\nimplements = [\"REQ-003\"]\n+++\n"),
+        );
+        let (lines, first) = decorated_lines(&fake, GUIDE);
+        assert_eq!(lines, [2, 4]);
+        assert_eq!(first, " · Second release · planned");
+        // A buffer no pane shows: nothing worked out.
+        let before = sets(&fake);
+        h.changed(Changed::File(LOG.into()), Some("REQ-001\n"));
+        assert_eq!(sets(&fake), before);
+    }
+
+    #[test]
+    fn a_new_read_updates_every_shown_buffer_and_a_lost_project_clears_them() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(LOG, 1, 0, 9), view(GUIDE, 2, 0, 3)]);
+        let list = fixture("demo/list.json")
+            .replace(
+                "Readings are logged every second",
+                "Readings are logged each second",
+            )
+            .replace("\"First release\"", "\"The first release\"");
+        fake.on_spawn("kiln list", Ran::ok(list));
+        h.command("kiln.reload").unwrap();
+        assert_eq!(
+            decorated_lines(&fake, LOG).1,
+            " · Readings are logged each second · approved"
+        );
+        assert_eq!(
+            decorated_lines(&fake, GUIDE).1,
+            " · The first release · active"
+        );
+        // A reload that finds the same: nothing set again.
+        let before = sets(&fake);
+        h.command("kiln.reload").unwrap();
+        assert_eq!(sets(&fake), before);
+        // One that runs, then fails: the last read's stay meanwhile and after.
+        fake.on_spawn("kiln list", Ran::running(""));
+        h.command("kiln.reload").unwrap();
+        assert!(!fake.decorations(LOG).is_empty());
+        let list = fake.process("kiln list").unwrap().id;
+        h.said(list, "kiln: design/x.md:1: broken", true);
+        h.exited(list, Some(2));
+        assert!(matches!(
+            h.ext.project.state(),
+            State::Loaded { error: Some(_), .. }
+        ));
+        assert_eq!(sets(&fake), before);
+        // kiln gone: stale titles would mislead, so they go.
+        fake.on_spawn_error("/nowhere/kiln", "no such file");
+        h.set_setting("kiln.path", Some("/nowhere/kiln"));
+        assert!(matches!(h.ext.project.state(), State::NotFound(_)));
+        assert!(fake.decorations(LOG).is_empty());
+        assert!(fake.decorations(GUIDE).is_empty());
+    }
+
+    #[test]
+    fn turned_off_they_go_at_once_and_nothing_is_worked_out() {
+        let (fake, mut h) = decorated();
+        views(&mut h, vec![view(LOG, 1, 0, 9)]);
+        assert!(!fake.decorations(LOG).is_empty());
+        h.set_setting(decor::SETTING, Some("false"));
+        assert!(fake.decorations(LOG).is_empty());
+        let before = sets(&fake);
+        views(&mut h, vec![view(LOG, 1, 50, 59)]);
+        h.changed(Changed::File(LOG.into()), None);
+        h.command("kiln.reload").unwrap();
+        assert_eq!(sets(&fake), before);
+        // On again: back, for the lines shown now.
+        h.set_setting(decor::SETTING, Some("true"));
+        assert_eq!(decorated_lines(&fake, LOG).0, [40, 50, 60]);
+        // Off from the start.
+        let fake = demo();
+        fake.project("demo", "/home/me/demo")
+            .buffer(LOG, "REQ-001\n");
+        fake.setting(decor::SETTING, "false");
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        views(&mut h, vec![view(LOG, 1, 0, 9)]);
+        assert_eq!(sets(&fake), 0);
+    }
+
+    #[test]
+    fn a_file_outside_the_project_gets_nothing() {
+        let (fake, mut h) = decorated();
+        fake.buffer("/home/me/other/notes.md", "see REQ-001\n");
+        views(&mut h, vec![view("/home/me/other/notes.md", 1, 0, 9)]);
+        assert_eq!(sets(&fake), 0);
+        assert!(fake.decorations("/home/me/other/notes.md").is_empty());
+    }
+
+    #[test]
+    fn two_thousand_items_and_twenty_thousand_lines_take_milliseconds() {
+        let items: Vec<serde_json::Value> = (1..=2000)
+            .map(|n| {
+                serde_json::json!({
+                    "id": format!("REQ-{n:04}"), "type": "requirement",
+                    "title": format!("Requirement number {n} with a title long enough to be cut somewhere"),
+                    "status": if n % 2 == 0 { "approved" } else { "draft" },
+                    "path": format!("design/requirements/REQ-{n:04}-r.md"), "line": 2
+                })
+            })
+            .collect();
+        let fake = demo();
+        fake.on_spawn(
+            "kiln list",
+            Ran::ok(serde_json::Value::from(items).to_string()),
+        );
+        let long: String = (0..20_000)
+            .map(|n| {
+                format!(
+                    "// {n} implements: REQ-{:04}, REQ-{:04} and see [[REQ-{:04}]]\n",
+                    n % 2000 + 1,
+                    (n * 7) % 2000 + 1,
+                    (n * 13) % 2000 + 1
+                )
+            })
+            .collect();
+        fake.project("demo", "/home/me/demo").buffer(LOG, &long);
+        let mut h: Harness<Kiln> = Harness::with_fake(fake.clone());
+        h.activate().unwrap();
+        let started = std::time::Instant::now();
+        views(&mut h, vec![view(LOG, 1, 19_940, 19_999)]);
+        let viewed = started.elapsed();
+        let started = std::time::Instant::now();
+        h.changed(Changed::File(LOG.into()), None);
+        let changed = started.elapsed();
+        // 120 lines (60 shown, 60 above), three IDs each, two decorations
+        // an ID.
+        assert_eq!(fake.decorations(LOG).len(), 120 * 3 * 2);
+        // Generous for an unoptimised test build on a loaded machine: about
+        // 3 ms here, 2 ms in release, most of it the 1.3 MB text copied
+        // and its lines counted to the end.
+        eprintln!("2,000 items, 20,000 lines: view {viewed:?}, change {changed:?}");
+        assert!(viewed.as_millis() < 50, "view: {viewed:?}");
+        assert!(changed.as_millis() < 50, "change: {changed:?}");
+    }
+}

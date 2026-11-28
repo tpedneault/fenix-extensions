@@ -1,0 +1,3 @@
+design-doc-confluence (confluence, document) → space DEMO, page 123456789 "Demo space home"
+  create    "Demo — design document": new (15 KiB)
+  1 create, 0 update, 0 unchanged, 0 drift, 0 retire

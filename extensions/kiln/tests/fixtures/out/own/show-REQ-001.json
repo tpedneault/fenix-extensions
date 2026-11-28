@@ -1,0 +1,48 @@
+{
+  "also_in": [],
+  "body": "\nEvery fact Kiln shows comes from files in the repository, plus git\nhistory and, read-only, Jira. No database, no server: deleting Kiln loses\nno information.\n\nFrom DESIGN.md, goal 1.\n",
+  "children": [
+    {
+      "id": "REQ-013",
+      "status": "verified",
+      "title": "Edits keep the author's formatting and never fight an editor"
+    }
+  ],
+  "closed": false,
+  "coverage": {
+    "implements": true,
+    "verifies": true
+  },
+  "derived": false,
+  "done": false,
+  "due": null,
+  "id": "REQ-001",
+  "inbound": {
+    "verifies": [
+      {
+        "line": 957,
+        "path": "crates/kiln/tests/cli.rs"
+      }
+    ]
+  },
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {},
+  "mentioned_by": [
+    {
+      "id": "ADR-014",
+      "status": "accepted",
+      "title": "Kiln pushes the tasks it manages to Jira"
+    }
+  ],
+  "owner": null,
+  "parent": null,
+  "path": "design/requirements/REQ-001-the-repository-is-the-source-of-truth.md",
+  "progress": null,
+  "status": "approved",
+  "tags": [],
+  "title": "The repository is the source of truth",
+  "type": "requirement"
+}

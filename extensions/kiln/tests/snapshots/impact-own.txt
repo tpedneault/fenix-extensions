@@ -1,0 +1,40 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Expo…› Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+REQ-001  The repository is the source of truth  8 reach it
+REQ-013                            child of REQ-001                      Edits keep the author's formatting a…
+crates/kiln/tests/cli.rs:957       verifies REQ-001
+crates/kiln-gui/src/tests.rs:723   verifies REQ-013, child of REQ-001
+crates/kiln-index/src/write.rs:48  implements REQ-013, child of REQ-001
+crates/kiln-parse/src/edit.rs:60   implements REQ-013, child of REQ-001
+crates/kiln-parse/src/edit.rs:257  verifies REQ-013, child of REQ-001
+crates/kiln-parse/src/edit.rs:279  verifies REQ-013, child of REQ-001
+crates/kiln/src/project.rs:161     verifies REQ-013, child of REQ-001
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

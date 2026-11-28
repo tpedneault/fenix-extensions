@@ -1,0 +1,26 @@
+[
+  {
+    "code": "K201",
+    "column": 7,
+    "line": 2,
+    "message": "REQ-003 is approved but nothing verifies it",
+    "path": "design/requirements/REQ-003-the-log-exports-as-csv.md",
+    "severity": "warning"
+  },
+  {
+    "code": "K102",
+    "column": 23,
+    "line": 11,
+    "message": "reference REQ-099 doesn't exist",
+    "path": "design/tasks/TASK-006-draft-the-user-guide.md",
+    "severity": "error"
+  },
+  {
+    "code": "K213",
+    "column": 7,
+    "line": 2,
+    "message": "TASK-008 is open work in no milestone; `kiln link TASK-008 part-of MS-…` places it",
+    "path": "design/tasks/TASK-008-tidy-the-build-scripts.md",
+    "severity": "warning"
+  }
+]

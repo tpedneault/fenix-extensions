@@ -1,0 +1,2 @@
+design-doc (markdown, document) → docs/DESIGN-DOCUMENT.md
+  would create docs/DESIGN-DOCUMENT.md

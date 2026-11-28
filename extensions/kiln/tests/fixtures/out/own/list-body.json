@@ -1,0 +1,1907 @@
+[
+  {
+    "body": "\nEvery fact Kiln shows comes from files in the repository, plus git\nhistory and, read-only, Jira. No database, no server: deleting Kiln loses\nno information.\n\nFrom DESIGN.md, goal 1.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-001-the-repository-is-the-source-of-truth.md",
+    "status": "approved",
+    "tags": [],
+    "title": "The repository is the source of truth",
+    "type": "requirement"
+  },
+  {
+    "body": "\nThe files are Markdown a person can read on GitLab or GitHub, and exports\nturn them into a design document where the rest of the organisation\nalready reads: a Confluence page, a file, a printable HTML page.\n\nFrom DESIGN.md, goal 2.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-002-readable-without-kiln.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Readable without Kiln",
+    "type": "requirement"
+  },
+  {
+    "body": "\n`kiln check` fails a merge request that breaks a link, duplicates an ID or\nleaves an approved requirement unverified.\n\nFrom DESIGN.md, goal 3.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-003-checkable-in-ci.md",
+    "status": "approved",
+    "tags": [],
+    "title": "Checkable in CI",
+    "type": "requirement"
+  },
+  {
+    "body": "\nFast enough that nobody waits for it, keyboard-first, with the same\ngrammar and themes as Fenix and Flint. The budgets are its children and\nare requirements, not aspirations.\n\nFrom DESIGN.md, goal 4.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-004-fast-and-keyboard-first.md",
+    "status": "approved",
+    "tags": [],
+    "title": "Fast and keyboard-first",
+    "type": "requirement"
+  },
+  {
+    "body": "\nNo admin rights, a single binary, the system proxy and corporate CA store\nhonoured, tokens in the OS credential store or CI variables. Headless in a\nLinux container.\n\nFrom DESIGN.md, goal 5.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-005-works-on-a-locked-down-corporate-machine-and-in-a.md",
+    "status": "approved",
+    "tags": [],
+    "title": "Works on a locked-down corporate machine and in a CI container",
+    "type": "requirement"
+  },
+  {
+    "body": "\nKiln works without Fenix, Flint, Jira or Confluence; each integration\ndegrades and says so.\n\nFrom DESIGN.md, goal 6, and INTEGRATION.md, principle 1.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-006-no-tool-requires-another.md",
+    "status": "approved",
+    "tags": [],
+    "title": "No tool requires another",
+    "type": "requirement"
+  },
+  {
+    "body": "\nCold, on a laptop. The benchmark in `crates/kiln-check/examples/bench.rs`\ngenerates such a project and gates CI at 50% over the budget.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-007-kiln-check-on-2-000-items-and-50k-source-files-in.md",
+    "status": "verified",
+    "tags": [],
+    "title": "kiln check on 2,000 items and 50k source files in 2 s",
+    "type": "requirement"
+  },
+  {
+    "body": "\nAt the 95th percentile, re-indexing only the changed file (K4).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-008-language-server-responds-within-50-ms-after-a.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Language server responds within 50 ms after a keystroke",
+    "type": "requirement"
+  },
+  {
+    "body": "\nItems are Flint static items, so ordinary typing costs no round trip (K5).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-009-flint-provider-answers-within-16-ms-for-2-000.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Flint provider answers within 16 ms for 2,000 items",
+    "type": "requirement"
+  },
+  {
+    "body": "\nExcluding diagram rasterisation, which is cached by source hash (K2).\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-004",
+    "path": "design/requirements/REQ-010-export-dry-run-of-a-2-000-item-document-in-3-s.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Export dry run of a 2,000-item document in 3 s",
+    "type": "requirement"
+  },
+  {
+    "body": "\nEvery finding has a rule code, a severity and a place, and its message is\none line naming what is wrong and, when it helps, the fix.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-003",
+    "path": "design/requirements/REQ-011-findings-name-the-file-line-and-column.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Findings name the file, line and column",
+    "type": "requirement"
+  },
+  {
+    "body": "\n`kiln check` writes GitLab Code Quality reports and GitHub workflow\ncommands as well as text and JSON, so findings appear on the line that\ncaused them.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-003",
+    "path": "design/requirements/REQ-012-findings-show-on-merge-requests.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Findings show on merge requests",
+    "type": "requirement"
+  },
+  {
+    "body": "\n`kiln set`, `link`, `unlink` and `renumber` change only the keys or text\nthey are about, keep comments and layout, keep the file's line endings,\nwrite atomically, and refuse a file that changed since Kiln read it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-001",
+    "path": "design/requirements/REQ-013-edits-keep-the-author-s-formatting-and-never-fight.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Edits keep the author's formatting and never fight an editor",
+    "type": "requirement"
+  },
+  {
+    "body": "\n`kiln.toml` is committed, so a key named like a credential is an error\n(K004).\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-005",
+    "path": "design/requirements/REQ-014-no-secrets-in-kiln-toml.md",
+    "status": "verified",
+    "tags": [],
+    "title": "No secrets in kiln.toml",
+    "type": "requirement"
+  },
+  {
+    "body": "\nTwo branches can allocate the same number. `kiln check` reports both\nfiles (K101) and `kiln renumber` moves one, rewriting every reference\nKiln counts.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "mitigates": [
+        "RISK-003"
+      ]
+    },
+    "owner": null,
+    "parent": "REQ-003",
+    "path": "design/requirements/REQ-015-duplicate-ids-are-found-and-fixed-by-one-command.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Duplicate IDs are found and fixed by one command",
+    "type": "requirement"
+  },
+  {
+    "body": "\nA reader who saw the document at a release asks what changed since.\n`kiln diff v1.0` lists the items added, removed and changed (status,\ntitle, links, body…), and `kiln export --since v1.0` marks each new or\nchanged item where it stands and lists them in the changes report.\n\nFrom DESIGN.md, \"Baseline\" (K6).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": "REQ-002",
+    "path": "design/requirements/REQ-016-changes-since-a-baseline-are-shown-item-by-item.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Changes since a baseline are shown item by item",
+    "type": "requirement"
+  },
+  {
+    "body": "\nBefore K12, `kiln gui` (and `kilnw`) found its project by walking up from\nthe current folder to a `kiln.toml`, and stopped with \"no kiln.toml in …\nor any folder above it\" when there was none. So the window couldn't be\nstarted from a shortcut, the Start menu or Flint without first being in\na project, and looking at a second project meant a second window from a\nsecond folder.\n\nThe GUI starts anywhere: outside a project it opens on Home, a picker of\nthe projects opened before (most recent first) with a way to add another\nfolder, and inside one `SPC h` goes back to Home to switch to another\nproject without restarting. The list of projects is the user's, not the\nproject's, so it is never in a repository. It lives in Kiln's state\nfolder rather than beside `settings.toml`: its paths are this machine's,\nand on Windows the settings roam.\n\nFrom GUI.md, \"Home\" (K12).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-017-the-gui-opens-any-project-from-a-picker.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "The GUI opens any project from a picker and switches between them",
+    "type": "requirement"
+  },
+  {
+    "body": "\nProjects at work write requirements at several levels: what the customer\nor the stakeholders need, what the system must do, what each piece of\nsoftware must do; for avionics, DO-178C's high- and low-level\nrequirements. Before K13 Kiln checked one type, `requirement`: a project\ncould declare a type per level and link them, but nothing checked that a\nsystem requirement answers a stakeholder requirement, or that every\nstakeholder requirement was refined, and no report showed the chain from\nthe top level to the code and tests.\n\nKiln knows the levels and their order. It reports a requirement that\nanswers nothing above it unless it is marked derived, one that nothing\nbelow refines, and a link that skips a level. It shows the chains as a\ntraceability matrix, on the command line and in exports, with the\nderived requirements apart, because that is what an assessor asks for. A\nproject with one level is checked as before.\n\nFrom FORMAT.md, \"Requirement levels\" (K13).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-018-requirements-at-several-levels-trace-to-each-other.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Requirements at several levels trace to each other, and derived ones say so",
+    "type": "requirement"
+  },
+  {
+    "body": "\nCoding agents now implement much of what a design describes, and change\nthe design too. Without guidance they edit front matter by hand, choose\nIDs, write inverse links and edit generated exports: work `kiln check`\nthen rejects, or worse, accepts and the next export contradicts.\n\nA Kiln project carries a guide that such agents read where they work: how\nto read and change the design through Kiln's commands, what they may and\nmay not decide, and how this project's design is organised (its types,\nfolders, statuses, links, levels and exports). The organisation part\nalways matches `kiln.toml`, and CI says when it doesn't; the rules are\nthe project's to adapt.\n\nFrom DESIGN.md, \"The agent guide\" (K14).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-019-coding-agents-find-how-to-change-the-design.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "Coding agents find how this project's design is organised and how to change it",
+    "type": "requirement"
+  },
+  {
+    "body": "\nAn agent asked to \"do the next task\" or \"implement REQ-014\" works from\nwhat Kiln prints. It must be able to read an item whole (its body, not\nonly its title and links), load the plan in one call it can parse, ask\nwhich work is ready to start, and record what it did (create an item\nwith its links, tags and body; change tags) in one command each, without\nediting front matter by hand. When the plan contradicts itself (a done\nmilestone with open work, a done task whose dependency isn't), `kiln\ncheck` says so, since an agent moving statuses makes that mistake\nquietly.\n\nThe agent guide says how the plan is organised and how to work through\nit, generated from `kiln.toml` like the rest of its section.\n\nFrom DESIGN.md, \"Milestones\", K15.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-020-coding-agents-read-the-plan-and-act-on-it-from-the.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Coding agents read the plan and act on it from the command line",
+    "type": "requirement"
+  },
+  {
+    "body": "\nSomeone who has never used Kiln, without an agent or Fenix, starts a\nproject and writes a first requirement and decision. `kiln new` gives\neach default type a short body to fill in rather than an empty file;\n`kiln export` works straight after `kiln init`; a filter that matches\nnothing because it names a status no type has says so instead of\nprinting nothing; `--open` uses the editor they set; and `kiln --help`\nshows the eight everyday commands before the integrations.\n\nFrom DESIGN.md, \"Milestones\", K16.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-021-a-person-uses-kiln-without-an-agent-items-start.md",
+    "status": "verified",
+    "tags": [],
+    "title": "A person uses Kiln without an agent: items start with a shape, the first export works, mistakes are said",
+    "type": "requirement"
+  },
+  {
+    "body": "\n**Rationale:** after K15 and K16, a person on the GUI and an agent on the command line could see different progress for the same milestone, two agents could take the same task, template prompts could reach the exported document, the default document left the plan out, and a script couldn't tell which JSON shape it was reading.\n\n**Acceptance:** the GUI, `kiln show`, `kiln status` and the roadmap report give one progress per milestone; the GUI marks ready and waiting work as `kiln next` does; `kiln next --unowned` leaves claimed work out; `kiln check` reports template text left in an item past its first status (K215); the `design-doc` export places tasks and tests; every JSON object Kiln prints carries `kiln_json`.\n\nFrom DESIGN.md, \"Milestones\", K17.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-022",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-022-every-view-of-the-plan-agrees-and-what-reaches.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Every view of the plan agrees, and what reaches readers is finished",
+    "type": "requirement"
+  },
+  {
+    "body": "\n**Rationale:** a `verifies:` comment counted as verification whether its test passed or not, and a reviewer of a code change had to work out by hand which requirements it touched. At work the trace is evidence; it should say what passed in this run, and a pull request should say which requirements its code changes reach.\n\n**Acceptance:** with `--results` and the CI's JUnit report, `kiln trace` and `kiln check` count a code reference that verifies only when its test passed, and report a failed or missing test (K216, K217); `kiln affected REV` lists the requirements whose implementing or verifying code changed since `REV`, with what to re-check, as text, JSON or CI annotations.\n\nFrom DESIGN.md, \"Milestones\", K18.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-023",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-023-the-trace-says-what-passed-and-a-change-says-which.md",
+    "status": "verified",
+    "tags": [],
+    "title": "The trace says what passed, and a change says which requirements it touches",
+    "type": "requirement"
+  },
+  {
+    "body": "\n**Rationale:** the agent guide leaves sign-off to people, but nothing showed when a status that is someone's call changed, or who changed it. Regulated work asks when a requirement was approved, by whom and in which change; git already knows, and Kiln should say it.\n\n**Acceptance:** `kiln log ID` prints an item's history from git: each commit that changed its status, title, owner, parent, tags, due date or links, with date and author. `kiln signoff REV` lists every sign-off status change since `REV` (requirement approved, decision accepted, risk closed, milestone done by default; `[signoff]` in kiln.toml to change it) with the commit and its author, as text, JSON or CI annotations.\n\nFrom DESIGN.md, \"Milestones\", K19.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "REQ-024",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-024-sign-off-is-visible-who-moved-which-status-when-in.md",
+    "status": "verified",
+    "tags": [],
+    "title": "Sign-off is visible: who moved which status, when, in which change",
+    "type": "requirement"
+  },
+  {
+    "body": "\nExported to one Confluence page, a project with several requirement\nlevels read badly: each level was a chapter of its own, after whatever\ntypes `kiln.toml` declared first, and nothing on the page showed which\nsystem requirement answers which stakeholder requirement except a line\nof links under each. Readers at work asked for the requirements as one\ntree, on one page, and for each item's facts to be quick to scan.\n\nThe document reads top-down: requirements first, as one tree (each\nrequirement with those of the level below that refine it), then design,\ndecisions, verification, plan and risks; derived requirements apart.\nEvery item is in the table of contents, however deep the tree goes, and\neach item's facts are a small table whose rows line up from item to\nitem. Several pages only when the template or the layout says so.\n\nFrom EXPORT.md, \"The requirements tree\" (K20).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "REQ-025",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/requirements/REQ-025-a-one-page-document-reads-top-down-requirements-as-one-tree.md",
+    "status": "implemented",
+    "tags": [],
+    "title": "A one-page document reads top-down, its requirements as one tree",
+    "type": "requirement"
+  },
+  {
+    "body": "\nItems carry TOML between `+++` lines rather than YAML: Kiln edits front\nmatter (status, links) and `toml_edit` keeps the author's comments and\nlayout; TOML is the configuration language of the rest of the suite; and\nit has no implicit typing surprises.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-001-toml-front-matter.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "TOML front matter",
+    "type": "decision"
+  },
+  {
+    "body": "\nIDs are the type's prefix and the next number, readable and said aloud in\nmeetings, over collision-free IDs nobody can remember. Two branches can\nallocate the same number; `kiln check` finds it and `kiln renumber` fixes\nit.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-002-sequential-ids-renumbered-on-collision.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Sequential IDs, renumbered on collision",
+    "type": "decision"
+  },
+  {
+    "body": "\nConfluence is a published view. Edits made there are detected and\nreported as drift, never merged back: the repository stays the one source\n(CONFLUENCE.md).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-003-one-way-publishing-to-confluence.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "One-way publishing to Confluence",
+    "type": "decision"
+  },
+  {
+    "body": "\nThe default export is the whole design as one document on one Confluence\npage or in one file: one thing to read top to bottom, review and link to,\nwhose page history is the document's revision history. `sections` and\n`tree` split the same document (EXPORT.md).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-004-one-design-document-is-the-default-export.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "One design document is the default export",
+    "type": "decision"
+  },
+  {
+    "body": "\n`kiln-git` runs the user's `git` rather than linking a git library, as\n`fenix-git` does: it already honours their credentials, configuration\nand repository format, and CI images have it.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-005-shell-out-to-git.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Shell out to git",
+    "type": "decision"
+  },
+  {
+    "body": "\nFORMAT.md said \"no leading zeros\" while every example used three digits.\nFound while writing this folder (K1): IDs are written with at least three\ndigits, zero-padded, and exactly one spelling per number, so `grep` finds\nan ID as typed and IDs sort as text up to 999. Another spelling is a\nfinding that names the right one.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-006-one-spelling-per-id-number-at-least-three-digits.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "One spelling per ID number, at least three digits",
+    "type": "decision"
+  },
+  {
+    "body": "\nA link is a fact in one place, the item it starts from; its inverse\n(\"verified by\") is computed. Writing it on the inverse side is a warning\n(K109) that says which item to write it in.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-007-links-are-written-once-on-their-source-side.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Links are written once, on their source side",
+    "type": "decision"
+  },
+  {
+    "body": "\nSource files are scanned with the configured regexes over whole text, not\nparsed per language. A match inside a string literal counts; in exchange\nthe scanner works for any language and stays within the check budget.\nKiln's own tests build such text at run time for that reason.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-008-code-references-are-matched-on-text-not-parsed.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Code references are matched on text, not parsed",
+    "type": "decision"
+  },
+  {
+    "body": "\nEXPORT.md wanted a committed Markdown export kept current by\n`kiln export --check`, but also had every export name the exported commit\nin its summary and link repository files at the last commit that changed\nthem. A file committed into the repository can't name the commit that\ncontains it, so the check could never pass. Found while making this\nrepository's own design document (K2).\n\nA file export inside the repository and not ignored by git is in-tree: it\nlinks repository files with relative paths, which GitLab and GitHub\nresolve at the revision being viewed, and its summary names no commit.\nExports outside the repository (Confluence, a file under `target/`) keep\nnaming commits.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-009-exports-kept-in-the-repository-name-no-commit.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Exports kept in the repository name no commit",
+    "type": "decision"
+  },
+  {
+    "body": "\nDESIGN.md planned the Fenix and Flint way for the GUI on Windows: one\nGUI-subsystem executable that attaches to the terminal it was typed in,\nwith `--console` to force one. Fenix and Flint are GUIs first; Kiln is a\ncommand-line and CI tool first, and a GUI-subsystem program isn't waited\nfor by `cmd.exe` and loses its exit code in batch files, which is what\nCI and scripts rely on. Found when the GUI arrived (K7).\n\n`kiln.exe` stays a console program: `kiln` alone or `kiln gui` opens the\nwindow from a terminal. `kilnw.exe`, a GUI-subsystem program next to it,\nstarts `kiln gui` with no console window: what a shortcut or Flint's\n\"Open in Kiln\" runs. On Linux and macOS there is one `kiln`; `kilnw`\ndoes the same there.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-010-kiln-stays-a-console-program-kilnw-opens-the-gui.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "kiln stays a console program; kilnw opens the GUI",
+    "type": "decision"
+  },
+  {
+    "body": "\nEXPORT.md planned the `docx` format on the `docx-rs` crate. Building it\n(K8) showed that `docx-rs` numbers bookmarks, hyperlinks, pictures and\nheaders from process-wide counters, so the same document rendered twice\nin one `kiln export` comes out with different bytes, and `kiln export\n--check` (determinism, EXPORT.md) can't hold. It also pulls in an image\nlibrary Kiln doesn't need, and has no notion of a reference document's\nstyles.\n\nKiln writes the package itself: WordprocessingML for what the document\ntree holds (headings, paragraphs, lists, tables, links, bookmarks,\npictures, a TOC field), in a zip written by the `zip` crate with its\nparts in a fixed order and a fixed time. A reference `.docx` is read with\nthe same crate, and its styles, theme, numbering and page setup are\ncopied over, with Kiln's missing styles added. About a thousand lines,\nevery one of them testable as text.\n\nThe cost: Kiln owns the subset of the format it writes, and a construct\nWord users expect that the tree doesn't have (footnotes, headers and\nfooters) needs writing by hand. The tree is small and changes rarely, so\nthat is the cheaper side.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-011-word-files-are-written-directly-not-through-docx-rs.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Word files are written directly, not through docx-rs",
+    "type": "decision"
+  },
+  {
+    "body": "\nK7 made the GUI a reader: it opened items in Fenix and edited nothing,\nleaving `kiln set`, `link`, `new` and `renumber` to the terminal, the\nlanguage server and Flint. In use that sent people back to the terminal\nfor every status change, link and new item, and for every export, plan\nand comment check, which is what the window was meant to save them.\n\nFrom K9 the GUI edits what `kiln set`, `link`, `unlink`, `new` and\n`renumber` edit: one-line values (a status, a title, a parent, an owner,\na date), links, new items and IDs. It never edits an item's body: prose\nis written in an editor, and Fenix is that editor. Every value is picked\nfrom a list or typed on the footer's single line; there is no text area.\n\nThree things keep the two front doors alike. The checks and the writes\nare `kiln-index`'s (`plan_set`, `check_link`, `apply_set`,\n`apply_link`, `apply_renumber`, `create_item`), shared with the command\nline and the Flint provider, so a value one accepts the others accept and\na file an editor saved in the meantime is refused by all three. Exports\nand comments run the commands' own code through the binary, so the\nwindow shows what the terminal prints and never handles a token.\nPublishing asks first and publishes only the plan it showed; overriding a\nrefused plan (`--force`, `--adopt`) and pruning stay on the command\nline, where the flag is written down.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-012-the-gui-edits-front-matter-never-prose.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "The GUI edits front matter, never prose",
+    "type": "decision"
+  },
+  {
+    "body": "\nExports nested items by `parent`: a child was a heading one level below\nits parent. Read in Confluence, that hid most requirements from the table\nof contents, which stops at three levels (`toc_levels`): a section is\nlevel 1, its items level 2, and every child below that was missing. And\nan item's properties were one line (`approved · under REQ-002 · verified\nby TEST-031, TEST-032 · implemented by …`), which is compact but hard to\nscan once an item has more than two relationships.\n\nNow the items of a `kiln:items` are a flat list of headings at one\nlevel, in tree order, each parent followed by its children, so the\ntable of contents lists every item and related items still sit\ntogether; the parent shows in the item's properties. `nest=\"parent\"`\nkeeps the old nesting where a document wants it, and `tree` nests by\ndefault, because there nesting is what makes the page tree. Properties\ndefault to `item_style = \"list\"`: the status, then one line per\nrelationship with its label in bold, broken inside one paragraph so the\nblock stays short. `line` remains for documents that want the compact\nform.\n",
+    "closed": true,
+    "done": false,
+    "due": null,
+    "id": "ADR-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-013-items-are-a-flat-list-with-one-line-per-relationship.md",
+    "status": "superseded",
+    "tags": [],
+    "title": "Items are a flat list, with one line per relationship",
+    "type": "decision"
+  },
+  {
+    "body": "\nThrough K8 Kiln only read Jira: a task changed in Kiln left its ticket\nbehind, and every change was made twice, once in the repository and\nonce in Jira. K207 noticed the difference but couldn't remove it.\n\nFrom K10, with `[jira] project` set, `kiln jira sync` keeps Jira in step\nwith the items, one way, as publishing keeps Confluence in step\n(ADR-003). One Jira issue stands for the Kiln project (`[jira] parent`,\ncreated by the first sync), and each synced item, the tasks by default,\nis a sub-task of it. Kiln creates those sub-tasks and keeps their\nsummary, due date and status: the status by the workflow transition that\nreaches the mapped status (`[jira.status]`, else Jira's status category).\nA ticket created for an item is recorded in the item (`jira = \"…\"`), and\nthe project issue in `kiln.toml`, so the commit records the link and no\nticket is ever created twice; a person runs the sync, not CI, for that\nreason.\n\nWhat stays Jira's: assignees, sprints, comments, worklogs, and every\nticket that isn't a sub-task of the project issue, which Kiln never\nwrites even when an item links it. Kiln deletes nothing: a sub-task no\nitem links any more is reported. A ticket moved in Jira is flagged by\nK207; `kiln jira pull` takes its status back into the item as a\nreviewable edit, or the next sync moves it back. The repository stays\nthe source of truth (REQ-001), and Kiln still holds no assignments or\nsprints (RISK-004).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-014-kiln-pushes-the-tasks-it-manages-to-jira.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Kiln pushes the tasks it manages to Jira",
+    "type": "decision"
+  },
+  {
+    "body": "\nPeople asked for ready-made documents (arc42 first) that they could add\nwith one command and then adapt, several to one project.\n\n**Copied, not referenced.** `kiln preset add` writes the template into\nthe project's `templates/` folder and its configuration into\n`kiln.toml`, and from then on all of it is the project's own, changed in\nits merge requests; a newer Kiln never touches it. A referenced template\n(`template = \"preset:arc42\"`) would change under its authors with an\nupgrade, in the published document of all places, and every team that\nadapts arc42 to itself (the normal case) would copy it anyway. The cost\nis that improvements to a preset reach only projects that add it\nafterwards; `kiln init --preset NAME` in an empty folder writes the\ncurrent one to compare with.\n\n**Configuration included, the minimum, nothing twice.** A preset adds\nthe types and link roles its template places and an export target, so\nit works the moment it is added. It adds only what is missing: a type\nthe project already declares, by hand or from another preset, is kept\nas it is; a role it has gains only the `from` and `to` types it lacks;\neach preset's export has the preset's name. So `arc42` and `srs` share\n`constraint` and `term`, in either order. A prefix clash, a taken export\nname or a file already there stops it before anything is written, and\n`kiln.toml` is spliced so its comments survive (REQ-013). The links that\ngo further than the document needs (tests verifying quality scenarios,\ncode implementing building blocks, blocks using blocks) are choices with\nalternatives, so the wiki's \"Presets\" page offers them to add by hand\nrather than the preset making them; a first version that left all\nconfiguration to the wiki made every project paste the same tables.\n\nThe presets follow the structure of arc42 and ISO/IEC/IEEE 29148 with\nwording of Kiln's own, since arc42's help text is CC BY-SA and Kiln is\nMIT OR Apache-2.0.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-015-presets-are-copied-into-the-project-and-stack-without-duplicates.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Presets are copied into the project and stack without duplicates",
+    "type": "decision"
+  },
+  {
+    "body": "\nRequirements written at several levels needed Kiln to know which types\nare levels, in which order, and how a level answers the one above.\n\n**A type per level, ordered in `[requirements] levels`.** Not a `level`\nkey on each requirement, nor tags: each level has its own prefix\n(`SYS-004` says what it is in a meeting), its own statuses and its own\nsection in the document, which types already give. Declaring the order\nonce in `kiln.toml` keeps it in one place. Without the table the one\nlevel is `requirement`, so no project changes behaviour.\n\n**`parent` within a level, a link across levels.** `parent` already means\ndecomposition and makes the tree and the coverage of children; reusing it\nacross levels would make one requirement's children a mix of finer\nsystem requirements and the software requirements that implement it. A\nlink role (`refines` by default, `trace` names another) is written once\non the lower side, as every link is (ADR-007), and can point at several\nrequirements above, which `parent` can't. A requirement with no trace\nlink traces through its parent, so a decomposed subtree links upward\nonce.\n\n**Derived requirements are marked, not inferred.** A lower-level\nrequirement that answers nothing above is either forgotten or\ndeliberate (DO-178C's derived requirements, which go to the safety\nassessment). `derived = true` in front matter is the one way to say\n\"deliberate\"; without it, K208. A key rather than a tag because it\nchanges what the check does, and tags never do.\n\n**Each rule one fact.** K208 (nothing above), K209 (the wrong level\nabove), K210 (nothing below), with K201 and K202 applying to every level\ntheir role's `to` names, so a V-model can verify every level and\nimplement only the lowest. A link that skips a level still counts where\nit points: one wrong link is one finding, not two. The levels report\nshows the leaf's coverage per chain; each level's own verification is\nthe traceability report with its `type`, rather than a matrix too wide\nto print.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-016-requirement-levels-are-types-in-order-traced-by-a-link.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Requirement levels are types in order, traced upward by a link; derived ones are marked",
+    "type": "decision"
+  },
+  {
+    "body": "\nA Kiln project needed a guide for coding agents (REQ-019).\n\n**`design/AGENTS.md`, not beside `kiln.toml`.** `kiln.toml` is usually at\nthe repository root, where `AGENTS.md` is the repository's guide to its\ncode: not Kiln's to write, and Kiln never overwrites a file. In the\nfirst item folder the guide never collides, sits beside the files it\ndescribes, and is read by agents that honour nested `AGENTS.md` files\nwhen they work there. The cost: an agent working only on the code may not\nsee it, so the wiki suggests one line in the repository's own guide\npointing at it.\n\n**Two parts.** The rules (use Kiln's commands, link from the source side,\nleave sign-off to people…) are written once and are the project's from\nthen on, like a preset's template (ADR-015): teams differ on what an agent\nmay approve, and a newer Kiln rewriting their words would be a surprise.\nThe description of the project (types, folders, statuses, roles, levels,\nexports) is generated between two marker lines from `kiln.toml` alone,\nbecause a hand-kept copy goes stale the first time someone adds a type,\nand a stale guide misleads an agent more than none. `kiln agents`\nrewrites only that section, `kiln preset add` refreshes it, and `kiln\ncheck` warns when it no longer matches (K113), as `kiln export --check`\ndoes for exports. Generating it from the configuration alone, not the\nitems, keeps it stable across ordinary work and exact to compare.\n\n**Optional.** A project that deletes the section, or the file, has opted\nout, and K113 says nothing; a warning by default, since a stale guide\ndoesn't break the design.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-017-the-agent-guide-lives-in-the-design-folder-half-generated.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "The agent guide lives in the design folder, its rules written once and its description generated",
+    "type": "decision"
+  },
+  {
+    "body": "\nK15 adds `kiln next`, which lists the work ready to start (REQ-020).\n\n**Work** is an item of a type the `part-of` role may link from (`task`\nby default): what a milestone includes. It is **ready** when it is\nneither done nor closed, its status isn't `blocked`, and every item it\n`depends-on` is done or closed. Everything else open is **waiting**,\nwith what it waits on named.\n\n**A milestone groups and orders work, it doesn't gate it.** Work of a\nmilestone that `depends-on` an unfinished one is still ready when its\nown dependencies are: teams overlap milestones, and a gate would hide\nthe work an agent could pick up. `kiln next` lists the earliest\nmilestone's work first (open milestones in ID order, work in no\nmilestone last), so the order the IDs give is the order an agent sees.\nThe cost: a project that does want a gate writes it, `depends-on` from\nthe first task of the later milestone to the last of the earlier one.\n\n**`blocked` is a status a person sets, so it is honoured** by name, like\nthe other default status names some rules know (`verified`,\n`superseded`): a project that names it otherwise simply doesn't get\nthat.\n\nThe same definitions feed `kiln status` and the plan checks K211–K214,\nso what `next` calls ready is what `check` and `status` agree on.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-018-ready-work-is-open-work-whose-dependencies-are.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Ready work is open work whose dependencies are finished; milestones group it, they don't gate it",
+    "type": "decision"
+  },
+  {
+    "body": "\n## Context\n\n`kiln new --open` and the GUI's `Enter` opened items in Fenix, else the\noperating system's default editor (REQ-021). At work, without Fenix, the\ndefault editor for `.md` on Windows is often Notepad or nothing. People\nalready name their editor in `VISUAL` or `EDITOR`, and some want Kiln to\nuse one editor whatever else is installed.\n\n## Decision\n\nThe order is `KILN_EDITOR`, the running Fenix, starting Fenix, `VISUAL`,\n`EDITOR`, the OS default. `KILN_EDITOR` comes first because the user set\nit for Kiln on purpose. `VISUAL` and `EDITOR` come after Fenix because\nthey are set for every tool, and a Fenix user's shell often sets them to\na terminal editor; putting them first would quietly stop opening Fenix.\n\nA command is split on spaces with quotes, never run through a shell (a\npath with `&` stays one argument), and `{path}` and `{line}` are\nreplaced, the path appended without `{path}`. From the command line the\neditor gets the terminal and Kiln waits, as `git commit` does, so `vim`\nworks; the GUI has no terminal to lend and starts it in the background.\n\n## Consequences\n\nA machine without Fenix opens items where its user expects. A terminal\neditor in `KILN_EDITOR` doesn't work from the GUI; the docs say to name a\nwindowed one there. Kiln still writes nothing of Fenix's.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-019-an-editor-the-user-names-for-kiln-comes-before.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "An editor the user names for Kiln comes before Fenix; VISUAL and EDITOR come after it",
+    "type": "decision"
+  },
+  {
+    "body": "\n## Context\n\nMilestone progress counted the work `part-of` a milestone and of every milestone it `depends-on`, transitively. K15's `kiln status` counted only a milestone's own work, so the GUI's Roadmap, the exported roadmap and `kiln show` disagreed with `kiln status` on the same milestone. The wiki already warned that the transitive count misleads whenever `depends-on` only meant the order: in this repository, MS-017 reported K15's tasks as its own.\n\n## Decision\n\nA milestone's progress is its own work: done out of non-closed, over the work `part-of` it directly or through its parent (a sub-task counts where its task does). One function computes it, and `kiln show`, `kiln status`, the GUI and the roadmap report all use it. `depends-on` between milestones orders them and nothing else, as ADR-018 already says for readiness.\n\n## Consequences\n\nEvery view shows the same numbers. A project that relied on a later milestone counting the earlier one's work sees smaller totals; it can make the later milestone include that work, or read the earlier milestone's own line. The roadmap report's numbers change for such projects, so their committed exports change once.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-020-a-milestone-s-progress-is-its-own-work-everywhere.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "A milestone's progress is its own work, everywhere",
+    "type": "decision"
+  },
+  {
+    "body": "\n## Context\n\n`--results` reads a JUnit XML report, the format every test runner can write (cargo-nextest, pytest, JUnit, Jest, go-junit-report), and must tell which code reference each test result belongs to. Code references are matched on text, not parsed (ADR-008), so Kiln doesn't know where a test function starts.\n\n## Decision\n\nA `verifies` code reference's test is named by the first declaration after the comment: the name after `fn`, `def`, `func`, `function` or `sub`; else the string in `it(\"…\")`, `test(\"…\")` or `describe(\"…\")`; else the identifier before the first `(`. Attribute and decorator lines (`#[…]`, `@…`) and blank lines are skipped. A JUnit `testcase` matches when its name, or its last `::`, `.` or `/` segment, equals that name; when the report gives a `file`, it must also end with the reference's path. A reference all of whose matches passed counts; one with a failure or error doesn't (K216); one with none, or only skipped ones, didn't run (K217).\n\n## Consequences\n\nIt works across languages and runners without a parser, and an explicit name is never needed for the usual layout (the comment on the line before the test). Two tests of the same name in different files share their results unless the report names files; the safer reading wins (any failure is a failure). Without `--results`, nothing changes: a code reference counts as before.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-021-test-results-are-matched-to-code-references-by-the.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Test results are matched to code references by the name of the test that follows them",
+    "type": "decision"
+  },
+  {
+    "body": "\n## Context\n\n`kiln affected` turns a git diff into the requirements it touches. A code reference is a comment on the line before the code it is about, and Kiln doesn't parse code (ADR-008), so where that code ends isn't known.\n\n## Decision\n\nA code reference covers its own line down to the line before the next code reference in the same file, or the end of the file. A changed line inside that range touches the reference's targets; a deletion touches the range it was in. An item file that changed touches that item. Each touched requirement is listed with the changed ranges and the references that reached it, and with what verifies it, to re-check.\n\n## Consequences\n\nIt over-reports rather than misses: a reference at the top of a file covers the whole file, which is what a file-level `implements` means. Precision comes from placing references close to their code, which the format already asks for. No language support is needed, and the answer is the same on every machine.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-022",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-022-a-code-reference-covers-the-code-down-to-the-next.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "A code reference covers the code down to the next one",
+    "type": "decision"
+  },
+  {
+    "body": "\n## Context\n\nThe agent guide leaves sign-off (approving a requirement, accepting a decision, closing a risk, finishing a milestone) to people, and K19 makes it visible (REQ-024). Kiln could store approvals in the front matter (`approved_by`, a date), or read them from git.\n\n## Decision\n\nKiln stores nothing new: git is the record. `kiln log` reads an item's history from `git log --follow` and the file at each commit; `kiln signoff` compares a revision with the working tree and names, for each sign-off status change, the last commit in between that touched the file and its author (\"uncommitted\" when it isn't committed yet). Which statuses are sign-off is `kiln.toml`'s `[signoff]`, type → statuses, with defaults that follow the guide's rule.\n\n## Consequences\n\nNothing for an agent to forge in a file and nothing to keep in step; the evidence is as good as the repository's history, and a squash merge credits its author. A shallow clone has less history, which `kiln log` says. Who may sign off stays the repository's protected-branch and review rules: Kiln shows the change, it doesn't block it.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-023",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-023-sign-off-and-history-are-read-from-git-never.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Sign-off and history are read from git, never stored in items",
+    "type": "decision"
+  },
+  {
+    "body": "\nADR-013 made items a flat list and their properties lines of bold\nlabels, so that a three-level table of contents listed every item and a\nshort item took little room. With requirement levels (ADR-016) that\nleft a design document of separate chapters per level and a page where\nthe relationship readers care most about, which requirement refines\nwhich, showed only as links (REQ-025).\n\n**The requirements tree.** `<!-- kiln:requirements -->`, and the\ndefault layout, place the requirement levels as one tree: each top-level\nrequirement, the requirements of the level below that refine it one\nheading deeper, and so on, then the derived requirements and those that\ntrace to nothing, each under a heading of their own. Within a level\nADR-013 still holds: a child follows its parent at the same depth, so\nthe tree is as deep as there are levels, not as deep as the\ndecomposition. A requirement that refines several is placed under the\nfirst and named, in one line, under the others: a heading in two places\nwould be two anchors for one item, and Confluence allows one page per\nitem in `tree`. The table of contents is as deep as the deepest item\n(three levels at least, six at most) unless `toc_levels` says, so\nADR-013's reason for flatness holds without the flatness.\n\n**Properties as a table.** Each item's facts are a two-column table\n(status first, then relationships, Jira, tags, owner, due) with related\nitems by ID alone, linked to their heading. Rows line up across items\nand an item with five relationships stays five short rows, where the\nlines grew long with titles; the title is one click away. The type and\nthe source file appear only in `tree`, where an item is a page alone;\nin a document its section already says both. `list` and `line` remain\nfor documents read as prose.\n\n**Requirements first.** Without a template, and in the `design-doc`\npreset, the requirements come first, then the other types in\n`kiln.toml`'s order, so a project that declares its levels last still\nreads top-down; `traceability` without `type` is the chain matrix when\nthere are several levels.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "ADR-024",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "supersedes": [
+        "ADR-013"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/decisions/ADR-024-requirements-as-one-tree-item-facts-as-a-table.md",
+    "status": "accepted",
+    "tags": [],
+    "title": "Requirements are one tree on the page, and an item's facts are a table",
+    "type": "decision"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-001-k0-workspace-crate-shells-and-ci.md",
+    "status": "done",
+    "tags": [],
+    "title": "K0: workspace, crate shells and CI",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-001"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-002-k1-the-format-kiln-check-and-the-editing-commands.md",
+    "status": "done",
+    "tags": [],
+    "title": "K1: the format, kiln check and the editing commands",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-002"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-003-k2-exports-without-writes-to-confluence.md",
+    "status": "done",
+    "tags": [],
+    "title": "K2: exports without writes to Confluence",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-003"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-004-k3-publishing-to-confluence.md",
+    "status": "done",
+    "tags": [],
+    "title": "K3: publishing to Confluence",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-004"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-005-k4-the-language-server.md",
+    "status": "done",
+    "tags": [],
+    "title": "K4: the language server",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-005"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-006-k5-the-flint-provider.md",
+    "status": "done",
+    "tags": [],
+    "title": "K5: the Flint provider",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-006"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-007-k6-baselines-diffs-and-confluence-comments.md",
+    "status": "done",
+    "tags": [],
+    "title": "K6: baselines, diffs and Confluence comments",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-007"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-008-k7-the-gui.md",
+    "status": "done",
+    "tags": [],
+    "title": "K7: the GUI",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-008"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-009-k8-word-export-and-the-jira-mirror.md",
+    "status": "done",
+    "tags": [],
+    "title": "K8: Word export and the Jira mirror",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-009"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-010-k9-a-gui-that-edits-front-matter-and-runs-exports.md",
+    "status": "done",
+    "tags": [],
+    "title": "K9: a GUI that edits front matter and runs exports",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-010"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-011-k10-kiln-pushes-its-tasks-to-jira.md",
+    "status": "done",
+    "tags": [],
+    "title": "K10: Kiln pushes its tasks to Jira",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-011"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-012-k11-presets-such-as-arc42.md",
+    "status": "done",
+    "tags": [],
+    "title": "K11: presets such as arc42",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-012"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-013-k12-home-the-projects-dashboard.md",
+    "status": "done",
+    "tags": [],
+    "title": "K12: Home, the projects dashboard",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-013"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-014-k13-requirement-levels.md",
+    "status": "done",
+    "tags": [],
+    "title": "K13: requirement levels",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-014"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-015-k14-the-agent-guide.md",
+    "status": "done",
+    "tags": [],
+    "title": "K14: the agent guide",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it: K15, the plan from the\ncommand line, for coding agents (REQ-020, ADR-018).\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-015"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-016-k15-the-plan-from-the-command-line.md",
+    "status": "done",
+    "tags": [],
+    "title": "K15: the plan from the command line",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it: K16, for a person using\nKiln without an agent (REQ-021).\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-017-k16-a-first-project-that-explains-itself.md",
+    "status": "done",
+    "tags": [],
+    "title": "K16: a first project that explains itself",
+    "type": "milestone"
+  },
+  {
+    "body": "\n**Delivers:** K17, the follow-ups from reviewing K15 and K16: template prompts left in an item are reported, the GUI shows the plan as `kiln next` does, work can be claimed, the default document places tasks and tests, and JSON output carries a version.\n\n**Done when:** each task below is done and `kiln check` is clean on this repository.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-018-k17-the-plan-everywhere-and-claimed.md",
+    "status": "done",
+    "tags": [],
+    "title": "K17: the plan everywhere, and claimed",
+    "type": "milestone"
+  },
+  {
+    "body": "\n**Delivers:** K18: test results in the trace (`--results`, K216, K217), `kiln affected`, and `kiln next`/`status` telling work in progress from work ready to start.\n\n**Done when:** each task below is done and `kiln check` is clean on this repository.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-019-k18-the-trace-says-what-passed-and-what-a-change.md",
+    "status": "done",
+    "tags": [],
+    "title": "K18: the trace says what passed, and what a change touches",
+    "type": "milestone"
+  },
+  {
+    "body": "\n**Delivers:** K19: `kiln log` (an item's history from git) and `kiln signoff` (sign-off status changes since a revision, with their authors, as CI annotations), with `[signoff]` in kiln.toml.\n\n**Done when:** each task below is done and `kiln check` is clean on this repository.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-019"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-020-k19-sign-off-and-history-from-git.md",
+    "status": "done",
+    "tags": [],
+    "title": "K19: sign-off and history from git",
+    "type": "milestone"
+  },
+  {
+    "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "MS-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "MS-020"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/milestones/MS-021-k20-one-page-documents-read-top-down.md",
+    "status": "done",
+    "tags": [],
+    "title": "K20: one-page documents read top-down, requirements as one tree",
+    "type": "milestone"
+  },
+  {
+    "body": "\n`kiln show ID` prints the body under the rows. `--format json` gives\nlinks, inbound links, children and parent as objects (`id`, `title`,\n`status`; code locations as `path` and `line`), coverage as booleans\nby role, progress as numbers, and the body.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-001-kiln-show-prints-the-body-and-its-json-is.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln show prints the body, and its JSON is structured",
+    "type": "task"
+  },
+  {
+    "body": "\nEach item in `kiln list --format json` gains `owner`, `due`, `links`\n(role → IDs) and `done`/`closed`; `--body` adds the body, so the whole\nplan loads in one call.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-002-kiln-list-format-json-carries-links-owner-due-and.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln list --format json carries links, owner, due and, with --body, the body",
+    "type": "task"
+  },
+  {
+    "body": "\n`kiln next [--milestone ID]` lists ready work (ADR-018), earliest\nmilestone first. `kiln status` shows each open milestone with its\nprogress, ready and waiting work (and what it waits on), then work in\nno milestone and the count of `kiln check` findings.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-003-kiln-next-and-kiln-status-ready-work-and-the-plan.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln next and kiln status: ready work and the plan by milestone",
+    "type": "task"
+  },
+  {
+    "body": "\nK211 a done milestone with open work; K212 a done item that depends on\none that isn't; K213 open work in no milestone (directly or through\nits parent); K214 a requirement implemented or verified while work\nimplementing it is open.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-004-plan-checks-k211-to-k214.md",
+    "status": "done",
+    "tags": [],
+    "title": "Plan checks: K211 to K214",
+    "type": "task"
+  },
+  {
+    "body": "\n`kiln new TYPE --link ROLE=ID… --tag TAG… --body-file PATH|-` and\n`--format json` (`{\"id\", \"path\"}`); `kiln set ID tags=a,b jira=KEY`.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-005-kiln-new-takes-links-tags-and-a-body-kiln-set.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln new takes links, tags and a body; kiln set takes tags and jira",
+    "type": "task"
+  },
+  {
+    "body": "\nThe generated section gains \"Planning\": the work types, which statuses\nare done, `kiln next` and `kiln status`, and the plan checks. The rules\n`kiln init` writes say how to take and finish a task; `kiln init` and\n`kiln agents` print the line to add to the repository's own guide.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "depends-on": [
+        "TASK-003",
+        "TASK-005"
+      ],
+      "implements": [
+        "REQ-020"
+      ],
+      "part-of": [
+        "MS-016"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-006-the-agent-guide-describes-the-plan-and-how-to-work.md",
+    "status": "done",
+    "tags": [],
+    "title": "The agent guide describes the plan and how to work through it",
+    "type": "task"
+  },
+  {
+    "body": "\n`kiln init` writes a short body template for each default type\n(requirement, design, decision, milestone, task, test, risk) under\n`design/templates/` and names it in `kiln.toml`.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-007-body-templates-for-the-default-types.md",
+    "status": "done",
+    "tags": [],
+    "title": "Body templates for the default types",
+    "type": "task"
+  },
+  {
+    "body": "\n`kiln init` adds the `design-doc` preset unless `--preset` names\nanother, so `kiln export` writes a design document straight away.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-008",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-008-kiln-init-adds-the-design-doc-export.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln init adds the design-doc export",
+    "type": "task"
+  },
+  {
+    "body": "\n`--status`, `--type` and `--tag` take comma-separated lists; a status\nno listed type has is a usage error (exit 2), as an unknown type already\nis.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-009",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-009-kiln-list-refuses-unknown-statuses-and-takes-comma.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln list refuses unknown statuses and takes comma lists",
+    "type": "task"
+  },
+  {
+    "body": "\n`kiln new --open` and the GUI open an item with `KILN_EDITOR` when it\nis set, then Fenix, then `VISUAL` or `EDITOR`, then the system's\ndefault; `{path}` and `{line}` in the command are replaced.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-010",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-010-kiln-editor-visual-and-editor-open-items-outside.md",
+    "status": "done",
+    "tags": [],
+    "title": "KILN_EDITOR, VISUAL and EDITOR open items outside Fenix",
+    "type": "task"
+  },
+  {
+    "body": "\n`kiln --help` lists the commands in groups: everyday (init, new, list,\nshow, set, link, check, export), the plan, exporting and review, editors,\nintegrations.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-011",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-021"
+      ],
+      "part-of": [
+        "MS-017"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-011-kiln-help-groups-the-everyday-commands-first.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln --help groups the everyday commands first",
+    "type": "task"
+  },
+  {
+    "body": "\nAn item past its first status whose body still has a line of its type's template, word for word (not a heading), gets a warning on that line, so prompts like \"**What:** the change…\" don't reach the exported document.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-012",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-012-untouched-template-text-is-reported-k215.md",
+    "status": "done",
+    "tags": [],
+    "title": "Untouched template text is reported (K215)",
+    "type": "task"
+  },
+  {
+    "body": "\nBoard rows of open work say `ready` or what they wait on; the Roadmap, `kiln show`, `kiln status` and the roadmap report share one progress (ADR-020).\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-013",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-013-the-gui-shows-ready-and-waiting-work-and-one.md",
+    "status": "done",
+    "tags": [],
+    "title": "The GUI shows ready and waiting work, and one progress everywhere",
+    "type": "task"
+  },
+  {
+    "body": "\n`kiln next` and `kiln status` show each item's owner; `--unowned` leaves claimed work out; the agent guide's rules say to set `owner` when taking an item.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-014",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-014-work-can-be-claimed-owner-in-next-and-status-kiln.md",
+    "status": "done",
+    "tags": [],
+    "title": "Work can be claimed: owner in next and status, kiln next --unowned",
+    "type": "task"
+  },
+  {
+    "body": "\nThe preset's document lists tasks under the plan and tests in an appendix, as row tables, so a first export leaves nothing out.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-015",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-015-the-design-doc-template-places-tasks-and-tests.md",
+    "status": "done",
+    "tags": [],
+    "title": "The design-doc template places tasks and tests",
+    "type": "task"
+  },
+  {
+    "body": "\nEvery JSON object Kiln prints starts with `\"kiln_json\": 1`, raised when a shape changes incompatibly; arrays only gain fields.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-016",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-022"
+      ],
+      "part-of": [
+        "MS-018"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-016-json-output-carries-kiln-json.md",
+    "status": "done",
+    "tags": [],
+    "title": "JSON output carries kiln_json",
+    "type": "task"
+  },
+  {
+    "body": "\n**What:** work past its first status is \"in progress\" in `kiln status` and on the GUI, and `kiln next` lists only work not started yet.\n\n**Done when:** a doing task is under \"in progress\", not \"ready\", and `kiln next` leaves it out.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-017",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-023"
+      ],
+      "part-of": [
+        "MS-019"
+      ]
+    },
+    "owner": "claude",
+    "parent": null,
+    "path": "design/tasks/TASK-017-kiln-next-and-status-tell-work-in-progress-from.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln next and status tell work in progress from work ready to start",
+    "type": "task"
+  },
+  {
+    "body": "\n**What:** `kiln trace`, `kiln check` and `kiln export` take `--results FILE` (JUnit XML, repeatable); a verifying code reference counts only when its test passed (ADR-021); K216 a verifying test failed, K217 one did not run.\n\n**Done when:** a failing test leaves its requirement uncovered in `kiln trace` and K216 names its line.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-018",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-023"
+      ],
+      "part-of": [
+        "MS-019"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-018-junit-results-count-toward-verification-results.md",
+    "status": "done",
+    "tags": [],
+    "title": "JUnit results count toward verification: --results, K216 and K217",
+    "type": "task"
+  },
+  {
+    "body": "\n**What:** `kiln affected [REV]` reads `git diff` from `REV` to the working tree and lists the items whose code or file changed (ADR-022), with what verifies them; text, JSON or GitHub annotations.\n\n**Done when:** changing one line under an `implements:` comment lists that requirement and its tests.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-019",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-023"
+      ],
+      "part-of": [
+        "MS-019"
+      ]
+    },
+    "owner": null,
+    "parent": null,
+    "path": "design/tasks/TASK-019-kiln-affected-the-requirements-a-change-reaches.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln affected: the requirements a change reaches, and what to re-check",
+    "type": "task"
+  },
+  {
+    "body": "\n**What:** `kiln log ID` lists each commit that changed the item's status, title, owner, parent, tags, due date or links, oldest first, with date and author, and uncommitted changes last (ADR-023).\n\n**Done when:** an item approved in one commit and linked in another shows both lines with their authors.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-020",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-024"
+      ],
+      "part-of": [
+        "MS-020"
+      ]
+    },
+    "owner": "claude",
+    "parent": null,
+    "path": "design/tasks/TASK-020-kiln-log-an-item-s-history-from-git.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln log: an item's history from git",
+    "type": "task"
+  },
+  {
+    "body": "\n**What:** `kiln signoff [REV]` lists every change to a sign-off status (`[signoff]` in kiln.toml, defaults after the agent guide's rule) between `REV` and the working tree, with the commit and author; text, JSON, GitHub or GitLab annotations.\n\n**Done when:** a pull request that approves a requirement shows a warning annotation naming the commit and its author.\n",
+    "closed": false,
+    "done": true,
+    "due": null,
+    "id": "TASK-021",
+    "jira_keys": [],
+    "line": 2,
+    "links": {
+      "implements": [
+        "REQ-024"
+      ],
+      "part-of": [
+        "MS-020"
+      ]
+    },
+    "owner": "claude",
+    "parent": null,
+    "path": "design/tasks/TASK-021-kiln-signoff-sign-off-changes-since-a-revision.md",
+    "status": "done",
+    "tags": [],
+    "title": "kiln signoff: sign-off changes since a revision, with their authors",
+    "type": "task"
+  },
+  {
+    "body": "\nOne client trait, two implementations; every endpoint listed in CONFLUENCE.md with its flavour; read-only calls against both first.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-001",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-001-the-confluence-api-differs-between-cloud-and-data.md",
+    "status": "open",
+    "tags": [],
+    "title": "The Confluence API differs between Cloud and Data Center",
+    "type": "risk"
+  },
+  {
+    "body": "\nDrift detection naming the author, a banner on every page, an optional edit restriction.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-002",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-002-people-edit-published-pages-in-confluence.md",
+    "status": "open",
+    "tags": [],
+    "title": "People edit published pages in Confluence",
+    "type": "risk"
+  },
+  {
+    "body": "\nDuplicates are a check error naming both files, and one command renumbers.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-003",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-003-two-branches-allocate-the-same-id.md",
+    "status": "mitigated",
+    "tags": [],
+    "title": "Two branches allocate the same ID",
+    "type": "risk"
+  },
+  {
+    "body": "\nWork items have no assignees or sprints (DESIGN.md, \"Non-goals\"). Since\nK10 Kiln writes to Jira, but only the sub-tasks of its own project issue,\nand only their summary, due date and status (ADR-014); assignees,\nsprints, comments and every other ticket stay Jira's.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-004",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-004-the-model-becomes-a-second-jira.md",
+    "status": "open",
+    "tags": [],
+    "title": "The model becomes a second Jira",
+    "type": "risk"
+  },
+  {
+    "body": "\nK1 dogfoods it on this folder before anything depends on it; `format = 1` allows a migration later.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-005",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-005-the-format-is-wrong-and-costly-to-change.md",
+    "status": "mitigated",
+    "tags": [],
+    "title": "The format is wrong and costly to change",
+    "type": "risk"
+  },
+  {
+    "body": "\nExports refuse to rasterise without fonts, naming the fix (INTEGRATION.md, G2).\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-006",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-006-diagram-text-missing-in-ci-images-without-fonts.md",
+    "status": "open",
+    "tags": [],
+    "title": "Diagram text missing in CI images without fonts",
+    "type": "risk"
+  },
+  {
+    "body": "\nSize measured on every export, with warning and refusal thresholds and the `sections` layout as the remedy.\n",
+    "closed": false,
+    "done": false,
+    "due": null,
+    "id": "RISK-007",
+    "jira_keys": [],
+    "line": 2,
+    "links": {},
+    "owner": null,
+    "parent": null,
+    "path": "design/risks/RISK-007-a-one-page-document-outgrows-what-confluence.md",
+    "status": "open",
+    "tags": [],
+    "title": "A one-page document outgrows what Confluence handles well",
+    "type": "risk"
+  }
+]

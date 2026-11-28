@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check › Demo  1 error
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ADR-001  Store readings in SQLite  accepted
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  s status  E edits  v item  i impact  r reload  Tab next tab

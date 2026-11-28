@@ -1,0 +1,26 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Expo…› Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+kiln isn't on the PATH: install Kiln, or set kiln.path to where kiln is
+Kiln's releases: https://github.com/tpedneault/kiln/releases
+kiln.path is where kiln is, when it isn't on the PATH (SPC h s opens the settings)
+SPC p h: the project doctor says what it found
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+r try again  Tab next tab

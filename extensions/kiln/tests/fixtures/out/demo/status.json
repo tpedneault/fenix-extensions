@@ -1,0 +1,102 @@
+{
+  "findings": {
+    "errors": 1,
+    "warnings": 2
+  },
+  "kiln_json": 1,
+  "milestones": [
+    {
+      "done": 1,
+      "in_progress": [
+        {
+          "id": "TASK-002",
+          "owner": "ana",
+          "status": "doing",
+          "title": "Write readings to SQLite"
+        }
+      ],
+      "milestone": {
+        "due": "2030-06-30",
+        "id": "MS-001",
+        "status": "active",
+        "title": "First release"
+      },
+      "ready": [
+        {
+          "id": "TASK-003",
+          "owner": "bo",
+          "status": "todo",
+          "title": "Export the log as CSV"
+        },
+        {
+          "id": "TASK-007",
+          "owner": null,
+          "status": "todo",
+          "title": "Batch the writes"
+        }
+      ],
+      "total": 5,
+      "waiting": [
+        {
+          "blocked": false,
+          "id": "TASK-004",
+          "owner": null,
+          "status": "todo",
+          "title": "Add the export button",
+          "waits_on": [
+            {
+              "id": "TASK-003",
+              "status": "todo",
+              "title": "Export the log as CSV"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "done": 0,
+      "in_progress": [],
+      "milestone": {
+        "due": null,
+        "id": "MS-002",
+        "status": "planned",
+        "title": "Second release"
+      },
+      "ready": [
+        {
+          "id": "TASK-006",
+          "owner": null,
+          "status": "todo",
+          "title": "Draft the user guide"
+        }
+      ],
+      "total": 2,
+      "waiting": [
+        {
+          "blocked": true,
+          "id": "TASK-005",
+          "owner": null,
+          "status": "blocked",
+          "title": "Ask about retention rules",
+          "waits_on": []
+        }
+      ]
+    },
+    {
+      "done": 0,
+      "in_progress": [],
+      "milestone": null,
+      "ready": [
+        {
+          "id": "TASK-008",
+          "owner": null,
+          "status": "todo",
+          "title": "Tidy the build scripts"
+        }
+      ],
+      "total": 1,
+      "waiting": []
+    }
+  ],
+  "project": "Demo"
+}
