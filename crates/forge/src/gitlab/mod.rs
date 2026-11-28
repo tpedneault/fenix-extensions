@@ -294,6 +294,24 @@ impl<H: Http> Forge for GitLab<H> {
         parse::merge_request(&value).ok_or_else(|| "GitLab didn't say what it made".to_string())
     }
 
+    async fn update_request(&self, before: &MergeRequest, edit: &NewRequest) -> Result<MergeRequest, String> {
+        // GitLab marks a draft by its title, and assigns by user id.
+        let title = if edit.draft { format!("Draft: {}", edit.title) } else { edit.title.clone() };
+        let mut assignees = Vec::new();
+        for user in &edit.assignees {
+            assignees.push(self.user_id(user).await?);
+        }
+        let body = serde_json::json!({
+            "title": title,
+            "description": edit.description,
+            "target_branch": edit.target_branch,
+            "labels": edit.labels.join(","),
+            "assignee_ids": assignees,
+        });
+        let value = self.send_json("PUT", &self.mr_path(before.number, ""), &body).await?;
+        parse::merge_request(&value).ok_or_else(|| "GitLab didn't say what it changed".to_string())
+    }
+
     async fn submit_review(&self, number: u64, head_sha: &str, verdict: Verdict, body: &str, comments: &[DraftComment]) -> Result<(), String> {
         // The comments first, each its own thread; a range is anchored on
         // its last line and says which lines it's about.

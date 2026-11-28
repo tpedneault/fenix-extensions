@@ -278,6 +278,36 @@ impl<H: Http> Forge for GitHub<H> {
         Ok(made)
     }
 
+    async fn update_request(&self, before: &MergeRequest, edit: &NewRequest) -> Result<MergeRequest, String> {
+        let number = before.number;
+        let reference = before.reference();
+        let value = self.send("PATCH", &self.pull_path(number, ""), &json!({ "title": edit.title, "body": edit.description, "base": edit.target_branch })).await?;
+        let mut made = parse::pull_request(&value).ok_or_else(|| "GitHub didn't say what it changed".to_string())?;
+        // Draft or ready: GitHub's GraphQL alone moves it.
+        if edit.draft != before.draft {
+            const TO_DRAFT: &str = "mutation($id: ID!) { convertPullRequestToDraft(input: {pullRequestId: $id}) { clientMutationId } }";
+            const READY: &str = "mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id}) { clientMutationId } }";
+            let id = self.node_id(number).await?;
+            self.graphql(if edit.draft { TO_DRAFT } else { READY }, json!({ "id": id })).await.map_err(|e| format!("changed {reference}, but making it {} didn't work: {e}", if edit.draft { "a draft" } else { "ready for review" }))?;
+            made.draft = edit.draft;
+        }
+        // Its labels and assignees are its issue's.
+        if edit.labels != before.labels {
+            self.send("PUT", &self.repo_path(&format!("/issues/{number}/labels")), &json!({ "labels": edit.labels })).await.map_err(|e| format!("changed {reference}, but the labels didn't go on: {e}"))?;
+            made.labels = edit.labels.clone();
+        }
+        let gone: Vec<&String> = before.assignees.iter().filter(|a| !edit.assignees.contains(a)).collect();
+        let added: Vec<&String> = edit.assignees.iter().filter(|a| !before.assignees.contains(a)).collect();
+        if !gone.is_empty() {
+            self.send("DELETE", &self.repo_path(&format!("/issues/{number}/assignees")), &json!({ "assignees": gone })).await.map_err(|e| format!("changed {reference}, but unassigning didn't work: {e}"))?;
+        }
+        if !added.is_empty() {
+            self.send("POST", &self.repo_path(&format!("/issues/{number}/assignees")), &json!({ "assignees": added })).await.map_err(|e| format!("changed {reference}, but assigning didn't work: {e}"))?;
+        }
+        made.assignees = edit.assignees.clone();
+        Ok(made)
+    }
+
     async fn submit_review(&self, number: u64, head_sha: &str, verdict: Verdict, body: &str, comments: &[DraftComment]) -> Result<(), String> {
         let event = match verdict {
             Verdict::Approve => "APPROVE",

@@ -48,6 +48,8 @@ pub fn pull_request(value: &Value) -> Option<MergeRequest> {
         comment_count: comments as usize,
         pipeline: None,
         updated_at: string(value, "updated_at"),
+        assignees: value.get("assignees").and_then(Value::as_array).map(|l| l.iter().filter_map(|a| a.get("login").and_then(Value::as_str).map(str::to_string)).collect()).unwrap_or_default(),
+        labels: value.get("labels").and_then(Value::as_array).map(|l| l.iter().filter_map(|a| a.get("name").and_then(Value::as_str).map(str::to_string)).collect()).unwrap_or_default(),
     })
 }
 

@@ -154,6 +154,9 @@ pub enum RequestAction {
     EditDescription,
     /// Open it: push first when `push`, then ask `reviewers`.
     Open { request: NewRequest, reviewers: Vec<String>, push: bool },
+    /// Save what was changed of the one open (`RequestPage::updating`),
+    /// then ask `reviewers`.
+    Update { before: Box<MergeRequest>, request: NewRequest, reviewers: Vec<String> },
     Browser(String),
     /// Review the one already open.
     Review(u64),
@@ -202,6 +205,9 @@ pub struct RequestPage {
     armed: bool,
     /// The Jira key named in the branch, for the description.
     pub jira: Option<String>,
+    /// The request open for the branch, being edited: the form says what
+    /// it is, and `S S` saves the changes to it.
+    pub updating: Option<MergeRequest>,
     /// What the form said as it was filled in, before you touched it: a
     /// draft is kept only once it says something else.
     pristine: RequestDraft,
@@ -343,7 +349,25 @@ impl RequestPage {
             message: None,
             busy: false,
             armed: false,
+            updating: None,
         }
+    }
+
+    /// The form, now for the request `mr` that's open: what it says,
+    /// to change and save (`S S`) -- its draft state, assignees, labels,
+    /// title, description and target.
+    pub fn edit_existing(&mut self, mr: MergeRequest) {
+        self.title = mr.plain_title();
+        self.description = mr.description.clone();
+        self.draft = mr.draft;
+        self.base = mr.target_branch.clone();
+        self.base_ref = format!("origin/{}", mr.target_branch);
+        self.assignees = mr.assignees.join(", ");
+        self.labels = mr.labels.join(", ");
+        self.filled = self.description.clone();
+        self.existing = Some(Some(mr.clone()));
+        self.message = Some((format!("{} is open: change what you like, S S saves it -- M reviews it, o opens it in the browser", mr.reference()), false));
+        self.updating = Some(mr);
     }
 
     fn word(&self) -> &'static str {
@@ -449,6 +473,10 @@ impl RequestPage {
     /// What the form says, the field being typed in as typed so far --
     /// `None` while that's what it said when it was filled in.
     pub fn draft(&self) -> Option<RequestDraft> {
+        // Editing one that's open: what's typed is saved to it, not kept.
+        if self.updating.is_some() {
+            return None;
+        }
         let mut d = RequestDraft {
             base: self.base.clone(),
             title: self.title.clone(),
@@ -491,6 +519,9 @@ impl RequestPage {
 
     /// Why it can't be opened as it stands.
     fn problem(&self) -> Option<String> {
+        if self.updating.is_some() {
+            return self.title.trim().is_empty().then(|| "it needs a title".to_string());
+        }
         if let Some(Some(existing)) = &self.existing {
             return Some(format!("{} is already open for {} -- M reviews it, o opens it in the browser", existing.reference(), self.branch));
         }
@@ -584,6 +615,9 @@ impl RequestPage {
                     labels: names(&self.labels),
                     assignees: names(&self.assignees),
                 };
+                if let Some(before) = &self.updating {
+                    return RequestAction::Update { before: Box::new(before.clone()), request, reviewers: names(&self.reviewers) };
+                }
                 let push = !matches!(self.standing.pushed, Pushed::UpToDate(_));
                 return RequestAction::Open { request, reviewers: names(&self.reviewers), push };
             }
@@ -597,12 +631,15 @@ pub fn layout(page: &RequestPage, cols: usize) -> Page {
     let (left, width) = frame(cols, 120);
     let mut g = Grid::new();
     let mut y = 1;
-    let heading = format!("New {} · {}", page.word(), page.project);
+    let heading = match &page.updating {
+        Some(mr) => format!("{} · {} · {}", mr.reference(), page.word(), page.project),
+        None => format!("New {} · {}", page.word(), page.project),
+    };
     let x = g.put(y, left, &heading, Role::Title) + 2;
     g.put(y, x, &page.forge, Role::Muted);
     y += 1;
     if page.busy {
-        g.put(y, left, &format!("… opening the {}", page.word()), Role::Accent);
+        g.put(y, left, &format!("… {} the {}", if page.updating.is_some() { "saving" } else { "opening" }, page.word()), Role::Accent);
         y += 1;
     } else if let Some((text, failed)) = &page.message {
         for line in wrap(text, width).into_iter().take(3) {
@@ -717,6 +754,7 @@ pub fn layout(page: &RequestPage, cols: usize) -> Page {
     };
     match &page.existing {
         None => check(&mut g, &mut y, Role::Muted, format!("asking {} whether one is open already…", page.forge)),
+        Some(Some(existing)) if page.updating.is_some() => check(&mut g, &mut y, Role::Good, format!("{} is open for this branch: S S saves what you change", existing.reference())),
         Some(Some(existing)) => check(&mut g, &mut y, Role::Bad, format!("{} is already open for this branch: {}", existing.reference(), existing.title)),
         Some(None) => {}
     }
@@ -947,6 +985,45 @@ mod tests {
     }
 
     #[test]
+    fn one_open_already_is_the_form_s_to_change_and_save() {
+        let mut p = page(vec![commit("a1", "One", "")]);
+        let open = fenix_forge::MergeRequest {
+            number: 22,
+            title: "Draft: Git daily".into(),
+            description: "what it does".into(),
+            state: fenix_forge::MrState::Open,
+            draft: true,
+            source_branch: p.branch.clone(),
+            target_branch: "develop".into(),
+            author: "me".into(),
+            web_url: "https://github.com/o/r/pull/22".into(),
+            has_conflicts: false,
+            sha: "h".into(),
+            diff_refs: fenix_forge::DiffRefs::default(),
+            comment_count: 0,
+            pipeline: None,
+            updated_at: String::new(),
+            assignees: vec!["kim".into()],
+            labels: vec!["git".into()],
+        };
+        p.edit_existing(open);
+        assert_eq!((p.title.as_str(), p.description.as_str(), p.draft, p.base.as_str()), ("Git daily", "what it does", true, "develop"));
+        assert_eq!((p.assignees.as_str(), p.labels.as_str()), ("kim", "git"));
+        assert!(p.draft().is_none(), "what's typed goes to it, not into a draft kept");
+        // Made ready for review, given to sam too, and saved.
+        p.draft = false;
+        p.assignees = "kim, sam".into();
+        assert_eq!(p.key(Key::Char('S')), RequestAction::None, "S once arms it");
+        let RequestAction::Update { before, request, .. } = p.key(Key::Char('S')) else { panic!("an update") };
+        assert_eq!(before.number, 22);
+        assert!(!request.draft);
+        assert_eq!(request.assignees, ["kim", "sam"]);
+        assert_eq!(request.target_branch, "develop");
+        let text = layout(&p, 100).text;
+        assert!(text.contains("#22") && text.contains("S S saves"), "{text}");
+    }
+
+    #[test]
     fn one_already_open_is_named_and_offered_instead() {
         let mut p = page(vec![commit("a1", "One", "")]);
         let existing = fenix_forge::MergeRequest {
@@ -965,6 +1042,8 @@ mod tests {
             comment_count: 0,
             pipeline: None,
             updated_at: String::new(),
+            assignees: Vec::new(),
+            labels: Vec::new(),
         };
         p.existing = Some(Some(existing));
         assert_eq!(p.key(Key::Char('S')), RequestAction::None);

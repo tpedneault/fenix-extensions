@@ -216,9 +216,24 @@ pub struct MergeRequest {
     /// date type: it's displayed and sorted by the forge, never
     /// arithmetic, and every forge formats it differently.
     pub updated_at: String,
+    /// Usernames it's assigned to.
+    pub assignees: Vec<String>,
+    pub labels: Vec<String>,
 }
 
 impl MergeRequest {
+    /// Its title without the draft marker a forge keeps in it (GitLab's
+    /// `Draft: `), as a form edits it.
+    pub fn plain_title(&self) -> String {
+        let t = self.title.trim();
+        for prefix in ["Draft: ", "Draft:", "[Draft] ", "[Draft]", "WIP: ", "WIP:", "(Draft) "] {
+            if let Some(rest) = t.strip_prefix(prefix) {
+                return rest.trim().to_string();
+            }
+        }
+        t.to_string()
+    }
+
     /// `!42` -- how a merge request is referred to in conversation; a
     /// GitHub pull request is `#42`, told apart by its URL.
     pub fn reference(&self) -> String {
@@ -641,6 +656,14 @@ pub trait Forge {
         Err("this forge can't open a request from Fenix yet".to_string())
     }
 
+    /// Changes request `before` to read as `edit` says: its title,
+    /// description, target, draft or not, labels and assignees
+    /// (`edit.source_branch` is ignored: a request's source doesn't move).
+    async fn update_request(&self, before: &MergeRequest, edit: &NewRequest) -> Result<MergeRequest, String> {
+        let _ = (before, edit);
+        Err("this forge can't edit a request from Fenix yet".to_string())
+    }
+
     /// The description template set on the project itself (GitLab's
     /// Settings > Merge requests > Default description template), when
     /// the forge has such a thing and the project sets one.
@@ -809,6 +832,8 @@ mod tests {
             comment_count: 0,
             pipeline: None,
             updated_at: String::new(),
+            assignees: Vec::new(),
+            labels: Vec::new(),
         };
         // Not `source_branch`: it may not exist locally, may point
         // somewhere else, or may collide with an unrelated branch.

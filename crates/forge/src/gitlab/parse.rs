@@ -57,7 +57,14 @@ pub fn merge_request(value: &Value) -> Option<MergeRequest> {
         comment_count: usize_at(value, "user_notes_count"),
         pipeline: value.get("head_pipeline").and_then(|p| p.get("status")).and_then(Value::as_str).map(pipeline_status),
         updated_at: string(value, "updated_at"),
+        assignees: names_at(value, "assignees", "username"),
+        labels: value.get("labels").and_then(Value::as_array).map(|l| l.iter().filter_map(|x| x.as_str().map(str::to_string).or_else(|| x.get("name").and_then(Value::as_str).map(str::to_string))).collect()).unwrap_or_default(),
     })
+}
+
+/// `field` of each object in the list at `key`.
+fn names_at(value: &Value, key: &str, field: &str) -> Vec<String> {
+    value.get(key).and_then(Value::as_array).map(|l| l.iter().filter_map(|x| x.get(field).and_then(Value::as_str).map(str::to_string)).collect()).unwrap_or_default()
 }
 
 /// GitLab's pipeline status strings, as documented for the pipelines
