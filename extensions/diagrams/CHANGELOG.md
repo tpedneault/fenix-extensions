@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0
+
+For Fenix 1.5 (extension API 1.5):
+
+- A project's own diagrams: a new diagram (`SPC m n`, the notebook's
+  `SPC n d`, `diagram.new`) goes into the project when one is open --
+  under `diagrams.folder` (`docs/diagrams` by default), in folders you
+  type (`auth/login-flow`) -- or into the notebook, as you choose.
+- `SPC m l` (`diagram.list`) lists the project's diagrams by folder, with
+  what each is, and opens the one picked; built and hidden folders
+  (`node_modules`, `target`, `.git`) are left out.
+- `SPC m M` (`diagram.move`) moves or renames a diagram within the
+  project, its unsaved edits along, its picture following it.
+
 ## 1.2.0
 
 For Fenix 1.5 (extension API 1.5):

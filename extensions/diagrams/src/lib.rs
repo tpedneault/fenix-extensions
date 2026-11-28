@@ -61,6 +61,76 @@ enum Asked {
     ExportHow { path: String },
     /// The file's name, once it's to be saved.
     Export { path: String },
+    /// Where a new diagram goes: the project (`0`) or the notebook (`1`).
+    Where { text: String },
+    /// Its path in the project, under the diagrams folder.
+    NewIn { text: String },
+    /// A diagram of the project's, to open.
+    Open { paths: Vec<String> },
+    /// The path `path` moves to.
+    Move { path: String },
+}
+
+/// A new diagram's text, given to the notebook to name and keep.
+fn to_notebook(text: &str) {
+    let payload = serde_json::json!({ "text": text }).to_string();
+    api::call_service("notebook.new_diagram", &payload);
+}
+
+/// `diagrams.folder`: where a project's diagrams are made, under its top.
+fn diagrams_folder() -> String {
+    let folder = api::setting("diagrams.folder").map(|f| f.trim().trim_matches('/').replace('\\', "/")).unwrap_or_default();
+    if folder.is_empty() || folder.split('/').any(|part| part == "..") {
+        "docs/diagrams".into()
+    } else {
+        folder
+    }
+}
+
+/// A path typed for a diagram, as one under the project: `/` between its
+/// folders, no way out of it, and `.mmd` when it names no kind of its own.
+fn diagram_rel(typed: &str) -> Option<String> {
+    let typed = typed.trim().trim_start_matches("/project/").trim_matches('/').replace('\\', "/");
+    if typed.is_empty() || typed.split('/').any(|part| part.is_empty() || part == "." || part == "..") {
+        return None;
+    }
+    let lower = typed.to_lowercase();
+    Some(if lower.ends_with(".mmd") || lower.ends_with(".mermaid") { typed } else { format!("{typed}.mmd") })
+}
+
+/// Folders a project's diagrams aren't looked for in.
+const SKIPPED: &[&str] = &["node_modules", "target", "dist", "build", "out", "vendor", "venv", "__pycache__"];
+
+/// Every diagram under `dir` (a `/project/` path), as paths under the
+/// project, folders first in name order. At most `limit`.
+fn diagrams_under(dir: &str, rel: &str, limit: usize, out: &mut Vec<String>) {
+    let Ok(read) = std::fs::read_dir(dir) else { return };
+    let mut entries: Vec<(String, bool)> = read.flatten().map(|e| (e.file_name().to_string_lossy().into_owned(), e.file_type().map(|t| t.is_dir()).unwrap_or(false))).collect();
+    entries.sort();
+    for (name, is_dir) in entries {
+        if out.len() >= limit {
+            return;
+        }
+        let child = if rel.is_empty() { name.clone() } else { format!("{rel}/{name}") };
+        if is_dir {
+            if !name.starts_with('.') && !SKIPPED.contains(&name.as_str()) {
+                diagrams_under(&format!("{dir}/{name}"), &child, limit, out);
+            }
+        } else {
+            let lower = name.to_lowercase();
+            if lower.ends_with(".mmd") || lower.ends_with(".mermaid") {
+                out.push(child);
+            }
+        }
+    }
+}
+
+/// A diagram's row in the list: its file, then its folder, then what it
+/// is (its first line, `flowchart LR`).
+fn diagram_row(rel: &str, text: &str) -> String {
+    let (folder, name) = rel.rsplit_once('/').unwrap_or(("", rel));
+    let kind = text.lines().map(str::trim).find(|l| !l.is_empty() && !l.starts_with("%%") && !l.starts_with("---")).unwrap_or("").chars().take(30).collect::<String>();
+    format!("{name:<32} {:<28} {kind}", if folder.is_empty() { "." } else { folder })
 }
 
 /// What `e` offers, in its picker's order.
@@ -359,6 +429,104 @@ impl Diagrams {
         }
     }
 
+    /// A starter picked for a new diagram: into the project, when one is
+    /// open, or the notebook -- asked when there's a choice.
+    fn starter_picked(&mut self, text: String) {
+        if api::here().and_then(|h| h.project).is_none() {
+            return to_notebook(&text);
+        }
+        let folder = diagrams_folder();
+        let items = vec![PickerItem::new(format!("In this project, under {folder}/"), "0"), PickerItem::new("In the notebook".to_string(), "1")];
+        let id = api::pick("Where it goes", &items);
+        self.asked.insert(id, Asked::Where { text });
+    }
+
+    /// Its path in the project asked for: a name, or folders and a name
+    /// (`auth/login-flow`), under the diagrams folder.
+    fn name_in_project(&mut self, text: String) {
+        let id = api::prompt("Diagram (folders/name)", &format!("{}/", diagrams_folder()));
+        self.asked.insert(id, Asked::NewIn { text });
+    }
+
+    /// The new diagram written where it was named, its folders made, and
+    /// opened with its picture beside it.
+    fn made_in_project(&mut self, typed: &str, text: &str) {
+        let Some(rel) = diagram_rel(typed) else { return host::notify(api::Level::Error, &format!("{typed:?} isn't a path in the project")) };
+        let path = format!("/project/{rel}");
+        if std::path::Path::new(&path).exists() {
+            return host::notify(api::Level::Error, &format!("{rel} is there already"));
+        }
+        if let Some(dir) = std::path::Path::new(&path).parent() {
+            if let Err(e) = std::fs::create_dir_all(dir) {
+                return host::notify(api::Level::Error, &format!("couldn't make {}: {e}", dir.display()));
+            }
+        }
+        if let Err(e) = std::fs::write(&path, text) {
+            return host::notify(api::Level::Error, &format!("couldn't write {rel}: {e}"));
+        }
+        host::open_file(&path, None);
+        self.open_page(&path, false);
+        api::notify(&format!("made {rel}"));
+    }
+
+    /// `diagram.list`: the project's diagrams, by folder; Enter opens one.
+    fn list_project(&mut self) {
+        if api::here().and_then(|h| h.project).is_none() {
+            return host::notify(api::Level::Error, "the diagrams listed are a project's -- open one");
+        }
+        let mut found = Vec::new();
+        diagrams_under("/project", "", 2000, &mut found);
+        if found.is_empty() {
+            return api::notify(&format!("no diagrams in the project yet -- {} makes one", menu_keys("diagram.new", "n")));
+        }
+        // Folders together, then by name.
+        found.sort_by(|a, b| {
+            let split = |p: &str| p.rsplit_once('/').map(|(d, n)| (d.to_string(), n.to_string())).unwrap_or_default();
+            split(a).cmp(&split(b)).then(a.cmp(b))
+        });
+        let items: Vec<PickerItem> = found.iter().enumerate().map(|(i, rel)| PickerItem::new(diagram_row(rel, &std::fs::read_to_string(format!("/project/{rel}")).unwrap_or_default()), i.to_string())).collect();
+        let id = api::pick("Diagrams in this project", &items);
+        self.asked.insert(id, Asked::Open { paths: found });
+    }
+
+    /// `diagram.move`: the diagram in `path` to another folder, or another
+    /// name -- what's typed in it, unsaved edits too, goes along.
+    fn move_prompt(&mut self, path: String) {
+        let Some(root) = api::here().and_then(|h| h.project).map(|p| p.root) else { return host::notify(api::Level::Error, "a diagram moves within its project -- open one") };
+        let rel = std::path::Path::new(&path).strip_prefix(&root).map(|r| r.to_string_lossy().replace('\\', "/")).unwrap_or_else(|_| path.trim_start_matches("/project/").to_string());
+        let id = api::prompt("Move to (folders/name)", &rel);
+        self.asked.insert(id, Asked::Move { path });
+    }
+
+    fn moved(&mut self, path: &str, typed: &str) {
+        let Some(rel) = diagram_rel(typed) else { return host::notify(api::Level::Error, &format!("{typed:?} isn't a path in the project")) };
+        let to = format!("/project/{rel}");
+        let Some(root) = api::here().and_then(|h| h.project).map(|p| p.root) else { return };
+        let from = match std::path::Path::new(path).strip_prefix(&root) {
+            Ok(r) => format!("/project/{}", r.to_string_lossy().replace('\\', "/")),
+            Err(_) => path.to_string(),
+        };
+        if same_path(&from, &to) {
+            return;
+        }
+        if std::path::Path::new(&to).exists() {
+            return host::notify(api::Level::Error, &format!("{rel} is there already"));
+        }
+        let Some(text) = self.source_of(path) else { return host::notify(api::Level::Error, "couldn't read the diagram") };
+        let made = std::path::Path::new(&to).parent().map(std::fs::create_dir_all).unwrap_or(Ok(())).and_then(|()| std::fs::write(&to, &text)).and_then(|()| std::fs::remove_file(&from));
+        match made {
+            Ok(()) => {
+                for p in self.pages.values_mut().filter(|p| same_path(&p.source, path)) {
+                    p.source = to.clone();
+                    p.title = title_of(&to);
+                }
+                host::open_file(&to, None);
+                api::notify(&format!("moved to {rel}"));
+            }
+            Err(e) => host::notify(api::Level::Error, &format!("couldn't move it: {e}")),
+        }
+    }
+
     /// `diagrams.new`: a type, then a starter; the notebook names it.
     fn new_diagram(&mut self) {
         let items: Vec<PickerItem> = fenix_diagram::KINDS.iter().enumerate().map(|(i, k)| PickerItem::new(format!("{:<7} {:<19} {}", k.tag, k.header, k.about), i.to_string())).collect();
@@ -440,6 +608,12 @@ impl Extension for Diagrams {
                 Some(path) => self.export(path),
                 None => host::notify(api::Level::Error, &format!("{} exports a diagram", menu_keys("diagram.export", "e"))),
             },
+            "diagram.new" => self.new_diagram(),
+            "diagram.list" => self.list_project(),
+            "diagram.move" => match self.here_path() {
+                Some(path) => self.move_prompt(path),
+                None => host::notify(api::Level::Error, &format!("{} moves a diagram within its project", menu_keys("diagram.move", "M"))),
+            },
             "diagram.copy_picture" => match self.here_path() {
                 Some(path) => self.copy_picture(&path),
                 None => host::notify(api::Level::Error, &format!("{} copies a diagram as a picture", menu_keys("diagram.copy_picture", "y"))),
@@ -467,8 +641,14 @@ impl Extension for Diagrams {
                     (Some(Asked::Kind), Some(i)) => self.kind_picked(i),
                     (Some(Asked::Starter(texts)), Some(i)) => {
                         if let Some(text) = texts.get(i) {
-                            let payload = serde_json::json!({ "text": text }).to_string();
-                            api::call_service("notebook.new_diagram", &payload);
+                            self.starter_picked(text.clone());
+                        }
+                    }
+                    (Some(Asked::Where { text }), Some(0)) => self.name_in_project(text),
+                    (Some(Asked::Where { text }), Some(1)) => to_notebook(&text),
+                    (Some(Asked::Open { paths }), Some(i)) => {
+                        if let Some(rel) = paths.get(i) {
+                            host::open_file(&format!("/project/{rel}"), None);
                         }
                     }
                     (Some(Asked::ExportHow { path }), Some(0)) => self.copy_picture(&path),
@@ -482,14 +662,17 @@ impl Extension for Diagrams {
                     _ => {}
                 }
             }
-            Event::Prompted((id, Some(name))) => {
-                if let Some(Asked::Export { path }) = self.asked.remove(&id) {
+            Event::Prompted((id, Some(name))) => match self.asked.remove(&id) {
+                Some(Asked::Export { path }) => {
                     let name = name.trim();
                     if !name.is_empty() {
                         self.exported(&path, name);
                     }
                 }
-            }
+                Some(Asked::NewIn { text }) => self.made_in_project(&name, &text),
+                Some(Asked::Move { path }) => self.moved(&path, &name),
+                _ => {}
+            },
             Event::ServiceReply((_, Err(e))) => host::notify(api::Level::Error, &format!("couldn't make the diagram: {e}")),
             _ => {}
         }
@@ -586,6 +769,36 @@ api::export!(Diagrams);
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_typed_path_is_one_under_the_project_with_its_kind() {
+        assert_eq!(diagram_rel("docs/diagrams/auth/login-flow").as_deref(), Some("docs/diagrams/auth/login-flow.mmd"));
+        assert_eq!(diagram_rel("/project/arch.mermaid").as_deref(), Some("arch.mermaid"), "a kind of its own kept");
+        assert_eq!(diagram_rel("docs\\x").as_deref(), Some("docs/x.mmd"));
+        assert_eq!(diagram_rel("../outside"), None, "no way out");
+        assert_eq!(diagram_rel("docs//x"), None);
+        assert_eq!(diagram_rel("   "), None);
+    }
+
+    #[test]
+    fn a_project_s_diagrams_are_found_by_folder_and_not_in_what_s_built() {
+        let dir = std::env::temp_dir().join(format!("fenix-diagrams-list-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        for (path, text) in [("docs/diagrams/auth/login.mmd", "flowchart LR\n a-->b"), ("docs/diagrams/overview.mermaid", "sequenceDiagram\n"), ("README.md", "# x"), ("node_modules/pkg/x.mmd", ""), (".git/x.mmd", ""), ("target/y.mmd", "")] {
+            let p = dir.join(path);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        }
+        let mut found = Vec::new();
+        diagrams_under(&dir.to_string_lossy(), "", 100, &mut found);
+        assert_eq!(found, ["docs/diagrams/auth/login.mmd", "docs/diagrams/overview.mermaid"]);
+        let row = diagram_row("docs/diagrams/auth/login.mmd", "%% a note\nflowchart LR\n a-->b");
+        assert!(row.starts_with("login.mmd") && row.contains("docs/diagrams/auth") && row.ends_with("flowchart LR"), "{row}");
+        let mut one = Vec::new();
+        diagrams_under(&dir.to_string_lossy(), "", 1, &mut one);
+        assert_eq!(one.len(), 1, "at most what's asked");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     use super::*;
 
     #[test]

@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.diagrams"
 name = "Diagrams"
-version = "1.2.0"
+version = "1.3.0"
 description = "Mermaid diagrams drawn as you type, their errors on their lines, Fenix's themes and yours, and exports"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -56,6 +56,18 @@ id = "diagram.export"
 title = "Diagram: export -- copy the picture, or save it as SVG or PNG"
 
 [[contributes.commands]]
+id = "diagram.new"
+title = "Diagram: a new one -- in this project (under diagrams.folder) or the notebook"
+
+[[contributes.commands]]
+id = "diagram.list"
+title = "Diagram: the project's diagrams, by folder"
+
+[[contributes.commands]]
+id = "diagram.move"
+title = "Diagram: move or rename it within the project"
+
+[[contributes.commands]]
 id = "diagram.copy_picture"
 title = "Diagram: copy it to the clipboard as a picture"
 
@@ -64,6 +76,12 @@ key = "diagrams.theme"
 label = "Diagram theme"
 description = "The theme a diagram is drawn in when it doesn't name one: fenix (follows the editor theme), default, neutral, dark, forest, base, or one of yours."
 default = "fenix"
+
+[[contributes.settings]]
+key = "diagrams.folder"
+label = "Project diagrams folder"
+description = "Where a project's new diagrams go, under its top folder; folders typed after it are made (docs/diagrams/auth/login-flow)."
+default = "docs/diagrams"
 
 [[contributes.settings]]
 key = "diagrams.export_theme"

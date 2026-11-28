@@ -24,3 +24,18 @@ command = "diagram.export"
 keys = "y"
 label = "copy as a picture"
 command = "diagram.copy_picture"
+
+[[local.mermaid]]
+keys = "n"
+label = "a new diagram"
+command = "diagram.new"
+
+[[local.mermaid]]
+keys = "l"
+label = "the project's diagrams"
+command = "diagram.list"
+
+[[local.mermaid]]
+keys = "M"
+label = "move or rename it"
+command = "diagram.move"
