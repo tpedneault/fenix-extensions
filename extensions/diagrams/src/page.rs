@@ -28,6 +28,8 @@ pub enum Action {
     /// Show it in the next theme (not written).
     CycleTheme,
     Export,
+    /// Copy it to the clipboard as a picture.
+    CopyPicture,
     /// Back to the source.
     Edit,
 }
@@ -176,6 +178,7 @@ impl DiagramPage {
             Key::Char('T') => return Action::CycleTheme,
             Key::Char('t') => return Action::PickTheme,
             Key::Char('e') => return Action::Export,
+            Key::Char('y') => return Action::CopyPicture,
             Key::Char('q') | Key::Escape => {
                 if self.selected.is_some() {
                     self.selected = None;
@@ -261,9 +264,9 @@ pub fn layout(page: &DiagramPage, cols: usize) -> Canvas {
         None => {}
     }
     let keys: &[(&str, &str)] = if page.viewer {
-        &[("+ - 0", "zoom"), ("hjkl", "pan"), ("Tab", "nodes"), ("/", "find"), ("Enter", "its line"), ("T", "try a theme"), ("e", "export"), ("i", "edit"), ("q", "close")]
+        &[("+ - 0", "zoom"), ("hjkl", "pan"), ("Tab", "nodes"), ("/", "find"), ("Enter", "its line"), ("T", "try a theme"), ("e", "export"), ("y", "copy"), ("i", "edit"), ("q", "close")]
     } else {
-        &[("+ - 0", "zoom"), ("hjkl", "pan"), ("Tab", "nodes"), ("/", "find"), ("Enter", "its line"), ("t", "theme"), ("T", "try one"), ("e", "export"), ("q", "close")]
+        &[("+ - 0", "zoom"), ("hjkl", "pan"), ("Tab", "nodes"), ("/", "find"), ("Enter", "its line"), ("t", "theme"), ("T", "try one"), ("e", "export"), ("y", "copy"), ("q", "close")]
     };
     g.keys(left, width, keys);
     g.finish()

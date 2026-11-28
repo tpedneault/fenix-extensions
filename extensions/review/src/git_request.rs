@@ -167,6 +167,9 @@ pub struct RequestPage {
     pub project: String,
     pub branch: String,
     pub base: String,
+    /// Where `base` was found when the page opened: `origin/main`, or
+    /// `main` when it isn't on the remote.
+    pub base_ref: String,
     pub title: String,
     pub description: String,
     pub draft: bool,
@@ -287,6 +290,19 @@ pub fn description_for(commits: &[Commit], key: Option<&str>, template: Option<&
 }
 
 /// Usernames written with commas or spaces between them, `@` or not.
+impl RequestPage {
+    /// The revision the branch's change is read against: the base as it
+    /// was found, or -- typed in since -- the remote's branch of that name.
+    pub fn base_rev(&self) -> String {
+        let base = self.base.trim();
+        if self.base_ref.strip_prefix("origin/").unwrap_or(&self.base_ref) == base {
+            self.base_ref.clone()
+        } else {
+            format!("origin/{base}")
+        }
+    }
+}
+
 fn names(text: &str) -> Vec<String> {
     text.split([',', ' ']).map(|n| n.trim().trim_start_matches('@')).filter(|n| !n.is_empty()).map(str::to_string).collect()
 }
@@ -305,6 +321,7 @@ impl RequestPage {
             forge,
             project,
             branch,
+            base_ref: format!("origin/{base}"),
             base,
             title,
             description,
@@ -917,6 +934,16 @@ mod tests {
         p.standing.pushed = Pushed::NotYet;
         p.key(Key::Char('S'));
         assert!(matches!(p.key(Key::Char('S')), RequestAction::Open { push: true, .. }));
+    }
+
+    #[test]
+    fn the_change_is_read_against_the_base_as_it_was_found() {
+        let mut p = page(vec![commit("a1", "One", "")]);
+        assert_eq!(p.base_rev(), "origin/master");
+        p.base_ref = "master".into();
+        assert_eq!(p.base_rev(), "master", "a base that's only local");
+        p.base = "develop".into();
+        assert_eq!(p.base_rev(), "origin/develop", "typed in since");
     }
 
     #[test]

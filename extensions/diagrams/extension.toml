@@ -1,7 +1,7 @@
 [extension]
 id = "fenix.diagrams"
 name = "Diagrams"
-version = "1.1.0"
+version = "1.2.0"
 description = "Mermaid diagrams drawn as you type, their errors on their lines, Fenix's themes and yours, and exports"
 authors = ["Thomas Pedneault"]
 license = "MIT OR Apache-2.0"
@@ -53,7 +53,11 @@ title = "Diagram: set its theme"
 
 [[contributes.commands]]
 id = "diagram.export"
-title = "Diagram: export"
+title = "Diagram: export -- copy the picture, or save it as SVG or PNG"
+
+[[contributes.commands]]
+id = "diagram.copy_picture"
+title = "Diagram: copy it to the clipboard as a picture"
 
 [[contributes.settings]]
 key = "diagrams.theme"

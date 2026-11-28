@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1
+
+For Fenix 1.5 (extension API 1.5):
+
+- `A` in a new request's description reads the branch's change against
+  its base as it was found: a base branch that's only local (no
+  `origin/main`) no longer leaves your agent with nothing to describe.
+
 ## 1.3.0
 
 For Fenix 1.5 (extension API 1.5):

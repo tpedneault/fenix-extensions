@@ -30,7 +30,8 @@ pub fn description_ask(page: &RequestPage) -> Ask {
         prompt.push_str(&format!(" It's for {key}: name it in the description."));
     }
     prompt.push_str(" Reply with only the description, in Markdown, nothing before or after it, and don't change any files.");
-    let base = format!("origin/{}", page.base);
+    // As it was found: a base that's only local isn't `origin/` anything.
+    let base = page.base_rev();
     let mut ask = Ask::new(&prompt)
         .attach(Attach::diff(DiffOf::range(&base, "HEAD")))
         .attach(Attach::commits(&format!("{base}..HEAD")))

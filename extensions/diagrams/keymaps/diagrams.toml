@@ -19,3 +19,8 @@ command = "diagram.theme"
 keys = "e"
 label = "export"
 command = "diagram.export"
+
+[[local.mermaid]]
+keys = "y"
+label = "copy as a picture"
+command = "diagram.copy_picture"

@@ -262,6 +262,7 @@ async fn new_request(root: String) -> Result<(), String> {
     let meta_jira = api::here().and_then(|h| h.project).and_then(|p| p.meta.into_iter().find(|(k, _)| k == "jira").map(|(_, v)| v));
     let jira = git_request::jira_key(&branch, meta_jira.as_deref());
     let mut page = RequestPage::new(PathBuf::from(&root), client.name().to_string(), client.project().to_string(), branch, base, commits, stat, standing, jira);
+    page.base_ref = base_ref;
     page.reviewers = api::setting("git.reviewers").unwrap_or_default().split(',').map(str::trim).filter(|r| !r.is_empty()).collect::<Vec<_>>().join(", ");
     done(Done::OpenRequest(Box::new(page)));
     Ok(())
