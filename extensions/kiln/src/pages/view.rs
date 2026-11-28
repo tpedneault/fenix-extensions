@@ -1,0 +1,829 @@
+//! What a tab of the plan page is: the [`View`] each tab's module
+//! implements, the [`Row`]s it gives, and what it builds them with
+//! ([`Ctx`], [`Cell`], [`Look`], [`Query`]).
+//!
+//! A view is the part of a tab that knows Kiln: given the loaded project
+//! (and its own state), its rows. Everything a tab does the same as every
+//! other -- the cursor, scrolling, the filter, `Enter`, the tabs, the
+//! states that aren't "loaded", the page's state -- is the frame's
+//! ([`super::frame`]), written once, so a view stays small: the Tree
+//! ([`super::tree`]) is the worked example.
+//!
+//! What it deliberately doesn't do: draw (a row says what its cells are
+//! and what they mean, [`Look`]; the frame lays them out and colours them),
+//! run kiln (a view says what it wants asked, [`View::queries`], and is
+//! handed the answer), or write anything.
+
+use std::collections::HashMap;
+
+use fenix_ui_kit::{KeyPress, Role, Style};
+
+use crate::config::{Config, Type};
+use crate::kiln::{Failure, Ran};
+use crate::model::Item;
+use crate::project::Loaded;
+
+/// What a status means, so it's coloured the same in every project: by
+/// what its type says of it, not by its name (Kiln's GUI, "Looks").
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Meaning {
+    /// One of its type's `done` statuses.
+    Done,
+    /// Past its first status, not done: approved, doing, active.
+    InProgress,
+    /// Its type's first status: a draft, a to-do.
+    Initial,
+    /// `blocked`.
+    Blocked,
+    /// One of its type's `closed` statuses: dropped, obsolete.
+    Closed,
+}
+
+impl Meaning {
+    /// Where a status of this meaning comes in an item's life, for an
+    /// order by meaning when the type's own order isn't known (`list`
+    /// doesn't give it): first, in progress, blocked, done, closed.
+    pub fn rank(self) -> u8 {
+        match self {
+            Meaning::Initial => 0,
+            Meaning::InProgress => 1,
+            Meaning::Blocked => 2,
+            Meaning::Done => 3,
+            Meaning::Closed => 4,
+        }
+    }
+
+    /// Done green, blocked red, closed muted, initial in the accent (the
+    /// headings' blue in Kiln's GUI), and what's between in the theme's
+    /// `keyword` colour -- its purple in most themes, as Kiln's pills are.
+    pub fn role(self) -> Role {
+        match self {
+            Meaning::Done => Role::Good,
+            Meaning::InProgress => Role::Syntax("keyword".into()),
+            Meaning::Initial => Role::Accent,
+            Meaning::Blocked => Role::Bad,
+            Meaning::Closed => Role::Muted,
+        }
+    }
+}
+
+/// How a cell is drawn: by what it is, the frame choosing the colour.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Look {
+    Text,
+    Muted,
+    /// An item's ID.
+    Id,
+    /// A heading's name.
+    Title,
+    Accent,
+    Good,
+    Warn,
+    Bad,
+    Status(Meaning),
+}
+
+impl Look {
+    pub fn style(&self) -> Style {
+        Style::new(match self {
+            Look::Text => Role::Text,
+            Look::Muted => Role::Muted,
+            Look::Id | Look::Accent => Role::Accent,
+            Look::Title => Role::Title,
+            Look::Good => Role::Good,
+            Look::Warn => Role::Warn,
+            Look::Bad => Role::Bad,
+            Look::Status(m) => m.role(),
+        })
+    }
+}
+
+/// One column of a row: its text, one line, and how it's drawn.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Cell {
+    pub text: String,
+    pub look: Look,
+}
+
+impl Cell {
+    pub fn new(text: impl Into<String>, look: Look) -> Cell {
+        Cell {
+            text: text.into(),
+            look,
+        }
+    }
+
+    pub fn text(text: impl Into<String>) -> Cell {
+        Cell::new(text, Look::Text)
+    }
+
+    pub fn muted(text: impl Into<String>) -> Cell {
+        Cell::new(text, Look::Muted)
+    }
+
+    pub fn id(text: impl Into<String>) -> Cell {
+        Cell::new(text, Look::Id)
+    }
+
+    pub fn title(text: impl Into<String>) -> Cell {
+        Cell::new(text, Look::Title)
+    }
+}
+
+/// What a row is: the frame skips headings with the cursor and keeps one
+/// while the filter lets a row under it through.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kind {
+    /// Groups the rows under it, up to the next heading. Its cells are
+    /// drawn one after another, not in the columns.
+    Heading,
+    /// An item: the cursor's ID is its.
+    Item,
+    /// A place in code (`src/a.rs:4`).
+    Code,
+    /// A finding of `kiln check`'s.
+    Finding,
+    /// A line that says something: kiln's error, "reading…". The cursor
+    /// passes over it; the filter treats it as any row.
+    Note,
+}
+
+/// A file and a line, from 1, relative to the project's top: where
+/// `Enter` goes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Place {
+    pub path: String,
+    pub line: Option<u32>,
+}
+
+/// One line of a tab. Columns line up across a tab's rows (headings
+/// aside); `depth` indents the first one, two cells a level.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Row {
+    pub kind: Kind,
+    pub depth: usize,
+    pub cells: Vec<Cell>,
+    /// The item it's about, for `v`, `i` and the edits.
+    pub id: Option<String>,
+    /// Where `Enter` opens.
+    pub place: Option<Place>,
+    /// What the cursor follows across reloads: the ID, else the place,
+    /// else the text.
+    key: String,
+}
+
+impl Row {
+    fn new(kind: Kind, cells: Vec<Cell>) -> Row {
+        let key = cells
+            .iter()
+            .map(|c| c.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
+        Row {
+            kind,
+            depth: 0,
+            cells,
+            id: None,
+            place: None,
+            key,
+        }
+    }
+
+    /// A heading over the rows that follow it.
+    pub fn heading(cells: Vec<Cell>) -> Row {
+        Row::new(Kind::Heading, cells)
+    }
+
+    /// `item`'s row: its ID, and `Enter` at its file and line.
+    pub fn item(item: &Item, cells: Vec<Cell>) -> Row {
+        let mut row = Row::new(Kind::Item, cells);
+        row.key = item.id.clone();
+        row.id = Some(item.id.clone());
+        row.place = (!item.path.is_empty()).then(|| Place {
+            path: item.path.clone(),
+            line: (item.line > 0).then_some(item.line),
+        });
+        row
+    }
+
+    /// A row about item `id` that `list` may not have (another answer
+    /// names it: `show`, `impact`, `diff`): its place when it has, none
+    /// when it hasn't ([`Ctx::row`] looks it up).
+    pub fn about(id: &str, place: Option<Place>, cells: Vec<Cell>) -> Row {
+        let mut row = Row::new(Kind::Item, cells);
+        row.key = id.to_string();
+        row.id = Some(id.to_string());
+        row.place = place;
+        row
+    }
+
+    /// A place in code: `Enter` opens it.
+    pub fn code(path: &str, line: u32, cells: Vec<Cell>) -> Row {
+        let mut row = Row::new(Kind::Code, cells);
+        row.key = format!("{path}:{line}");
+        row.place = Some(Place {
+            path: path.to_string(),
+            line: (line > 0).then_some(line),
+        });
+        row
+    }
+
+    /// A finding at `path`, `line` (0: none): `Enter` opens it there.
+    pub fn finding(path: &str, line: u32, cells: Vec<Cell>) -> Row {
+        let mut row = Row::code(path, line, cells);
+        row.kind = Kind::Finding;
+        row.key = format!("{path}:{line}:{}", row.key_text());
+        row
+    }
+
+    /// A row the cursor stops on that is no item and no place: an export
+    /// target's line (Exports), `key` what the cursor follows. `Enter`
+    /// says it has no file; the edits say there's no item.
+    pub fn entry(key: impl Into<String>, cells: Vec<Cell>) -> Row {
+        let mut row = Row::new(Kind::Code, cells);
+        row.key = key.into();
+        row
+    }
+
+    /// A muted line that says something.
+    pub fn note(text: impl Into<String>) -> Row {
+        Row::new(Kind::Note, vec![Cell::muted(text)])
+    }
+
+    /// Indented `depth` levels.
+    pub fn depth(mut self, depth: usize) -> Row {
+        self.depth = depth;
+        self
+    }
+
+    /// Followed by `key` across reloads instead.
+    pub fn keyed(mut self, key: impl Into<String>) -> Row {
+        self.key = key.into();
+        self
+    }
+
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    /// Whether the cursor stops on it: an item, a place in code, a
+    /// finding -- not a heading or a note.
+    pub fn selectable(&self) -> bool {
+        !matches!(self.kind, Kind::Heading | Kind::Note)
+    }
+
+    /// Whether its cells line up in the tab's columns: as the rows the
+    /// cursor stops on. A heading's and a note's run on, one after another.
+    pub fn in_columns(&self) -> bool {
+        self.selectable()
+    }
+
+    fn key_text(&self) -> String {
+        self.cells
+            .iter()
+            .map(|c| c.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
+/// Something a view wants kiln asked: `args` after `kiln` (`["impact",
+/// "REQ-001", "--format", "json"]`), its answer handed back with `tag`
+/// ([`View::answer`]). The frame asks it once for each read of the project
+/// -- again after a reload -- and again when its `args` change; a view
+/// that wants it no more leaves it out.
+///
+/// [`Query::settled`] holds it back while the project is being read, so
+/// that it is asked of the project as that read leaves it (the Exports
+/// tab's Jira plan after a sync, which writes ticket keys into items).
+///
+/// [`Query::per_round`] asks it once per round of the view's instead of
+/// once per read: for a query too costly to repeat on every reload (the
+/// Exports tab's dry run renders the whole document and may ask
+/// Confluence), asked when the tab is first shown and again when the view
+/// moves to its next round (`R`). [`Query::limit`] gives it longer than
+/// [`crate::kiln::TIMEOUT_MS`] to answer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Query {
+    pub tag: String,
+    pub args: Vec<String>,
+    /// Asked once per this round rather than once per read.
+    pub round: Option<u64>,
+    /// How long kiln may take, in ms; `None`: the queue's default.
+    pub limit_ms: Option<u32>,
+    /// Not asked while the project is being read ([`Query::settled`]).
+    pub settled: bool,
+}
+
+impl Query {
+    pub fn new<S: Into<String>>(tag: &str, args: impl IntoIterator<Item = S>) -> Query {
+        Query {
+            tag: tag.to_string(),
+            args: args.into_iter().map(Into::into).collect(),
+            round: None,
+            limit_ms: None,
+            settled: false,
+        }
+    }
+
+    /// Asked only while no read of the project runs (or waits): the
+    /// frame holds it back, and asks it once the read has ended, when the
+    /// project is what the answer will be about. For a query whose answer
+    /// goes stale with the read that is under way.
+    pub fn settled(mut self) -> Query {
+        self.settled = true;
+        self
+    }
+
+    /// Asked once for round `round`, not again on a reload: again only
+    /// when the round (or the args) change.
+    pub fn per_round(mut self, round: u64) -> Query {
+        self.round = Some(round);
+        self
+    }
+
+    /// kiln may take `ms` to answer it.
+    pub fn limit(mut self, ms: u32) -> Query {
+        self.limit_ms = Some(ms);
+        self
+    }
+}
+
+/// One choice of a [`Reply::Pick`]: what the picker shows (`label`, and a
+/// quieter `detail` after it) and what comes back when it's picked
+/// (`value`, to [`View::picked`]). Fenix's own `PickerItem`, kept here so
+/// views stay free of the host's types.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Choice {
+    pub label: String,
+    pub detail: String,
+    pub value: String,
+}
+
+impl Choice {
+    pub fn new(label: impl Into<String>, value: impl Into<String>) -> Choice {
+        Choice {
+            label: label.into(),
+            detail: String::new(),
+            value: value.into(),
+        }
+    }
+
+    /// With a second, quieter column.
+    pub fn detail(mut self, detail: impl Into<String>) -> Choice {
+        self.detail = detail.into();
+        self
+    }
+}
+
+/// What a view did with a key ([`View::key`]), an answer ([`View::typed`],
+/// [`View::picked`]) or an edit's outcome ([`View::edited`]).
+///
+/// The last three are how a view, which can't call the host, asks for
+/// something: the frame hands them to `lib.rs`, which asks Fenix (its own
+/// prompt and picker, not a field of the page's) or kiln, and routes the
+/// answer back to the page, tab and view that asked, with the `tag` it
+/// asked with. A handler may reply with another `Ask` or `Pick`, so a
+/// flow -- pick a role, then a target, then run `kiln link` -- is a chain
+/// of replies, each step's state in the view's own fields. A prompt or
+/// picker closed with nothing (`Esc`) ends the flow: nothing comes back.
+/// An answer for a page that has closed is dropped.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Reply {
+    /// Not its key.
+    Ignored,
+    /// Its state changed in a way its rows show: they're built again.
+    Rebuild,
+    /// Something to say on the bottom line.
+    Say(String),
+    /// A line of text asked for in Fenix's prompt, `label` before it and
+    /// `initial` in it; what's typed comes to [`View::typed`] with `tag`.
+    Ask {
+        tag: String,
+        label: String,
+        initial: String,
+    },
+    /// One of `items` picked in Fenix's picker called `title`; the
+    /// choice's `value` comes to [`View::picked`] with `tag`.
+    Pick {
+        tag: String,
+        title: String,
+        items: Vec<Choice>,
+    },
+    /// An editing command run (`["set", "TASK-004", "status=doing"]`,
+    /// after `kiln`), with `stdin` for one that reads it: through
+    /// `Project::edit`, so it waits its turn in kiln's queue and the
+    /// project is read again after. Its outcome -- kiln's stdout, or its
+    /// error line -- is said on the bottom line, then handed to
+    /// [`View::edited`] with `tag` (a refusal may want the flow asked
+    /// again).
+    Edit {
+        tag: String,
+        args: Vec<String>,
+        stdin: Option<String>,
+    },
+    /// A kiln command that changes no item, run in kiln's queue: `kiln
+    /// export`, which writes generated files or publishes to Confluence.
+    /// Unlike [`Reply::Edit`], the project isn't read again after it and
+    /// the frame says nothing: the view is handed the outcome
+    /// ([`View::ran`]) and says it. `limit_ms` gives it longer than the
+    /// queue's default. `publish` names the Confluence target it
+    /// publishes: one such runs at a time for the whole extension (`lib.rs`
+    /// refuses a second, answering at once), it isn't stopped when another
+    /// kiln is chosen, and every plan page's bottom line says it runs.
+    Run {
+        tag: String,
+        args: Vec<String>,
+        limit_ms: Option<u32>,
+        publish: Option<String>,
+    },
+    /// Something that went wrong, said on the bottom line in the error
+    /// look.
+    Bad(String),
+    /// kiln with `args` run in a terminal pane under the focused one,
+    /// called `title`, for what must be typed into kiln itself: `kiln auth
+    /// confluence` or `kiln auth jira`, whose token the extension never
+    /// sees.
+    Terminal { title: String, args: Vec<String> },
+    /// `url` opened in the system's browser (a Confluence comment). Only
+    /// an `http` or `https` link is: the frame refuses anything else with
+    /// a line saying so ([`web_url`]), so a link in other people's
+    /// writing can't open a file or run a program. The extension itself
+    /// has no network: the browser is Fenix's.
+    Url(String),
+    /// Something said on the bottom line, and the project read again: for
+    /// a command that changed what kiln reads without being an edit (`kiln
+    /// jira sync` writes `jira =` into items and `kiln.toml`). `bad`: in
+    /// the error look.
+    Reload { say: String, bad: bool },
+}
+
+impl Reply {
+    /// [`Reply::Ask`], without spelling the fields.
+    pub fn ask(tag: &str, label: impl Into<String>, initial: impl Into<String>) -> Reply {
+        Reply::Ask {
+            tag: tag.to_string(),
+            label: label.into(),
+            initial: initial.into(),
+        }
+    }
+
+    /// [`Reply::Pick`], without spelling the fields.
+    pub fn pick(tag: &str, title: impl Into<String>, items: Vec<Choice>) -> Reply {
+        Reply::Pick {
+            tag: tag.to_string(),
+            title: title.into(),
+            items,
+        }
+    }
+
+    /// [`Reply::Edit`], with no stdin.
+    pub fn edit<S: Into<String>>(tag: &str, args: impl IntoIterator<Item = S>) -> Reply {
+        Reply::Edit {
+            tag: tag.to_string(),
+            args: args.into_iter().map(Into::into).collect(),
+            stdin: None,
+        }
+    }
+}
+
+/// What a view builds its rows from: the project as kiln last read it,
+/// and the frame's toggles for this tab.
+pub struct Ctx<'a> {
+    pub loaded: &'a Loaded,
+    /// `a`: closed items are shown too.
+    pub closed: bool,
+    /// One of this tab's queries is out: its last answer is still what the
+    /// view has.
+    pub reading: bool,
+    pub looks: &'a Looks,
+    /// The project's change count now (`Project::changes`): an answer
+    /// asked at this count still shows the project as it is.
+    pub changes: u64,
+    /// `kiln.toml` as the extension read it, or why it couldn't.
+    pub config: Result<&'a Config, &'a str>,
+    /// The Confluence target being published, if one is (one at a time,
+    /// for the whole extension: [`Reply::Run`]).
+    pub publishing: Option<&'a str>,
+}
+
+impl Ctx<'_> {
+    /// `item`'s status, coloured by what it means.
+    pub fn status(&self, item: &Item) -> Cell {
+        let m = self
+            .looks
+            .meaning(&item.kind, &item.status, item.done, item.closed);
+        Cell::new(item.status.clone(), Look::Status(m))
+    }
+
+    /// A status another answer gives with only its ID (`status`, `show`):
+    /// coloured as the item `list` has, else by its name alone.
+    pub fn status_of(&self, id: &str, status: &str) -> Cell {
+        match self.loaded.item(id) {
+            Some(item) if item.status == status => self.status(item),
+            Some(item) => Cell::new(
+                status,
+                Look::Status(self.looks.meaning(&item.kind, status, false, false)),
+            ),
+            None => Cell::new(
+                status,
+                Look::Status(self.looks.meaning("", status, false, false)),
+            ),
+        }
+    }
+
+    /// A row about item `id`, `Enter` at its file when `list` has it.
+    pub fn row(&self, id: &str, cells: Vec<Cell>) -> Row {
+        match self.loaded.item(id) {
+            Some(item) => Row::item(item, cells),
+            None => Row::about(id, None, cells),
+        }
+    }
+}
+
+/// `url` when it is a link the browser may be handed: `http://` or
+/// `https://` and a host, no whitespace or control character in it, and
+/// not absurdly long. Anything else -- `file:`, `javascript:`, `ssh:`, a
+/// path -- is why it isn't, in one line.
+pub fn web_url(url: &str) -> Result<&str, String> {
+    let lower = url.to_ascii_lowercase();
+    let rest = lower
+        .strip_prefix("https://")
+        .or_else(|| lower.strip_prefix("http://"));
+    let Some(rest) = rest else {
+        return Err(format!(
+            "not opening {}: only http and https links are opened",
+            crate::model::plain(url, 60)
+        ));
+    };
+    if rest.is_empty() || rest.starts_with('/') {
+        return Err("not opening a link with no host".into());
+    }
+    if url.len() > 2048 || url.chars().any(|c| c.is_control() || c.is_whitespace()) {
+        return Err("not opening a link with spaces or control characters in it".into());
+    }
+    Ok(url)
+}
+
+/// What the frame's bottom line says while publish `target` runs
+/// ([`Reply::Run`]): Exports' Jira sync is [`JIRA_SYNC`], every other
+/// target a Confluence page set.
+pub fn publishing_line(target: &str) -> String {
+    if target == JIRA_SYNC {
+        "syncing Jira… (kiln writes ticket keys into the items as it goes)".into()
+    } else {
+        format!("publishing {target} to Confluence…")
+    }
+}
+
+/// What the one-publish-at-a-time guard answers when `running` is under
+/// way ([`Reply::Run`]'s `publish`).
+pub fn publish_running(running: &str) -> String {
+    if running == JIRA_SYNC {
+        "the Jira sync is running: one publish at a time".into()
+    } else {
+        format!("{running} is being published: one publish at a time")
+    }
+}
+
+/// What a [`Reply::Run`]'s `publish` is for the Jira sync: not a name an
+/// `[[export]]` could have (it has a control character), so it can never
+/// be taken for one, and shares the one-publish-at-a-time guard.
+pub const JIRA_SYNC: &str = "\u{2}jira sync";
+
+/// Status names that are a first status when nothing better says so.
+const INITIAL_NAMES: &[&str] = &[
+    "draft", "todo", "to-do", "new", "open", "proposed", "planned", "idea", "backlog",
+];
+
+/// What each type's statuses mean. From `kiln.toml` when it was read
+/// ([`crate::config`]): each type's statuses in order, its `initial`, its
+/// `done` and `closed`. Otherwise as far as kiln says: `status` lists work
+/// that's ready, which is work at its first status, so a ready item's
+/// status is its type's first; a type with no ready work falls back on
+/// the name (`draft`, `todo`...). Built once a read ([`Looks::new`],
+/// [`Looks::with`]).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Looks {
+    initial: HashMap<String, String>,
+    /// `kiln.toml`'s types, by name.
+    kinds: HashMap<String, Type>,
+}
+
+impl Looks {
+    /// Without `kiln.toml`: from what kiln says alone.
+    pub fn new(loaded: &Loaded) -> Looks {
+        Looks::with(loaded, None)
+    }
+
+    /// With `kiln.toml`'s types, when it was read: they say first.
+    pub fn with(loaded: &Loaded, config: Option<&Config>) -> Looks {
+        let mut initial = HashMap::new();
+        for group in loaded.groups() {
+            for work in &group.ready {
+                if let Some(item) = loaded.item(&work.id) {
+                    initial
+                        .entry(item.kind.clone())
+                        .or_insert_with(|| work.status.clone());
+                }
+            }
+        }
+        let kinds = config
+            .map(|c| {
+                c.types
+                    .iter()
+                    .map(|t| (t.name.clone(), t.clone()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        Looks { initial, kinds }
+    }
+
+    /// What `status` means for an item of type `kind`; `done` and
+    /// `closed` as kiln said them of an item, when it did.
+    pub fn meaning(&self, kind: &str, status: &str, done: bool, closed: bool) -> Meaning {
+        let t = self.kinds.get(kind);
+        let has = |list: Option<&Vec<String>>| list.is_some_and(|l| l.iter().any(|s| s == status));
+        if closed || has(t.map(|t| &t.closed)) {
+            Meaning::Closed
+        } else if done || has(t.map(|t| &t.done)) {
+            Meaning::Done
+        } else if status == "blocked" {
+            Meaning::Blocked
+        } else if match (t, self.initial.get(kind)) {
+            (Some(t), _) => t.initial == status,
+            (None, Some(first)) => first == status,
+            (None, None) => INITIAL_NAMES.contains(&status),
+        } {
+            Meaning::Initial
+        } else {
+            Meaning::InProgress
+        }
+    }
+
+    /// Where `status` comes in type `kind`'s order, when `kiln.toml` was
+    /// read and has it.
+    pub fn order(&self, kind: &str, status: &str) -> Option<usize> {
+        self.kinds.get(kind)?.position(status)
+    }
+}
+
+/// kiln's answer as text when it exited with one of `fine`; else its
+/// line (`kiln: no item REQ-099`), for a view's note.
+pub fn stdout<'a>(result: &'a Result<Ran, Failure>, fine: &[i32]) -> Result<&'a str, String> {
+    match result {
+        Ok(ran) => ran.expect(fine).map_err(|f| f.line()),
+        Err(f) => Err(f.line()),
+    }
+}
+
+/// A tab of the plan page. One value per tab per page, kept while the page
+/// is open; its own state (a toggle, the item it was handed) is its
+/// fields. Every method but [`View::rows`] has a default.
+///
+/// The frame calls [`View::rows`] only when something it depends on
+/// changed -- a new read, a key it said changed its rows, an answer, `a`
+/// -- never per frame, so it may walk the whole project; it should stay
+/// linear in the project's size (2,000 items is Kiln's budget).
+pub trait View {
+    /// Its rows, from `ctx` and its own state.
+    fn rows(&self, ctx: &Ctx) -> Vec<Row>;
+
+    /// The keys of its own for the bottom line, before the frame's:
+    /// `("m", "only gaps")`.
+    fn keys(&self) -> Vec<(&'static str, &'static str)> {
+        Vec::new()
+    }
+
+    /// A key the frame doesn't take (`super::frame`'s list), with the row
+    /// under the cursor.
+    fn key(&mut self, _key: KeyPress, _row: Option<&Row>, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// Whether it hides closed items until `a` ([`Ctx::closed`]).
+    fn hides_closed(&self) -> bool {
+        false
+    }
+
+    /// The column that gives way when a row is wider than the page: the
+    /// title, after the ID.
+    fn flex(&self) -> usize {
+        1
+    }
+
+    /// What it says when it has no rows.
+    fn empty(&self) -> String {
+        "nothing here".into()
+    }
+
+    /// What it wants kiln asked now ([`Query`]).
+    fn queries(&self, _ctx: &Ctx) -> Vec<Query> {
+        Vec::new()
+    }
+
+    /// The answer to its query `tag`, kiln's output or why there's none
+    /// ([`stdout`]). Its rows are built again after.
+    fn answer(&mut self, _tag: &str, _result: &Result<Ran, Failure>) {}
+
+    /// [`View::answer`], with the project's change count as it was when
+    /// the query was asked ([`Ctx::changes`]): for a view that must tell
+    /// an answer about the project as it is from one about an earlier
+    /// state. Calls [`View::answer`] unless the view says otherwise.
+    fn answer_at(&mut self, tag: &str, result: &Result<Ran, Failure>, _changes: u64) {
+        self.answer(tag, result);
+    }
+
+    /// An item handed to it from another tab: `v` for Item, `i` for
+    /// Impact. The frame then shows this tab.
+    fn hand(&mut self, _id: &str) {}
+
+    /// The text typed into the prompt it asked for with `tag`
+    /// ([`Reply::Ask`]). Not called when the prompt was closed with
+    /// nothing.
+    fn typed(&mut self, _tag: &str, _text: &str, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// The `value` of the choice picked in the picker it asked for with
+    /// `tag` ([`Reply::Pick`]). Not called when nothing was picked.
+    fn picked(&mut self, _tag: &str, _value: &str, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// How the edit it asked for with `tag` ([`Reply::Edit`]) ended:
+    /// kiln's output, or why there's none ([`stdout`] reads it). The frame
+    /// has said the outcome already; a view replies to go on (another
+    /// `Ask` after a refusal) or ignores it.
+    fn edited(&mut self, _tag: &str, _result: &Result<Ran, Failure>, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// How the command it asked for with `tag` ([`Reply::Run`]) ended:
+    /// kiln's output, or why there's none. The frame says nothing of it;
+    /// the view replies with what to say ([`Reply::Say`], [`Reply::Bad`])
+    /// or what to do next.
+    fn ran(&mut self, _tag: &str, _result: &Result<Ran, Failure>, _ctx: &Ctx) -> Reply {
+        Reply::Ignored
+    }
+
+    /// Its own state for the page's, beside what the frame keeps (the
+    /// cursor, the filter, `a`).
+    fn save(&self) -> serde_json::Value {
+        serde_json::Value::Null
+    }
+
+    /// That state again; one it can't read leaves it as it starts.
+    fn restore(&mut self, _saved: &serde_json::Value) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{self, tests::fixture};
+
+    fn demo() -> Loaded {
+        Loaded::new(
+            model::Version::parse("kiln 1.0.0").unwrap(),
+            model::list(&fixture("demo/list.json")).unwrap(),
+            model::status(&fixture("demo/status.json")),
+            model::check(&fixture("demo/check.json")),
+        )
+    }
+
+    #[test]
+    fn statuses_mean_what_their_type_says() {
+        let d = demo();
+        let looks = Looks::new(&d);
+        let m = |id: &str| {
+            let i = d.item(id).unwrap();
+            looks.meaning(&i.kind, &i.status, i.done, i.closed)
+        };
+        assert_eq!(m("TASK-001"), Meaning::Done);
+        assert_eq!(m("TASK-002"), Meaning::InProgress);
+        assert_eq!(m("TASK-003"), Meaning::Initial, "ready work's status");
+        assert_eq!(m("TASK-005"), Meaning::Blocked);
+        assert_eq!(m("REQ-002"), Meaning::Initial, "draft, by its name");
+        assert_eq!(m("REQ-001"), Meaning::InProgress);
+        assert_eq!(
+            looks.meaning("task", "dropped", false, true),
+            Meaning::Closed
+        );
+    }
+
+    #[test]
+    fn rows_know_their_item_and_place() {
+        let d = demo();
+        let r = Row::item(d.item("TASK-002").unwrap(), vec![Cell::id("TASK-002")]);
+        assert_eq!((r.key(), r.id.as_deref()), ("TASK-002", Some("TASK-002")));
+        assert_eq!(
+            r.place,
+            Some(Place {
+                path: "design/tasks/TASK-002-write-readings-to-sqlite.md".into(),
+                line: Some(2)
+            })
+        );
+        assert!(!Row::heading(vec![Cell::title("task")]).selectable());
+        assert_eq!(Row::code("src/a.rs", 4, vec![]).key(), "src/a.rs:4");
+    }
+}

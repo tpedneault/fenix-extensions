@@ -1,0 +1,47 @@
+{
+  "also_in": [],
+  "body": "\nThrough ADR-001's schema.\n",
+  "children": [
+    {
+      "id": "TASK-007",
+      "status": "todo",
+      "title": "Batch the writes"
+    }
+  ],
+  "closed": false,
+  "coverage": {},
+  "derived": false,
+  "done": false,
+  "due": null,
+  "id": "TASK-002",
+  "inbound": {},
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {
+    "implements": [
+      {
+        "id": "REQ-001",
+        "status": "approved",
+        "title": "Readings are logged every second"
+      }
+    ],
+    "part-of": [
+      {
+        "id": "MS-001",
+        "status": "active",
+        "title": "First release"
+      }
+    ]
+  },
+  "mentioned_by": [],
+  "owner": "ana",
+  "parent": null,
+  "path": "design/tasks/TASK-002-write-readings-to-sqlite.md",
+  "progress": null,
+  "status": "doing",
+  "tags": [],
+  "title": "Write readings to SQLite",
+  "type": "task"
+}

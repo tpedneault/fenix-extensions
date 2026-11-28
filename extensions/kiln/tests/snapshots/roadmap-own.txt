@@ -1,0 +1,30 @@
+1 Tree   2 Trace   3 Impact   4 Board   5 Roadmap   6 Decisions   7 Changes   8 Item   9 Check   0 Expo…› Kiln
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+MS-001  K0: workspace, crate shells and CI                               done  undated
+MS-002  K1: the format, kiln check and the editing commands              done  undated
+MS-003  K2: exports without writes to Confluence                         done  undated
+MS-004  K3: publishing to Confluence                                     done  undated
+MS-005  K4: the language server                                          done  undated
+MS-006  K5: the Flint provider                                           done  undated
+MS-007  K6: baselines, diffs and Confluence comments                     done  undated
+MS-008  K7: the GUI                                                      done  undated
+MS-009  K8: Word export and the Jira mirror                              done  undated
+MS-010  K9: a GUI that edits front matter and runs exports               done  undated
+MS-011  K10: Kiln pushes its tasks to Jira                               done  undated
+MS-012  K11: presets such as arc42                                       done  undated
+MS-013  K12: Home, the projects dashboard                                done  undated
+MS-014  K13: requirement levels                                          done  undated
+MS-015  K14: the agent guide                                             done  undated
+MS-016  K15: the plan from the command line                              done  undated
+MS-017  K16: a first project that explains itself                        done  undated
+MS-018  K17: the plan everywhere, and claimed                            done  undated
+MS-019  K18: the trace says what passed, and what a change touches       done  undated
+MS-020  K19: sign-off and history from git                               done  undated
+MS-021  K20: one-page documents read top-down, requirements as one tree  done  undated
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Enter open  / filter  a show closed  s status  E edits  v item  i impact  r reload  Tab next tab

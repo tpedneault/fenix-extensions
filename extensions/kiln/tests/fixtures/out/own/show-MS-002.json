@@ -1,0 +1,42 @@
+{
+  "also_in": [],
+  "body": "\nAs DESIGN.md, \"Milestones\", describes it.\n",
+  "children": [],
+  "closed": false,
+  "coverage": {},
+  "derived": false,
+  "done": true,
+  "due": null,
+  "id": "MS-002",
+  "inbound": {
+    "depends-on": [
+      {
+        "id": "MS-003",
+        "status": "done",
+        "title": "K2: exports without writes to Confluence"
+      }
+    ]
+  },
+  "jira": [],
+  "kiln_json": 1,
+  "level": null,
+  "line": 2,
+  "links": {
+    "depends-on": [
+      {
+        "id": "MS-001",
+        "status": "done",
+        "title": "K0: workspace, crate shells and CI"
+      }
+    ]
+  },
+  "mentioned_by": [],
+  "owner": null,
+  "parent": null,
+  "path": "design/milestones/MS-002-k1-the-format-kiln-check-and-the-editing-commands.md",
+  "progress": null,
+  "status": "done",
+  "tags": [],
+  "title": "K1: the format, kiln check and the editing commands",
+  "type": "milestone"
+}

@@ -1,0 +1,1 @@
+kiln: kiln auth asks for the token on a terminal; in CI, set KILN_JIRA_TOKEN instead

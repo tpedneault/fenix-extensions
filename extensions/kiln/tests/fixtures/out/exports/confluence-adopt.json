@@ -1,0 +1,32 @@
+[
+  {
+    "applied": null,
+    "format": "confluence",
+    "layout": "document",
+    "leftOut": [],
+    "name": "adopted",
+    "parent": 555,
+    "parentTitle": "Team page",
+    "plan": {
+      "foreign": [],
+      "ops": [
+        {
+          "key": "doc",
+          "kind": "update",
+          "message": "kiln 1079a92: adopt the existing page (needs --adopt)",
+          "page_id": 555,
+          "reasons": [
+            "adopt the existing page (needs --adopt)"
+          ],
+          "size": 17070,
+          "title": "Demo — adopted"
+        }
+      ],
+      "refusals": [
+        "page 555 (\"Team page\") already has content; publishing into it replaces it, which needs --adopt"
+      ],
+      "warnings": []
+    },
+    "space": "DEMO"
+  }
+]

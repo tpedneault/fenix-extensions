@@ -1,0 +1,5 @@
+jira (DEMO) → a new project issue (Task)
+  create     "Kiln: Demo" (Task), the project issue
+  create     TASK-001 Set up the logger (Sub-task)
+  create     TASK-002 Write readings to SQLite (Sub-task)
+  3 create, 0 update, 0 move, 0 unchanged

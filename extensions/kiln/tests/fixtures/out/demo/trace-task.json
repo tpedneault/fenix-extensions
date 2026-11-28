@@ -1,0 +1,64 @@
+{
+  "commit": "8c0580dca1f31bf7660271d6cf92c7ba0342fb3c",
+  "items": [
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-001",
+      "status": "done",
+      "title": "Set up the logger"
+    },
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-002",
+      "status": "doing",
+      "title": "Write readings to SQLite"
+    },
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-003",
+      "status": "todo",
+      "title": "Export the log as CSV"
+    },
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-004",
+      "status": "todo",
+      "title": "Add the export button"
+    },
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-005",
+      "status": "blocked",
+      "title": "Ask about retention rules"
+    },
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-006",
+      "status": "todo",
+      "title": "Draft the user guide"
+    },
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-007",
+      "status": "todo",
+      "title": "Batch the writes"
+    },
+    {
+      "coverage": {},
+      "gaps": [],
+      "id": "TASK-008",
+      "status": "todo",
+      "title": "Tidy the build scripts"
+    }
+  ],
+  "kiln_json": 1,
+  "roles": [],
+  "type": "task"
+}

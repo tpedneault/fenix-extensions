@@ -1,0 +1,12 @@
+{
+  "args": [
+    "lsp"
+  ],
+  "command": "kiln",
+  "kiln_json": 1,
+  "languages": [
+    "markdown",
+    "rust",
+    "tcl"
+  ]
+}

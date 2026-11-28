@@ -1,0 +1,143 @@
+# Kiln project configuration: docs/FORMAT.md in Kiln's repository.
+format = 1
+name = "Demo"
+paths = ["design"]
+
+# Where source code is scanned for code references: a comment with
+# `implements:` or `verifies:` and item IDs. Uncomment and list your
+# source folders.
+# [code]
+# paths = ["src"]
+# exclude = ["tests/fixtures"]
+
+[types.requirement]
+prefix = "REQ"
+template = "design/templates/requirement.md"
+statuses = ["draft", "proposed", "approved", "implemented", "verified", "obsolete"]
+initial = "draft"
+done = ["verified"]
+closed = ["obsolete"]
+parents = ["requirement"]
+
+[types.design]
+prefix = "DES"
+template = "design/templates/design.md"
+statuses = ["draft", "accepted", "obsolete"]
+closed = ["obsolete"]
+parents = ["design"]
+
+[types.decision]
+prefix = "ADR"
+template = "design/templates/decision.md"
+statuses = ["proposed", "accepted", "rejected", "superseded"]
+closed = ["rejected", "superseded"]
+
+[types.milestone]
+prefix = "MS"
+template = "design/templates/milestone.md"
+statuses = ["planned", "active", "done", "dropped"]
+done = ["done"]
+closed = ["dropped"]
+
+[types.task]
+prefix = "TASK"
+template = "design/templates/task.md"
+statuses = ["todo", "doing", "blocked", "done", "dropped"]
+done = ["done"]
+closed = ["dropped"]
+parents = ["task"]
+
+[types.test]
+prefix = "TEST"
+template = "design/templates/test.md"
+statuses = ["draft", "ready", "passing", "failing", "obsolete"]
+closed = ["obsolete"]
+
+[types.risk]
+prefix = "RISK"
+template = "design/templates/risk.md"
+statuses = ["open", "mitigated", "accepted", "closed"]
+closed = ["closed"]
+
+[links.implements]
+from = ["design", "task", "code"]
+to = ["requirement"]
+inverse = "implemented by"
+
+[links.verifies]
+from = ["test", "code"]
+to = ["requirement"]
+inverse = "verified by"
+
+[links.part-of]
+from = ["task"]
+to = ["milestone"]
+inverse = "includes"
+
+[links.supersedes]
+from = ["decision"]
+to = ["decision"]
+inverse = "superseded by"
+
+[links.mitigates]
+from = ["requirement", "design", "task"]
+to = ["risk"]
+inverse = "mitigated by"
+
+[links.depends-on]
+from = ["task", "milestone"]
+to = ["task", "milestone"]
+inverse = "blocks"
+
+# The design document (`kiln preset add design-doc`): one document.
+# `kiln export design-doc` writes it.
+[[export]]
+name = "design-doc"
+format = "markdown"
+title = "Demo — design document"
+template = "design/templates/design-doc.md"
+path = "docs/DESIGN-DOCUMENT.md"
+
+# To publish the same document to Confluence, set [confluence] url and
+# space, then uncomment this target and set its parent page:
+# [[export]]
+# name = "design-doc-confluence"
+# format = "confluence"
+# title = "Demo — design document"
+# template = "design/templates/design-doc.md"
+# [export.confluence]
+# parent = 123456789          # the page the document goes under
+
+[[export]]
+name = "requirements-html"
+format = "html"
+title = "Demo — requirements"
+template = "design/templates/requirements.md"
+path = "docs/requirements.html"
+
+[[export]]
+name = "sections-md"
+format = "markdown"
+layout = "sections"
+title = "Demo — in sections"
+template = "design/templates/sections.md"
+path = "docs/sections"
+
+[confluence]
+url = "http://127.0.0.1:9"
+space = "DEMO"
+
+[[export]]
+name = "design-doc-confluence"
+format = "confluence"
+title = "Demo — design document"
+template = "design/templates/design-doc.md"
+[export.confluence]
+parent = 123456789
+
+[[export]]
+name = "adopted"
+format = "confluence"
+title = "Demo — adopted"
+[export.confluence]
+page = 555

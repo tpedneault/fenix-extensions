@@ -1,0 +1,12 @@
+{
+  "anchorPage": 123456789,
+  "anchorTitle": "Demo space home",
+  "root": {
+    "id": 2001, "title": "Demo — design document", "parentId": 123456789, "version": 5,
+    "versionAuthor": "Ana", "versionWhen": "2026-02-01T09:30:00Z",
+    "property": {"schema": 1, "project": "Demo", "export": "design-doc-confluence", "key": "doc",
+      "items": {"REQ-001": "0000000000000000000000000000000000000000"},
+      "renderHash": "sha256:before", "remoteHash": "sha256:remote", "publishedVersion": 3},
+    "bodyHash": "sha256:edited"
+  }
+}

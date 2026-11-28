@@ -1,0 +1,3 @@
+design/requirements/REQ-003-the-log-exports-as-csv.md:2:7: K201 warning: REQ-003 is approved but nothing verifies it
+design/tasks/TASK-006-draft-the-user-guide.md:11:23: K102 error: reference REQ-099 doesn't exist
+design/tasks/TASK-008-tidy-the-build-scripts.md:2:7: K213 warning: TASK-008 is open work in no milestone; `kiln link TASK-008 part-of MS-…` places it
