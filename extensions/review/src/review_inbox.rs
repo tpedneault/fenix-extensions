@@ -180,6 +180,8 @@ mod tests {
                 comment_count: 2,
                 pipeline: Some(PipelineStatus::Failed),
                 updated_at: "2026-09-24T10:00:00Z".into(),
+                assignees: Vec::new(),
+                labels: Vec::new(),
             },
             new,
             pending: 1,

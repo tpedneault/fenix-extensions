@@ -102,6 +102,9 @@ pub enum ReviewAction {
     Merge(MergeOptions),
     OpenFile { path: String, line: Option<usize> },
     OpenBrowser,
+    /// The request's own form: its title, description, draft state,
+    /// assignees, labels and target, to change.
+    EditRequest,
     CopyUrl,
     ReviewInWorktree,
     CheckOutHere,
@@ -417,6 +420,7 @@ impl ReviewPage {
             Key::Char('w') => return ReviewAction::ReviewInWorktree,
             Key::Char('c') => return ReviewAction::CheckOutHere,
             Key::Char('o') => return ReviewAction::OpenBrowser,
+            Key::Char('E') => return ReviewAction::EditRequest,
             Key::Char('y') => return ReviewAction::CopyUrl,
             Key::Char('u') => return ReviewAction::Refresh,
             Key::Char('q') => return ReviewAction::Close,
@@ -860,6 +864,7 @@ pub fn layout(page: &ReviewPage, cols: usize) -> Page {
             ("m", "merge"),
             ("w", "worktree"),
             ("o", "browser"),
+            ("E", "edit it"),
             ("q", "close"),
         ],
     };
@@ -891,6 +896,8 @@ mod tests {
             comment_count: 1,
             pipeline: Some(PipelineStatus::Success),
             updated_at: "t".into(),
+            assignees: Vec::new(),
+            labels: Vec::new(),
         }
     }
 

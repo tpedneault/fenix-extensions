@@ -75,6 +75,9 @@ enum Done {
     Log { page: u64, name: String, result: Result<String, String> },
     Existing { page: u64, result: Result<Option<MergeRequest>, String>, me: Option<String>, template: Option<String> },
     Opened { page: u64, result: Result<(MergeRequest, Option<String>), String> },
+    /// An open request's changes saved, and what didn't work (asking its
+    /// reviewers).
+    Updated { page: u64, result: Result<(MergeRequest, Option<String>), String> },
     /// Something to say, from a job.
     Say(Result<String, String>),
     OpenInbox { root: String, forge: String, project: String },
@@ -215,6 +218,15 @@ fn opened(reference: &str, title: &str, url: &str, warning: Option<String>) -> N
         None => note.body("o on the Git page reviews it"),
     };
     note.action("Open it in the browser", format!("url:{url}"))
+}
+
+/// The form of request `mr`, open already: what it says, to change.
+/// Its branch needn't be checked out -- nothing of git is read for it.
+fn edit_page(root: PathBuf, forge: String, project: String, mr: MergeRequest) -> RequestPage {
+    let standing = git_request::Standing { pushed: git_request::Pushed::UpToDate(format!("origin/{}", mr.source_branch)), merges_cleanly: (!mr.has_conflicts).then_some(true), base_moved: 0, fixups: 0 };
+    let mut page = RequestPage::new(root, forge, project, mr.source_branch.clone(), mr.target_branch.clone(), Vec::new(), (0, 0, 0), standing, None);
+    page.edit_existing(mr);
+    page
 }
 
 /// The request page for the branch checked out at `root`: the branch's
@@ -543,6 +555,11 @@ impl ReviewExtension {
                 host::open_file(&full, line.map(|l| l as u32));
             }
             ReviewAction::OpenBrowser => browse(&url),
+            ReviewAction::EditRequest => {
+                let Some(mr) = page.data.as_ref().map(|d| d.request.clone()) else { return api::notify("still reading it -- E again in a moment") };
+                let (forge, project) = (page.forge.clone(), page.project.clone());
+                done(Done::OpenRequest(Box::new(edit_page(PathBuf::from(&root), forge, project, mr))));
+            }
             ReviewAction::CopyUrl => {
                 api::copy(&url);
                 api::notify("copied the link");
@@ -592,7 +609,11 @@ impl ReviewExtension {
             return api::page::focus(id);
         }
         let (root, branch) = (page.root.to_string_lossy().into_owned(), page.branch.clone());
-        let id = api::page::open(REQUEST_KIND, &format!("*new request: {}*", page.branch));
+        let title = match &page.updating {
+            Some(mr) => format!("*{}: {}*", mr.reference(), page.branch),
+            None => format!("*new request: {}*", page.branch),
+        };
+        let id = api::page::open(REQUEST_KIND, &title);
         self.pages.insert(id, Open::Request(Box::new(page)));
         run::spawn(async move {
             let found = match client::for_repo(&root).await {
@@ -633,6 +654,21 @@ impl ReviewExtension {
                 let (forge, project) = (page.forge.clone(), page.project.clone());
                 self.close(id);
                 self.open_review(root, forge, project, number);
+            }
+            RequestAction::Update { before, request, reviewers } => {
+                page.busy = true;
+                page.message = None;
+                api::page::refresh(id);
+                run::spawn(async move {
+                    let result = async {
+                        let client = client::for_repo(&root).await?;
+                        let made = client.update_request(&before, &request).await?;
+                        let warning = if reviewers.is_empty() { None } else { client.request_review(made.number, &reviewers).await.err().map(|e| format!("asking {} didn't work: {e}", reviewers.join(", "))) };
+                        Ok((made, warning))
+                    }
+                    .await;
+                    done(Done::Updated { page: id, result });
+                });
             }
             RequestAction::Open { request, reviewers, push } => {
                 page.busy = true;
@@ -809,7 +845,9 @@ impl ReviewExtension {
                     r.add_forge_template(template);
                 }
                 match result {
-                    Ok(found) => r.existing = Some(found),
+                    // One open already for the branch: the form is for it.
+                    Ok(Some(mr)) => r.edit_existing(mr),
+                    Ok(None) => r.existing = Some(None),
                     Err(err) => {
                         r.existing = Some(None);
                         r.message = Some((format!("couldn't ask {} whether one is open already: {err}", r.forge), true));
@@ -825,6 +863,26 @@ impl ReviewExtension {
                         request_drafts::clear(Path::new(request_drafts::REQUESTS), &r.project, &r.branch);
                         self.close(page);
                         opened(&made.reference(), &made.title, &made.web_url, warning).show();
+                        forge::refresh();
+                    }
+                    Err(err) => {
+                        r.message = Some((err, true));
+                        api::page::refresh(page);
+                    }
+                }
+            }
+            Done::Updated { page, result } => {
+                let Some(r) = self.request(page) else { return };
+                r.busy = false;
+                match result {
+                    Ok((made, warning)) => {
+                        self.close(page);
+                        let note = Notification::new(format!("Saved {} {}", made.reference(), made.title));
+                        let note = match warning {
+                            Some(w) => note.body(w),
+                            None => note.body("E on its review page, or the request form for the branch, edits it again"),
+                        };
+                        note.action("Open it in the browser", format!("url:{}", made.web_url)).show();
                         forge::refresh();
                     }
                     Err(err) => {

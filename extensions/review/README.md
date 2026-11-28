@@ -39,6 +39,7 @@ Vim keys. It needs Fenix 1.5 or later.
 | `i` | Only what changed since your last review |
 | `s` | Submit: `a` approve, `r` request changes, `c` comment, `e` a summary, `S S` sends it. In the summary's box, `A` in Normal mode (`Ctrl+Shift+A` with standard keys) has your coding agent write it while the box is empty |
 | `m` | Merge: squash, rebase, delete the branch, when the checks pass; `m m` |
+| `E` | Edit the request: its title, description, draft or ready, assignees, labels and target; `S S` saves it |
 | `w`, `o`, `q` | A worktree, the browser, close |
 
 A check's log opens as text; a failed one can run again. Your held
@@ -63,6 +64,17 @@ extension may send the branch's diff to that agent.
 
 Once it's opened, a notification says so; Enter on it, or a click, opens
 the request in the browser.
+
+## Changing it once it's open
+
+The same form edits a request that's open: opened again for a branch
+whose request is open (`o` on the Git page, the command), it's that
+request's, filled in as it stands; and `E` on a request's review page
+opens it for any request, its branch checked out or not. Make it a draft
+or ready for review, change who it's assigned to, its labels, title,
+description or target branch, then `S S` saves it. On GitHub the draft
+state moves by its GraphQL API, the rest by REST; on GitLab it's one
+change, a draft marked in its title as GitLab does.
 
 ## Settings
 

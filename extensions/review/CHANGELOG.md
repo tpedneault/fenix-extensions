@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0
+
+For Fenix 1.5 (extension API 1.5):
+
+- A request that's open can be changed from Fenix: the request form, for
+  a branch whose request is open, is that request's -- filled in as it
+  stands -- and `E` on a request's review page opens it. Draft or ready,
+  assignees, labels, title, description and target; `S S` saves.
+
 ## 1.3.1
 
 For Fenix 1.5 (extension API 1.5):
